@@ -2006,10 +2006,14 @@ function aplicarPermisos(){
   // Si es empleado con permisos explícitos
   Object.entries(map).forEach(([mod,idx])=>{
     const navItem=navItems[idx];if(!navItem)return;
-    if(mod==='dash'){navItem.style.display='flex';return;}
     if(mod==='config'){navItem.style.display='none';return;}
     navItem.style.display=misPermisos.includes(mod)?'flex':'none';
   });
+  // Si no tiene acceso al dash, mostrar la primera página visible
+  if(!misPermisos.includes('dash')){
+    const firstVisible=Object.entries(map).find(([mod])=>misPermisos.includes(mod));
+    if(firstVisible)showPage(firstVisible[0]);
+  }
 }
 
 </script>
