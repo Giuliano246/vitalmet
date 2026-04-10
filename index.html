@@ -484,14 +484,31 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
       </div>
       <hr class="form-divider">
       <div class="section-label">Material utilizado</div>
-      <div class="form-row">
-        <div class="form-group"><label>Barra consumida *</label><select id="op-barra"><option value="">Seleccionar barra...</option></select></div>
-        <div class="form-group"><label>O/C Material</label><input type="text" id="op-oc-material" placeholder="OC-2024-050"></div>
-      </div>
       <div class="form-row triple">
-        <div class="form-group"><label>Metros consumidos *</label><input type="number" id="op-kg-usados" placeholder="0.00" step="0.01"></div>
-        <div class="form-group"><label>Merma / scrap (mts)</label><input type="number" id="op-merma" placeholder="0.00" step="0.01"></div>
+        <div class="form-group"><label>Origen del material *</label>
+          <select id="op-origen" onchange="onOrigenChange()">
+            <option value="barra">Barra</option>
+            <option value="fundicion">Matriz de fundición</option>
+            <option value="forja">Matriz de forja</option>
+          </select>
+        </div>
+        <div class="form-group"><label>O/C Material</label><input type="text" id="op-oc-material" placeholder="OC-2024-050"></div>
         <div class="form-group"><label>Cantidad total *</label><input type="number" id="op-cant" placeholder="0"></div>
+      </div>
+      <div id="op-barra-section">
+        <div class="form-row">
+          <div class="form-group"><label>Barra consumida *</label><select id="op-barra"><option value="">Seleccionar barra...</option></select></div>
+          <div class="form-group"><label>Metros consumidos *</label><input type="number" id="op-kg-usados" placeholder="0.00" step="0.01"></div>
+        </div>
+      </div>
+      <div id="op-matriz-section" style="display:none">
+        <div class="form-row">
+          <div class="form-group"><label>Descripción matriz / material</label><input type="text" id="op-matriz-desc" placeholder="Ej: Ø100 x 5m SAE 1026"></div>
+          <div class="form-group"><label>Barra (opcional)</label><select id="op-barra-opt"><option value="">Sin barra vinculada</option></select></div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Merma / scrap (mts)</label><input type="number" id="op-merma" placeholder="0.00" step="0.01"></div>
       </div>
       <hr class="form-divider">
       <div class="section-label">Producción</div>
@@ -1102,7 +1119,7 @@ function openModal(id){
   if(id==='modal-pt'){openModalPT();return;}
   if(id==='modal-material'){openModalMaterial();return;}
   if(id==='modal-mp'){populateCertSel();const s=document.getElementById('mp-material');if(s)s.innerHTML=getMaterialOptions();}
-  if(id==='modal-op'){populateCertSel();populateBarraSel();autoDate('op-fecha');['op-fecha-fin','op-horas','op-codigo','op-oc-material'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});}
+  if(id==='modal-op'){populateCertSel();populateBarraSel();autoDate('op-fecha');['op-fecha-fin','op-horas','op-codigo','op-oc-material','op-matriz-desc'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});document.getElementById('op-origen').value='barra';onOrigenChange();}
   if(id==='modal-venta'){autoDate('v-fecha');ventaItemsList=[];renderVentaItems();}
   document.getElementById(id).classList.add('open');
 }
@@ -1112,7 +1129,17 @@ function autoDate(id){const el=document.getElementById(id);if(el&&!el.value)el.v
 function g(id){return document.getElementById(id)?.value?.trim()||'';}
 
 function populateCertSel(){const s=document.getElementById('mp-cert-link');if(!s)return;s.innerHTML='<option value="">Sin certificado</option>'+certs.map(c=>`<option value="${c.id}">${c.nro} — ${c.material} (${c.colada})</option>`).join('');}
-function populateBarraSel(){const s=document.getElementById('op-barra');if(!s)return;s.innerHTML='<option value="">Seleccionar barra...</option>'+barras.filter(b=>b.kg_disponibles>0).map(b=>`<option value="${b.id}">${b.lote} — ${b.material} ${b.diametro||''} (${b.kg_disponibles} mts)</option>`).join('');}
+function populateBarraSel(){
+  const opts='<option value="">Seleccionar barra...</option>'+barras.filter(b=>b.kg_disponibles>0).map(b=>`<option value="${b.id}">${b.lote} — ${b.material} ${b.diametro||''} (${b.kg_disponibles} mts)</option>`).join('');
+  const s=document.getElementById('op-barra');if(s)s.innerHTML=opts;
+  const s2=document.getElementById('op-barra-opt');if(s2)s2.innerHTML='<option value="">Sin barra vinculada</option>'+barras.map(b=>`<option value="${b.id}">${b.lote} — ${b.material} ${b.diametro||''} (${b.kg_disponibles} mts)</option>`).join('');
+}
+function onOrigenChange(){
+  const origen=document.getElementById('op-origen').value;
+  const esBarra=origen==='barra';
+  document.getElementById('op-barra-section').style.display=esBarra?'block':'none';
+  document.getElementById('op-matriz-section').style.display=esBarra?'none':'block';
+}
 
 // ─── VENTA ITEMS ──────────────────────────────────────────────────
 function addVentaItem(){ventaItemsList.push({ptId:'',cant:1,precio:0});renderVentaItems();}
@@ -1167,28 +1194,43 @@ async function saveCert(){
 }
 
 async function saveOP(){
-  if(!g('op-nro')||!g('op-pieza')||!g('op-cant')||!g('op-barra')||!g('op-kg-usados'))return notify('Completá los campos obligatorios','err');
+  const origen=g('op-origen')||'barra';
+  const esBarra=origen==='barra';
+  if(!g('op-nro')||!g('op-pieza')||!g('op-cant'))return notify('Completá los campos obligatorios','err');
+  if(esBarra&&(!g('op-barra')||!g('op-kg-usados')))return notify('Seleccioná barra y metros consumidos','err');
   const kgU=parseFloat(g('op-kg-usados'))||0;
-  const barra=barras.find(b=>b.id===g('op-barra'));
-  if(!barra)return notify('Barra no encontrada','err');
-  if(kgU>barra.kg_disponibles)return notify(`Stock insuficiente. Disponible: ${barra.kg_disponibles} mts`,'err');
+  let barra=null;
+  let barraId=null;
+  if(esBarra){
+    barra=barras.find(b=>b.id===g('op-barra'));
+    if(!barra)return notify('Barra no encontrada','err');
+    if(kgU>barra.kg_disponibles)return notify(`Stock insuficiente. Disponible: ${barra.kg_disponibles} mts`,'err');
+    barraId=barra.id;
+  } else {
+    // Fundición o forja: barra opcional
+    barraId=g('op-barra-opt')||null;
+    if(barraId){barra=barras.find(b=>b.id===barraId);}
+  }
   setBusy('btn-save-op',true);
   try{
     const lotePT=g('op-lote-pt')||('PT-'+Date.now());
     const estado=g('op-estado');
     const cant=parseInt(g('op-cant'));
     const costo=parseFloat(g('op-precio'))||0;
-    const op=await POST('ordenes_produccion',{empresa_id:currentEmpresa.id,nro:g('op-nro'),pieza:g('op-pieza'),descripcion:g('op-desc'),cantidad:cant,precio_unitario:costo,lote_pt:lotePT,barra_id:barra.id,kg_usados:kgU,merma_kg:parseFloat(g('op-merma'))||0,operario:g('op-operario'),estado,fecha:g('op-fecha')||new Date().toISOString().split('T')[0],fecha_fin:g('op-fecha-fin')||null,horas_total:parseFloat(g('op-horas'))||null,codigo_plano:g('op-codigo')||null,oc_material:g('op-oc-material')||null});
-    // Siempre descontar MP al registrar la OP
-    await PATCH('barras',{kg_disponibles:Math.max(0,barra.kg_disponibles-kgU)},`?id=eq.${barra.id}`);
+    const descFull=esBarra?g('op-desc'):[g('op-desc'),g('op-matriz-desc')].filter(Boolean).join(' — ')||origen;
+    const op=await POST('ordenes_produccion',{empresa_id:currentEmpresa.id,nro:g('op-nro'),pieza:g('op-pieza'),descripcion:descFull,cantidad:cant,precio_unitario:costo,lote_pt:lotePT,barra_id:barraId,kg_usados:esBarra?kgU:0,merma_kg:parseFloat(g('op-merma'))||0,operario:g('op-operario'),estado,fecha:g('op-fecha')||new Date().toISOString().split('T')[0],fecha_fin:g('op-fecha-fin')||null,horas_total:parseFloat(g('op-horas'))||null,codigo_plano:g('op-codigo')||null,oc_material:g('op-oc-material')||null,origen_material:origen});
+    // Descontar MP solo si es barra y hay metros consumidos
+    if(esBarra&&barra&&kgU>0){
+      await PATCH('barras',{kg_disponibles:Math.max(0,barra.kg_disponibles-kgU)},`?id=eq.${barra.id}`);
+    }
     // Solo sumar al stock PT si la OP está completada
     if(estado==='completada'){
-      await POST('productos_terminados',{empresa_id:currentEmpresa.id,lote:lotePT,pieza:g('op-pieza'),descripcion:g('op-desc'),cantidad:cant,precio_unitario:costo,costo_unitario:costo,barra_id:barra.id,orden_id:op[0].id});
+      await POST('productos_terminados',{empresa_id:currentEmpresa.id,lote:lotePT,pieza:g('op-pieza'),descripcion:descFull,cantidad:cant,precio_unitario:costo,costo_unitario:costo,barra_id:barraId,orden_id:op[0].id});
       notify('Orden completada — '+cant+' unidades sumadas al stock PT');
     } else {
       notify('Orden registrada — stock PT pendiente');
     }
-    await loadAll();closeModal('modal-op');resetF(['op-nro','op-pieza','op-desc','op-cant','op-precio','op-lote-pt','op-barra','op-kg-usados','op-merma','op-operario','op-fecha-fin','op-horas','op-codigo','op-oc-material']);renderAll();
+    await loadAll();closeModal('modal-op');resetF(['op-nro','op-pieza','op-desc','op-cant','op-precio','op-lote-pt','op-barra','op-barra-opt','op-kg-usados','op-merma','op-operario','op-fecha-fin','op-horas','op-codigo','op-oc-material','op-matriz-desc']);renderAll();
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-op',false,'Registrar orden');
 }
