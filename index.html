@@ -1188,7 +1188,23 @@ async function saveCert(){
   if(!g('cert-nro')||!g('cert-prov')||!g('cert-mat')||!g('cert-colada'))return notify('Completá los campos obligatorios','err');
   setBusy('btn-save-cert',true);
   try{
-    certFileData=null;certFileName=null;document.getElementById('cert-file-name').textContent='Ningún archivo seleccionado';
+    await POST('certificados',{
+      empresa_id:currentEmpresa.id,
+      nro:g('cert-nro'),
+      proveedor:g('cert-prov'),
+      material:g('cert-mat'),
+      colada:g('cert-colada'),
+      fecha:g('cert-fecha')||null,
+      file_data:certFileData||null,
+      file_name:certFileName||null
+    });
+    await loadAll();
+    closeModal('modal-cert');
+    resetF(['cert-nro','cert-prov','cert-mat','cert-colada','cert-fecha']);
+    certFileData=null;certFileName=null;
+    document.getElementById('cert-file-name').textContent='Ningún archivo seleccionado';
+    renderAll();
+    notify('Certificado registrado');
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-cert',false,'Guardar certificado');
 }
