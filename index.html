@@ -860,7 +860,15 @@ async function authFetch(path,method='GET',body,token){
 }
 
 async function db(method,table,body,params='',token){
-  const r=await fetch(`${SUPA_URL}/rest/v1/${table}${params}`,{method,headers:authH(token||currentSession?.access_token),body:body?JSON.stringify(body):undefined});
+  let r=await fetch(`${SUPA_URL}/rest/v1/${table}${params}`,{method,headers:authH(token||currentSession?.access_token),body:body?JSON.stringify(body):undefined});
+  // Si da 401 (token expirado), intentar refresh y reintentar una vez
+  if(r.status===401&&currentSession?.refresh_token&&!token){
+    const newSession=await refreshSession(currentSession);
+    if(newSession){
+      currentSession=newSession;currentUser=newSession.user;
+      r=await fetch(`${SUPA_URL}/rest/v1/${table}${params}`,{method,headers:authH(newSession.access_token),body:body?JSON.stringify(body):undefined});
+    }
+  }
   if(!r.ok){const e=await r.json();throw new Error(e.message||r.statusText);}
   return method==='DELETE'?null:r.json();
 }
@@ -1308,7 +1316,7 @@ function renderPT(filter=''){
 function renderCert(filter=''){
   const f=filter.toLowerCase();
   const list=certs.filter(c=>!f||c.nro.toLowerCase().includes(f)||c.proveedor.toLowerCase().includes(f)||c.material.toLowerCase().includes(f));
-  document.getElementById('cert-tbody').innerHTML=list.length?list.map(c=>{const vinc=barras.filter(b=>b.certificado_id===c.id).length;return`<tr><td class="mono td-primary">${c.nro}</td><td>${c.proveedor}</td><td><span class="badge badge-blue">${c.material}</span></td><td class="mono">${c.colada}</td><td class="mono" style="font-size:10px;color:var(--text3)">${comp||'—'}</td><td>${c.fecha||'—'}</td><td>${c.file_data?`<span class="pdf-link" onclick="openPDF('${c.id}')">Ver PDF</span>`:'<span style="color:var(--text3)">No adjunto</span>'}</td><td><span class="badge badge-teal">${vinc} barra${vinc!==1?'s':''}</span></td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editCert('${c.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="deleteCert('${c.id}')">×</button></td></tr>`;}):(`<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">Sin certificados</td></tr>`);
+  document.getElementById('cert-tbody').innerHTML=list.length?list.map(c=>{const vinc=barras.filter(b=>b.certificado_id===c.id).length;return`<tr><td class="mono td-primary">${c.nro}</td><td>${c.proveedor}</td><td><span class="badge badge-blue">${c.material}</span></td><td class="mono">${c.colada}</td><td>${c.fecha||'—'}</td><td>${c.file_data?`<span class="pdf-link" onclick="openPDF('${c.id}')">Ver PDF</span>`:'<span style="color:var(--text3)">No adjunto</span>'}</td><td><span class="badge badge-teal">${vinc} barra${vinc!==1?'s':''}</span></td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editCert('${c.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="deleteCert('${c.id}')">×</button></td></tr>`;}):(`<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">Sin certificados</td></tr>`);
 }
 
 function renderOP(){
@@ -1842,12 +1850,34 @@ async function saveEditVenta(){
 }
 
 // ─── VERIFICAR SESIÓN EXISTENTE ────────────────────────────────────
+async function refreshSession(s){
+  if(!s.refresh_token)return null;
+  try{
+    const r=await fetch(SUPA_URL+'/auth/v1/token?grant_type=refresh_token',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY},
+      body:JSON.stringify({refresh_token:s.refresh_token})
+    });
+    if(!r.ok)return null;
+    const d=await r.json();
+    if(d.access_token){
+      localStorage.setItem('sb_session',JSON.stringify(d));
+      return d;
+    }
+    return null;
+  }catch(e){return null;}
+}
+
 async function checkExistingSession(){
   const stored=localStorage.getItem('sb_session');
   if(!stored)return;
   try{
-    const s=JSON.parse(stored);
-    if(s.expires_at&&s.expires_at*1000<Date.now()){localStorage.removeItem('sb_session');return;}
+    let s=JSON.parse(stored);
+    // Si el token expiró o está por expirar (menos de 60s), intentar refresh
+    if(s.expires_at&&s.expires_at*1000<Date.now()+60000){
+      s=await refreshSession(s);
+      if(!s){localStorage.removeItem('sb_session');return;}
+    }
     currentSession=s;currentUser=s.user;
     await loadEmpresaAndStart();
   }catch(e){localStorage.removeItem('sb_session');}
