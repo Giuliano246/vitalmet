@@ -278,6 +278,7 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
       <div class="nav-item" onclick="showPage('cert')"><div class="nav-dot"></div>Certificados MTC</div>
       <div class="nav-item" onclick="showPage('op')"><div class="nav-dot"></div>Órdenes producción</div>
       <div class="nav-item" onclick="showPage('ventas')"><div class="nav-dot"></div>Ventas</div>
+      <div class="nav-item" onclick="showPage('clientes')"><div class="nav-dot"></div>Clientes</div>
       <div class="nav-section">Consultas</div>
       <div class="nav-item" onclick="showPage('trace')"><div class="nav-dot"></div>Trazabilidad</div>
       <div class="nav-section">Sistema</div>
@@ -354,6 +355,18 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
           <button class="btn btn-coral" onclick="openModal('modal-venta')">+ Nueva venta</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Nro. remito</th><th>Cliente</th><th>Fecha</th><th>Piezas</th><th>Total unid.</th><th>Importe</th><th>Estado</th><th></th></tr></thead><tbody id="ventas-tbody"></tbody></table></div>
+      </div>
+    </div>
+    <!-- CLIENTES -->
+    <div class="page" id="page-clientes">
+      <div class="page-header"><div class="page-title">Clientes</div><div class="page-sub">// cartera comercial</div><div class="tabs"><div class="tab active">Todos</div></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="clientes-stats"></div>
+        <div class="toolbar">
+          <div class="search-box"><input type="text" placeholder="Buscar por nombre, CUIT..." oninput="renderClientes(this.value)"></div>
+          <button class="btn btn-ghost" onclick="openModalCliente()">+ Nuevo cliente</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Contacto</th><th>Teléfono</th><th>Email</th><th>CUIT</th><th>Compras</th><th>Total facturado</th><th></th></tr></thead><tbody id="clientes-tbody"></tbody></table></div>
       </div>
     </div>
     <!-- TRAZABILIDAD -->
@@ -546,7 +559,7 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
     <div class="modal-body">
       <div class="form-row triple">
         <div class="form-group"><label>Nro. remito *</label><input type="text" id="v-remito" placeholder="R-2024-001"></div>
-        <div class="form-group"><label>Cliente *</label><input type="text" id="v-cliente" placeholder="Nombre del cliente"></div>
+        <div class="form-group"><label>Cliente *</label><input type="text" id="v-cliente" placeholder="Nombre del cliente" list="clientes-datalist"></div>
         <div class="form-group"><label>Fecha</label><input type="date" id="v-fecha"></div>
       </div>
       <div class="form-row">
@@ -572,6 +585,55 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
     </div>
   </div>
 </div>
+
+<!-- MODAL: Cliente -->
+<div class="modal-overlay" id="modal-cliente">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="modal-cliente-title">Nuevo cliente</div><button class="modal-close" onclick="closeModal('modal-cliente')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="cliente-edit-id">
+      <div class="form-row">
+        <div class="form-group"><label>Nombre / Razón social *</label><input type="text" id="cliente-nombre" placeholder="Nombre del cliente"></div>
+        <div class="form-group"><label>CUIT</label><input type="text" id="cliente-cuit" placeholder="20-12345678-9"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Contacto</label><input type="text" id="cliente-contacto" placeholder="Persona de contacto"></div>
+        <div class="form-group"><label>Teléfono</label><input type="text" id="cliente-telefono" placeholder="+54 11 1234-5678"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Email</label><input type="email" id="cliente-email" placeholder="cliente@empresa.com"></div>
+        <div class="form-group"><label>Dirección</label><input type="text" id="cliente-direccion" placeholder="Dirección"></div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group"><label>Notas</label><textarea id="cliente-notas" placeholder="Observaciones sobre el cliente..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-cliente')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-cliente" onclick="saveCliente()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Ficha cliente (historial) -->
+<div class="modal-overlay" id="modal-ficha-cliente">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="ficha-cliente-nombre">Cliente</div>
+        <div style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:2px" id="ficha-cliente-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-ficha-cliente')">×</button>
+    </div>
+    <div class="modal-body" id="ficha-cliente-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-ficha-cliente')">Cerrar</button>
+      <button class="btn btn-primary" onclick="editClienteFromFicha()">Editar datos</button>
+    </div>
+  </div>
+</div>
+
+<datalist id="clientes-datalist"></datalist>
 
 <div class="notif" id="notif"></div>
 
@@ -865,7 +927,7 @@ const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 
 // ─── AUTH HELPERS ──────────────────────────────────────────────────
 let currentSession=null, currentUser=null, currentEmpresa=null;
-let certs=[],barras=[],ops=[],pts=[],ventas=[],ventaItemsList=[],materiales=[],tratamientos=[],usuariosEmpresa=[],permisosUsuario=[],currentUserData=null;
+let certs=[],barras=[],ops=[],pts=[],ventas=[],ventaItemsList=[],materiales=[],tratamientos=[],usuariosEmpresa=[],permisosUsuario=[],clientes=[],currentUserData=null;
 let certFileData=null,certFileName=null;
 
 function authH(token){return{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(token||SUPA_KEY),'Prefer':'return=representation'};}
@@ -1114,7 +1176,7 @@ async function loadEmpresaAndStart(){
 // ─── DATA ─────────────────────────────────────────────────────────
 async function loadAll(){
   try{
-    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario]=await Promise.all([
+    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes]=await Promise.all([
       GET('certificados','?order=created_at.desc'),
       GET('barras','?order=created_at.desc&select=*,certificados(nro,colada,proveedor)'),
       GET('ordenes_produccion','?order=created_at.desc&select=*,barras(lote)'),
@@ -1124,12 +1186,13 @@ async function loadAll(){
       GET('tratamientos','?order=created_at.desc').catch(()=>[]),
       GET('usuarios','?order=created_at.asc'),
       GET('permisos_usuario','?order=modulo.asc').catch(()=>[]),
+      GET('clientes','?order=nombre.asc').catch(()=>[]),
     ]);
   }catch(e){
     console.error('Error cargando datos:',e);
     // Asegurar que los arrays estén inicializados aunque falle
     certs=certs||[];barras=barras||[];ops=ops||[];pts=pts||[];ventas=ventas||[];
-    materiales=materiales||[];tratamientos=tratamientos||[];usuariosEmpresa=usuariosEmpresa||[];permisosUsuario=permisosUsuario||[];
+    materiales=materiales||[];tratamientos=tratamientos||[];usuariosEmpresa=usuariosEmpresa||[];permisosUsuario=permisosUsuario||[];clientes=clientes||[];
   }
 }
 
@@ -1138,7 +1201,7 @@ function showPage(p){
   document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
-  const map={dash:0,mp:1,pt:2,cert:3,op:4,ventas:5,trace:6,config:7};
+  const map={dash:0,mp:1,pt:2,cert:3,op:4,ventas:5,clientes:6,trace:7,config:8};
   document.querySelectorAll('.nav-item')[map[p]]?.classList.add('active');
 }
 
@@ -1290,7 +1353,13 @@ async function saveVenta(){
   }
   setBusy('btn-save-venta',true);
   try{
-    const venta=await POST('ventas',{empresa_id:currentEmpresa.id,nro_remito:g('v-remito'),cliente:g('v-cliente'),fecha:g('v-fecha'),condicion_pago:g('v-condicion'),estado:g('v-estado'),observaciones:g('v-obs')});
+    const clienteNombre=g('v-cliente');
+    // Auto-crear cliente si no existe
+    const clienteExiste=clientes.find(c=>c.nombre.toLowerCase()===clienteNombre.toLowerCase());
+    if(!clienteExiste){
+      await POST('clientes',{empresa_id:currentEmpresa.id,nombre:clienteNombre});
+    }
+    const venta=await POST('ventas',{empresa_id:currentEmpresa.id,nro_remito:g('v-remito'),cliente:clienteNombre,fecha:g('v-fecha'),condicion_pago:g('v-condicion'),estado:g('v-estado'),observaciones:g('v-obs')});
     const ventaId=venta[0].id;
     for(const item of ventaItemsList){
       await POST('venta_items',{venta_id:ventaId,producto_id:item.ptId,pieza:pts.find(p=>p.id===item.ptId)?.pieza||'',cantidad:item.cant,precio_unitario:item.precio});
@@ -1523,7 +1592,7 @@ function notify(msg,type){
   el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);
 }
 
-function renderAll(){renderDash();renderMP();renderPT();renderCert();renderOP();renderVentas();renderConfig();}
+function renderAll(){renderDash();renderMP();renderPT();renderCert();renderOP();renderVentas();renderClientes();renderConfig();updateClientesDatalist();}
 
 
 // ─── MATERIALES ───────────────────────────────────────────────────
@@ -2096,10 +2165,183 @@ function openTratPDF(tratId){
     win.document.write(`<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${t.certificado_file_data}" style="max-width:100%;max-height:100vh"></body></html>`);
 }
 
+// ─── CLIENTES ─────────────────────────────────────────────────────
+function updateClientesDatalist(){
+  const dl=document.getElementById('clientes-datalist');
+  if(dl)dl.innerHTML=clientes.map(c=>`<option value="${c.nombre}">`).join('');
+}
+
+function getClienteVentas(nombre){
+  return ventas.filter(v=>v.cliente.toLowerCase()===nombre.toLowerCase());
+}
+
+function getClienteTotal(nombre){
+  return getClienteVentas(nombre).reduce((a,v)=>{
+    const items=v.venta_items||[];
+    return a+items.reduce((b,i)=>b+(i.cantidad*(i.precio_unitario||0)),0);
+  },0);
+}
+
+function renderClientes(filter=''){
+  const f=filter.toLowerCase();
+  const list=clientes.filter(c=>!f||c.nombre.toLowerCase().includes(f)||c.cuit?.toLowerCase().includes(f)||c.contacto?.toLowerCase().includes(f));
+  const totalFacturado=clientes.reduce((a,c)=>a+getClienteTotal(c.nombre),0);
+  const conCompras=clientes.filter(c=>getClienteVentas(c.nombre).length>0).length;
+  document.getElementById('clientes-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total clientes</div><div class="stat-value" style="color:var(--blue)">${clientes.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Con compras</div><div class="stat-value" style="color:var(--green)">${conCompras}</div></div>
+    <div class="stat-card"><div class="stat-label">Sin compras</div><div class="stat-value" style="color:${clientes.length-conCompras>0?'var(--accent)':'var(--text)'}">${clientes.length-conCompras}</div></div>
+    <div class="stat-card"><div class="stat-label">Total facturado</div><div class="stat-value" style="color:var(--coral);font-size:13px">${fmtPeso(totalFacturado)}</div></div>`;
+  document.getElementById('clientes-tbody').innerHTML=list.length?list.map(c=>{
+    const ventasC=getClienteVentas(c.nombre);
+    const total=ventasC.reduce((a,v)=>(v.venta_items||[]).reduce((b,i)=>b+(i.cantidad*(i.precio_unitario||0)),0)+a,0);
+    return`<tr>
+      <td class="td-primary" style="cursor:pointer;color:var(--blue)" onclick="openFichaCliente('${c.id}')">${c.nombre}</td>
+      <td>${c.contacto||'—'}</td>
+      <td class="mono">${c.telefono||'—'}</td>
+      <td>${c.email||'—'}</td>
+      <td class="mono">${c.cuit||'—'}</td>
+      <td class="mono">${ventasC.length}</td>
+      <td class="mono" style="color:var(--green)">${fmtPeso(total)}</td>
+      <td style="display:flex;gap:4px">
+        <button class="btn btn-ghost btn-sm" onclick="openFichaCliente('${c.id}')">Ficha</button>
+        <button class="btn btn-ghost btn-sm" onclick="editCliente('${c.id}')">Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCliente('${c.id}')">×</button>
+      </td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">Sin clientes registrados</td></tr>`;
+}
+
+function openModalCliente(){
+  document.getElementById('modal-cliente-title').textContent='Nuevo cliente';
+  document.getElementById('cliente-edit-id').value='';
+  resetF(['cliente-nombre','cliente-cuit','cliente-contacto','cliente-telefono','cliente-email','cliente-direccion','cliente-notas']);
+  document.getElementById('modal-cliente').classList.add('open');
+}
+
+function editCliente(id){
+  const c=clientes.find(x=>x.id===id);if(!c)return;
+  document.getElementById('modal-cliente-title').textContent='Editar cliente';
+  document.getElementById('cliente-edit-id').value=c.id;
+  document.getElementById('cliente-nombre').value=c.nombre;
+  document.getElementById('cliente-cuit').value=c.cuit||'';
+  document.getElementById('cliente-contacto').value=c.contacto||'';
+  document.getElementById('cliente-telefono').value=c.telefono||'';
+  document.getElementById('cliente-email').value=c.email||'';
+  document.getElementById('cliente-direccion').value=c.direccion||'';
+  document.getElementById('cliente-notas').value=c.notas||'';
+  document.getElementById('modal-cliente').classList.add('open');
+}
+
+async function saveCliente(){
+  const nombre=document.getElementById('cliente-nombre').value.trim();
+  if(!nombre)return notify('El nombre es obligatorio','err');
+  const editId=document.getElementById('cliente-edit-id').value;
+  setBusy('btn-save-cliente',true);
+  try{
+    const data={
+      nombre,
+      cuit:document.getElementById('cliente-cuit').value.trim()||null,
+      contacto:document.getElementById('cliente-contacto').value.trim()||null,
+      telefono:document.getElementById('cliente-telefono').value.trim()||null,
+      email:document.getElementById('cliente-email').value.trim()||null,
+      direccion:document.getElementById('cliente-direccion').value.trim()||null,
+      notas:document.getElementById('cliente-notas').value.trim()||null,
+    };
+    if(editId){
+      await PATCH('clientes',data,`?id=eq.${editId}`);
+      notify('Cliente actualizado');
+    } else {
+      data.empresa_id=currentEmpresa.id;
+      await POST('clientes',data);
+      notify('Cliente registrado');
+    }
+    await loadAll();closeModal('modal-cliente');renderAll();
+  }catch(e){notify(e.message,'err');}
+  setBusy('btn-save-cliente',false,'Guardar');
+}
+
+async function deleteCliente(id){
+  const c=clientes.find(x=>x.id===id);
+  if(!c)return;
+  const ventasC=getClienteVentas(c.nombre);
+  if(ventasC.length){
+    if(!confirm(`Este cliente tiene ${ventasC.length} venta(s) asociada(s). ¿Eliminar igual? (las ventas NO se borran)`))return;
+  } else {
+    if(!confirm('¿Eliminar este cliente?'))return;
+  }
+  try{
+    await DEL('clientes',`?id=eq.${id}`);
+    await loadAll();renderAll();notify('Cliente eliminado');
+  }catch(e){notify(e.message,'err');}
+}
+
+function openFichaCliente(id){
+  const c=clientes.find(x=>x.id===id);if(!c)return;
+  document.getElementById('ficha-cliente-nombre').textContent=c.nombre;
+  document.getElementById('ficha-cliente-sub').textContent=[c.cuit,c.telefono,c.email].filter(Boolean).join(' · ')||'Sin datos de contacto';
+  const ventasC=getClienteVentas(c.nombre);
+  const totalFact=ventasC.reduce((a,v)=>(v.venta_items||[]).reduce((b,i)=>b+(i.cantidad*(i.precio_unitario||0)),0)+a,0);
+  const totalUnid=ventasC.reduce((a,v)=>(v.venta_items||[]).reduce((b,i)=>b+i.cantidad,0)+a,0);
+  const piezasCompradas={};
+  ventasC.forEach(v=>(v.venta_items||[]).forEach(i=>{const p=i.pieza||'';piezasCompradas[p]=(piezasCompradas[p]||0)+i.cantidad;}));
+  const topPiezas=Object.entries(piezasCompradas).sort((a,b)=>b[1]-a[1]);
+
+  let html=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+    <div class="kpi"><div class="kpi-label">Compras</div><div class="kpi-val" style="color:var(--blue)">${ventasC.length}</div></div>
+    <div class="kpi"><div class="kpi-label">Unidades</div><div class="kpi-val" style="color:var(--teal)">${totalUnid}</div></div>
+    <div class="kpi"><div class="kpi-label">Total facturado</div><div class="kpi-val" style="color:var(--coral);font-size:13px">${fmtPeso(totalFact)}</div></div>
+    <div class="kpi"><div class="kpi-label">Última compra</div><div class="kpi-val" style="font-size:12px">${ventasC[0]?.fecha||'—'}</div></div>
+  </div>`;
+
+  if(c.contacto||c.telefono||c.email||c.direccion){
+    html+=`<div style="background:var(--surface2);border-radius:6px;padding:12px;margin-bottom:14px;font-size:12px">
+      ${c.contacto?`<div style="margin-bottom:4px"><span style="color:var(--text3)">Contacto:</span> ${c.contacto}</div>`:''}
+      ${c.telefono?`<div style="margin-bottom:4px"><span style="color:var(--text3)">Teléfono:</span> ${c.telefono}</div>`:''}
+      ${c.email?`<div style="margin-bottom:4px"><span style="color:var(--text3)">Email:</span> ${c.email}</div>`:''}
+      ${c.direccion?`<div style="margin-bottom:4px"><span style="color:var(--text3)">Dirección:</span> ${c.direccion}</div>`:''}
+      ${c.notas?`<div><span style="color:var(--text3)">Notas:</span> ${c.notas}</div>`:''}
+    </div>`;
+  }
+
+  if(topPiezas.length){
+    html+=`<div class="section-label">Productos más comprados</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+      ${topPiezas.slice(0,8).map(([p,c])=>`<span class="badge badge-teal">${p} (${c})</span>`).join('')}
+    </div>`;
+  }
+
+  html+=`<div class="section-label">Historial de compras (${ventasC.length})</div>`;
+  if(ventasC.length){
+    html+=`<div class="table-wrap"><table><thead><tr><th>Remito</th><th>Fecha</th><th>Piezas</th><th>Unid.</th><th>Importe</th><th>Estado</th></tr></thead><tbody>`;
+    html+=ventasC.map(v=>{
+      const items=v.venta_items||[];
+      const imp=items.reduce((a,i)=>a+(i.cantidad*(i.precio_unitario||0)),0);
+      const unid=items.reduce((a,i)=>a+i.cantidad,0);
+      const piezas=[...new Set(items.map(i=>i.pieza||''))].join(', ');
+      const bE={entregado:'badge-ok',facturado:'badge-teal',pendiente:'badge-warn'};
+      return`<tr><td class="mono td-primary">${v.nro_remito}</td><td>${v.fecha||'—'}</td><td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${piezas}</td><td class="mono">${unid}</td><td class="mono" style="color:var(--green)">${fmtPeso(imp)}</td><td><span class="badge ${bE[v.estado]||'badge-warn'}">${v.estado.toUpperCase()}</span></td></tr>`;
+    }).join('');
+    html+=`</tbody></table></div>`;
+  } else {
+    html+=`<div style="color:var(--text3);font-size:12px;padding:16px;text-align:center">Sin compras registradas</div>`;
+  }
+
+  document.getElementById('ficha-cliente-body').innerHTML=html;
+  document.getElementById('modal-ficha-cliente').dataset.clienteId=c.id;
+  document.getElementById('modal-ficha-cliente').classList.add('open');
+}
+
+function editClienteFromFicha(){
+  const id=document.getElementById('modal-ficha-cliente').dataset.clienteId;
+  closeModal('modal-ficha-cliente');
+  editCliente(id);
+}
+
 function aplicarPermisos(){
   const esAdmin=currentUserData?.es_admin===true;
   const misPermisos=permisosUsuario.filter(p=>p.usuario_id===currentUser?.id).map(p=>p.modulo);
-  const map={dash:0,mp:1,pt:2,cert:3,op:4,ventas:5,trace:6,config:7};
+  const map={dash:0,mp:1,pt:2,cert:3,op:4,ventas:5,clientes:6,trace:7,config:8};
   const navItems=document.querySelectorAll('.nav-item');
   // Si es admin o no hay datos de usuario (primer admin), mostrar todo
   if(esAdmin||!currentUserData){
