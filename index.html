@@ -490,7 +490,7 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
         <div class="form-group"><label>Fecha finalización</label><input type="date" id="op-fecha-fin"></div>
       </div>
       <div class="form-row triple">
-        <div class="form-group"><label>Tiempo total (horas)</label><input type="number" id="op-horas" placeholder="0" step="0.5" min="0"></div>
+        <div class="form-group"><label>Tiempo total (horas)</label><input type="text" id="op-horas" placeholder="Ej: 8hs torno + 2hs fresadora"></div>
         <div class="form-group"><label>Descripción pieza *</label><input type="text" id="op-pieza" placeholder="Unión doble FIG 1502"></div>
         <div class="form-group"><label>Código / Plano</label><input type="text" id="op-codigo" placeholder="PLN-001"></div>
       </div>
@@ -683,7 +683,7 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
         <div class="form-group"><label>Fecha finalización</label><input type="date" id="edit-op-fecha-fin"></div>
       </div>
       <div class="form-row triple">
-        <div class="form-group"><label>Tiempo total (horas)</label><input type="number" id="edit-op-horas" step="0.5" min="0"></div>
+        <div class="form-group"><label>Tiempo total (horas)</label><input type="text" id="edit-op-horas" placeholder="Ej: 8hs torno + 2hs fresadora"></div>
         <div class="form-group"><label>Pieza</label><input type="text" id="edit-op-pieza"></div>
         <div class="form-group"><label>Código / Plano</label><input type="text" id="edit-op-codigo"></div>
       </div>
@@ -1263,7 +1263,7 @@ async function saveOP(){
     const cant=parseInt(g('op-cant'));
     const costo=parseFloat(g('op-precio'))||0;
     const descFull=esBarra?g('op-desc'):[g('op-desc'),g('op-matriz-desc')].filter(Boolean).join(' — ')||origen;
-    const op=await POST('ordenes_produccion',{empresa_id:currentEmpresa.id,nro:g('op-nro'),pieza:g('op-pieza'),descripcion:descFull,cantidad:cant,precio_unitario:costo,lote_pt:lotePT,barra_id:barraId,kg_usados:esBarra?kgU:0,merma_kg:parseFloat(g('op-merma'))||0,operario:g('op-operario'),estado,fecha:g('op-fecha')||new Date().toISOString().split('T')[0],fecha_fin:g('op-fecha-fin')||null,horas_total:parseFloat(g('op-horas'))||null,codigo_plano:g('op-codigo')||null,oc_material:g('op-oc-material')||null,origen_material:origen});
+    const op=await POST('ordenes_produccion',{empresa_id:currentEmpresa.id,nro:g('op-nro'),pieza:g('op-pieza'),descripcion:descFull,cantidad:cant,precio_unitario:costo,lote_pt:lotePT,barra_id:barraId,kg_usados:esBarra?kgU:0,merma_kg:parseFloat(g('op-merma'))||0,operario:g('op-operario'),estado,fecha:g('op-fecha')||new Date().toISOString().split('T')[0],fecha_fin:g('op-fecha-fin')||null,horas_total:g('op-horas')||null,codigo_plano:g('op-codigo')||null,oc_material:g('op-oc-material')||null,origen_material:origen});
     // Descontar MP solo si es barra y hay metros consumidos
     if(esBarra&&barra&&kgU>0){
       await PATCH('barras',{kg_disponibles:Math.max(0,barra.kg_disponibles-kgU)},`?id=eq.${barra.id}`);
@@ -1355,7 +1355,7 @@ function renderOP(filter=''){
   const enProceso=ops.filter(o=>o.estado==='en-proceso').length;
   const completadas=ops.filter(o=>o.estado==='completada').length;
   const totalMtsUsados=ops.reduce((a,o)=>a+parseFloat(o.kg_usados||0),0);
-  const totalHoras=ops.reduce((a,o)=>a+parseFloat(o.horas_total||0),0);
+  const totalPiezas=ops.reduce((a,o)=>a+parseInt(o.cantidad||0),0);
   document.getElementById('op-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Total OPs</div><div class="stat-value" style="color:var(--accent)">${ops.length}</div></div>
     <div class="stat-card"><div class="stat-label">En proceso</div><div class="stat-value" style="color:${enProceso?'var(--accent)':'var(--text)'}">${enProceso}</div></div>
@@ -1822,7 +1822,7 @@ async function saveEditOP(){
       merma_kg:parseFloat(document.getElementById('edit-op-merma').value)||0,
       fecha:document.getElementById('edit-op-fecha').value||null,
       fecha_fin:document.getElementById('edit-op-fecha-fin').value||null,
-      horas_total:parseFloat(document.getElementById('edit-op-horas').value)||null,
+      horas_total:document.getElementById('edit-op-horas').value||null,
       codigo_plano:document.getElementById('edit-op-codigo').value||null,
       oc_material:document.getElementById('edit-op-oc-material').value||null,
     },`?id=eq.${id}`);
