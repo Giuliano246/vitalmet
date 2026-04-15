@@ -329,7 +329,7 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
           <div class="search-box"><input type="text" placeholder="Buscar por número, proveedor..." oninput="renderCert(this.value)"></div>
           <button class="btn btn-ghost" onclick="openModal('modal-cert')">+ Nuevo certificado</button>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Nro. cert.</th><th>Proveedor</th><th>Material</th><th>Nro OC</th><th>Fecha</th><th>PDF</th><th>Barras</th><th></th></tr></thead><tbody id="cert-tbody"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Nro. cert.</th><th>Proveedor</th><th>Material</th><th>Nro OC</th><th>Metros</th><th>Fecha</th><th>PDF</th><th>Barras</th><th></th></tr></thead><tbody id="cert-tbody"></tbody></table></div>
       </div>
     </div>
     <!-- ÓRDENES -->
@@ -461,6 +461,9 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
         <div class="form-group"><label>Material *</label><input type="text" id="cert-mat" placeholder="AISI 316"></div>
         <div class="form-group"><label>Nro OC *</label><input type="text" id="cert-colada" placeholder="OC-2024-001"></div>
         <div class="form-group"><label>Fecha emisión</label><input type="date" id="cert-fecha"></div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group"><label>Metros según certificado</label><input type="number" id="cert-metros" placeholder="0.00" step="0.01" min="0"></div>
       </div>
       <hr class="form-divider">
       <div class="section-label">Adjuntar PDF</div>
@@ -656,6 +659,9 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
         <div class="form-group"><label>Material</label><input type="text" id="edit-cert-mat"></div>
         <div class="form-group"><label>Nro OC</label><input type="text" id="edit-cert-colada"></div>
         <div class="form-group"><label>Fecha</label><input type="date" id="edit-cert-fecha"></div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group"><label>Metros según certificado</label><input type="number" id="edit-cert-metros" placeholder="0.00" step="0.01" min="0"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1217,12 +1223,13 @@ async function saveCert(){
       material:g('cert-mat'),
       colada:g('cert-colada'),
       fecha:g('cert-fecha')||null,
+      metros:parseFloat(g('cert-metros'))||null,
       file_data:certFileData||null,
       file_name:certFileName||null
     });
     await loadAll();
     closeModal('modal-cert');
-    resetF(['cert-nro','cert-prov','cert-mat','cert-colada','cert-fecha']);
+    resetF(['cert-nro','cert-prov','cert-mat','cert-colada','cert-fecha','cert-metros']);
     certFileData=null;certFileName=null;
     document.getElementById('cert-file-name').textContent='Ningún archivo seleccionado';
     renderAll();
@@ -1333,12 +1340,13 @@ function renderCert(filter=''){
   const conPDF=certs.filter(c=>c.file_data).length;
   const proveedores=[...new Set(certs.map(c=>c.proveedor))].length;
   const barrasVinc=certs.filter(c=>barras.some(b=>b.certificado_id===c.id)).length;
+  const totalMetros=certs.reduce((a,c)=>a+parseFloat(c.metros||0),0);
   document.getElementById('cert-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Certificados</div><div class="stat-value" style="color:var(--purple)">${certs.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Metros certificados</div><div class="stat-value" style="color:var(--accent)">${totalMetros.toFixed(1)}<span style="font-size:11px;color:var(--text3)"> mts</span></div></div>
     <div class="stat-card"><div class="stat-label">Con PDF adjunto</div><div class="stat-value" style="color:var(--blue)">${conPDF}</div></div>
-    <div class="stat-card"><div class="stat-label">Proveedores</div><div class="stat-value">${proveedores}</div></div>
-    <div class="stat-card"><div class="stat-label">Vinculados a barras</div><div class="stat-value" style="color:var(--teal)">${barrasVinc}</div></div>`;
-  document.getElementById('cert-tbody').innerHTML=list.length?list.map(c=>{const vinc=barras.filter(b=>b.certificado_id===c.id).length;return`<tr><td class="mono td-primary">${c.nro}</td><td>${c.proveedor}</td><td><span class="badge badge-blue">${c.material}</span></td><td class="mono">${c.colada}</td><td>${c.fecha||'—'}</td><td>${c.file_data?`<span class="pdf-link" onclick="openPDF('${c.id}')">Ver PDF</span>`:'<span style="color:var(--text3)">No adjunto</span>'}</td><td><span class="badge badge-teal">${vinc} barra${vinc!==1?'s':''}</span></td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editCert('${c.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="deleteCert('${c.id}')">×</button></td></tr>`;}):(`<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">Sin certificados</td></tr>`);
+    <div class="stat-card"><div class="stat-label">Proveedores</div><div class="stat-value">${proveedores}</div></div>`;
+  document.getElementById('cert-tbody').innerHTML=list.length?list.map(c=>{const vinc=barras.filter(b=>b.certificado_id===c.id).length;return`<tr><td class="mono td-primary">${c.nro}</td><td>${c.proveedor}</td><td><span class="badge badge-blue">${c.material}</span></td><td class="mono">${c.colada}</td><td class="mono">${c.metros?parseFloat(c.metros).toFixed(1)+' mts':'—'}</td><td>${c.fecha||'—'}</td><td>${c.file_data?`<span class="pdf-link" onclick="openPDF('${c.id}')">Ver PDF</span>`:'<span style="color:var(--text3)">No adjunto</span>'}</td><td><span class="badge badge-teal">${vinc} barra${vinc!==1?'s':''}</span></td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editCert('${c.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="deleteCert('${c.id}')">×</button></td></tr>`;}):(`<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text3)">Sin certificados</td></tr>`);
 }
 
 function renderOP(filter=''){
@@ -1652,6 +1660,7 @@ function editCert(id){
   document.getElementById('edit-cert-mat').value=c.material;
   document.getElementById('edit-cert-colada').value=c.colada;
   document.getElementById('edit-cert-fecha').value=c.fecha||'';
+  document.getElementById('edit-cert-metros').value=c.metros||'';
   document.getElementById('modal-edit-cert').classList.add('open');
 }
 async function saveEditCert(){
@@ -1663,6 +1672,7 @@ async function saveEditCert(){
       material:document.getElementById('edit-cert-mat').value,
       colada:document.getElementById('edit-cert-colada').value,
       fecha:document.getElementById('edit-cert-fecha').value||null,
+      metros:parseFloat(document.getElementById('edit-cert-metros').value)||null,
     },`?id=eq.${id}`);
     await loadAll();closeModal('modal-edit-cert');renderAll();notify('Certificado actualizado');
   }catch(e){notify(e.message,'err');}
