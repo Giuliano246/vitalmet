@@ -155,7 +155,7 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
 .trace-op{border-color:var(--accent)}.trace-op .trace-node-value{color:var(--accent)}
 .trace-pieza{border-color:var(--teal)}.trace-pieza .trace-node-value{color:var(--teal)}
 .trace-venta{border-color:var(--coral)}.trace-venta .trace-node-value{color:var(--coral)}
-.venta-item-row{display:grid;grid-template-columns:1fr 70px 110px 30px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.venta-item-row{display:grid;grid-template-columns:2fr 70px 80px 60px 80px 60px 60px 60px 30px;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px}
 .venta-item-row:last-child{border-bottom:none}
 </style>
 </head>
@@ -544,7 +544,7 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
       <hr class="form-divider">
       <div class="section-label">Producción</div>
       <div class="form-row triple">
-        <div class="form-group"><label>Costo unitario $ (fabricación)</label><input type="number" id="op-precio" placeholder="0.00" step="0.01"></div>
+        <div class="form-group"><label>Costo unitario US$ (fabricación)</label><input type="number" id="op-precio" placeholder="0.00" step="0.01"></div>
         <div class="form-group"><label>Estado</label><select id="op-estado"><option value="en-proceso">En proceso</option><option value="completada">Completada</option><option value="suspendida">Suspendida / Parada</option></select></div>
         <div class="form-group"><label>Máquina / Operario</label><input type="text" id="op-operario" placeholder="Torno CNC / Juan"></div>
       </div>
@@ -557,34 +557,71 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
 </div>
 
 <div class="modal-overlay" id="modal-venta">
-  <div class="modal modal-lg">
-    <div class="modal-header"><div class="modal-title">Registrar venta / remito</div><button class="modal-close" onclick="closeModal('modal-venta')">×</button></div>
+  <div class="modal" style="width:820px">
+    <div class="modal-header"><div class="modal-title">Nueva venta / pedido</div><button class="modal-close" onclick="closeModal('modal-venta')">×</button></div>
     <div class="modal-body">
-      <div class="form-row triple">
-        <div class="form-group"><label>Nro. remito *</label><input type="text" id="v-remito" placeholder="R-2024-001"></div>
-        <div class="form-group"><label>Cliente *</label><input type="text" id="v-cliente" placeholder="Nombre del cliente" list="clientes-datalist"></div>
+      <!-- CABECERA -->
+      <div class="section-label">Cabecera del pedido</div>
+      <div class="form-row" style="grid-template-columns:110px 2fr 130px 1fr 110px">
+        <div class="form-group"><label>Nro pedido *</label><input type="text" id="v-remito" placeholder="10285"></div>
+        <div class="form-group"><label>Razón social *</label><input type="text" id="v-cliente" placeholder="Nombre del cliente" list="clientes-datalist" oninput="onVentaClienteChange()"></div>
+        <div class="form-group"><label>CUIT</label><input type="text" id="v-cuit" placeholder="20-12345678-9" readonly style="opacity:.7"></div>
+        <div class="form-group"><label>Estado pedido</label><select id="v-estado"><option value="ingresado">Ingresado</option><option value="aprobado_cliente">Aprobado x Cliente</option><option value="aprobado">Aprobado</option><option value="entregado">Entregado</option><option value="facturado">Facturado</option><option value="pendiente">Pendiente entrega</option></select></div>
         <div class="form-group"><label>Fecha</label><input type="date" id="v-fecha"></div>
       </div>
-      <div class="form-row">
-        <div class="form-group"><label>Condición pago</label><select id="v-condicion"><option>Contado</option><option>30 días</option><option>60 días</option><option>90 días</option><option>A convenir</option></select></div>
-        <div class="form-group"><label>Estado</label><select id="v-estado"><option value="entregado">Entregado</option><option value="pendiente">Pendiente entrega</option><option value="facturado">Facturado</option></select></div>
+      <hr class="form-divider">
+
+      <!-- COEFICIENTES + FECHAS ENTREGA -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div>
+          <div class="section-label">Coeficientes</div>
+          <div class="form-row triple">
+            <div class="form-group"><label>Registración</label><div style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 9px;font-family:var(--mono);font-size:13px;color:var(--green)">USD</div><input type="hidden" id="v-coef-reg" value="USD"></div>
+            <div class="form-group"><label>Emisión</label><div style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 9px;font-family:var(--mono);font-size:13px;color:var(--green)">USD</div><input type="hidden" id="v-coef-emi" value="USD"></div>
+            <div class="form-group"><label>Deuda</label><div style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 9px;font-family:var(--mono);font-size:13px;color:var(--green)">USD</div><input type="hidden" id="v-coef-deuda" value="USD"></div>
+          </div>
+        </div>
+        <div>
+          <div class="section-label">Fechas de entrega</div>
+          <div class="form-row">
+            <div class="form-group"><label>Desde</label><input type="date" id="v-fecha-desde"></div>
+            <div class="form-group"><label>Hasta</label><input type="date" id="v-fecha-hasta"></div>
+          </div>
+          <div style="background:rgba(76,175,125,.06);border:1px solid rgba(76,175,125,.2);border-radius:5px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:11px;color:var(--text3)">TOTAL</span>
+              <span id="v-total-usd" style="font-family:var(--mono);font-size:16px;color:var(--green);font-weight:500">US$ 0</span>
+            </div>
+        </div>
       </div>
       <hr class="form-divider">
+
+      <!-- CONDICIONES COMERCIALES -->
+      <div class="section-label">Condiciones comerciales</div>
+      <div class="form-row" style="grid-template-columns:2fr 1fr 1fr 1fr">
+        <div class="form-group"><label>Lista de precios</label><select id="v-lista-precios"><option value="">Sin lista</option></select></div>
+        <div class="form-group"><label>Condición pago</label><select id="v-condicion"><option>Contado</option><option>15 días</option><option>30 días</option><option>0/30 días</option><option>30/60 días</option><option>60 días</option><option>90 días</option><option>A convenir</option></select></div>
+        <div class="form-group"><label>Vendedor</label><select id="v-vendedor"><option value="">Sin vendedor</option></select></div>
+        <div class="form-group"><label>Grupo bonif.</label><input type="text" id="v-grupo-bonif" placeholder="-"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>% Bonificación</label><input type="number" id="v-bonif1" value="0" step="0.01" min="0"></div>
+        <div class="form-group"><label>Contrib. marginal</label><input type="number" id="v-contrib-marginal" value="0" step="0.01" min="0"></div>
+      </div>
+      <hr class="form-divider">
+
+      <!-- ITEMS -->
       <div class="section-label">Ítems de la venta</div>
       <div id="venta-items-wrap"></div>
       <button class="btn btn-ghost btn-sm" onclick="addVentaItem()" style="margin-top:8px">+ Agregar ítem</button>
+
       <hr class="form-divider">
-      <div style="display:flex;justify-content:flex-end;align-items:center;gap:12px">
-        <span style="font-size:12px;color:var(--text3)">Total:</span>
-        <span id="v-total-display" style="font-family:var(--mono);font-size:16px;color:var(--coral);font-weight:500">$ 0</span>
-      </div>
-      <div class="form-row single" style="margin-top:10px">
+      <div class="form-row single">
         <div class="form-group"><label>Observaciones</label><textarea id="v-obs" placeholder="Notas..."></textarea></div>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-venta')">Cancelar</button>
-      <button class="btn btn-coral" id="btn-save-venta" onclick="saveVenta()">Registrar venta</button>
+      <button class="btn btn-coral" id="btn-save-venta" onclick="saveVenta()">Registrar pedido</button>
     </div>
   </div>
 </div>
@@ -655,7 +692,7 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
         <div class="form-group"><label>Cantidad *</label><input type="number" id="pt-cant" placeholder="0" min="0"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Costo unitario $ (fabricación)</label><input type="number" id="pt-precio" placeholder="0.00" step="0.01"></div>
+        <div class="form-group"><label>Costo unitario US$ (fabricación)</label><input type="number" id="pt-precio" placeholder="0.00" step="0.01"></div>
         <div class="form-group"><label>Barra origen (opcional)</label><select id="pt-barra" onchange="onPTBarraChange()"><option value="">Sin barra vinculada</option></select></div>
       </div>
       <div id="pt-kg-section" style="display:none">
@@ -758,7 +795,7 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
       </div>
       <div class="form-row triple">
         <div class="form-group"><label>Cantidad</label><input type="number" id="edit-op-cant"></div>
-        <div class="form-group"><label>Costo unitario $</label><input type="number" id="edit-op-precio" step="0.01"></div>
+        <div class="form-group"><label>Costo unitario US$</label><input type="number" id="edit-op-precio" step="0.01"></div>
         <div class="form-group"><label>Merma mts</label><input type="number" id="edit-op-merma" step="0.01"></div>
       </div>
       <div class="form-row triple">
@@ -930,7 +967,7 @@ const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 
 // ─── AUTH HELPERS ──────────────────────────────────────────────────
 let currentSession=null, currentUser=null, currentEmpresa=null;
-let certs=[],barras=[],ops=[],pts=[],ventas=[],ventaItemsList=[],materiales=[],tratamientos=[],usuariosEmpresa=[],permisosUsuario=[],clientes=[],currentUserData=null;
+let certs=[],barras=[],ops=[],pts=[],ventas=[],ventaItemsList=[],materiales=[],tratamientos=[],usuariosEmpresa=[],permisosUsuario=[],clientes=[],vendedores=[],listasPrecios=[],currentUserData=null;
 let certFileData=null,certFileName=null;
 
 function authH(token){return{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(token||SUPA_KEY),'Prefer':'return=representation'};}
@@ -1179,7 +1216,7 @@ async function loadEmpresaAndStart(){
 // ─── DATA ─────────────────────────────────────────────────────────
 async function loadAll(){
   try{
-    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes]=await Promise.all([
+    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios]=await Promise.all([
       GET('certificados','?order=created_at.desc'),
       GET('barras','?order=created_at.desc&select=*,certificados(nro,colada,proveedor)'),
       GET('ordenes_produccion','?order=created_at.desc&select=*,barras(lote)'),
@@ -1190,12 +1227,14 @@ async function loadAll(){
       GET('usuarios','?order=created_at.asc'),
       GET('permisos_usuario','?order=modulo.asc').catch(()=>[]),
       GET('clientes','?order=nombre.asc').catch(()=>[]),
+      GET('vendedores','?order=nombre.asc&activo=eq.true').catch(()=>[]),
+      GET('listas_precios','?order=nombre.asc&activo=eq.true').catch(()=>[]),
     ]);
   }catch(e){
     console.error('Error cargando datos:',e);
     // Asegurar que los arrays estén inicializados aunque falle
     certs=certs||[];barras=barras||[];ops=ops||[];pts=pts||[];ventas=ventas||[];
-    materiales=materiales||[];tratamientos=tratamientos||[];usuariosEmpresa=usuariosEmpresa||[];permisosUsuario=permisosUsuario||[];clientes=clientes||[];
+    materiales=materiales||[];tratamientos=tratamientos||[];usuariosEmpresa=usuariosEmpresa||[];permisosUsuario=permisosUsuario||[];clientes=clientes||[];vendedores=vendedores||[];listasPrecios=listasPrecios||[];
   }
 }
 
@@ -1214,7 +1253,24 @@ function openModal(id){
   if(id==='modal-material'){openModalMaterial();return;}
   if(id==='modal-mp'){populateCertSel();const s=document.getElementById('mp-material');if(s)s.innerHTML=getMaterialOptions();}
   if(id==='modal-op'){populateCertSel();populateBarraSel();autoDate('op-fecha');['op-fecha-fin','op-horas','op-codigo','op-oc-material','op-matriz-desc'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});document.getElementById('op-origen').value='barra';onOrigenChange();}
-  if(id==='modal-venta'){autoDate('v-fecha');ventaItemsList=[];renderVentaItems();}
+  if(id==='modal-venta'){
+    autoDate('v-fecha');autoDate('v-fecha-desde');autoDate('v-fecha-hasta');
+    ventaItemsList=[];renderVentaItems();
+    resetF(['v-remito','v-cliente','v-cuit','v-obs','v-grupo-bonif']);
+    document.getElementById('v-bonif1').value='0';
+    document.getElementById('v-contrib-marginal').value='0';
+    document.getElementById('v-coef-reg').value='USD';
+    document.getElementById('v-coef-emi').value='USD';
+    document.getElementById('v-coef-deuda').value='USD';
+    document.getElementById('v-estado').value='ingresado';
+    // Populate vendedores
+    const vSel=document.getElementById('v-vendedor');
+    vSel.innerHTML='<option value="">Sin vendedor</option>'+vendedores.map(v=>`<option value="${v.id}">${v.codigo?v.codigo+' · ':''}${v.nombre}</option>`).join('');
+    // Populate listas de precios
+    const lpSel=document.getElementById('v-lista-precios');
+    lpSel.innerHTML='<option value="">Sin lista</option>'+listasPrecios.map(l=>`<option value="${l.id}">${l.codigo?l.codigo+' · ':''}${l.nombre}</option>`).join('');
+    updateVTotal();
+  }
   document.getElementById(id).classList.add('open');
 }
 function closeModal(id){document.getElementById(id).classList.remove('open');}
@@ -1236,24 +1292,53 @@ function onOrigenChange(){
 }
 
 // ─── VENTA ITEMS ──────────────────────────────────────────────────
-function addVentaItem(){ventaItemsList.push({ptId:'',cant:1,precio:0});renderVentaItems();}
+function addVentaItem(){ventaItemsList.push({ptId:'',cant:1,precio:0,moneda:'USD',bonif:0});renderVentaItems();}
 function removeVentaItem(i){ventaItemsList.splice(i,1);renderVentaItems();}
 function ventaItemChange(i,f,v){ventaItemsList[i][f]=v;if(f==='ptId'){const pt=pts.find(p=>p.id===v);if(pt&&!ventaItemsList[i].precio)ventaItemsList[i].precio=pt.precio_unitario||0;}renderVentaItems();}
 function renderVentaItems(){
   const w=document.getElementById('venta-items-wrap');
   if(!ventaItemsList.length){w.innerHTML=`<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Agregá ítems con el botón de abajo</div>`;updateVTotal();return;}
-  w.innerHTML=ventaItemsList.map((item,i)=>`<div class="venta-item-row">
-    <select onchange="ventaItemChange(${i},'ptId',this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:5px 7px;color:var(--text);font-size:12px;font-family:var(--sans);width:100%">
+  const hdr=`<div style="display:grid;grid-template-columns:2fr 70px 80px 60px 80px 60px 30px;gap:6px;padding:4px 0;border-bottom:1px solid var(--border)">
+    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Producto</div>
+    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;text-align:right">Cant.</div>
+    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;text-align:right">Precio</div>
+    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;text-align:right">Mon.</div>
+    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;text-align:right">Total</div>
+    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;text-align:right">% Bonif.</div>
+    <div></div>
+  </div>`;
+  w.innerHTML=hdr+ventaItemsList.map((item,i)=>{
+    const total=item.cant*(item.precio||0);
+    return`<div style="display:grid;grid-template-columns:2fr 70px 80px 60px 80px 60px 30px;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">
+    <select onchange="ventaItemChange(${i},'ptId',this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;color:var(--text);font-size:11px;font-family:var(--sans);width:100%">
       <option value="">Seleccionar producto...</option>
       ${pts.filter(p=>p.cantidad>0).map(p=>`<option value="${p.id}" ${item.ptId===p.id?'selected':''}>${p.pieza} — ${p.descripcion||''} (${p.cantidad} disp.)</option>`).join('')}
     </select>
-    <input type="number" min="1" value="${item.cant}" onchange="ventaItemChange(${i},'cant',+this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:5px 7px;color:var(--text);font-size:12px;text-align:center;width:100%">
-    <input type="number" min="0" step="0.01" value="${item.precio||''}" placeholder="$ precio venta" onchange="ventaItemChange(${i},'precio',+this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:5px 7px;color:var(--coral);font-size:12px;text-align:right;width:100%">
-    <button onclick="removeVentaItem(${i})" style="background:none;border:none;color:var(--red);font-size:16px;cursor:pointer;padding:0 4px">×</button>
-  </div>`).join('');
+    <input type="number" min="1" value="${item.cant}" onchange="ventaItemChange(${i},'cant',+this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;color:var(--text);font-size:11px;text-align:right;width:100%">
+    <input type="number" min="0" step="0.01" value="${item.precio||''}" placeholder="0.00" onchange="ventaItemChange(${i},'precio',+this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;color:var(--coral);font-size:11px;text-align:right;width:100%">
+    <div style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--green);padding:4px 2px">USD</div>
+    <div style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--green);padding:4px 2px">${Math.round(total).toLocaleString('es-AR')}</div>
+    <input type="number" min="0" step="0.01" value="${item.bonif||0}" onchange="ventaItemChange(${i},'bonif',+this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 4px;color:var(--text3);font-size:10px;text-align:right;width:100%">
+    <button onclick="removeVentaItem(${i})" style="background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;padding:0 2px">×</button>
+  </div>`;}).join('');
   updateVTotal();
 }
-function updateVTotal(){const t=ventaItemsList.reduce((a,i)=>a+(i.cant*(i.precio||0)),0);document.getElementById('v-total-display').textContent='$ '+Math.round(t).toLocaleString('es-AR');}
+function updateVTotal(){
+  const total=ventaItemsList.reduce((a,i)=>a+(i.cant*(i.precio||0)),0);
+  const elUSD=document.getElementById('v-total-usd');
+  if(elUSD)elUSD.textContent='US$ '+Math.round(total).toLocaleString('es-AR');
+}
+
+function onVentaClienteChange(){
+  const nombre=document.getElementById('v-cliente').value.trim();
+  const cliente=clientes.find(c=>c.nombre.toLowerCase()===nombre.toLowerCase());
+  document.getElementById('v-cuit').value=cliente?.cuit||'';
+  // Auto-select lista de precios del cliente si tiene
+  if(cliente?.lista_precios_id){
+    const lpSel=document.getElementById('v-lista-precios');
+    if(lpSel)lpSel.value=cliente.lista_precios_id;
+  }
+}
 
 function handleCertFile(input){const file=input.files[0];if(!file)return;certFileName=file.name;document.getElementById('cert-file-name').textContent=file.name;const r=new FileReader();r.onload=e=>{certFileData=e.target.result;};r.readAsDataURL(file);}
 
@@ -1347,7 +1432,7 @@ async function saveOP(){
 }
 
 async function saveVenta(){
-  if(!g('v-remito')||!g('v-cliente'))return notify('Completá remito y cliente','err');
+  if(!g('v-remito')||!g('v-cliente'))return notify('Completá nro pedido y razón social','err');
   if(!ventaItemsList.length)return notify('Agregá al menos un ítem','err');
   for(const item of ventaItemsList){
     if(!item.ptId||item.cant<=0)return notify('Verificá los ítems','err');
@@ -1360,22 +1445,57 @@ async function saveVenta(){
     // Auto-crear cliente si no existe
     const clienteExiste=clientes.find(c=>c.nombre.toLowerCase()===clienteNombre.toLowerCase());
     if(!clienteExiste){
-      await POST('clientes',{empresa_id:currentEmpresa.id,nombre:clienteNombre});
+      await POST('clientes',{empresa_id:currentEmpresa.id,nombre:clienteNombre,cuit:g('v-cuit')||null});
     }
-    const venta=await POST('ventas',{empresa_id:currentEmpresa.id,nro_remito:g('v-remito'),cliente:clienteNombre,fecha:g('v-fecha'),condicion_pago:g('v-condicion'),estado:g('v-estado'),observaciones:g('v-obs')});
+    // Calcular total
+    const totalVenta=ventaItemsList.reduce((a,i)=>a+(i.cant*(i.precio||0)),0);
+
+    const venta=await POST('ventas',{
+      empresa_id:currentEmpresa.id,
+      nro_remito:g('v-remito'),
+      nro_pedido:g('v-remito'),
+      cliente:clienteNombre,
+      fecha:g('v-fecha'),
+      condicion_pago:g('v-condicion'),
+      estado:g('v-estado'),
+      estado_pedido:g('v-estado'),
+      coef_registracion_moneda:'USD',
+      coef_emision_moneda:'USD',
+      coef_deuda_moneda:'USD',
+      fecha_entrega_desde:g('v-fecha-desde')||null,
+      fecha_entrega_hasta:g('v-fecha-hasta')||null,
+      total:totalVenta,
+      bonif_pct_1:parseFloat(g('v-bonif1'))||0,
+      contribucion_marginal:parseFloat(g('v-contrib-marginal'))||0,
+      lista_precios_id:g('v-lista-precios')||null,
+      grupo_bonificacion:g('v-grupo-bonif')||null,
+      vendedor_id:g('v-vendedor')||null,
+      observaciones:g('v-obs')
+    });
     const ventaId=venta[0].id;
     for(const item of ventaItemsList){
-      await POST('venta_items',{venta_id:ventaId,producto_id:item.ptId,pieza:pts.find(p=>p.id===item.ptId)?.pieza||'',cantidad:item.cant,precio_unitario:item.precio});
+      await POST('venta_items',{
+        venta_id:ventaId,
+        producto_id:item.ptId,
+        pieza:pts.find(p=>p.id===item.ptId)?.pieza||'',
+        cantidad:item.cant,
+        precio_unitario:item.precio,
+        tipo_cambio:1,
+        total:item.cant*(item.precio||0),
+        bonif_1:item.bonif||0,
+      });
       const pt=pts.find(p=>p.id===item.ptId);
       await PATCH('productos_terminados',{cantidad:Math.max(0,pt.cantidad-item.cant)},`?id=eq.${item.ptId}`);
     }
-    await loadAll();closeModal('modal-venta');ventaItemsList=[];resetF(['v-remito','v-cliente','v-fecha','v-condicion','v-estado','v-obs']);renderAll();notify('Venta registrada');
+    await loadAll();closeModal('modal-venta');ventaItemsList=[];
+    resetF(['v-remito','v-cliente','v-cuit','v-fecha','v-condicion','v-estado','v-obs','v-grupo-bonif']);
+    renderAll();notify('Pedido registrado');
   }catch(e){notify(e.message,'err');}
-  setBusy('btn-save-venta',false,'Registrar venta');
+  setBusy('btn-save-venta',false,'Registrar pedido');
 }
 
 function resetF(ids){ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
-function fmtPeso(n){return'$ '+Math.round(n).toLocaleString('es-AR');}
+function fmtUSD(n){return'US$ '+Math.round(n).toLocaleString('es-AR');}
 
 // ─── RENDER ───────────────────────────────────────────────────────
 function renderMP(filter=''){
@@ -1401,7 +1521,7 @@ function renderPT(filter=''){
   document.getElementById('pt-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Lotes PT</div><div class="stat-value" style="color:var(--teal)">${pts.length}</div></div>
     <div class="stat-card"><div class="stat-label">Piezas disponibles</div><div class="stat-value" style="color:var(--teal)">${totalPiezas}</div></div>
-    <div class="stat-card"><div class="stat-label">Valor stock (costo)</div><div class="stat-value" style="color:var(--green);font-size:13px">${fmtPeso(valorCosto)}</div></div>
+    <div class="stat-card"><div class="stat-label">Valor stock (costo)</div><div class="stat-value" style="color:var(--green);font-size:13px">${fmtUSD(valorCosto)}</div></div>
     <div class="stat-card"><div class="stat-label">Con trazabilidad</div><div class="stat-value">${pts.filter(p=>p.barra_id).length}</div></div>`;
   document.getElementById('pt-tbody').innerHTML=list.length?list.map(p=>{const b=p.barras;const cert=b?.certificados;const op=p.ordenes_produccion;return`<tr><td class="mono td-primary">${p.lote}</td><td style="color:var(--teal);font-weight:500">${p.pieza}</td><td>${p.descripcion||'—'}</td><td class="mono" style="color:${p.cantidad<=0?'var(--red)':p.cantidad<=3?'var(--accent)':'var(--text)'}">${p.cantidad} u.</td><td>${b?`<span class="badge badge-blue">${b.lote}</span>`:'—'}</td><td class="mono">${b?.nro_colada||'—'}</td><td>${cert?`<span class="badge badge-purple">${cert.nro}</span>`:'—'}</td><td class="mono">${op?.nro||'—'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editPT('${p.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="showTrace('pt','${p.id}')">Trazar</button><button class="btn btn-danger btn-sm" onclick="deletePT('${p.id}')">×</button></td></tr>`;}):(`<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text3)">Sin productos terminados</td></tr>`);
 }
@@ -1445,10 +1565,10 @@ function renderVentas(filter=''){
   document.getElementById('ventas-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Ventas registradas</div><div class="stat-value" style="color:var(--coral)">${ventas.length}</div></div>
     <div class="stat-card"><div class="stat-label">Unidades vendidas</div><div class="stat-value" style="color:var(--coral)">${totalUnid}</div></div>
-    <div class="stat-card"><div class="stat-label">Importe total</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtPeso(totalImp)}</div></div>
+    <div class="stat-card"><div class="stat-label">Importe total</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtUSD(totalImp)}</div></div>
     <div class="stat-card"><div class="stat-label">Clientes distintos</div><div class="stat-value">${[...new Set(ventas.map(v=>v.cliente))].length}</div></div>`;
   const bE={entregado:'badge-ok',facturado:'badge-teal',pendiente:'badge-warn'};
-  document.getElementById('ventas-tbody').innerHTML=list.length?list.map(v=>{const items=v.venta_items||[];const importe=items.reduce((a,i)=>a+(i.cantidad*(i.precio_unitario||0)),0);const totalU=items.reduce((a,i)=>a+i.cantidad,0);const piezas=[...new Set(items.map(i=>i.pieza||''))].join(', ');return`<tr><td class="mono td-primary">${v.nro_remito}</td><td style="font-weight:500">${v.cliente}</td><td>${v.fecha||'—'}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${piezas}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtPeso(importe)}</td><td><span class="badge ${bE[v.estado]||'badge-warn'}">${v.estado.toUpperCase()}</span></td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')">Anular</button></td></tr>`;}):(`<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">Sin ventas registradas</td></tr>`);
+  document.getElementById('ventas-tbody').innerHTML=list.length?list.map(v=>{const items=v.venta_items||[];const importe=items.reduce((a,i)=>a+(i.cantidad*(i.precio_unitario||0)),0);const totalU=items.reduce((a,i)=>a+i.cantidad,0);const piezas=[...new Set(items.map(i=>i.pieza||''))].join(', ');return`<tr><td class="mono td-primary">${v.nro_remito}</td><td style="font-weight:500">${v.cliente}</td><td>${v.fecha||'—'}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${piezas}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td><span class="badge ${bE[v.estado]||'badge-warn'}">${v.estado.toUpperCase()}</span></td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')">Anular</button></td></tr>`;}):(`<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">Sin ventas registradas</td></tr>`);
 }
 
 function renderDash(){
@@ -1485,13 +1605,13 @@ function renderDash(){
   <div class="kpi-grid">
     <div class="kpi"><div class="kpi-label">Mts MP en stock</div><div class="kpi-val" style="color:var(--blue)">${totalKgMP.toFixed(0)}</div></div>
     <div class="kpi"><div class="kpi-label">Piezas PT disp.</div><div class="kpi-val" style="color:var(--teal)">${totalPT}</div></div>
-    <div class="kpi"><div class="kpi-label">Ingresos por ventas</div><div class="kpi-val" style="color:var(--coral);font-size:12px">${fmtPeso(ingresoVentas)}</div></div>
-    <div class="kpi"><div class="kpi-label">Costo vendido</div><div class="kpi-val" style="color:var(--text2);font-size:12px">${fmtPeso(costoVendido)}</div></div>
-    <div class="kpi"><div class="kpi-label">Ganancia bruta</div><div class="kpi-val" style="color:${ganancia>=0?'var(--green)':'var(--red)'};font-size:12px">${fmtPeso(ganancia)}</div></div>
+    <div class="kpi"><div class="kpi-label">Ingresos por ventas</div><div class="kpi-val" style="color:var(--coral);font-size:12px">${fmtUSD(ingresoVentas)}</div></div>
+    <div class="kpi"><div class="kpi-label">Costo vendido</div><div class="kpi-val" style="color:var(--text2);font-size:12px">${fmtUSD(costoVendido)}</div></div>
+    <div class="kpi"><div class="kpi-label">Ganancia bruta</div><div class="kpi-val" style="color:${ganancia>=0?'var(--green)':'var(--red)'};font-size:12px">${fmtUSD(ganancia)}</div></div>
     <div class="kpi"><div class="kpi-label">Margen bruto</div><div class="kpi-val" style="color:${margen>30?'var(--green)':margen>15?'var(--accent)':'var(--red)'}">${margen}%</div></div>
   </div>
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
-    <div class="kpi"><div class="kpi-label">Stock PT valor costo</div><div class="kpi-val" style="color:var(--green);font-size:12px">${fmtPeso(valorPT)}</div></div>
+    <div class="kpi"><div class="kpi-label">Stock PT valor costo</div><div class="kpi-val" style="color:var(--green);font-size:12px">${fmtUSD(valorPT)}</div></div>
     <div class="kpi"><div class="kpi-label">% merma prom.</div><div class="kpi-val" style="color:${pctMerma>15?'var(--red)':pctMerma>10?'var(--accent)':'var(--green)'}">${pctMerma}%</div></div>
     <div class="kpi"><div class="kpi-label">Alertas MP</div><div class="kpi-val" style="color:${low>0?'var(--red)':'var(--text)'}">${low}</div></div>
     <div class="kpi"><div class="kpi-label">OPs en proceso</div><div class="kpi-val" style="color:var(--accent)">${ops.filter(o=>o.estado==='en-proceso').length}</div></div>
@@ -1499,7 +1619,7 @@ function renderDash(){
   <div class="dash-grid">
     <div class="dash-card"><div class="dash-card-title">Piezas más producidas</div>${topProd.length?`<div class="chart-bar-wrap">${topProd.map(([p,c])=>`<div class="chart-bar-row"><div class="chart-bar-label" title="${p}">${p.length>12?p.slice(0,12)+'…':p}</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round((c/maxProd)*100)}%;background:var(--accent)"></div></div><div class="chart-bar-val">${c} u.</div></div>`).join('')}</div>`:'<div style="color:var(--text3);font-size:12px">Sin datos aún</div>'}</div>
     <div class="dash-card"><div class="dash-card-title">Piezas más vendidas</div>${topVend.length?`<div class="chart-bar-wrap">${topVend.map(([p,c])=>`<div class="chart-bar-row"><div class="chart-bar-label" title="${p}">${p.length>12?p.slice(0,12)+'…':p}</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round((c/maxVend)*100)}%;background:var(--coral)"></div></div><div class="chart-bar-val">${c} u.</div></div>`).join('')}</div>`:'<div style="color:var(--text3);font-size:12px">Sin ventas aún</div>'}</div>
-    <div class="dash-card"><div class="dash-card-title">Clientes por importe</div>${topClientes.length?`<div class="chart-bar-wrap">${topClientes.map(([c,i])=>`<div class="chart-bar-row"><div class="chart-bar-label" title="${c}">${c.length>14?c.slice(0,14)+'…':c}</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round((i/maxCliente)*100)}%;background:var(--green)"></div></div><div class="chart-bar-val">${fmtPeso(i)}</div></div>`).join('')}</div>`:'<div style="color:var(--text3);font-size:12px">Sin clientes aún</div>'}</div>
+    <div class="dash-card"><div class="dash-card-title">Clientes por importe</div>${topClientes.length?`<div class="chart-bar-wrap">${topClientes.map(([c,i])=>`<div class="chart-bar-row"><div class="chart-bar-label" title="${c}">${c.length>14?c.slice(0,14)+'…':c}</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round((i/maxCliente)*100)}%;background:var(--green)"></div></div><div class="chart-bar-val">${fmtUSD(i)}</div></div>`).join('')}</div>`:'<div style="color:var(--text3);font-size:12px">Sin clientes aún</div>'}</div>
     <div class="dash-card" style="grid-column:1/-1"><div class="dash-card-title">Rentabilidad por pieza</div>
       ${(()=>{
         const byPieza={};
@@ -1514,7 +1634,7 @@ function renderDash(){
         const rows=Object.entries(byPieza).sort((a,b)=>(b[1].ingresos-b[1].costos)-(a[1].ingresos-a[1].costos));
         if(!rows.length)return '<div style="color:var(--text3);font-size:12px">Sin ventas registradas aún</div>';
         return '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="border-bottom:1px solid var(--border)"><th style="padding:6px 10px;text-align:left;color:var(--text3);font-weight:500">Pieza</th><th style="padding:6px 10px;text-align:right;color:var(--text3);font-weight:500">Unid.</th><th style="padding:6px 10px;text-align:right;color:var(--text3);font-weight:500">Ingresos</th><th style="padding:6px 10px;text-align:right;color:var(--text3);font-weight:500">Costo</th><th style="padding:6px 10px;text-align:right;color:var(--text3);font-weight:500">Ganancia</th><th style="padding:6px 10px;text-align:right;color:var(--text3);font-weight:500">Margen</th></tr></thead><tbody>'+
-          rows.map(([pieza,d])=>{const gan=d.ingresos-d.costos;const mrg=d.ingresos>0?((gan/d.ingresos)*100).toFixed(1):0;return`<tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 10px;color:var(--text);font-weight:500">${pieza}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--text2)">${d.unidades}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--coral)">${fmtPeso(d.ingresos)}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--text3)">${fmtPeso(d.costos)}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:${gan>=0?'var(--green)':'var(--red)'}">${fmtPeso(gan)}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:${mrg>30?'var(--green)':mrg>15?'var(--accent)':'var(--red)'}">${mrg}%</td></tr>`}).join('')+'</tbody></table>';
+          rows.map(([pieza,d])=>{const gan=d.ingresos-d.costos;const mrg=d.ingresos>0?((gan/d.ingresos)*100).toFixed(1):0;return`<tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 10px;color:var(--text);font-weight:500">${pieza}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--text2)">${d.unidades}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--coral)">${fmtUSD(d.ingresos)}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--text3)">${fmtUSD(d.costos)}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:${gan>=0?'var(--green)':'var(--red)'}">${fmtUSD(gan)}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:${mrg>30?'var(--green)':mrg>15?'var(--accent)':'var(--red)'}">${mrg}%</td></tr>`}).join('')+'</tbody></table>';
       })()}
     </div>
     <div class="dash-card"><div class="dash-card-title">Stock MP bajo mínimo</div>${lowBarras.length?`<div class="chart-bar-wrap">${lowBarras.map(b=>`<div class="chart-bar-row"><div class="chart-bar-label">${b.lote}</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.min(100,Math.round((b.kg_disponibles/b.kg_minimo)*100))}%;background:var(--red)"></div></div><div class="chart-bar-val">${parseFloat(b.kg_disponibles).toFixed(0)}mts</div></div>`).join('')}</div>`:'<div style="color:var(--green);font-size:12px">✓ Todo sobre mínimos</div>'}</div>
@@ -2194,7 +2314,7 @@ function renderClientes(filter=''){
     <div class="stat-card"><div class="stat-label">Total clientes</div><div class="stat-value" style="color:var(--blue)">${clientes.length}</div></div>
     <div class="stat-card"><div class="stat-label">Con compras</div><div class="stat-value" style="color:var(--green)">${conCompras}</div></div>
     <div class="stat-card"><div class="stat-label">Sin compras</div><div class="stat-value" style="color:${clientes.length-conCompras>0?'var(--accent)':'var(--text)'}">${clientes.length-conCompras}</div></div>
-    <div class="stat-card"><div class="stat-label">Total facturado</div><div class="stat-value" style="color:var(--coral);font-size:13px">${fmtPeso(totalFacturado)}</div></div>`;
+    <div class="stat-card"><div class="stat-label">Total facturado</div><div class="stat-value" style="color:var(--coral);font-size:13px">${fmtUSD(totalFacturado)}</div></div>`;
   document.getElementById('clientes-tbody').innerHTML=list.length?list.map(c=>{
     const ventasC=getClienteVentas(c.nombre);
     const total=ventasC.reduce((a,v)=>(v.venta_items||[]).reduce((b,i)=>b+(i.cantidad*(i.precio_unitario||0)),0)+a,0);
@@ -2205,7 +2325,7 @@ function renderClientes(filter=''){
       <td>${c.email||'—'}</td>
       <td class="mono">${c.cuit||'—'}</td>
       <td class="mono">${ventasC.length}</td>
-      <td class="mono" style="color:var(--green)">${fmtPeso(total)}</td>
+      <td class="mono" style="color:var(--green)">${fmtUSD(total)}</td>
       <td style="display:flex;gap:4px">
         <button class="btn btn-ghost btn-sm" onclick="openFichaCliente('${c.id}')">Ficha</button>
         <button class="btn btn-ghost btn-sm" onclick="editCliente('${c.id}')">Editar</button>
@@ -2293,7 +2413,7 @@ function openFichaCliente(id){
   let html=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
     <div class="kpi"><div class="kpi-label">Compras</div><div class="kpi-val" style="color:var(--blue)">${ventasC.length}</div></div>
     <div class="kpi"><div class="kpi-label">Unidades</div><div class="kpi-val" style="color:var(--teal)">${totalUnid}</div></div>
-    <div class="kpi"><div class="kpi-label">Total facturado</div><div class="kpi-val" style="color:var(--coral);font-size:13px">${fmtPeso(totalFact)}</div></div>
+    <div class="kpi"><div class="kpi-label">Total facturado</div><div class="kpi-val" style="color:var(--coral);font-size:13px">${fmtUSD(totalFact)}</div></div>
     <div class="kpi"><div class="kpi-label">Última compra</div><div class="kpi-val" style="font-size:12px">${ventasC[0]?.fecha||'—'}</div></div>
   </div>`;
 
@@ -2323,7 +2443,7 @@ function openFichaCliente(id){
       const unid=items.reduce((a,i)=>a+i.cantidad,0);
       const piezas=[...new Set(items.map(i=>i.pieza||''))].join(', ');
       const bE={entregado:'badge-ok',facturado:'badge-teal',pendiente:'badge-warn'};
-      return`<tr><td class="mono td-primary">${v.nro_remito}</td><td>${v.fecha||'—'}</td><td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${piezas}</td><td class="mono">${unid}</td><td class="mono" style="color:var(--green)">${fmtPeso(imp)}</td><td><span class="badge ${bE[v.estado]||'badge-warn'}">${v.estado.toUpperCase()}</span></td></tr>`;
+      return`<tr><td class="mono td-primary">${v.nro_remito}</td><td>${v.fecha||'—'}</td><td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${piezas}</td><td class="mono">${unid}</td><td class="mono" style="color:var(--green)">${fmtUSD(imp)}</td><td><span class="badge ${bE[v.estado]||'badge-warn'}">${v.estado.toUpperCase()}</span></td></tr>`;
     }).join('');
     html+=`</tbody></table></div>`;
   } else {
