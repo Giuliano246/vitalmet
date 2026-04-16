@@ -603,9 +603,8 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
         <div class="form-group"><label>Vendedor</label><select id="v-vendedor"><option value="">Sin vendedor</option></select></div>
         <div class="form-group"><label>Grupo bonif.</label><input type="text" id="v-grupo-bonif" placeholder="-"></div>
       </div>
-      <div class="form-row">
+      <div class="form-row single">
         <div class="form-group"><label>% Bonificación</label><input type="number" id="v-bonif1" value="0" step="0.01" min="0"></div>
-        <div class="form-group"><label>Contrib. marginal</label><input type="number" id="v-contrib-marginal" value="0" step="0.01" min="0"></div>
       </div>
       <hr class="form-divider">
 
@@ -1258,7 +1257,6 @@ function openModal(id){
     ventaItemsList=[];renderVentaItems();
     resetF(['v-remito','v-cliente','v-cuit','v-obs','v-grupo-bonif']);
     document.getElementById('v-bonif1').value='0';
-    document.getElementById('v-contrib-marginal').value='0';
     document.getElementById('v-coef-reg').value='USD';
     document.getElementById('v-coef-emi').value='USD';
     document.getElementById('v-coef-deuda').value='USD';
@@ -1466,7 +1464,6 @@ async function saveVenta(){
       fecha_entrega_hasta:g('v-fecha-hasta')||null,
       total:totalVenta,
       bonif_pct_1:parseFloat(g('v-bonif1'))||0,
-      contribucion_marginal:parseFloat(g('v-contrib-marginal'))||0,
       lista_precios_id:g('v-lista-precios')||null,
       grupo_bonificacion:g('v-grupo-bonif')||null,
       vendedor_id:g('v-vendedor')||null,
