@@ -1101,12 +1101,14 @@ async function doJoin(){
   if(pass.length<6){errEl.textContent='La contraseña debe tener al menos 6 caracteres';errEl.classList.add('visible');return;}
   const btn=document.getElementById('btn-join');btn.disabled=true;btn.textContent='Verificando código...';
   try{
-    // PASO 1: Verificar que el código existe (consulta pública sin auth)
-    const empRes=await fetch(`${SUPA_URL}/rest/v1/empresas?codigo_invitacion=eq.${encodeURIComponent(codigo)}&select=id,nombre`,{
-      headers:{'apikey':SUPA_KEY,'Content-Type':'application/json'}
+    // PASO 1: Verificar código vía RPC (no expone la tabla empresas)
+    const empRes=await fetch(`${SUPA_URL}/rest/v1/rpc/buscar_empresa_por_codigo`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPA_KEY},
+      body:JSON.stringify({p_codigo:codigo})
     });
     const empData=await empRes.json();
-    if(!empData||!empData.length){
+    if(!empRes.ok||!Array.isArray(empData)||!empData.length){
       errEl.textContent='Código inválido. Verificá con tu administrador.';errEl.classList.add('visible');
       btn.disabled=false;btn.textContent='Unirse a la empresa';return;
     }
