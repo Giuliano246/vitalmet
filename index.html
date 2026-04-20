@@ -281,8 +281,10 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
       <div class="nav-item" onclick="showPage('cert')"><div class="nav-dot"></div>Certificados MTC</div>
       <div class="nav-item" onclick="showPage('op')"><div class="nav-dot"></div>Órdenes producción</div>
       <div class="nav-item" onclick="showPage('compras')"><div class="nav-dot"></div>Compras</div>
+      <div class="nav-item" onclick="showPage('presupuestos')"><div class="nav-dot"></div>Presupuestos</div>
       <div class="nav-item" onclick="showPage('ventas')"><div class="nav-dot"></div>Ventas</div>
       <div class="nav-item" onclick="showPage('clientes')"><div class="nav-dot"></div>Clientes</div>
+      <div class="nav-item" onclick="showPage('costos')"><div class="nav-dot"></div>Costos y rentabilidad</div>
       <div class="nav-section">Consultas</div>
       <div class="nav-item" onclick="showPage('trace')"><div class="nav-dot"></div>Trazabilidad</div>
       <div class="nav-section">Sistema</div>
@@ -379,6 +381,19 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
       </div>
     </div>
 
+    <!-- PRESUPUESTOS -->
+    <div class="page" id="page-presupuestos">
+      <div class="page-header"><div class="page-title">Presupuestos</div><div class="page-sub">// cotización → aprobación → venta</div><div class="tabs"><div class="tab active">Todos</div></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="presup-stats"></div>
+        <div class="toolbar">
+          <div class="search-box"><input type="text" placeholder="Buscar por nro, cliente..." oninput="renderPresupuestos(this.value)"></div>
+          <button class="btn btn-ghost" onclick="openPresupuestoModal()">+ Nuevo presupuesto</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Nro</th><th>Cliente</th><th>Fecha</th><th>Vence</th><th>Ítems</th><th>Total USD</th><th>Estado</th><th></th></tr></thead><tbody id="presup-tbody"></tbody></table></div>
+      </div>
+    </div>
+
     <!-- VENTAS -->
     <div class="page" id="page-ventas">
       <div class="page-header"><div class="page-title">Ventas</div><div class="page-sub">// pedidos y remitos</div><div class="tabs"><div class="tab active">Historial</div></div></div>
@@ -403,6 +418,25 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
         <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Contacto</th><th>Teléfono</th><th>Email</th><th>CUIT</th><th>Compras</th><th>Total facturado</th><th></th></tr></thead><tbody id="clientes-tbody"></tbody></table></div>
       </div>
     </div>
+    <!-- COSTOS Y RENTABILIDAD -->
+    <div class="page" id="page-costos">
+      <div class="page-header"><div class="page-title">Costos y rentabilidad</div><div class="page-sub">// costo real MP + tiempo + overhead · margen por pieza</div><div class="tabs"><div class="tab active">Por producto</div></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="costos-stats"></div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end">
+          <div><label style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:4px">Tarifa operario USD/h</label><input type="number" id="cfg-tarifa-op" step="0.1" min="0" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--text);font-family:var(--mono)"></div>
+          <div><label style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:4px">Overhead %</label><input type="number" id="cfg-overhead" step="0.1" min="0" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--text);font-family:var(--mono)"></div>
+          <div style="font-size:11px;color:var(--text3);line-height:1.4">La tarifa del operario y el overhead se aplican al calcular costo total. El overhead representa gastos indirectos (luz, alquiler, etc.)</div>
+          <div><button class="btn btn-primary" id="btn-save-cfg-costos" onclick="saveCfgCostos()">Guardar config</button></div>
+        </div>
+        <div class="toolbar">
+          <div class="search-box"><input type="text" placeholder="Buscar por pieza..." oninput="renderCostos(this.value)"></div>
+          <button class="btn btn-ghost" onclick="renderCostos()">↻ Recalcular</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Pieza</th><th>Lote</th><th>Cant.</th><th>Costo MP/un</th><th>Costo tiempo/un</th><th>Overhead/un</th><th>Costo total/un</th><th>Precio vta. prom.</th><th>Margen USD</th><th>Margen %</th></tr></thead><tbody id="costos-tbody"></tbody></table></div>
+      </div>
+    </div>
+
     <!-- TRAZABILIDAD -->
     <div class="page" id="page-trace">
       <div class="page-header"><div class="page-title">Trazabilidad</div><div class="page-sub">// certificado → barra → producción → pieza → venta</div><div class="tabs"><div class="tab active">Consulta</div></div></div>
@@ -887,6 +921,41 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
 </div>
 
 
+<!-- MODAL: Presupuesto -->
+<div class="modal-overlay" id="modal-presupuesto">
+  <div class="modal" style="width:820px">
+    <div class="modal-header"><div class="modal-title" id="modal-presup-title">Nuevo presupuesto</div><button class="modal-close" onclick="closeModal('modal-presupuesto')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="presup-edit-id">
+      <div class="section-label">Cabecera</div>
+      <div class="form-row" style="grid-template-columns:120px 2fr 130px 130px 130px">
+        <div class="form-group"><label>Nro *</label><input type="text" id="presup-nro" placeholder="P-0001"></div>
+        <div class="form-group"><label>Cliente *</label><input type="text" id="presup-cliente" placeholder="Razón social" list="clientes-datalist" oninput="onPresupClienteChange()"></div>
+        <div class="form-group"><label>CUIT</label><input type="text" id="presup-cuit" placeholder="30-12345678-9" readonly style="opacity:.7"></div>
+        <div class="form-group"><label>Fecha *</label><input type="date" id="presup-fecha"></div>
+        <div class="form-group"><label>Vence</label><input type="date" id="presup-vence"></div>
+      </div>
+      <div class="form-row"><div class="form-group"><label>Condición de pago</label><input type="text" id="presup-cond" placeholder="30 días"></div><div class="form-group"><label>Estado</label><select id="presup-estado"><option value="borrador">Borrador</option><option value="enviado">Enviado</option><option value="aprobado">Aprobado x cliente</option><option value="rechazado">Rechazado</option><option value="vencido">Vencido</option></select></div></div>
+
+      <hr class="form-divider">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="section-label" style="margin:0">Ítems</div><button class="btn btn-ghost btn-sm" onclick="addPresupItem()">+ Ítem</button></div>
+      <div id="presup-items-list" style="display:flex;flex-direction:column;gap:6px"></div>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:12px;gap:16px;align-items:center;font-size:13px">
+        <div style="color:var(--text3)">Subtotal:</div><div class="mono" id="presup-subtotal" style="min-width:100px;text-align:right">$0.00</div>
+        <div style="color:var(--text3)">Descuento %:</div><input type="number" id="presup-desc-pct" step="0.1" min="0" max="100" value="0" oninput="calcPresupTotal()" style="width:70px;background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-family:var(--mono);text-align:right">
+        <div style="color:var(--text3)">Total USD:</div><div class="mono" id="presup-total" style="font-weight:700;color:var(--green);font-size:16px;min-width:100px;text-align:right">$0.00</div>
+      </div>
+
+      <div class="form-row single" style="margin-top:10px"><div class="form-group"><label>Observaciones</label><input type="text" id="presup-obs" placeholder="Validez, condiciones, notas"></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-presupuesto')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-presup" onclick="savePresupuesto()">Guardar presupuesto</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Proveedor -->
 <div class="modal-overlay" id="modal-proveedor">
   <div class="modal" style="width:640px">
@@ -1158,6 +1227,7 @@ const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 let currentSession=null, currentUser=null, currentEmpresa=null;
 let certs=[],barras=[],ops=[],pts=[],ventas=[],ventaItemsList=[],materiales=[],tratamientos=[],usuariosEmpresa=[],permisosUsuario=[],clientes=[],vendedores=[],listasPrecios=[],currentUserData=null;
 let proveedores=[],ordenesCompra=[],ocItems=[],recepciones=[],ocItemsDraft=[],currentOCId=null;
+let presupuestos=[],presupItemsList=[],presupItemsDraft=[];
 let certFileData=null,certFileName=null;
 
 function authH(token){return{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+(token||SUPA_KEY),'Prefer':'return=representation'};}
@@ -1406,7 +1476,7 @@ async function loadEmpresaAndStart(){
 // ─── DATA ─────────────────────────────────────────────────────────
 async function loadAll(){
   try{
-    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones]=await Promise.all([
+    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos]=await Promise.all([
       GET('certificados','?order=created_at.desc'),
       GET('barras','?order=created_at.desc&select=*,certificados(nro,colada,proveedor)'),
       GET('ordenes_produccion','?order=created_at.desc&select=*,barras(lote)'),
@@ -1423,12 +1493,13 @@ async function loadAll(){
       GET('ordenes_compra','?order=fecha.desc&select=*,proveedores(nombre),oc_items(*)').catch(()=>[]),
       GET('oc_items','?order=created_at.asc').catch(()=>[]),
       GET('recepciones_oc','?order=fecha.desc').catch(()=>[]),
+      GET('presupuestos','?order=fecha.desc&select=*,presupuesto_items(*)').catch(()=>[]),
     ]);
   }catch(e){
     console.error('Error cargando datos:',e);
     certs=certs||[];barras=barras||[];ops=ops||[];pts=pts||[];ventas=ventas||[];
     materiales=materiales||[];tratamientos=tratamientos||[];usuariosEmpresa=usuariosEmpresa||[];permisosUsuario=permisosUsuario||[];clientes=clientes||[];vendedores=vendedores||[];listasPrecios=listasPrecios||[];
-    proveedores=proveedores||[];ordenesCompra=ordenesCompra||[];ocItems=ocItems||[];recepciones=recepciones||[];
+    proveedores=proveedores||[];ordenesCompra=ordenesCompra||[];ocItems=ocItems||[];recepciones=recepciones||[];presupuestos=presupuestos||[];
   }
 }
 
@@ -1437,7 +1508,7 @@ function showPage(p){
   document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
-  const map={dash:0,mp:1,pt:2,cert:3,op:4,compras:5,ventas:6,clientes:7,trace:8,config:9};
+  const map={dash:0,mp:1,pt:2,cert:3,op:4,compras:5,presupuestos:6,ventas:7,clientes:8,costos:9,trace:10,config:11};
   document.querySelectorAll('.nav-item')[map[p]]?.classList.add('active');
 }
 
@@ -1704,18 +1775,29 @@ function renderMP(filter=''){
   document.getElementById('mp-tbody').innerHTML=list.length?list.map(b=>{const cert=b.certificados;const isLow=b.kg_minimo>0&&b.kg_disponibles<=b.kg_minimo;return`<tr><td class="mono td-primary">${b.lote}</td><td>${b.material}</td><td>${b.perfil||''} ${b.diametro||''}</td><td class="mono">${b.nro_colada||'—'}</td><td>${cert?`<span class="badge badge-purple">${cert.nro}</span>`:'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:${isLow?'var(--red)':'var(--text)'}">${parseFloat(b.kg_disponibles).toFixed(1)}</td><td>${b.unidades||'—'}</td><td>${isLow?'<span class="badge badge-warn">STOCK BAJO</span>':'<span class="badge badge-ok">OK</span>'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editBarra('${b.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="showTrace('barra','${b.id}')">Trazar</button><button class="btn btn-danger btn-sm" onclick="deleteBarra('${b.id}')">×</button></td></tr>`;}):( `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text3)">Sin barras registradas</td></tr>`);
 }
 
+function getPTReservado(ptId){
+  let r=0;
+  ventas.forEach(v=>{
+    if(['entregado','facturado','anulada'].includes(v.estado))return;
+    (v.venta_items||[]).forEach(i=>{if(i.producto_id===ptId)r+=parseFloat(i.cantidad)||0;});
+  });
+  return r;
+}
+
 function renderPT(filter=''){
   const f=filter.toLowerCase();
   const list=pts.filter(p=>!f||p.lote.toLowerCase().includes(f)||p.pieza.toLowerCase().includes(f));
   const totalPiezas=pts.reduce((a,b)=>a+parseInt(b.cantidad||0),0);
-  const valorPT=pts.reduce((a,b)=>a+(parseInt(b.cantidad||0)*parseFloat(b.precio_unitario||0)),0);
+  const totalReservado=pts.reduce((a,b)=>a+getPTReservado(b.id),0);
+  const totalDisponible=totalPiezas-totalReservado;
   const valorCosto=pts.reduce((a,b)=>a+(parseInt(b.cantidad||0)*parseFloat(b.costo_unitario||b.precio_unitario||0)),0);
   document.getElementById('pt-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Lotes PT</div><div class="stat-value" style="color:var(--teal)">${pts.length}</div></div>
-    <div class="stat-card"><div class="stat-label">Piezas disponibles</div><div class="stat-value" style="color:var(--teal)">${totalPiezas}</div></div>
-    <div class="stat-card"><div class="stat-label">Valor stock (costo)</div><div class="stat-value" style="color:var(--green);font-size:13px">${fmtUSD(valorCosto)}</div></div>
-    <div class="stat-card"><div class="stat-label">Con trazabilidad</div><div class="stat-value">${pts.filter(p=>p.barra_id).length}</div></div>`;
-  document.getElementById('pt-tbody').innerHTML=list.length?list.map(p=>{const b=p.barras;const cert=b?.certificados;const op=p.ordenes_produccion;return`<tr><td class="mono td-primary">${p.lote}</td><td style="color:var(--teal);font-weight:500">${p.pieza}</td><td>${p.descripcion||'—'}</td><td class="mono" style="color:${p.cantidad<=0?'var(--red)':p.cantidad<=3?'var(--accent)':'var(--text)'}">${p.cantidad} u.</td><td>${b?`<span class="badge badge-blue">${b.lote}</span>`:'—'}</td><td class="mono">${b?.nro_colada||'—'}</td><td>${cert?`<span class="badge badge-purple">${cert.nro}</span>`:'—'}</td><td class="mono">${op?.nro||'—'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editPT('${p.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="showTrace('pt','${p.id}')">Trazar</button><button class="btn btn-danger btn-sm" onclick="deletePT('${p.id}')">×</button></td></tr>`;}):(`<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text3)">Sin productos terminados</td></tr>`);
+    <div class="stat-card"><div class="stat-label">Stock total</div><div class="stat-value" style="color:var(--teal)">${totalPiezas}</div></div>
+    <div class="stat-card"><div class="stat-label">Reservado</div><div class="stat-value" style="color:${totalReservado?'var(--accent)':'var(--text)'}">${totalReservado}</div></div>
+    <div class="stat-card"><div class="stat-label">Disponible</div><div class="stat-value" style="color:var(--green)">${totalDisponible}</div></div>
+    <div class="stat-card"><div class="stat-label">Valor stock (costo)</div><div class="stat-value" style="color:var(--green);font-size:13px">${fmtUSD(valorCosto)}</div></div>`;
+  document.getElementById('pt-tbody').innerHTML=list.length?list.map(p=>{const b=p.barras;const cert=b?.certificados;const op=p.ordenes_produccion;const reserv=getPTReservado(p.id);const disp=parseInt(p.cantidad||0)-reserv;const cStock=p.cantidad<=0?'var(--red)':p.cantidad<=3?'var(--accent)':'var(--text)';const cDisp=disp<=0?'var(--red)':disp<=3?'var(--accent)':'var(--green)';return`<tr><td class="mono td-primary">${p.lote}</td><td style="color:var(--teal);font-weight:500">${p.pieza}</td><td>${p.descripcion||'—'}</td><td class="mono" style="color:${cStock}">${p.cantidad}<span style="color:var(--text3);font-size:10px"> total</span>${reserv>0?`<div style="font-size:10px;color:var(--accent);font-family:var(--mono)">${reserv} reserv.</div><div style="font-size:10px;color:${cDisp};font-weight:700;font-family:var(--mono)">${disp} disp.</div>`:''}</td><td>${b?`<span class="badge badge-blue">${b.lote}</span>`:'—'}</td><td class="mono">${b?.nro_colada||'—'}</td><td>${cert?`<span class="badge badge-purple">${cert.nro}</span>`:'—'}</td><td class="mono">${op?.nro||'—'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editPT('${p.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="showTrace('pt','${p.id}')">Trazar</button><button class="btn btn-danger btn-sm" onclick="deletePT('${p.id}')">×</button></td></tr>`;}):(`<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text3)">Sin productos terminados</td></tr>`);
 }
 
 function renderCert(filter=''){
@@ -1907,7 +1989,7 @@ function notify(msg,type){
   el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);
 }
 
-function renderAll(){renderDash();renderMP();renderPT();renderCert();renderOP();renderCompras();renderProveedores();renderVentas();renderClientes();renderConfig();updateClientesDatalist();}
+function renderAll(){renderDash();renderMP();renderPT();renderCert();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderConfig();updateClientesDatalist();}
 
 
 // ─── MATERIALES ───────────────────────────────────────────────────
@@ -2656,7 +2738,7 @@ function editClienteFromFicha(){
 function aplicarPermisos(){
   const esAdmin=currentUserData?.es_admin===true;
   const misPermisos=permisosUsuario.filter(p=>p.usuario_id===currentUser?.id).map(p=>p.modulo);
-  const map={dash:0,mp:1,pt:2,cert:3,op:4,compras:5,ventas:6,clientes:7,trace:8,config:9};
+  const map={dash:0,mp:1,pt:2,cert:3,op:4,compras:5,presupuestos:6,ventas:7,clientes:8,costos:9,trace:10,config:11};
   const navItems=document.querySelectorAll('.nav-item');
   // Si es admin o no hay datos de usuario (primer admin), mostrar todo
   if(esAdmin||!currentUserData){
@@ -3132,6 +3214,205 @@ async function saveRecepcion(){
     notify(allComplete?'✓ Recepción completa registrada':'Recepción parcial registrada');
   }catch(e){notify('Error: '+e.message,'err');console.error(e);}
   finally{setBusy('btn-save-recep',false);}
+}
+
+// ═══════════════════════════════════════════════════════════
+// 📋 PRESUPUESTOS
+// ═══════════════════════════════════════════════════════════
+
+function renderPresupuestos(filter=''){
+  const f=filter.toLowerCase();
+  const total=presupuestos.length;
+  const aprobados=presupuestos.filter(p=>p.estado==='aprobado').length;
+  const convertidos=presupuestos.filter(p=>p.estado==='convertido').length;
+  const totalUSD=presupuestos.reduce((a,p)=>a+parseFloat(p.total||0),0);
+  document.getElementById('presup-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value" style="color:var(--accent)">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Aprobados</div><div class="stat-value" style="color:var(--green)">${aprobados}</div></div>
+    <div class="stat-card"><div class="stat-label">Convertidos a venta</div><div class="stat-value" style="color:var(--teal)">${convertidos}</div></div>
+    <div class="stat-card"><div class="stat-label">Importe total</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtUSD(totalUSD)}</div></div>`;
+  const badges={borrador:'badge-warn',enviado:'badge-blue',aprobado:'badge-ok',rechazado:'badge-coral',vencido:'badge-coral',convertido:'badge-teal'};
+  const list=presupuestos.filter(p=>!f||p.nro.toLowerCase().includes(f)||p.cliente.toLowerCase().includes(f));
+  document.getElementById('presup-tbody').innerHTML=list.length?list.map(p=>{
+    const items=p.presupuesto_items||[];
+    const puedeConvertir=['enviado','aprobado'].includes(p.estado);
+    return `<tr><td class="mono td-primary">${p.nro}</td><td style="font-weight:500">${p.cliente}</td><td>${p.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${p.fecha_vencimiento||'—'}</td><td class="mono">${items.length}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(p.total||0))}</td><td><span class="badge ${badges[p.estado]||'badge-warn'}">${p.estado.toUpperCase()}</span></td><td style="display:flex;gap:4px;flex-wrap:wrap">${puedeConvertir?`<button class="btn btn-ghost btn-sm" onclick="convertirPresupuesto('${p.id}')" style="border-color:var(--green);color:var(--green)">→ Venta</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editPresupuesto('${p.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="deletePresupuesto('${p.id}')">×</button></td></tr>`;
+  }).join(''):'<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">Sin presupuestos. Click en "+ Nuevo".</td></tr>';
+}
+
+function openPresupuestoModal(id){
+  document.getElementById('modal-presup-title').textContent=id?'Editar presupuesto':'Nuevo presupuesto';
+  document.getElementById('presup-edit-id').value=id||'';
+  const p=id?presupuestos.find(x=>x.id===id):null;
+  document.getElementById('presup-nro').value=p?.nro||('P-'+String(presupuestos.length+1).padStart(4,'0'));
+  document.getElementById('presup-cliente').value=p?.cliente||'';
+  document.getElementById('presup-cuit').value=p?.cuit||'';
+  document.getElementById('presup-fecha').value=p?.fecha||new Date().toISOString().slice(0,10);
+  const fv=p?.fecha_vencimiento||new Date(Date.now()+15*86400000).toISOString().slice(0,10);
+  document.getElementById('presup-vence').value=fv;
+  document.getElementById('presup-cond').value=p?.condicion_pago||'';
+  document.getElementById('presup-estado').value=p?.estado||'borrador';
+  document.getElementById('presup-obs').value=p?.observaciones||'';
+  document.getElementById('presup-desc-pct').value=p?.descuento_pct||0;
+  if(id){const items=p?.presupuesto_items||[];presupItemsDraft=items.map(i=>({id:i.id,producto_id:i.producto_id,pieza:i.pieza,descripcion:i.descripcion||'',cantidad:i.cantidad,precio_unitario:i.precio_unitario,subtotal:i.subtotal}));}
+  else{presupItemsDraft=[];}
+  renderPresupItems();calcPresupTotal();openModal('modal-presupuesto');
+}
+function editPresupuesto(id){openPresupuestoModal(id);}
+function addPresupItem(){presupItemsDraft.push({producto_id:'',pieza:'',descripcion:'',cantidad:1,precio_unitario:0,subtotal:0});renderPresupItems();}
+function removePresupItem(idx){presupItemsDraft.splice(idx,1);renderPresupItems();calcPresupTotal();}
+function onPresupItemChange(idx,field,val){
+  const it=presupItemsDraft[idx];if(!it)return;
+  if(['cantidad','precio_unitario'].includes(field))val=parseFloat(val)||0;
+  it[field]=val;
+  if(field==='producto_id'&&val){const pt=pts.find(x=>x.id===val);if(pt){it.pieza=pt.pieza;it.descripcion=pt.descripcion||'';it.precio_unitario=parseFloat(pt.precio_unitario||0);}}
+  it.subtotal=(parseFloat(it.cantidad)||0)*(parseFloat(it.precio_unitario)||0);
+  renderPresupItems();calcPresupTotal();
+}
+function calcPresupTotal(){
+  const sub=presupItemsDraft.reduce((a,i)=>a+(parseFloat(i.subtotal)||0),0);
+  const desc=parseFloat(document.getElementById('presup-desc-pct').value||0);
+  const total=sub*(1-desc/100);
+  document.getElementById('presup-subtotal').textContent=fmtUSD(sub);
+  document.getElementById('presup-total').textContent=fmtUSD(total);
+}
+function renderPresupItems(){
+  const cont=document.getElementById('presup-items-list');
+  if(!presupItemsDraft.length){cont.innerHTML='<div style="padding:18px;text-align:center;color:var(--text3);font-size:12px;border:1px dashed var(--border);border-radius:4px">Sin ítems. Click en "+ Ítem"</div>';return;}
+  cont.innerHTML=presupItemsDraft.map((it,idx)=>{
+    const ptOptions='<option value="">— manual —</option>'+pts.map(p=>`<option value="${p.id}" ${it.producto_id===p.id?'selected':''}>${p.pieza} (${p.lote})</option>`).join('');
+    return `<div style="display:grid;grid-template-columns:180px 2fr 80px 100px 100px auto;gap:6px;align-items:center;padding:6px;background:var(--surface2);border-radius:4px">
+      <select onchange="onPresupItemChange(${idx},'producto_id',this.value)" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:11px">${ptOptions}</select>
+      <input type="text" value="${it.pieza.replace(/"/g,'&quot;')}" oninput="onPresupItemChange(${idx},'pieza',this.value)" placeholder="Pieza / descripción" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px">
+      <input type="number" value="${it.cantidad}" min="0" step="1" oninput="onPresupItemChange(${idx},'cantidad',this.value)" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px;font-family:var(--mono)">
+      <input type="number" value="${it.precio_unitario}" min="0" step="0.01" oninput="onPresupItemChange(${idx},'precio_unitario',this.value)" placeholder="USD" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px;font-family:var(--mono)">
+      <span class="mono" style="font-size:12px;color:var(--green);text-align:right">${fmtUSD(it.subtotal)}</span>
+      <button class="btn btn-danger btn-sm" onclick="removePresupItem(${idx})" style="padding:4px 8px">×</button>
+    </div>`;
+  }).join('');
+}
+function onPresupClienteChange(){
+  const nombre=document.getElementById('presup-cliente').value.trim();
+  const c=clientes.find(x=>x.nombre.toLowerCase()===nombre.toLowerCase());
+  document.getElementById('presup-cuit').value=c?.cuit||'';
+}
+
+async function savePresupuesto(){
+  const id=document.getElementById('presup-edit-id').value;
+  const nro=document.getElementById('presup-nro').value.trim();
+  const cliente=document.getElementById('presup-cliente').value.trim();
+  const fecha=document.getElementById('presup-fecha').value;
+  if(!nro||!cliente||!fecha){notify('Nro, cliente y fecha son obligatorios','err');return;}
+  if(!presupItemsDraft.length){notify('Agregá al menos un ítem','err');return;}
+  const sub=presupItemsDraft.reduce((a,i)=>a+(parseFloat(i.subtotal)||0),0);
+  const desc=parseFloat(document.getElementById('presup-desc-pct').value||0);
+  const total=sub*(1-desc/100);
+  const data={nro,cliente,cuit:document.getElementById('presup-cuit').value.trim()||null,fecha,fecha_vencimiento:document.getElementById('presup-vence').value||null,condicion_pago:document.getElementById('presup-cond').value.trim()||null,subtotal:sub,descuento_pct:desc,total,estado:document.getElementById('presup-estado').value,observaciones:document.getElementById('presup-obs').value.trim()||null};
+  try{setBusy('btn-save-presup',true);
+    let pid;
+    if(id){await PATCH('presupuestos',data,`?id=eq.${id}`);pid=id;await DEL('presupuesto_items',`?presupuesto_id=eq.${id}`);}
+    else{const r=await POST('presupuestos',[{...data,empresa_id:currentEmpresa.id}]);pid=r[0].id;}
+    const items=presupItemsDraft.map(i=>({presupuesto_id:pid,producto_id:i.producto_id||null,pieza:i.pieza,descripcion:i.descripcion||null,cantidad:parseFloat(i.cantidad)||0,precio_unitario:parseFloat(i.precio_unitario)||0,subtotal:parseFloat(i.subtotal)||0}));
+    if(items.length)await POST('presupuesto_items',items);
+    await loadAll();closeModal('modal-presupuesto');renderAll();notify(id?'Presupuesto actualizado':'Presupuesto creado');
+  }catch(e){notify('Error: '+e.message,'err');}
+  finally{setBusy('btn-save-presup',false);}
+}
+async function deletePresupuesto(id){
+  const p=presupuestos.find(x=>x.id===id);if(!p)return;
+  if(!confirm(`¿Eliminar presupuesto "${p.nro}"? Se borran también sus ítems.`))return;
+  try{await DEL('presupuestos',`?id=eq.${id}`);await loadAll();renderAll();notify('Presupuesto eliminado');}
+  catch(e){notify('Error: '+e.message,'err');}
+}
+async function convertirPresupuesto(id){
+  const p=presupuestos.find(x=>x.id===id);if(!p)return;
+  if(!confirm(`¿Convertir presupuesto "${p.nro}" en venta?\nCliente: ${p.cliente}\nTotal: ${fmtUSD(p.total)}`))return;
+  try{
+    const items=p.presupuesto_items||[];
+    const ventaNro='V-'+String(ventas.length+1).padStart(5,'0');
+    const vres=await POST('ventas',[{empresa_id:currentEmpresa.id,nro_remito:ventaNro,cliente:p.cliente,fecha:new Date().toISOString().slice(0,10),estado:'ingresado',observaciones:`Generada desde presupuesto ${p.nro}`,total:p.total}]);
+    const vid=vres[0].id;
+    if(items.length){const viData=items.map(i=>({venta_id:vid,producto_id:i.producto_id||null,pieza:i.pieza,cantidad:parseFloat(i.cantidad)||0,precio_unitario:parseFloat(i.precio_unitario)||0,total:parseFloat(i.subtotal)||0}));await POST('venta_items',viData);}
+    await PATCH('presupuestos',{estado:'convertido',venta_id:vid},`?id=eq.${id}`);
+    await loadAll();renderAll();notify(`✓ Venta ${ventaNro} creada desde presupuesto`);
+  }catch(e){notify('Error: '+e.message,'err');}
+}
+
+// ═══════════════════════════════════════════════════════════
+// 💰 COSTOS Y RENTABILIDAD
+// ═══════════════════════════════════════════════════════════
+
+function computeCostoPT(pt){
+  const op=ops.find(o=>o.id===pt.orden_id);
+  const cantPT=parseInt(pt.cantidad||0)||1;
+  // Costo MP
+  let costoMP=0;
+  if(op&&op.barra_id){
+    const barra=barras.find(b=>b.id===op.barra_id);
+    if(barra&&barra.costo_usd_unidad){
+      const kgUsados=parseFloat(op.kg_usados||0);
+      costoMP=(kgUsados*parseFloat(barra.costo_usd_unidad))/cantPT;
+    }
+  }
+  // Costo tiempo (desde op_operaciones + op_time_entries)
+  let costoTiempo=0;
+  if(op){
+    const pasos=opOperaciones.filter(x=>x.orden_id===op.id);
+    const tarifaOp=parseFloat(currentEmpresa.tarifa_operario_usd_h||18);
+    pasos.forEach(paso=>{
+      const entries=opTimeEntries.filter(e=>e.operacion_id===paso.id&&e.tipo==='productivo'&&e.ended_at);
+      const minProd=entries.reduce((s,e)=>s+(new Date(e.ended_at)-new Date(e.started_at))/60000,0);
+      const tarifaMaquina=parseFloat(paso.tarifa_maquina_usd||0);
+      const costoPasoUSD=(minProd/60)*(tarifaOp+tarifaMaquina);
+      costoTiempo+=costoPasoUSD;
+    });
+    costoTiempo=costoTiempo/cantPT;
+  }
+  const overheadPct=parseFloat(currentEmpresa.overhead_pct||15)/100;
+  const overhead=(costoMP+costoTiempo)*overheadPct;
+  const total=costoMP+costoTiempo+overhead;
+  // Precio venta promedio
+  let precioVtaProm=0,cantVendida=0;
+  ventas.forEach(v=>(v.venta_items||[]).forEach(i=>{if(i.producto_id===pt.id){precioVtaProm+=(parseFloat(i.precio_unitario)||0)*(parseFloat(i.cantidad)||0);cantVendida+=parseFloat(i.cantidad)||0;}}));
+  precioVtaProm=cantVendida?precioVtaProm/cantVendida:parseFloat(pt.precio_unitario||0);
+  const margenUSD=precioVtaProm-total;
+  const margenPct=precioVtaProm>0?(margenUSD/precioVtaProm)*100:0;
+  return {costoMP,costoTiempo,overhead,total,precioVtaProm,margenUSD,margenPct};
+}
+
+function renderCostos(filter=''){
+  if(!document.getElementById('costos-tbody'))return;
+  document.getElementById('cfg-tarifa-op').value=currentEmpresa?.tarifa_operario_usd_h||18;
+  document.getElementById('cfg-overhead').value=currentEmpresa?.overhead_pct||15;
+  const f=filter.toLowerCase();
+  const list=pts.filter(p=>!f||p.pieza.toLowerCase().includes(f)||(p.lote||'').toLowerCase().includes(f));
+  const calculados=list.map(pt=>({pt,c:computeCostoPT(pt)}));
+  const avgMargen=calculados.length?calculados.reduce((a,x)=>a+x.c.margenPct,0)/calculados.length:0;
+  const rentables=calculados.filter(x=>x.c.margenPct>0).length;
+  const perdidas=calculados.filter(x=>x.c.margenPct<0&&x.c.precioVtaProm>0).length;
+  const costoTotal=calculados.reduce((a,x)=>a+x.c.total*parseInt(x.pt.cantidad||0),0);
+  document.getElementById('costos-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Piezas analizadas</div><div class="stat-value" style="color:var(--accent)">${calculados.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Rentables</div><div class="stat-value" style="color:var(--green)">${rentables}</div></div>
+    <div class="stat-card"><div class="stat-label">Con pérdida</div><div class="stat-value" style="color:var(--coral)">${perdidas}</div></div>
+    <div class="stat-card"><div class="stat-label">Margen promedio</div><div class="stat-value" style="color:${avgMargen>=0?'var(--green)':'var(--coral)'}">${avgMargen.toFixed(1)}%</div></div>
+    <div class="stat-card"><div class="stat-label">Costo total stock</div><div class="stat-value" style="font-size:14px">${fmtUSD(costoTotal)}</div></div>`;
+  calculados.sort((a,b)=>b.c.margenPct-a.c.margenPct);
+  document.getElementById('costos-tbody').innerHTML=calculados.length?calculados.map(({pt,c})=>{
+    const mColor=c.margenPct>=20?'var(--green)':c.margenPct>=0?'var(--warning,#f59e0b)':'var(--coral)';
+    return `<tr><td class="td-primary">${pt.pieza}</td><td class="mono" style="font-size:11px">${pt.lote||'—'}</td><td class="mono">${pt.cantidad}</td><td class="mono">${fmtUSD(c.costoMP)}</td><td class="mono">${fmtUSD(c.costoTiempo)}</td><td class="mono" style="color:var(--text3);font-size:11px">${fmtUSD(c.overhead)}</td><td class="mono" style="font-weight:700">${fmtUSD(c.total)}</td><td class="mono" style="color:var(--accent)">${fmtUSD(c.precioVtaProm)}</td><td class="mono" style="color:${mColor}">${fmtUSD(c.margenUSD)}</td><td class="mono" style="color:${mColor};font-weight:700">${c.margenPct.toFixed(1)}%</td></tr>`;
+  }).join(''):'<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--text3)">Sin productos. Cargá el costo de las barras y tarifas de máquinas para que el cálculo sea completo.</td></tr>';
+}
+
+async function saveCfgCostos(){
+  const t=parseFloat(document.getElementById('cfg-tarifa-op').value)||0;
+  const o=parseFloat(document.getElementById('cfg-overhead').value)||0;
+  try{setBusy('btn-save-cfg-costos',true);
+    await PATCH('empresas',{tarifa_operario_usd_h:t,overhead_pct:o},`?id=eq.${currentEmpresa.id}`);
+    currentEmpresa.tarifa_operario_usd_h=t;currentEmpresa.overhead_pct=o;
+    renderCostos();notify('Config de costos guardada');
+  }catch(e){notify('Error: '+e.message,'err');}
+  finally{setBusy('btn-save-cfg-costos',false);}
 }
 
 async function saveOperacionPaso(){
