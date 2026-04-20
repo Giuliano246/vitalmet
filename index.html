@@ -2768,9 +2768,27 @@ function renderTiemposEntries(){
     const min=Math.floor((end-start)/60000);
     const hora=`${String(start.getHours()).padStart(2,'0')}:${String(start.getMinutes()).padStart(2,'0')}`;
     const endHora=e.ended_at?`${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}`:'en curso';
-    if(e.tipo==='pausa'){return `<div style="display:grid;grid-template-columns:95px 1fr auto;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);color:var(--coral)"><span class="mono" style="font-size:11px">${hora}-${endHora}</span><span>⏸ ${e.motivo||'Pausa'}</span><span class="mono" style="font-weight:600">${fmtHMfromMin(min)}</span></div>`;}
-    return `<div style="display:grid;grid-template-columns:95px 1fr auto;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);${!e.ended_at?'background:var(--surface2);padding-left:8px;padding-right:8px;border-radius:4px':''}"><span class="mono" style="font-size:11px;color:var(--text3)">${hora}-${endHora}</span><span>${paso?paso.nombre:'—'}</span><span class="mono" style="font-weight:600">${fmtHMfromMin(min)}</span></div>`;
+    const delBtn=`<button onclick="deleteTimeEntry('${e.id}')" title="Eliminar registro" style="background:transparent;border:none;color:var(--text3);cursor:pointer;padding:0 4px;font-size:14px;line-height:1;opacity:.4;transition:.15s" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=.4;this.style.color='var(--text3)'">×</button>`;
+    if(e.tipo==='pausa'){return `<div style="display:grid;grid-template-columns:95px 1fr auto auto;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);color:var(--coral);align-items:center"><span class="mono" style="font-size:11px">${hora}-${endHora}</span><span>⏸ ${e.motivo||'Pausa'}</span><span class="mono" style="font-weight:600">${fmtHMfromMin(min)}</span>${delBtn}</div>`;}
+    return `<div style="display:grid;grid-template-columns:95px 1fr auto auto;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);${!e.ended_at?'background:var(--surface2);padding-left:8px;padding-right:8px;border-radius:4px':''};align-items:center"><span class="mono" style="font-size:11px;color:var(--text3)">${hora}-${endHora}</span><span>${paso?paso.nombre:'—'}</span><span class="mono" style="font-weight:600">${fmtHMfromMin(min)}</span>${delBtn}</div>`;
   }).join('');
+}
+
+async function deleteTimeEntry(id){
+  const e=opTimeEntries.find(x=>x.id===id);
+  if(!e)return;
+  const paso=opOperaciones.find(o=>o.id===e.operacion_id);
+  const desc=e.tipo==='pausa'?`pausa "${e.motivo||'—'}"`:`registro de ${paso?paso.nombre:'—'}`;
+  const activo=!e.ended_at;
+  const msg=activo?`⚠️ Este registro está ACTIVO (timer corriendo). ¿Eliminarlo igualmente?`:`¿Eliminar ${desc}? Esta acción no se puede deshacer.`;
+  if(!confirm(msg))return;
+  try{
+    await DEL('op_time_entries',`?id=eq.${id}`);
+    opTimeEntries=opTimeEntries.filter(x=>x.id!==id);
+    // si era el activo, limpiar estado visual
+    if(activo&&tiempoInterval){/* el render lo detecta automáticamente */}
+    renderTiempos();notify('Registro eliminado');
+  }catch(err){notify('Error: '+err.message,'err');}
 }
 
 function renderTiemposMetrics(){
