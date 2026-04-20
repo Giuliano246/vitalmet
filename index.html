@@ -2749,13 +2749,29 @@ function renderTiemposOps(){
     const totalMin=finished+live;
     const badge=o.estado==='completada'?'<span class="badge badge-ok">✓</span>':o.estado==='en_curso'?'<span class="badge badge-warn">▶</span>':'<span class="badge badge-blue">○</span>';
     const active=o.id===currentTiempoPasoId;
-    return `<div onclick="selectTiempoPaso('${o.id}')" style="display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;padding:10px;border:1px solid ${active?'var(--accent)':'var(--border)'};border-radius:4px;cursor:pointer;${active?'background:var(--surface2)':''};align-items:center">
-      <span class="mono" style="color:var(--text3);font-size:11px">#${o.secuencia}</span>
-      <div><div style="font-weight:500">${o.nombre}</div><div style="font-size:10px;color:var(--text3)">${o.maquina||'—'} · est. ${o.tiempo_estimado_min||0} min</div></div>
-      <div>${badge}</div>
-      <div class="mono" style="font-size:12px;font-weight:600">${fmtHMfromMin(totalMin)}</div>
+    return `<div style="display:grid;grid-template-columns:auto 1fr auto auto auto;gap:10px;padding:10px;border:1px solid ${active?'var(--accent)':'var(--border)'};border-radius:4px;${active?'background:var(--surface2)':''};align-items:center">
+      <span class="mono" style="color:var(--text3);font-size:11px;cursor:pointer" onclick="selectTiempoPaso('${o.id}')">#${o.secuencia}</span>
+      <div onclick="selectTiempoPaso('${o.id}')" style="cursor:pointer"><div style="font-weight:500">${o.nombre}</div><div style="font-size:10px;color:var(--text3)">${o.maquina||'—'} · est. ${o.tiempo_estimado_min||0} min</div></div>
+      <div onclick="selectTiempoPaso('${o.id}')" style="cursor:pointer">${badge}</div>
+      <div class="mono" style="font-size:12px;font-weight:600;cursor:pointer" onclick="selectTiempoPaso('${o.id}')">${fmtHMfromMin(totalMin)}</div>
+      <button onclick="deletePaso('${o.id}')" title="Eliminar paso" style="background:transparent;border:none;color:var(--text3);cursor:pointer;padding:0 4px;font-size:15px;line-height:1;opacity:.4;transition:.15s" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=.4;this.style.color='var(--text3)'">×</button>
     </div>`;
   }).join('');
+}
+
+async function deletePaso(id){
+  const p=opOperaciones.find(o=>o.id===id);
+  if(!p)return;
+  const entries=opTimeEntries.filter(e=>e.operacion_id===id);
+  const warn=entries.length?`⚠️ El paso "${p.nombre}" tiene ${entries.length} registro${entries.length>1?'s':''} de tiempo. Se van a borrar TODOS.\n\n¿Continuar?`:`¿Eliminar el paso "${p.nombre}"?`;
+  if(!confirm(warn))return;
+  try{
+    await DEL('op_operaciones',`?id=eq.${id}`);
+    opOperaciones=opOperaciones.filter(o=>o.id!==id);
+    opTimeEntries=opTimeEntries.filter(e=>e.operacion_id!==id);
+    if(currentTiempoPasoId===id)currentTiempoPasoId=opOperaciones.find(o=>o.estado!=='completada')?.id||null;
+    renderTiempos();notify('Paso eliminado');
+  }catch(e){notify('Error: '+e.message,'err');}
 }
 
 function renderTiemposEntries(){
