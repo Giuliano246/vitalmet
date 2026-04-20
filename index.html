@@ -856,6 +856,92 @@ tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
 </div>
 
 
+<!-- MODAL: Captura de tiempos de producción -->
+<div class="modal-overlay" id="modal-tiempos">
+  <div class="modal" style="width:980px;max-width:95vw">
+    <div class="modal-header">
+      <div class="modal-title">⏱ Captura de tiempos <span id="tiempos-op-nro" style="color:var(--accent);font-weight:400;margin-left:8px"></span></div>
+      <button class="modal-close" onclick="closeTiempos()">×</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <div style="display:grid;grid-template-columns:1.1fr 1fr;gap:0;min-height:520px">
+        <div style="padding:16px;border-right:1px solid var(--border);overflow-y:auto;max-height:520px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <div class="section-label">Operaciones (pasos)</div>
+            <button class="btn btn-ghost btn-sm" onclick="openAddOperacion()">+ Paso</button>
+          </div>
+          <div id="tiempos-ops-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px"></div>
+          <div class="section-label" style="margin-top:14px">Bitácora de tiempos</div>
+          <div id="tiempos-entries" style="display:flex;flex-direction:column;max-height:220px;overflow-y:auto;font-size:12px"></div>
+        </div>
+        <div style="padding:20px;background:var(--surface2);display:flex;flex-direction:column;gap:14px">
+          <div style="background:linear-gradient(135deg,#003a8c,var(--accent));color:white;padding:20px;border-radius:6px;text-align:center">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;opacity:0.7">Tiempo activo</div>
+            <div id="tiempos-timer" style="font-family:var(--mono);font-size:52px;font-weight:700;letter-spacing:-2px;margin:8px 0">00:00:00</div>
+            <div id="tiempos-status" style="font-size:12px;opacity:0.85;margin-bottom:14px">Seleccioná un paso</div>
+            <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
+              <button id="tiempos-btn-play" class="btn" style="background:var(--green);color:white;min-width:120px" onclick="startTiempoOp()">▶ INICIAR</button>
+              <button id="tiempos-btn-pause" class="btn" style="background:#f59e0b;color:white;min-width:120px" onclick="openPauseTiempo()" disabled>⏸ PAUSAR</button>
+              <button id="tiempos-btn-stop" class="btn btn-danger" style="min-width:120px" onclick="completeTiempoOp()" disabled>✓ COMPLETAR</button>
+            </div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px">
+            <div class="section-label">Métricas en vivo</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+              <div style="text-align:center;padding:10px;background:var(--surface2);border-radius:4px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3)">Productivo</div><div id="tiempos-m-prod" class="mono" style="font-size:18px;font-weight:700;color:var(--green);margin-top:4px">0h 00m</div></div>
+              <div style="text-align:center;padding:10px;background:var(--surface2);border-radius:4px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3)">Paradas</div><div id="tiempos-m-pause" class="mono" style="font-size:18px;font-weight:700;color:var(--coral);margin-top:4px">0h 00m</div></div>
+              <div style="text-align:center;padding:10px;background:var(--surface2);border-radius:4px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3)">Eficiencia</div><div id="tiempos-m-eff" class="mono" style="font-size:18px;font-weight:700;margin-top:4px">—</div></div>
+              <div style="text-align:center;padding:10px;background:var(--surface2);border-radius:4px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3)">Costo USD</div><div id="tiempos-m-cost" class="mono" style="font-size:18px;font-weight:700;color:var(--green);margin-top:4px">$0</div></div>
+            </div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;font-size:11px;color:var(--text3)">
+            <strong style="color:var(--text2)">Tip:</strong> Cada vez que pausás se te pide motivo. Eso es lo que después te dice dónde perdés tiempo/plata.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Motivos de pausa -->
+<div class="modal-overlay" id="modal-pausa-motivo">
+  <div class="modal" style="width:480px">
+    <div class="modal-header"><div class="modal-title">¿Por qué pausás?</div><button class="modal-close" onclick="closeModal('modal-pausa-motivo')">×</button></div>
+    <div class="modal-body">
+      <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Esto es clave para analizar paradas reales.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <button class="btn btn-ghost" style="border-left:3px solid var(--green);text-align:left;padding:10px" onclick="confirmPauseTiempo('Setup / cambio herramienta')"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Planificada</div>Setup / cambio</button>
+        <button class="btn btn-ghost" style="border-left:3px solid var(--green);text-align:left;padding:10px" onclick="confirmPauseTiempo('Almuerzo / descanso')"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Planificada</div>Almuerzo / descanso</button>
+        <button class="btn btn-ghost" style="border-left:3px solid var(--green);text-align:left;padding:10px" onclick="confirmPauseTiempo('Fin de turno')"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Planificada</div>Fin de turno</button>
+        <button class="btn btn-ghost" style="border-left:3px solid var(--coral);text-align:left;padding:10px" onclick="confirmPauseTiempo('Falta de material')"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">No planif.</div>Falta material</button>
+        <button class="btn btn-ghost" style="border-left:3px solid var(--coral);text-align:left;padding:10px" onclick="confirmPauseTiempo('Rotura de máquina')"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">No planif.</div>Rotura máquina</button>
+        <button class="btn btn-ghost" style="border-left:3px solid var(--coral);text-align:left;padding:10px" onclick="confirmPauseTiempo('Reproceso / control')"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">No planif.</div>Reproceso / control</button>
+        <button class="btn btn-ghost" style="border-left:3px solid var(--coral);text-align:left;padding:10px" onclick="confirmPauseTiempo('Esperando operario')"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">No planif.</div>Esperando operario</button>
+        <button class="btn btn-ghost" style="text-align:left;padding:10px" onclick="confirmPauseTiempo('Otro')"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">General</div>Otro</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Nueva operación (paso) dentro de OP -->
+<div class="modal-overlay" id="modal-add-op-paso">
+  <div class="modal" style="width:480px">
+    <div class="modal-header"><div class="modal-title">Nuevo paso de producción</div><button class="modal-close" onclick="closeModal('modal-add-op-paso')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row single"><div class="form-group"><label>Descripción *</label><input type="text" id="paso-nombre" placeholder="Ej: Torno CNC, Rectificado, Control"></div></div>
+      <div class="form-row">
+        <div class="form-group"><label>Máquina</label><input type="text" id="paso-maquina" placeholder="Hyundai WIA L210A"></div>
+        <div class="form-group"><label>Tiempo estimado (min)</label><input type="number" id="paso-estimado" placeholder="60" min="0"></div>
+      </div>
+      <div class="form-row single"><div class="form-group"><label>Tarifa máquina USD/h</label><input type="number" id="paso-tarifa" placeholder="30" min="0" step="0.1"></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-op-paso')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-paso" onclick="saveOperacionPaso()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Tratamientos de OP -->
 <div class="modal-overlay" id="modal-tratamientos">
   <div class="modal modal-lg">
@@ -1101,14 +1187,12 @@ async function doJoin(){
   if(pass.length<6){errEl.textContent='La contraseña debe tener al menos 6 caracteres';errEl.classList.add('visible');return;}
   const btn=document.getElementById('btn-join');btn.disabled=true;btn.textContent='Verificando código...';
   try{
-    // PASO 1: Verificar código vía RPC (no expone la tabla empresas)
-    const empRes=await fetch(`${SUPA_URL}/rest/v1/rpc/buscar_empresa_por_codigo`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SUPA_KEY},
-      body:JSON.stringify({p_codigo:codigo})
+    // PASO 1: Verificar que el código existe (consulta pública sin auth)
+    const empRes=await fetch(`${SUPA_URL}/rest/v1/empresas?codigo_invitacion=eq.${encodeURIComponent(codigo)}&select=id,nombre`,{
+      headers:{'apikey':SUPA_KEY,'Content-Type':'application/json'}
     });
     const empData=await empRes.json();
-    if(!empRes.ok||!Array.isArray(empData)||!empData.length){
+    if(!empData||!empData.length){
       errEl.textContent='Código inválido. Verificá con tu administrador.';errEl.classList.add('visible');
       btn.disabled=false;btn.textContent='Unirse a la empresa';return;
     }
@@ -1553,7 +1637,7 @@ function renderOP(filter=''){
     <div class="stat-card"><div class="stat-label">Completadas</div><div class="stat-value" style="color:var(--green)">${completadas}</div></div>
     <div class="stat-card"><div class="stat-label">Mts consumidos</div><div class="stat-value">${totalMtsUsados.toFixed(1)}<span style="font-size:11px;color:var(--text3)"> mts</span></div></div>`;
   const list=ops.filter(o=>!f||o.nro.toLowerCase().includes(f)||o.pieza.toLowerCase().includes(f));
-  document.getElementById('op-tbody').innerHTML=list.length?list.map(o=>{const tratsOP=tratamientos.filter(t=>t.orden_id===o.id);return`<tr><td class="mono td-primary">${o.nro}</td><td style="color:var(--accent);font-weight:500">${o.pieza}</td><td class="mono" style="font-size:11px">${o.codigo_plano||'—'}</td><td class="mono">${o.cantidad}</td><td>${o.barras?`<span class="badge badge-blue">${o.barras.lote}</span>`:'—'}</td><td class="mono">${parseFloat(o.kg_usados||0).toFixed(1)}</td><td class="mono" style="color:var(--text3)">${parseFloat(o.merma_kg||0).toFixed(1)}</td><td class="mono">${o.horas_total||'—'}</td><td>${estadoBadge(o.estado)}</td><td>${o.fecha||'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap">${o.estado==='en-proceso'||o.estado==='suspendida'?`<button class="btn btn-ghost btn-sm" onclick="openTratamientos('${o.id}')" style="border-color:var(--teal);color:var(--teal)">+ Trat${tratsOP.length?` (${tratsOP.length})`:''}</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editOP('${o.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="deleteOP('${o.id}')">×</button></td></tr>`}).join(''):(`<tr><td colspan="11" style="text-align:center;padding:32px;color:var(--text3)">Sin órdenes</td></tr>`);
+  document.getElementById('op-tbody').innerHTML=list.length?list.map(o=>{const tratsOP=tratamientos.filter(t=>t.orden_id===o.id);return`<tr><td class="mono td-primary">${o.nro}</td><td style="color:var(--accent);font-weight:500">${o.pieza}</td><td class="mono" style="font-size:11px">${o.codigo_plano||'—'}</td><td class="mono">${o.cantidad}</td><td>${o.barras?`<span class="badge badge-blue">${o.barras.lote}</span>`:'—'}</td><td class="mono">${parseFloat(o.kg_usados||0).toFixed(1)}</td><td class="mono" style="color:var(--text3)">${parseFloat(o.merma_kg||0).toFixed(1)}</td><td class="mono">${o.horas_total||'—'}</td><td>${estadoBadge(o.estado)}</td><td>${o.fecha||'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap">${o.estado==='en-proceso'||o.estado==='suspendida'?`<button class="btn btn-ghost btn-sm" onclick="openTratamientos('${o.id}')" style="border-color:var(--teal);color:var(--teal)">+ Trat${tratsOP.length?` (${tratsOP.length})`:''}</button>`:''}<button class="btn btn-ghost btn-sm" onclick="openTiempos('${o.id}')" style="border-color:var(--accent);color:var(--accent)">⏱ Tiempos</button><button class="btn btn-ghost btn-sm" onclick="editOP('${o.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="deleteOP('${o.id}')">×</button></td></tr>`}).join(''):(`<tr><td colspan="11" style="text-align:center;padding:32px;color:var(--text3)">Sin órdenes</td></tr>`);
 }
 
 function renderVentas(filter=''){
@@ -2481,6 +2565,216 @@ function aplicarPermisos(){
     const firstVisible=Object.entries(map).find(([mod])=>misPermisos.includes(mod));
     if(firstVisible)showPage(firstVisible[0]);
   }
+}
+
+// ═══════════════════════════════════════════════════════════
+// ⏱ CAPTURA DE TIEMPOS DE PRODUCCIÓN
+// Tablas: op_operaciones + op_time_entries
+// ═══════════════════════════════════════════════════════════
+let opOperaciones=[],opTimeEntries=[];
+let currentTiempoOpId=null,currentTiempoPasoId=null;
+let tiempoInterval=null;
+const TARIFA_OPERARIO_USD=18; // USD/hora operario (configurable)
+
+function fmtTimerSec(s){const h=Math.floor(s/3600);const m=Math.floor((s%3600)/60);const x=s%60;return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`;}
+function fmtHMfromMin(min){const h=Math.floor(min/60);const m=Math.round(min%60);return `${h}h ${String(m).padStart(2,'0')}m`;}
+function minSince(iso){return Math.floor((Date.now()-new Date(iso).getTime())/60000);}
+function secSince(iso){return Math.floor((Date.now()-new Date(iso).getTime())/1000);}
+
+async function loadTiemposData(opId){
+  try{
+    [opOperaciones,opTimeEntries]=await Promise.all([
+      GET('op_operaciones',`?orden_id=eq.${opId}&order=secuencia.asc`).catch(()=>[]),
+      GET('op_time_entries',`?operacion_id=in.(${encodeURIComponent('select id from op_operaciones where orden_id=')+opId})&order=started_at.asc`).catch(()=>[])
+    ]);
+    // fallback: cargar entries filtrados por operaciones cargadas
+    if(opOperaciones.length&&!opTimeEntries.length){
+      const ids=opOperaciones.map(o=>o.id).join(',');
+      opTimeEntries=await GET('op_time_entries',`?operacion_id=in.(${ids})&order=started_at.asc`).catch(()=>[]);
+    }
+  }catch(e){console.error('Error cargando tiempos:',e);opOperaciones=[];opTimeEntries=[];}
+}
+
+async function openTiempos(opId){
+  currentTiempoOpId=opId;
+  const op=ops.find(o=>o.id===opId);
+  document.getElementById('tiempos-op-nro').textContent=op?`${op.nro} · ${op.pieza}`:'';
+  await loadTiemposData(opId);
+  // Detectar operación activa
+  const activa=opOperaciones.find(o=>o.estado==='en_curso');
+  currentTiempoPasoId=activa?activa.id:(opOperaciones.find(o=>o.estado==='pendiente')?.id||null);
+  openModal('modal-tiempos');
+  renderTiempos();
+  if(tiempoInterval)clearInterval(tiempoInterval);
+  tiempoInterval=setInterval(()=>{renderTimerDisplay();renderTiemposMetrics();},1000);
+}
+function closeTiempos(){closeModal('modal-tiempos');if(tiempoInterval){clearInterval(tiempoInterval);tiempoInterval=null;}currentTiempoOpId=null;}
+
+function activeEntry(){return opTimeEntries.find(e=>!e.ended_at&&e.tipo==='productivo');}
+
+function renderTiempos(){renderTiemposOps();renderTiemposEntries();renderTiemposMetrics();renderTimerDisplay();updateTiemposButtons();}
+
+function renderTimerDisplay(){
+  const ae=activeEntry();
+  const disp=document.getElementById('tiempos-timer');
+  const status=document.getElementById('tiempos-status');
+  if(!disp)return;
+  if(ae){
+    disp.textContent=fmtTimerSec(secSince(ae.started_at));
+    const paso=opOperaciones.find(o=>o.id===ae.operacion_id);
+    status.textContent=paso?`⚙️ ${paso.nombre}${paso.maquina?' · '+paso.maquina:''}`:'Timer activo';
+  }else{
+    disp.textContent='00:00:00';
+    const sel=opOperaciones.find(o=>o.id===currentTiempoPasoId);
+    status.textContent=sel?`Listo para iniciar: ${sel.nombre}`:'Seleccioná un paso';
+  }
+}
+
+function renderTiemposOps(){
+  const cont=document.getElementById('tiempos-ops-list');
+  if(!opOperaciones.length){cont.innerHTML='<div style="padding:18px;text-align:center;color:var(--text3);font-size:12px;border:1px dashed var(--border);border-radius:4px">Aún no hay pasos. Agregá con "+ Paso"</div>';return;}
+  cont.innerHTML=opOperaciones.map(o=>{
+    const entries=opTimeEntries.filter(e=>e.operacion_id===o.id&&e.tipo==='productivo');
+    const finished=entries.filter(e=>e.ended_at).reduce((s,e)=>s+(new Date(e.ended_at)-new Date(e.started_at))/60000,0);
+    const live=entries.find(e=>!e.ended_at)?minSince(entries.find(e=>!e.ended_at).started_at):0;
+    const totalMin=finished+live;
+    const badge=o.estado==='completada'?'<span class="badge badge-ok">✓</span>':o.estado==='en_curso'?'<span class="badge badge-warn">▶</span>':'<span class="badge badge-blue">○</span>';
+    const active=o.id===currentTiempoPasoId;
+    return `<div onclick="selectTiempoPaso('${o.id}')" style="display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;padding:10px;border:1px solid ${active?'var(--accent)':'var(--border)'};border-radius:4px;cursor:pointer;${active?'background:var(--surface2)':''};align-items:center">
+      <span class="mono" style="color:var(--text3);font-size:11px">#${o.secuencia}</span>
+      <div><div style="font-weight:500">${o.nombre}</div><div style="font-size:10px;color:var(--text3)">${o.maquina||'—'} · est. ${o.tiempo_estimado_min||0} min</div></div>
+      <div>${badge}</div>
+      <div class="mono" style="font-size:12px;font-weight:600">${fmtHMfromMin(totalMin)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTiemposEntries(){
+  const cont=document.getElementById('tiempos-entries');
+  if(!opTimeEntries.length){cont.innerHTML='<div style="padding:14px;text-align:center;color:var(--text3);font-size:11px">Sin registros aún</div>';return;}
+  cont.innerHTML=[...opTimeEntries].reverse().map(e=>{
+    const paso=opOperaciones.find(o=>o.id===e.operacion_id);
+    const start=new Date(e.started_at);
+    const end=e.ended_at?new Date(e.ended_at):new Date();
+    const min=Math.floor((end-start)/60000);
+    const hora=`${String(start.getHours()).padStart(2,'0')}:${String(start.getMinutes()).padStart(2,'0')}`;
+    const endHora=e.ended_at?`${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}`:'en curso';
+    if(e.tipo==='pausa'){return `<div style="display:grid;grid-template-columns:95px 1fr auto;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);color:var(--coral)"><span class="mono" style="font-size:11px">${hora}-${endHora}</span><span>⏸ ${e.motivo||'Pausa'}</span><span class="mono" style="font-weight:600">${fmtHMfromMin(min)}</span></div>`;}
+    return `<div style="display:grid;grid-template-columns:95px 1fr auto;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);${!e.ended_at?'background:var(--surface2);padding-left:8px;padding-right:8px;border-radius:4px':''}"><span class="mono" style="font-size:11px;color:var(--text3)">${hora}-${endHora}</span><span>${paso?paso.nombre:'—'}</span><span class="mono" style="font-weight:600">${fmtHMfromMin(min)}</span></div>`;
+  }).join('');
+}
+
+function renderTiemposMetrics(){
+  let prodMin=0,pauseMin=0,cost=0;
+  opTimeEntries.forEach(e=>{
+    const end=e.ended_at?new Date(e.ended_at):new Date();
+    const min=Math.floor((end-new Date(e.started_at))/60000);
+    if(e.tipo==='pausa')pauseMin+=min;
+    else{prodMin+=min;const p=opOperaciones.find(o=>o.id===e.operacion_id);const ratePerMin=(TARIFA_OPERARIO_USD+parseFloat(p?.tarifa_maquina_usd||0))/60;cost+=min*ratePerMin;}
+  });
+  const totalEst=opOperaciones.reduce((s,o)=>s+(o.tiempo_estimado_min||0),0);
+  const eff=prodMin>0&&totalEst>0?Math.round((totalEst/prodMin)*100):0;
+  document.getElementById('tiempos-m-prod').textContent=fmtHMfromMin(prodMin);
+  document.getElementById('tiempos-m-pause').textContent=fmtHMfromMin(pauseMin);
+  document.getElementById('tiempos-m-eff').textContent=eff?eff+'%':'—';
+  document.getElementById('tiempos-m-cost').textContent='$'+cost.toFixed(0);
+}
+
+function updateTiemposButtons(){
+  const ae=activeEntry();
+  const btnPlay=document.getElementById('tiempos-btn-play');
+  const btnPause=document.getElementById('tiempos-btn-pause');
+  const btnStop=document.getElementById('tiempos-btn-stop');
+  btnPlay.disabled=!!ae||!currentTiempoPasoId;
+  btnPause.disabled=!ae;
+  btnStop.disabled=!currentTiempoPasoId||opOperaciones.find(o=>o.id===currentTiempoPasoId)?.estado==='completada';
+}
+
+function selectTiempoPaso(id){
+  const p=opOperaciones.find(o=>o.id===id);
+  if(!p||p.estado==='completada'){notify('Ese paso ya está completado');return;}
+  if(activeEntry()){notify('Pausá el timer antes de cambiar de paso');return;}
+  currentTiempoPasoId=id;
+  renderTiempos();
+}
+
+async function startTiempoOp(){
+  if(!currentTiempoPasoId){notify('Seleccioná un paso');return;}
+  if(activeEntry()){notify('Ya hay un timer corriendo');return;}
+  try{
+    setBusy('tiempos-btn-play',true);
+    const res=await POST('op_time_entries',[{empresa_id:currentEmpresa.id,operacion_id:currentTiempoPasoId,operario_id:currentUser.id,tipo:'productivo',started_at:new Date().toISOString()}]);
+    if(res&&res[0])opTimeEntries.push(res[0]);
+    // marcar operación en_curso si estaba pendiente
+    const paso=opOperaciones.find(o=>o.id===currentTiempoPasoId);
+    if(paso&&paso.estado==='pendiente'){await PATCH('op_operaciones',{estado:'en_curso'},`?id=eq.${paso.id}`);paso.estado='en_curso';}
+    notify('▶ Timer iniciado');renderTiempos();
+  }catch(e){notify('Error: '+e.message,'err');}
+  finally{setBusy('tiempos-btn-play',false);}
+}
+
+function openPauseTiempo(){openModal('modal-pausa-motivo');}
+async function confirmPauseTiempo(motivo){
+  closeModal('modal-pausa-motivo');
+  const ae=activeEntry();if(!ae)return;
+  try{
+    const now=new Date().toISOString();
+    await PATCH('op_time_entries',{ended_at:now},`?id=eq.${ae.id}`);
+    ae.ended_at=now;
+    // crear entry de pausa abierto? NO — lo registramos como un rango cerrado cuando vuelva a INICIAR
+    // Para mantener el motivo visible en bitácora: creamos el entry de pausa con ended_at en el próximo INICIAR
+    // Estrategia simple: crear pausa ahora con ended_at=null y motivo
+    const res=await POST('op_time_entries',[{empresa_id:currentEmpresa.id,operacion_id:ae.operacion_id,operario_id:currentUser.id,tipo:'pausa',motivo,started_at:now}]);
+    if(res&&res[0])opTimeEntries.push(res[0]);
+    notify('⏸ Pausado · '+motivo);renderTiempos();
+  }catch(e){notify('Error: '+e.message,'err');}
+}
+
+// Modificación: al INICIAR de nuevo, cerrar la pausa abierta
+const _origStart=startTiempoOp;
+window.startTiempoOp=async function(){
+  // cerrar cualquier pausa abierta antes de iniciar productivo
+  const openPause=opTimeEntries.find(e=>e.tipo==='pausa'&&!e.ended_at);
+  if(openPause){
+    try{const now=new Date().toISOString();await PATCH('op_time_entries',{ended_at:now},`?id=eq.${openPause.id}`);openPause.ended_at=now;}catch(e){console.error(e);}
+  }
+  return _origStart();
+};
+
+async function completeTiempoOp(){
+  if(!currentTiempoPasoId)return;
+  if(!confirm('¿Marcar este paso como completado?'))return;
+  try{
+    const ae=activeEntry();
+    if(ae){const now=new Date().toISOString();await PATCH('op_time_entries',{ended_at:now},`?id=eq.${ae.id}`);ae.ended_at=now;}
+    const openPause=opTimeEntries.find(e=>e.tipo==='pausa'&&!e.ended_at);
+    if(openPause){const now=new Date().toISOString();await PATCH('op_time_entries',{ended_at:now},`?id=eq.${openPause.id}`);openPause.ended_at=now;}
+    await PATCH('op_operaciones',{estado:'completada'},`?id=eq.${currentTiempoPasoId}`);
+    const paso=opOperaciones.find(o=>o.id===currentTiempoPasoId);if(paso)paso.estado='completada';
+    // pasar al siguiente pendiente
+    const siguiente=opOperaciones.find(o=>o.estado==='pendiente');
+    currentTiempoPasoId=siguiente?siguiente.id:null;
+    notify(siguiente?'✓ Paso completado · Siguiente: '+siguiente.nombre:'🎉 Todos los pasos completados');
+    renderTiempos();
+  }catch(e){notify('Error: '+e.message,'err');}
+}
+
+function openAddOperacion(){document.getElementById('paso-nombre').value='';document.getElementById('paso-maquina').value='';document.getElementById('paso-estimado').value='';document.getElementById('paso-tarifa').value='';openModal('modal-add-op-paso');}
+async function saveOperacionPaso(){
+  const nombre=document.getElementById('paso-nombre').value.trim();
+  if(!nombre){notify('El nombre es obligatorio','err');return;}
+  const maquina=document.getElementById('paso-maquina').value.trim();
+  const estimado=parseInt(document.getElementById('paso-estimado').value||0);
+  const tarifa=parseFloat(document.getElementById('paso-tarifa').value||0);
+  const secuencia=opOperaciones.length+1;
+  try{
+    setBusy('btn-save-paso',true);
+    const res=await POST('op_operaciones',[{empresa_id:currentEmpresa.id,orden_id:currentTiempoOpId,secuencia,nombre,maquina,tiempo_estimado_min:estimado,tarifa_maquina_usd:tarifa,estado:'pendiente'}]);
+    if(res&&res[0])opOperaciones.push(res[0]);
+    if(!currentTiempoPasoId&&res&&res[0])currentTiempoPasoId=res[0].id;
+    closeModal('modal-add-op-paso');notify('Paso agregado');renderTiempos();
+  }catch(e){notify('Error: '+e.message,'err');}
+  finally{setBusy('btn-save-paso',false);}
 }
 
 </script>
