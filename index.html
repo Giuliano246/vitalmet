@@ -82,14 +82,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .btn-sm{padding:4px 9px;font-size:11px}
 .btn-danger{background:transparent;border-color:var(--red);color:var(--red)}
 .btn-danger:hover{background:rgba(224,82,82,.1)}
-.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow-x:auto}
-.table-wrap table{min-width:max-content}
-table{width:100%;border-collapse:collapse}
-thead th{padding:9px 12px;text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;font-weight:500;border-bottom:1px solid var(--border);background:var(--surface2)}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+table{width:100%;border-collapse:collapse;table-layout:auto}
+thead th{padding:8px 8px;text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;font-weight:500;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
 tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:var(--surface2)}
-tbody td{padding:9px 12px;font-size:13px;color:var(--text2)}
+tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
+#op-tbody td{padding:6px 6px;font-size:11.5px}
+#op-tbody .btn-sm{padding:3px 6px;font-size:10px}
 .mono{font-family:var(--mono);font-size:12px}
 .td-primary{color:var(--text)!important;font-weight:500}
 .badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:3px;font-size:10px;font-family:var(--mono);font-weight:500}
@@ -2930,13 +2931,24 @@ async function startTiempoOp(){
   if(activeEntry()){notify('Ya hay un timer corriendo');return;}
   try{
     setBusy('tiempos-btn-play',true);
+    // cerrar cualquier pausa abierta antes de iniciar productivo
+    const openPause=opTimeEntries.find(e=>e.tipo==='pausa'&&!e.ended_at);
+    if(openPause){
+      const nowP=new Date().toISOString();
+      await PATCH('op_time_entries',{ended_at:nowP},`?id=eq.${openPause.id}`);
+      openPause.ended_at=nowP;
+    }
     const res=await POST('op_time_entries',[{empresa_id:currentEmpresa.id,operacion_id:currentTiempoPasoId,operario_id:currentUser.id,tipo:'productivo',started_at:new Date().toISOString()}]);
     if(res&&res[0])opTimeEntries.push(res[0]);
+    else{
+      // fallback: recargar desde DB si PostgREST no devolvió el row
+      await loadTiemposData(currentTiempoOpId);
+    }
     // marcar operación en_curso si estaba pendiente
     const paso=opOperaciones.find(o=>o.id===currentTiempoPasoId);
     if(paso&&paso.estado==='pendiente'){await PATCH('op_operaciones',{estado:'en_curso'},`?id=eq.${paso.id}`);paso.estado='en_curso';}
     notify('▶ Timer iniciado');renderTiempos();
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){console.error('startTiempoOp error:',e);notify('Error al iniciar: '+e.message,'err');}
   finally{setBusy('tiempos-btn-play',false);}
 }
 
@@ -2956,17 +2968,6 @@ async function confirmPauseTiempo(motivo){
     notify('⏸ Pausado · '+motivo);renderTiempos();
   }catch(e){notify('Error: '+e.message,'err');}
 }
-
-// Modificación: al INICIAR de nuevo, cerrar la pausa abierta
-const _origStart=startTiempoOp;
-window.startTiempoOp=async function(){
-  // cerrar cualquier pausa abierta antes de iniciar productivo
-  const openPause=opTimeEntries.find(e=>e.tipo==='pausa'&&!e.ended_at);
-  if(openPause){
-    try{const now=new Date().toISOString();await PATCH('op_time_entries',{ended_at:now},`?id=eq.${openPause.id}`);openPause.ended_at=now;}catch(e){console.error(e);}
-  }
-  return _origStart();
-};
 
 async function completeTiempoOp(){
   if(!currentTiempoPasoId)return;
