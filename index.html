@@ -1538,7 +1538,7 @@ async function loadAll(){
       GET('vendedores','?order=nombre.asc&activo=eq.true').catch(()=>[]),
       GET('listas_precios','?order=nombre.asc&activo=eq.true').catch(()=>[]),
       GET('proveedores','?order=nombre.asc&activo=eq.true').catch(()=>[]),
-      GET('ordenes_compra','?order=fecha.desc&select=*,proveedores(nombre),oc_items(*)').catch(()=>[]),
+      GET('ordenes_compra','?order=fecha.desc&select=*,proveedores(*),oc_items(*)').catch(()=>[]),
       GET('oc_items','?order=created_at.asc').catch(()=>[]),
       GET('recepciones_oc','?order=fecha.desc').catch(()=>[]),
       GET('presupuestos','?order=fecha.desc&select=*,presupuesto_items(*)').catch(()=>[]),
@@ -3333,7 +3333,7 @@ function renderCompras(filter=''){
     const items=o.oc_items||ocItems.filter(i=>i.oc_id===o.id);
     const cantItems=items.length;
     const puedeRecibir=['enviada','confirmada','recibida_parcial'].includes(o.estado);
-    return `<tr><td class="mono td-primary">${o.nro}</td><td style="font-weight:500">${o.proveedores?.nombre||'—'}</td><td>${o.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${o.fecha_entrega_esperada||'—'}</td><td class="mono">${cantItems}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(o.total||0))}</td><td><span class="badge ${badges[o.estado]||'badge-warn'}">${o.estado.replace('_',' ').toUpperCase()}</span></td><td class="mono" style="font-size:11px">${o.factura_nro||'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap">${puedeRecibir?`<button class="btn btn-ghost btn-sm" onclick="openRecepcionModal('${o.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>Recibir</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editOC('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteOC('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+    return `<tr><td class="mono td-primary">${o.nro}</td><td style="font-weight:500">${o.proveedores?.nombre||'—'}</td><td>${o.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${o.fecha_entrega_esperada||'—'}</td><td class="mono">${cantItems}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(o.total||0))}</td><td><span class="badge ${badges[o.estado]||'badge-warn'}">${o.estado.replace('_',' ').toUpperCase()}</span></td><td class="mono" style="font-size:11px">${o.factura_nro||'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="generateOCPDF('${o.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>NDP</button>${puedeRecibir?`<button class="btn btn-ghost btn-sm" onclick="openRecepcionModal('${o.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>Recibir</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editOC('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteOC('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
   }).join(''):'<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></div><div class="empty-title">Sin órdenes de compra</div><div class="empty-msg">Generá la primera OC con <b>+ Nueva OC</b> seleccionando el proveedor y los ítems a comprar.</div></div></td></tr>';
 }
 
@@ -3803,6 +3803,162 @@ function generatePresupuestoPDF(id){
   const safeCli=(p.cliente||'cliente').replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
   doc.save(`Presupuesto_${p.nro||'sin-nro'}_${safeCli}.pdf`);
   notify('PDF generado');
+}
+
+// ─── PDF DE NOTA DE PEDIDO (formato Vitalmet para enviar a proveedor) ───
+function generateOCPDF(id){
+  const o=ordenesCompra.find(x=>x.id===id);
+  if(!o){notify('OC no encontrada','err');return;}
+  if(!window.jspdf){notify('Librería PDF no cargada. Recargá la página.','err');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const items=o.oc_items||ocItems.filter(i=>i.oc_id===o.id);
+  const prov=o.proveedores||proveedores.find(p=>p.id===o.proveedor_id)||{};
+
+  // ─── HEADER ─────────────────────────────
+  if(VITALMET_LOGO_DATAURL){
+    try{doc.addImage(VITALMET_LOGO_DATAURL,'JPEG',14,10,38,22);}catch(e){console.error('Logo error:',e);}
+  }
+  // Caja "DOCUMENTO NO VALIDO COMO FACTURA"
+  doc.setFillColor(245,245,245);doc.setDrawColor(80,80,80);
+  doc.rect(60,10,80,11,'FD');
+  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(180,40,40);
+  doc.text('X - DOCUMENTO NO VALIDO COMO FACTURA',100,16.5,{align:'center'});
+
+  // Nº NDP arriba derecha
+  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(40,40,40);
+  doc.text('NOTA DE PEDIDO',196,16,{align:'right'});
+  doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(60,130,90);
+  doc.text(`N° ${o.nro||'—'}`,196,22,{align:'right'});
+  doc.setFontSize(8);doc.setTextColor(100,100,100);
+  doc.text(`Cód: P.7.4.2-0.R3 · Rev: 08`,196,27,{align:'right'});
+  doc.text(`Fecha: ${o.fecha||'—'}`,196,31,{align:'right'});
+
+  // Línea separadora
+  doc.setDrawColor(220,220,220);doc.line(14,38,196,38);
+
+  // ─── DATOS EMPRESA (Vitalmet) ──────────
+  let y=44;
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(60,60,60);
+  doc.text('EMPRESA:',14,y);
+  doc.setFont('helvetica','normal');doc.text('VITALMET S.A.',32,y);
+  doc.text('CUIT: 34-59751980-1',95,y);
+  doc.text('Ing. Brutos: 34-597519801',150,y);
+  y+=5;
+  doc.text('Dirección: Perú 246, Villa Martelli, Pcia. de Buenos Aires',14,y);
+  doc.text('Inicio actividades: 07/1983',150,y);
+
+  // ─── DATOS PROVEEDOR ───────────────────
+  y+=8;
+  doc.setDrawColor(220,220,220);doc.line(14,y,196,y);y+=5;
+  doc.setFont('helvetica','bold');doc.setTextColor(60,60,60);doc.text('PROVEEDOR',14,y);y+=5;
+  doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+  doc.text(`Razón social: ${prov.nombre||'—'}`,14,y);
+  doc.text(`CUIT: ${prov.cuit||'—'}`,120,y);y+=5;
+  doc.text(`Contacto: ${prov.contacto||'—'}`,14,y);
+  doc.text(`Tel: ${prov.telefono||'—'}`,80,y);
+  doc.text(`Email: ${prov.email||'—'}`,140,y);y+=5;
+  doc.text(`Dirección: ${prov.direccion||'—'}`,14,y);y+=5;
+
+  // ─── LUGAR DE PAGO ─────────────────────
+  doc.setDrawColor(220,220,220);doc.line(14,y,196,y);y+=5;
+  doc.setFont('helvetica','bold');doc.setTextColor(60,60,60);doc.text('Lugar de pago:',14,y);
+  doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);doc.text('Perú 246 - Villa Martelli',46,y);
+
+  // ─── TABLA DE ÍTEMS ────────────────────
+  y+=6;
+  const rows=items.map(it=>[
+    it.descripcion||'—',
+    String(it.cantidad||0),
+    it.unidad||'—',
+    o.fecha_entrega_esperada||'—',
+    parseFloat(it.precio_unitario||0).toFixed(2),
+    parseFloat(it.subtotal||0).toFixed(2)
+  ]);
+  doc.autoTable({
+    startY:y,
+    head:[['Descripción','Cant.','Unidad','F. Entrega','Precio U$S','Total U$S']],
+    body:rows.length?rows:[['—','','','','','']],
+    theme:'striped',
+    headStyles:{fillColor:[60,90,130],textColor:255,fontStyle:'bold',fontSize:9},
+    styles:{fontSize:9,cellPadding:2.5,overflow:'linebreak'},
+    columnStyles:{
+      0:{cellWidth:62},
+      1:{cellWidth:18,halign:'center'},
+      2:{cellWidth:22,halign:'center'},
+      3:{cellWidth:26,halign:'center'},
+      4:{cellWidth:25,halign:'right'},
+      5:{cellWidth:29,halign:'right'}
+    },
+    margin:{left:14,right:14}
+  });
+
+  // ─── TOTALES ────────────────────────────
+  let finalY=doc.lastAutoTable.finalY+5;
+  const subtotal=items.reduce((a,i)=>a+parseFloat(i.subtotal||0),0);
+  const iva=subtotal*0.21;
+  const total=subtotal+iva;
+
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+  doc.text('Sub-Total s/IVA:',150,finalY);
+  doc.text('US$ '+subtotal.toFixed(2),196,finalY,{align:'right'});
+  finalY+=5;
+  doc.text('IVA 21%:',150,finalY);
+  doc.text('US$ '+iva.toFixed(2),196,finalY,{align:'right'});
+  finalY+=6;
+  doc.setDrawColor(180,180,180);doc.line(150,finalY-2,196,finalY-2);
+  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(40,40,40);
+  doc.text('TOTAL:',150,finalY+2);
+  doc.setTextColor(60,130,90);doc.text('US$ '+total.toFixed(2),196,finalY+2,{align:'right'});
+
+  // ─── CONDICIONES + OBSERVACIONES ───────
+  finalY+=12;
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(60,60,60);
+  doc.text('Condiciones de pago:',14,finalY);
+  doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+  doc.text(o.condicion_pago||prov.condicion_pago||'A convenir',58,finalY);
+  finalY+=5;
+  doc.setFont('helvetica','bold');doc.setTextColor(60,60,60);
+  doc.text('Observaciones:',14,finalY);
+  doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+  if(o.observaciones){
+    const obsLines=doc.splitTextToSize(o.observaciones,140);
+    doc.text(obsLines,46,finalY);
+    finalY+=obsLines.length*4;
+  }else{
+    doc.text('—',46,finalY);
+    finalY+=4;
+  }
+
+  // ─── FIRMAS ─────────────────────────────
+  finalY+=8;
+  doc.setDrawColor(220,220,220);doc.line(14,finalY,196,finalY);
+  finalY+=6;
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(60,60,60);
+  doc.text('Realizó:',14,finalY);
+  doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+  const userName=(typeof currentUser!=='undefined'&&currentUser?.email)?currentUser.email.split('@')[0]:'—';
+  doc.text(userName,30,finalY);
+  doc.setFont('helvetica','bold');doc.setTextColor(60,60,60);
+  doc.text('Copias a:',100,finalY);
+  doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+  doc.text('Recepción / Proveedor',120,finalY);
+
+  // ─── NOTA LEGAL ─────────────────────────
+  const noteY=Math.max(finalY+12,265);
+  doc.setDrawColor(220,220,220);doc.line(14,noteY,196,noteY);
+  doc.setFont('helvetica','italic');doc.setFontSize(7);doc.setTextColor(120,120,120);
+  const note='NOTA: Las entregas deben realizarse en calle Perú 246, Villa Martelli, Pcia. de Buenos Aires, cumpliendo con lo indicado en la correspondiente nota de pedido y adjuntando los certificados correspondientes.';
+  const noteLines=doc.splitTextToSize(note,182);
+  doc.text(noteLines,14,noteY+5);
+
+  doc.setFontSize(7);doc.setTextColor(150,150,150);
+  doc.text('VITALMET S.A.  ·  Perú 246, Villa Martelli, Bs. As.  ·  vitalmetsa.com',105,290,{align:'center'});
+
+  // ─── DESCARGAR ──────────────────────────
+  const safeProv=(prov.nombre||'proveedor').replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
+  doc.save(`NDP_${o.nro||'sin-nro'}_${safeProv}.pdf`);
+  notify('Nota de pedido generada');
 }
 
 // ═══════════════════════════════════════════════════════════
