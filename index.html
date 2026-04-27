@@ -8,6 +8,8 @@
 <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAACMklEQVR4nO3dMU7DQBQG4SziFhwp96CjBCknSEFJxz1yJa6xVJZSALbj/b1ZZr4yhW3Fo/e2c6m1HsT10PsB1JcBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkA3GOrC5XTJfLxoXo+lqXXr+djef/4jH0E6fXlufz0e/Kec/feqtkEmF5Ua9OLX3L9crrU1B91OPz+opP3nLv3Vq4AuKYBOAWyElOg+QQwgqzWEQy1AtZGkH+i8UUCSE2BtZwC82ITwFWQ1SqC6AowgqwWEQx1BrjmeaCNeACeB7K2ToFdJoCrIGtLBMOugImrYJvdAkiugjURvH09pR5jyCmw6wTwPJB1SwTDr4CJq+A2uwfgKshaOwW6TAAjyFoTQbcV4Hkga2kE/+YMcM3zwHJdA3AVZC2ZAt0ngBFkzUXQPQD1dRcBOAWy/poCpVb0GQjvLiaA+jEAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgDMAOAOA+wbN7xE42k4a2QAAAABJRU5ErkJggg==">
 <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAACMklEQVR4nO3dMU7DQBQG4SziFhwp96CjBCknSEFJxz1yJa6xVJZSALbj/b1ZZr4yhW3Fo/e2c6m1HsT10PsB1JcBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkAnAHAGQCcAcAZAJwBwBkA3GOrC5XTJfLxoXo+lqXXr+djef/4jH0E6fXlufz0e/Kec/feqtkEmF5Ua9OLX3L9crrU1B91OPz+opP3nLv3Vq4AuKYBOAWyElOg+QQwgqzWEQy1AtZGkH+i8UUCSE2BtZwC82ITwFWQ1SqC6AowgqwWEQx1BrjmeaCNeACeB7K2ToFdJoCrIGtLBMOugImrYJvdAkiugjURvH09pR5jyCmw6wTwPJB1SwTDr4CJq+A2uwfgKshaOwW6TAAjyFoTQbcV4Hkga2kE/+YMcM3zwHJdA3AVZC2ZAt0ngBFkzUXQPQD1dRcBOAWy/poCpVb0GQjvLiaA+jEAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgDMAOAOAMwA4A4AzADgDgDMAOAOA+wbN7xE42k4a2QAAAABJRU5ErkJggg==">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 :root{--bg:#0f0f0f;--surface:#1a1a1a;--surface2:#222;--border:#2e2e2e;--border2:#3a3a3a;--accent:#e8a030;--accent2:#c47f18;--teal:#2ab4a0;--blue:#4a9edd;--purple:#9b72cf;--red:#e05252;--green:#4caf7d;--coral:#e06840;--text:#e8e6e0;--text2:#9a9890;--text3:#5a5856;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -621,7 +623,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
       <div class="form-row" style="grid-template-columns:110px 2fr 130px 1fr 110px">
         <div class="form-group"><label>Nro pedido *</label><input type="text" id="v-remito" placeholder="10285"></div>
         <div class="form-group"><label>Razón social *</label><input type="text" id="v-cliente" placeholder="Nombre del cliente" list="clientes-datalist" oninput="onVentaClienteChange()"></div>
-        <div class="form-group"><label>CUIT</label><input type="text" id="v-cuit" placeholder="20-12345678-9" readonly style="opacity:.7"></div>
+        <div class="form-group"><label>CUIT</label><input type="text" id="v-cuit" placeholder="20-12345678-9"></div>
         <div class="form-group"><label>Estado pedido</label><select id="v-estado"><option value="ingresado">Ingresado</option><option value="aprobado_cliente">Aprobado x Cliente</option><option value="aprobado">Aprobado</option><option value="entregado">Entregado</option><option value="facturado">Facturado</option><option value="pendiente">Pendiente entrega</option></select></div>
         <div class="form-group"><label>Fecha</label><input type="date" id="v-fecha"></div>
       </div>
@@ -900,7 +902,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
       <div class="form-row" style="grid-template-columns:120px 2fr 130px 130px 130px">
         <div class="form-group"><label>Nro *</label><input type="text" id="presup-nro" placeholder="P-0001"></div>
         <div class="form-group"><label>Cliente *</label><input type="text" id="presup-cliente" placeholder="Razón social" list="clientes-datalist" oninput="onPresupClienteChange()"></div>
-        <div class="form-group"><label>CUIT</label><input type="text" id="presup-cuit" placeholder="30-12345678-9" readonly style="opacity:.7"></div>
+        <div class="form-group"><label>CUIT</label><input type="text" id="presup-cuit" placeholder="30-12345678-9"></div>
         <div class="form-group"><label>Fecha *</label><input type="date" id="presup-fecha"></div>
         <div class="form-group"><label>Vence</label><input type="date" id="presup-vence"></div>
       </div>
@@ -920,6 +922,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-presupuesto')">Cancelar</button>
+      <button class="btn btn-ghost" id="btn-pdf-presup" onclick="generatePresupuestoPDFFromModal()" style="border-color:var(--accent);color:var(--accent)">Generar PDF</button>
       <button class="btn btn-primary" id="btn-save-presup" onclick="savePresupuesto()">Guardar presupuesto</button>
     </div>
   </div>
@@ -3246,7 +3249,7 @@ function renderPresupuestos(filter=''){
   document.getElementById('presup-tbody').innerHTML=list.length?list.map(p=>{
     const items=p.presupuesto_items||[];
     const puedeConvertir=['enviado','aprobado'].includes(p.estado);
-    return `<tr><td class="mono td-primary">${p.nro}</td><td style="font-weight:500">${p.cliente}</td><td>${p.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${p.fecha_vencimiento||'—'}</td><td class="mono">${items.length}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(p.total||0))}</td><td><span class="badge ${badges[p.estado]||'badge-warn'}">${p.estado.toUpperCase()}</span></td><td style="display:flex;gap:4px;flex-wrap:wrap">${puedeConvertir?`<button class="btn btn-ghost btn-sm" onclick="convertirPresupuesto('${p.id}')" style="border-color:var(--green);color:var(--green)">→ Venta</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editPresupuesto('${p.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="deletePresupuesto('${p.id}')">×</button></td></tr>`;
+    return `<tr><td class="mono td-primary">${p.nro}</td><td style="font-weight:500">${p.cliente}</td><td>${p.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${p.fecha_vencimiento||'—'}</td><td class="mono">${items.length}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(p.total||0))}</td><td><span class="badge ${badges[p.estado]||'badge-warn'}">${p.estado.toUpperCase()}</span></td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="generatePresupuestoPDF('${p.id}')" style="border-color:var(--accent);color:var(--accent)">PDF</button>${puedeConvertir?`<button class="btn btn-ghost btn-sm" onclick="convertirPresupuesto('${p.id}')" style="border-color:var(--green);color:var(--green)">→ Venta</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editPresupuesto('${p.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="deletePresupuesto('${p.id}')">×</button></td></tr>`;
   }).join(''):'<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">Sin presupuestos. Click en "+ Nuevo".</td></tr>';
 }
 
@@ -3346,6 +3349,155 @@ async function convertirPresupuesto(id){
     await PATCH('presupuestos',{estado:'convertido',venta_id:vid},`?id=eq.${id}`);
     await loadAll();renderAll();notify(`✓ Venta ${ventaNro} creada desde presupuesto`);
   }catch(e){notify('Error: '+e.message,'err');}
+}
+
+function generatePresupuestoPDFFromModal(){
+  const id=document.getElementById('presup-edit-id').value;
+  if(!id){notify('Guardá primero el presupuesto antes de generar el PDF','err');return;}
+  generatePresupuestoPDF(id);
+}
+
+// ─── PDF DE PRESUPUESTO ─────────────────────────────────────
+const VITALMET_LOGO_DATAURL='data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/4QAWRXhpZgAATU0AKgAAAAgAAAAAAAD/7AARRHVja3kAAQAEAAAAPAAA/+EDPGh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8APD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4NCjx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4NCgk8cmRmOlJERiB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiPg0KCQk8cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0iIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIiB4bWxuczpzdFJlZj0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL3NUeXBlL1Jlc291cmNlUmVmIyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IE1hY2ludG9zaCIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDpERUI2ODczRjhBOUQxMUUzOUZGMUY1RTM4Q0RGODA0QSIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDpERUI2ODc0MDhBOUQxMUUzOUZGMUY1RTM4Q0RGODA0QSI+DQoJCQk8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpERUI2ODczRDhBOUQxMUUzOUZGMUY1RTM4Q0RGODA0QSIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpERUI2ODczRThBOUQxMUUzOUZGMUY1RTM4Q0RGODA0QSIvPg0KCQk8L3JkZjpEZXNjcmlwdGlvbj4NCgk8L3JkZjpSREY+DQo8L3g6eG1wbWV0YT4NCjw/eHBhY2tldCBlbmQ9J3cnPz7/2wBDAAIB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';
+
+function generatePresupuestoPDF(id){
+  const p=presupuestos.find(x=>x.id===id);
+  if(!p){notify('Presupuesto no encontrado','err');return;}
+  if(!window.jspdf){notify('Librería PDF no cargada. Recargá la página.','err');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const items=p.presupuesto_items||[];
+
+  // ─── HEADER ─────────────────────────────
+  if(VITALMET_LOGO_DATAURL){
+    try{doc.addImage(VITALMET_LOGO_DATAURL,'JPEG',14,10,42,25);}catch(e){console.error('Logo error:',e);}
+  }else{
+    // Placeholder logo: 4 paralelogramos azules + texto VITALMET
+    doc.setFillColor(0,120,180);
+    doc.triangle(14,12,18,12,16,17,'F');
+    doc.triangle(20,12,26,12,23,17,'F');
+    doc.setFillColor(138,146,153);
+    doc.triangle(28,12,34,12,31,17,'F');
+    doc.triangle(36,12,42,12,39,17,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(40,40,40);
+    doc.text('VITALMET',14,24);
+  }
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100,100,100);
+  const xEmp=VITALMET_LOGO_DATAURL?60:14;
+  doc.text('Perú 246, Villa Martelli, Buenos Aires',xEmp,18);
+  doc.text('CUIT: 34-59751980-1',xEmp,22);
+  doc.text('Tel: 11-5998-3767  ·  ventas@vitalmetsa.com',xEmp,26);
+  doc.text('vitalmetsa.com',xEmp,30);
+
+  // Título PRESUPUESTO derecha
+  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(40,40,40);
+  doc.text('PRESUPUESTO',196,22,{align:'right'});
+  doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(60,130,90);
+  doc.text(`Nº ${p.nro||'—'}`,196,30,{align:'right'});
+
+  // Línea separadora
+  doc.setDrawColor(220,220,220);doc.line(14,48,196,48);
+
+  // ─── DATOS PRESUPUESTO ──────────────────
+  doc.setFontSize(10);doc.setTextColor(60,60,60);
+  let y=56;
+  doc.setFont('helvetica','bold');doc.text('Fecha:',14,y);doc.setFont('helvetica','normal');
+  doc.text(p.fecha||'—',30,y);
+  doc.setFont('helvetica','bold');doc.text('Vencimiento:',80,y);doc.setFont('helvetica','normal');
+  doc.text(p.fecha_vencimiento||p.vence||'—',104,y);
+  doc.setFont('helvetica','bold');doc.text('Estado:',150,y);doc.setFont('helvetica','normal');
+  doc.text((p.estado||'').toUpperCase(),168,y);
+
+  y+=8;
+  doc.setFont('helvetica','bold');doc.text('Cliente:',14,y);doc.setFont('helvetica','normal');
+  doc.text(p.cliente||'—',32,y);
+  if(p.cuit){doc.setFont('helvetica','bold');doc.text('CUIT:',130,y);doc.setFont('helvetica','normal');doc.text(p.cuit,144,y);}
+
+  y+=6;
+  doc.setFont('helvetica','bold');doc.text('Condición de pago:',14,y);doc.setFont('helvetica','normal');
+  doc.text(p.condicion_pago||'A convenir',50,y);
+
+  // ─── TABLA DE ÍTEMS ─────────────────────
+  y+=8;
+  const rows=items.map((it,idx)=>[
+    String(idx+1),
+    it.pieza||'',
+    it.descripcion||'—',
+    String(it.cantidad||0),
+    fmtUSD(it.precio_unitario||0),
+    fmtUSD(it.subtotal||0)
+  ]);
+  doc.autoTable({
+    startY:y,
+    head:[['#','Pieza','Descripción','Cantidad','Precio unit.','Total']],
+    body:rows.length?rows:[['—','Sin ítems','','','','']],
+    theme:'striped',
+    headStyles:{fillColor:[60,90,130],textColor:255,fontStyle:'bold',fontSize:9},
+    styles:{fontSize:9,cellPadding:2.5,overflow:'linebreak'},
+    columnStyles:{
+      0:{cellWidth:10,halign:'center'},
+      1:{cellWidth:38},
+      2:{cellWidth:60},
+      3:{cellWidth:18,halign:'center'},
+      4:{cellWidth:28,halign:'right'},
+      5:{cellWidth:28,halign:'right'}
+    },
+    margin:{left:14,right:14}
+  });
+
+  // ─── TOTALES ────────────────────────────
+  let finalY=doc.lastAutoTable.finalY+6;
+  const subtotal=items.reduce((a,i)=>a+parseFloat(i.subtotal||0),0);
+  const descPct=parseFloat(p.descuento_pct||0);
+  const total=parseFloat(p.total||0);
+  const descMonto=subtotal*descPct/100;
+
+  doc.setFontSize(10);doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+  doc.text('Subtotal:',150,finalY);
+  doc.text(fmtUSD(subtotal),196,finalY,{align:'right'});
+  if(descPct>0){
+    finalY+=5;
+    doc.text(`Descuento ${descPct}%:`,150,finalY);
+    doc.setTextColor(180,80,80);
+    doc.text(`-${fmtUSD(descMonto)}`,196,finalY,{align:'right'});
+    doc.setTextColor(80,80,80);
+  }
+  finalY+=7;
+  doc.setDrawColor(180,180,180);doc.line(150,finalY-2,196,finalY-2);
+  doc.setFont('helvetica','bold');doc.setFontSize(13);
+  doc.setTextColor(40,40,40);doc.text('TOTAL:',150,finalY+2);
+  doc.setTextColor(60,130,90);doc.text(fmtUSD(total),196,finalY+2,{align:'right'});
+
+  // ─── OBSERVACIONES ──────────────────────
+  finalY+=14;
+  if(p.observaciones){
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(60,60,60);
+    doc.text('Observaciones:',14,finalY);
+    doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+    const obsLines=doc.splitTextToSize(p.observaciones,180);
+    doc.text(obsLines,14,finalY+5);
+    finalY+=5+obsLines.length*4;
+  }
+
+  // ─── FOOTER FIJO ────────────────────────
+  const footerY=Math.max(finalY+10,260);
+  doc.setDrawColor(220,220,220);doc.line(14,footerY,196,footerY);
+  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(60,60,60);
+  doc.text('Validez del presupuesto:',14,footerY+6);
+  doc.setFont('helvetica','normal');doc.setTextColor(90,90,90);
+  doc.text('30 días corridos desde la fecha de emisión.',14,footerY+10);
+  doc.setFont('helvetica','bold');doc.setTextColor(60,60,60);
+  doc.text('Forma de pago:',14,footerY+16);
+  doc.setFont('helvetica','normal');doc.setTextColor(90,90,90);
+  doc.text('Según condiciones acordadas. Precios expresados en USD, sujetos a cotización del día de pago.',14,footerY+20);
+
+  doc.setFontSize(7);doc.setTextColor(150,150,150);
+  doc.text('VITALMET SA  ·  Perú 246, Villa Martelli, Bs. As.  ·  vitalmetsa.com',105,290,{align:'center'});
+
+  // ─── DESCARGAR ──────────────────────────
+  const safeCli=(p.cliente||'cliente').replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
+  doc.save(`Presupuesto_${p.nro||'sin-nro'}_${safeCli}.pdf`);
+  notify('PDF generado');
 }
 
 // ═══════════════════════════════════════════════════════════
