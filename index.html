@@ -599,6 +599,19 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div id="er-content" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px"></div>
       </div>
     </div>
+    <!-- CONTABILIDAD: Ratios -->
+    <div class="page" id="page-ratios">
+      <div class="page-header"><div class="page-title">Ratios financieros</div><div class="page-sub">// indicadores de liquidez, endeudamiento, rentabilidad y actividad</div><div class="tabs"><div class="tab active">Por período</div></div></div>
+      <div class="page-content">
+        <div style="display:flex;gap:10px;align-items:end;margin-bottom:14px;flex-wrap:wrap">
+          <div class="form-group" style="margin:0"><label>Período desde</label><input type="date" id="rt-desde" onchange="renderRatios()" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans)"></div>
+          <div class="form-group" style="margin:0"><label>Saldos hasta</label><input type="date" id="rt-hasta" onchange="renderRatios()" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans)"></div>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('rt-desde').value='';document.getElementById('rt-hasta').value='';renderRatios()">Limpiar</button>
+        </div>
+        <div class="stats-bar" id="rt-headline" style="margin-bottom:18px"></div>
+        <div id="rt-content"></div>
+      </div>
+    </div>
     <!-- CONTABILIDAD: Balance general -->
     <div class="page" id="page-balgral">
       <div class="page-header"><div class="page-title">Balance general</div><div class="page-sub">// Activo = Pasivo + Patrimonio Neto</div><div class="tabs"><div class="tab active">Al cierre</div></div></div>
@@ -1749,10 +1762,10 @@ async function loadAll(){
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
-  contabilidad:[{k:'cuentas',l:'Plan de cuentas'},{k:'asientosp',l:'Asientos'},{k:'librodiario',l:'Libro diario'},{k:'libromayor',l:'Libro mayor'},{k:'balance',l:'Balance comprob.'},{k:'estado',l:'Estado de resultados'},{k:'balgral',l:'Balance general'}],
+  contabilidad:[{k:'cuentas',l:'Plan de cuentas'},{k:'asientosp',l:'Asientos'},{k:'librodiario',l:'Libro diario'},{k:'libromayor',l:'Libro mayor'},{k:'balance',l:'Balance comprob.'},{k:'estado',l:'Estado de resultados'},{k:'balgral',l:'Balance general'},{k:'ratios',l:'Ratios'}],
   ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'}],
   analisis:[{k:'costos',l:'Costos y rentabilidad'},{k:'trace',l:'Trazabilidad'}],
 };
@@ -2450,7 +2463,7 @@ function notify(msg,type){
   el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);
 }
 
-function renderAll(){renderDash();renderMP();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();populateLibroMayorSel();renderLibroMayor();renderBalance();renderEstadoResultados();renderBalanceGeneral();renderConfig();updateClientesDatalist();animateNumbers();}
+function renderAll(){renderDash();renderMP();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();populateLibroMayorSel();renderLibroMayor();renderBalance();renderEstadoResultados();renderBalanceGeneral();renderRatios();renderConfig();updateClientesDatalist();animateNumbers();}
 
 // ─── PLAN DE CUENTAS ──────────────────────────────────────────
 function renderCuentas(filter=''){
@@ -2891,6 +2904,151 @@ function renderBalanceGeneral(){
   html+='</div></div>';
   html+=`<div style="margin-top:18px;padding:14px;background:var(--surface2);border-radius:6px;display:grid;grid-template-columns:1fr 1fr;gap:18px;font-family:var(--mono);font-size:13px"><div style="display:flex;justify-content:space-between"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.12em">Total Activo</span><span style="font-weight:600;color:var(--green)">${fmtUSD(totalAct)}</span></div><div style="display:flex;justify-content:space-between"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.12em">Total Pasivo + PN</span><span style="font-weight:600;color:${cuadra?'var(--accent)':'var(--red)'}">${fmtUSD(totalPasPN)}</span></div></div>`;
   cont.innerHTML=html;
+}
+
+// ─── RATIOS FINANCIEROS ───────────────────────────────────────
+// Heurística de clasificación corriente / no corriente por código de cuenta:
+// Activo: 1.1.*, 1.2.*, 1.3.* = corriente; 1.4.* = no corriente
+// Pasivo: 2.1.* (excepto 2.1.08 préstamos) = corriente; resto = no corriente
+function _esActivoCorriente(c){return c.tipo==='activo'&&(/^1\.[123]\./.test(c.codigo||''));}
+function _esActivoNoCorriente(c){return c.tipo==='activo'&&(/^1\.4\./.test(c.codigo||''));}
+function _esPasivoCorriente(c){return c.tipo==='pasivo'&&(/^2\.1\./.test(c.codigo||''))&&c.codigo!=='2.1.08';}
+function _esPasivoNoCorriente(c){return c.tipo==='pasivo'&&((/^2\.[2-9]/.test(c.codigo||''))||c.codigo==='2.1.08');}
+function _saldoNat(c,m){const tD=['activo','egreso'].includes(c.tipo);return tD?(parseFloat(m.debe||0)-parseFloat(m.haber||0)):(parseFloat(m.haber||0)-parseFloat(m.debe||0));}
+function _sumPor(filtro,por){return cuentasContables.filter(c=>filtro(c)&&por[c.id]).reduce((s,c)=>s+_saldoNat(c,por[c.id]),0);}
+
+function renderRatios(){
+  const headline=document.getElementById('rt-headline');
+  const cont=document.getElementById('rt-content');
+  if(!cont)return;
+  const desde=document.getElementById('rt-desde')?.value||'';
+  const hasta=document.getElementById('rt-hasta')?.value||'';
+  const porSaldo=_agregarSaldos('',hasta);             // saldos al cierre
+  const porPeriodo=_agregarSaldos(desde,hasta);        // movimientos del período (para flujos)
+
+  // ─── Componentes patrimoniales (al cierre) ───
+  const ac=_sumPor(_esActivoCorriente,porSaldo);
+  const anc=_sumPor(_esActivoNoCorriente,porSaldo);
+  const at=ac+anc;
+  const pc=_sumPor(_esPasivoCorriente,porSaldo);
+  const pnc=_sumPor(_esPasivoNoCorriente,porSaldo);
+  const pt=pc+pnc;
+  const pnPlano=_sumPor(c=>c.tipo==='patrimonio',porSaldo);
+  const inventarios=cuentasContables.filter(c=>/^1\.3\./.test(c.codigo||'')&&porSaldo[c.id]).reduce((s,c)=>s+_saldoNat(c,porSaldo[c.id]),0);
+  const disponibilidades=cuentasContables.filter(c=>/^1\.1\./.test(c.codigo||'')&&porSaldo[c.id]).reduce((s,c)=>s+_saldoNat(c,porSaldo[c.id]),0);
+  const cuentasACobrar=cuentasContables.filter(c=>c.codigo==='1.2.01'&&porSaldo[c.id]).reduce((s,c)=>s+_saldoNat(c,porSaldo[c.id]),0);
+  const proveedores=cuentasContables.filter(c=>c.codigo==='2.1.01'&&porSaldo[c.id]).reduce((s,c)=>s+_saldoNat(c,porSaldo[c.id]),0);
+
+  // ─── Flujos del período (para rentabilidad y actividad) ───
+  const ventas=cuentasContables.filter(c=>/^4\.1\./.test(c.codigo||'')&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
+  const otrosIng=cuentasContables.filter(c=>c.tipo==='ingreso'&&!(/^4\.1\./.test(c.codigo||''))&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
+  const ingresosT=ventas+otrosIng;
+  const cmv=cuentasContables.filter(c=>c.codigo==='5.1.01'&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
+  const gastosOp=cuentasContables.filter(c=>/^5\.2\.|^5\.3\./.test(c.codigo||'')&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
+  const gastosFin=cuentasContables.filter(c=>/^5\.4\./.test(c.codigo||'')&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
+  const intereses=cuentasContables.filter(c=>c.codigo==='5.4.01'&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
+  const egresosT=cuentasContables.filter(c=>c.tipo==='egreso'&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
+  const resultadoBruto=ventas-cmv;
+  const resultadoOp=resultadoBruto-gastosOp;
+  const resultadoNeto=ingresosT-egresosT;
+  const pn=pnPlano+resultadoNeto;
+
+  // ─── Helpers de display ───
+  const div=(a,b)=>(b!==0?(a/b):null);
+  const f2=v=>v===null?'—':(typeof v==='number'?v.toFixed(2):String(v));
+  const fpct=v=>v===null?'—':((v*100).toFixed(1)+'%');
+  const fdays=v=>v===null?'—':Math.round(v)+' días';
+  const semaforo=(val,green,yellow,higherBetter=true)=>{
+    if(val===null||isNaN(val))return 'var(--text3)';
+    if(higherBetter){
+      if(val>=green)return 'var(--green)';
+      if(val>=yellow)return 'var(--accent)';
+      return 'var(--red)';
+    }else{
+      if(val<=green)return 'var(--green)';
+      if(val<=yellow)return 'var(--accent)';
+      return 'var(--red)';
+    }
+  };
+
+  // ─── CALCULAR RATIOS ───
+
+  // Liquidez
+  const r_liqCorr=div(ac,pc);
+  const r_pruebaAcida=div(ac-inventarios,pc);
+  const r_liqAbs=div(disponibilidades,pc);
+  const v_capTrabajo=ac-pc;
+
+  // Endeudamiento
+  const r_endTotal=div(pt,at);
+  const r_endPN=div(pt,pn);
+  const r_solvencia=div(at,pt);
+  const r_inmoviliz=div(anc,at);
+
+  // Rentabilidad
+  const r_margenBruto=div(resultadoBruto,ventas);
+  const r_margenOp=div(resultadoOp,ventas);
+  const r_margenNeto=div(resultadoNeto,ingresosT);
+  const r_roa=div(resultadoNeto,at);
+  const r_roe=div(resultadoNeto,pn);
+
+  // Actividad
+  const r_rotActivos=div(ventas,at);
+  const r_diasCob=div(cuentasACobrar*365,ventas);
+  const r_diasInv=div(inventarios*365,cmv);
+  const r_diasPago=div(proveedores*365,cmv);
+  const r_cicloOp=(r_diasInv!==null&&r_diasCob!==null)?r_diasInv+r_diasCob:null;
+  const r_cicloEf=(r_cicloOp!==null&&r_diasPago!==null)?r_cicloOp-r_diasPago:null;
+
+  // ─── HEADLINE ───
+  headline.innerHTML=`
+    <div class="stat-card"><div class="stat-label">Liquidez corriente</div><div class="stat-value" style="color:${semaforo(r_liqCorr,1.5,1)};font-size:18px">${f2(r_liqCorr)}</div></div>
+    <div class="stat-card"><div class="stat-label">Endeudamiento</div><div class="stat-value" style="color:${semaforo(r_endTotal,0.5,0.7,false)};font-size:18px">${fpct(r_endTotal)}</div></div>
+    <div class="stat-card"><div class="stat-label">ROA</div><div class="stat-value" style="color:${semaforo(r_roa,0.10,0.05)};font-size:18px">${fpct(r_roa)}</div></div>
+    <div class="stat-card"><div class="stat-label">ROE</div><div class="stat-value" style="color:${semaforo(r_roe,0.15,0.08)};font-size:18px">${fpct(r_roe)}</div></div>`;
+
+  // ─── DETALLE POR CATEGORÍA ───
+  const ratioRow=(nombre,valor,formula,color,desc)=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center"><div><div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px">${nombre}</div><div style="font-size:11px;color:var(--text3);font-family:var(--mono)">${formula}</div>${desc?`<div style="font-size:11px;color:var(--text3);margin-top:4px;line-height:1.4">${desc}</div>`:''}</div><div style="font-family:var(--mono);font-size:22px;font-weight:600;color:${color};text-align:right;min-width:110px">${valor}</div></div>`;
+
+  const seccion=(titulo,color,ratios)=>`<div style="margin-bottom:24px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:${color};font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid ${color}33">${titulo}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${ratios.join('')}</div></div>`;
+
+  const liquidez=[
+    ratioRow('Liquidez corriente',f2(r_liqCorr),`AC (${fmtUSD(ac)}) / PC (${fmtUSD(pc)})`,semaforo(r_liqCorr,1.5,1),'Capacidad de pagar deudas a corto plazo. Saludable: ≥ 1.5'),
+    ratioRow('Prueba ácida',f2(r_pruebaAcida),`(AC − Inv.) (${fmtUSD(ac-inventarios)}) / PC`,semaforo(r_pruebaAcida,1,0.7),'Liquidez sin contar inventarios. Saludable: ≥ 1.0'),
+    ratioRow('Liquidez absoluta',f2(r_liqAbs),`Caja (${fmtUSD(disponibilidades)}) / PC`,semaforo(r_liqAbs,0.3,0.15),'Cobertura inmediata con efectivo. Saludable: ≥ 0.3'),
+    ratioRow('Capital de trabajo',fmtUSD(v_capTrabajo),`AC − PC = ${fmtUSD(ac)} − ${fmtUSD(pc)}`,v_capTrabajo>=0?'var(--green)':'var(--red)','Excedente para operar. Negativo = déficit financiero')
+  ];
+
+  const endeudamiento=[
+    ratioRow('Endeudamiento total',fpct(r_endTotal),`PT (${fmtUSD(pt)}) / AT (${fmtUSD(at)})`,semaforo(r_endTotal,0.5,0.7,false),'Proporción del activo financiada con deuda. Saludable: ≤ 50%'),
+    ratioRow('Endeudamiento sobre PN',f2(r_endPN),`PT (${fmtUSD(pt)}) / PN (${fmtUSD(pn)})`,semaforo(r_endPN,1,2,false),'Veces que la deuda supera al PN. Saludable: ≤ 1'),
+    ratioRow('Solvencia',f2(r_solvencia),`AT (${fmtUSD(at)}) / PT (${fmtUSD(pt)})`,semaforo(r_solvencia,2,1.5),'Veces que el activo cubre las deudas. Saludable: ≥ 2'),
+    ratioRow('Inmovilización',fpct(r_inmoviliz),`A. no corr. (${fmtUSD(anc)}) / AT`,semaforo(r_inmoviliz,0.5,0.7,false),'% de activo en bienes de uso. Industria: 30−60% típico')
+  ];
+
+  const rentabilidad=[
+    ratioRow('Margen bruto',fpct(r_margenBruto),`(Ventas − CMV) / Ventas = ${fmtUSD(resultadoBruto)} / ${fmtUSD(ventas)}`,semaforo(r_margenBruto,0.30,0.15),'Rentabilidad sobre la venta antes de gastos. Saludable: ≥ 30%'),
+    ratioRow('Margen operativo',fpct(r_margenOp),`Result. operativo (${fmtUSD(resultadoOp)}) / Ventas`,semaforo(r_margenOp,0.15,0.05),'Eficiencia operativa. Saludable: ≥ 15%'),
+    ratioRow('Margen neto',fpct(r_margenNeto),`Result. neto (${fmtUSD(resultadoNeto)}) / Ingresos`,semaforo(r_margenNeto,0.10,0.03),'Rentabilidad final por peso facturado. Saludable: ≥ 10%'),
+    ratioRow('ROA (Return on Assets)',fpct(r_roa),`Result. neto / AT (${fmtUSD(at)})`,semaforo(r_roa,0.10,0.05),'Rentabilidad por uso del activo. Saludable: ≥ 10%'),
+    ratioRow('ROE (Return on Equity)',fpct(r_roe),`Result. neto / PN (${fmtUSD(pn)})`,semaforo(r_roe,0.15,0.08),'Rentabilidad para el dueño. Saludable: ≥ 15%')
+  ];
+
+  const actividad=[
+    ratioRow('Rotación de activos',f2(r_rotActivos),`Ventas (${fmtUSD(ventas)}) / AT (${fmtUSD(at)})`,semaforo(r_rotActivos,1.5,0.8),'Veces que el activo "rota" en ventas. Industria: 1−2 típico'),
+    ratioRow('Días de cobranza (DSO)',fdays(r_diasCob),`(C×C ${fmtUSD(cuentasACobrar)} × 365) / Ventas`,semaforo(r_diasCob,30,60,false),'Cuánto tarda el cliente en pagar. Saludable: ≤ 30 días'),
+    ratioRow('Días de inventario',fdays(r_diasInv),`(Inv. ${fmtUSD(inventarios)} × 365) / CMV`,semaforo(r_diasInv,60,120,false),'Cuánto tarda en venderse el stock. Industria metalúrgica: 60−90'),
+    ratioRow('Días de pago (DPO)',fdays(r_diasPago),`(Prov. ${fmtUSD(proveedores)} × 365) / CMV`,semaforo(r_diasPago,60,30),'Cuánto tardás en pagar a proveedores. Mayor = mejor financiamiento'),
+    ratioRow('Ciclo operativo',fdays(r_cicloOp),`Días inv. + Días cob. = ${fdays(r_diasInv)} + ${fdays(r_diasCob)}`,semaforo(r_cicloOp,90,150,false),'Tiempo total entre comprar MP y cobrar la venta'),
+    ratioRow('Ciclo de caja',fdays(r_cicloEf),`Ciclo op. − Días pago`,semaforo(r_cicloEf,30,90,false),'Días que financiás la operación con tu plata. Menor = mejor')
+  ];
+
+  cont.innerHTML=
+    seccion('LIQUIDEZ','var(--blue)',liquidez)+
+    seccion('ENDEUDAMIENTO Y SOLVENCIA','var(--coral)',endeudamiento)+
+    seccion('RENTABILIDAD','var(--green)',rentabilidad)+
+    seccion('ACTIVIDAD Y EFICIENCIA','var(--accent)',actividad)+
+    `<div style="margin-top:24px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text3);line-height:1.6"><b style="color:var(--text2)">Notas metodológicas:</b><br>• Activo Corriente = cuentas con código 1.1, 1.2 y 1.3. Activo No Corriente = código 1.4. Pasivo Corriente = 2.1.x (excepto préstamos 2.1.08).<br>• Para ratios de actividad (días, rotación) se usan los flujos del rango "Período desde / hasta".<br>• Para ratios patrimoniales (liquidez, endeudamiento) se usan saldos acumulados hasta "Saldos hasta".<br>• Si dejás los filtros vacíos, el cálculo toma todo el histórico.</div>`;
 }
 
 // ─── ASIENTO AUTOMÁTICO DESDE VENTA ───────────────────────────
@@ -3851,7 +4009,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes'],analisis:['costos','trace'],contabilidad:['cuentas','asientosp','librodiario','libromayor','balance','estado','balgral']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes'],analisis:['costos','trace'],contabilidad:['cuentas','asientosp','librodiario','libromayor','balance','estado','balgral','ratios']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
