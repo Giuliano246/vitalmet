@@ -531,15 +531,32 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="table-wrap"><table><thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Cuenta padre</th><th>Imputable</th><th>Activa</th><th></th></tr></thead><tbody id="cuentas-tbody"></tbody></table></div>
       </div>
     </div>
-    <!-- CONTABILIDAD: Asientos (placeholder fase 2) -->
+    <!-- CONTABILIDAD: Asientos -->
     <div class="page" id="page-asientosp">
-      <div class="page-header"><div class="page-title">Asientos contables</div><div class="page-sub">// alta y edición</div><div class="tabs"><div class="tab active">Todos</div></div></div>
-      <div class="page-content"><div style="padding:48px;text-align:center;color:var(--text3);font-size:13px">Próxima fase: alta de asientos manuales con partida doble.</div></div>
+      <div class="page-header"><div class="page-title">Asientos contables</div><div class="page-sub">// partida doble · debe = haber</div><div class="tabs"><div class="tab active">Todos</div></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="asientos-stats"></div>
+        <div class="toolbar">
+          <div class="search-box"><input type="text" placeholder="Buscar por descripción, comprobante o número..." oninput="renderAsientos(this.value)"></div>
+          <button class="btn btn-ghost" onclick="openModalAsiento()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo asiento</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>N°</th><th>Fecha</th><th>Descripción</th><th>Comprobante</th><th>Tipo</th><th>Total</th><th>Estado</th><th></th></tr></thead><tbody id="asientos-tbody"></tbody></table></div>
+      </div>
     </div>
-    <!-- CONTABILIDAD: Libro diario (placeholder) -->
+    <!-- CONTABILIDAD: Libro diario -->
     <div class="page" id="page-librodiario">
-      <div class="page-header"><div class="page-title">Libro diario</div><div class="page-sub">// listado cronológico</div><div class="tabs"><div class="tab active">Todos</div></div></div>
-      <div class="page-content"><div style="padding:48px;text-align:center;color:var(--text3);font-size:13px">Próxima fase: vista cronológica de asientos.</div></div>
+      <div class="page-header"><div class="page-title">Libro diario</div><div class="page-sub">// vista cronológica de asientos confirmados</div><div class="tabs"><div class="tab active">Todos</div></div></div>
+      <div class="page-content">
+        <div style="display:flex;gap:10px;align-items:end;margin-bottom:14px;flex-wrap:wrap">
+          <div class="form-group" style="margin:0"><label>Desde</label><input type="date" id="ld-desde" onchange="renderLibroDiario()" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans)"></div>
+          <div class="form-group" style="margin:0"><label>Hasta</label><input type="date" id="ld-hasta" onchange="renderLibroDiario()" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans)"></div>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('ld-desde').value='';document.getElementById('ld-hasta').value='';renderLibroDiario()">Limpiar</button>
+          <div style="flex:1"></div>
+          <div class="stat-card" style="padding:8px 14px"><div class="stat-label">Asientos</div><div class="stat-value" id="ld-stat-cantidad" style="font-size:14px">—</div></div>
+          <div class="stat-card" style="padding:8px 14px"><div class="stat-label">Total movimientos</div><div class="stat-value" id="ld-stat-total" style="color:var(--green);font-size:13px">—</div></div>
+        </div>
+        <div id="ld-content" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px;font-family:var(--mono);font-size:12px"></div>
+      </div>
     </div>
     <!-- CONTABILIDAD: Libro mayor (placeholder) -->
     <div class="page" id="page-libromayor">
@@ -707,6 +724,27 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <div class="form-row single"><div class="form-group"><label>Observaciones</label><input type="text" id="cuenta-observaciones" placeholder="Notas internas"></div></div>
     </div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-cuenta')">Cancelar</button><button class="btn btn-primary" id="btn-save-cuenta" onclick="saveCuenta()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Asiento contable -->
+<div class="modal-overlay" id="modal-asiento">
+  <div class="modal" style="width:840px;max-width:95vw">
+    <div class="modal-header"><div class="modal-title" id="modal-asiento-title">Nuevo asiento</div><button class="modal-close" onclick="closeModal('modal-asiento')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="asiento-edit-id">
+      <div class="section-label">Cabecera</div>
+      <div class="form-row" style="grid-template-columns:90px 130px 1fr 130px 130px"><div class="form-group"><label>N°</label><input type="text" id="asiento-numero" readonly style="opacity:.6"></div><div class="form-group"><label>Fecha *</label><input type="date" id="asiento-fecha"></div><div class="form-group"><label>Descripción *</label><input type="text" id="asiento-descripcion" placeholder="Cobranza factura X"></div><div class="form-group"><label>Comprobante</label><input type="text" id="asiento-comprobante" placeholder="FA-001-12345"></div><div class="form-group"><label>Estado</label><select id="asiento-estado"><option value="confirmado">Confirmado</option><option value="borrador">Borrador</option><option value="anulado">Anulado</option></select></div></div>
+      <hr class="form-divider">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="section-label" style="margin:0">Líneas (partida doble)</div><button class="btn btn-ghost btn-sm" onclick="addLineaAsiento()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Línea</button></div>
+      <div id="asiento-lineas-list" style="display:flex;flex-direction:column;gap:5px"></div>
+      <div style="display:flex;justify-content:flex-end;gap:18px;margin-top:14px;font-size:13px;font-family:var(--mono);align-items:center;padding:10px 14px;background:var(--surface2);border-radius:5px">
+        <span style="color:var(--text3)">Total Debe:</span><span id="total-debe" style="color:var(--green);font-weight:500;min-width:90px;text-align:right">$0.00</span>
+        <span style="color:var(--text3)">Total Haber:</span><span id="total-haber" style="color:var(--coral);font-weight:500;min-width:90px;text-align:right">$0.00</span>
+        <span style="color:var(--text3)">Diferencia:</span><span id="total-diff" style="font-weight:600;min-width:90px;text-align:right">$0.00</span>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-asiento')">Cancelar</button><button class="btn btn-primary" id="btn-save-asiento" onclick="saveAsiento()">Guardar asiento</button></div>
   </div>
 </div>
 
@@ -2370,7 +2408,7 @@ function notify(msg,type){
   el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);
 }
 
-function renderAll(){renderDash();renderMP();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderConfig();updateClientesDatalist();animateNumbers();}
+function renderAll(){renderDash();renderMP();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();renderConfig();updateClientesDatalist();animateNumbers();}
 
 // ─── PLAN DE CUENTAS ──────────────────────────────────────────
 function renderCuentas(filter=''){
@@ -2431,15 +2469,167 @@ async function saveCuenta(){
 }
 async function deleteCuenta(id){
   const c=cuentasContables.find(x=>x.id===id);if(!c)return;
-  // Bloquear si tiene movimientos
   const mov=asientoLineas.filter(l=>l.cuenta_id===id).length;
   if(mov>0)return notify(`No se puede eliminar: la cuenta tiene ${mov} movimiento(s) en asientos`,'err');
-  // Bloquear si tiene hijas
   const hijas=cuentasContables.filter(x=>x.cuenta_padre_id===id).length;
   if(hijas>0)return notify(`No se puede eliminar: la cuenta tiene ${hijas} subcuenta(s)`,'err');
   if(!confirm(`¿Eliminar cuenta "${c.codigo} · ${c.nombre}"?`))return;
   try{await DEL('cuentas_contables',`?id=eq.${id}`);await loadAll();renderAll();notify('Cuenta eliminada');}
   catch(e){notify(e.message,'err');}
+}
+
+// ─── ASIENTOS CONTABLES ───────────────────────────────────────
+let lineasDraft=[];
+
+function renderAsientos(filter=''){
+  const f=(filter||'').toLowerCase();
+  const list=asientos.filter(a=>!f||String(a.numero||'').includes(f)||(a.descripcion||'').toLowerCase().includes(f)||(a.comprobante_nro||'').toLowerCase().includes(f));
+  const total=asientos.length;
+  const confirmados=asientos.filter(a=>a.estado==='confirmado').length;
+  const borradores=asientos.filter(a=>a.estado==='borrador').length;
+  const mes=new Date();const inicioMes=new Date(mes.getFullYear(),mes.getMonth(),1).toISOString().slice(0,10);
+  const delMes=asientos.filter(a=>a.fecha>=inicioMes).length;
+  document.getElementById('asientos-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total asientos</div><div class="stat-value" style="color:var(--blue)">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Confirmados</div><div class="stat-value" style="color:var(--green)">${confirmados}</div></div>
+    <div class="stat-card"><div class="stat-label">Borradores</div><div class="stat-value" style="color:${borradores?'var(--accent)':'var(--text)'}">${borradores}</div></div>
+    <div class="stat-card"><div class="stat-label">Del mes en curso</div><div class="stat-value" style="color:var(--teal)">${delMes}</div></div>`;
+  const badges={confirmado:'badge-ok',borrador:'badge-warn',anulado:'badge-coral'};
+  document.getElementById('asientos-tbody').innerHTML=list.length?list.map(a=>{
+    const lineas=asientoLineas.filter(l=>l.asiento_id===a.id);
+    const totalAsiento=lineas.reduce((s,l)=>s+parseFloat(l.debe||0),0);
+    return`<tr><td class="mono td-primary">${a.numero||'—'}</td><td class="mono">${a.fecha||'—'}</td><td>${a.descripcion||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${a.comprobante_nro||'—'}</td><td class="mono" style="font-size:11px">${a.tipo||'manual'}</td><td class="mono" style="color:var(--green)">${fmtUSD(totalAsiento)}</td><td><span class="badge ${badges[a.estado]||'badge-warn'}">${(a.estado||'').toUpperCase()}</span></td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editAsiento('${a.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>${a.estado==='confirmado'?'Ver':'Editar'}</button>${a.estado!=='anulado'?`<button class="btn btn-danger btn-sm" onclick="anularAsiento('${a.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button>`:''}</td></tr>`;
+  }).join(''):`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg></div><div class="empty-title">Sin asientos cargados</div><div class="empty-msg">Cargá el primer asiento manual con <b>+ Nuevo asiento</b>. Validamos automáticamente que Debe = Haber.</div></div></td></tr>`;
+}
+
+function openModalAsiento(id){
+  document.getElementById('modal-asiento-title').textContent=id?(asientos.find(a=>a.id===id)?.estado==='confirmado'?'Ver asiento':'Editar asiento'):'Nuevo asiento';
+  document.getElementById('asiento-edit-id').value=id||'';
+  resetF(['asiento-descripcion','asiento-comprobante']);
+  if(!id){
+    autoDate('asiento-fecha');
+    const maxN=asientos.reduce((m,a)=>Math.max(m,parseInt(a.numero||0)||0),0);
+    document.getElementById('asiento-numero').value=maxN+1;
+    document.getElementById('asiento-estado').value='confirmado';
+    lineasDraft=[{cuenta_id:'',debe:0,haber:0,descripcion:''},{cuenta_id:'',debe:0,haber:0,descripcion:''}];
+  }else{
+    const a=asientos.find(x=>x.id===id);if(!a)return;
+    document.getElementById('asiento-numero').value=a.numero||'';
+    document.getElementById('asiento-fecha').value=a.fecha||'';
+    document.getElementById('asiento-descripcion').value=a.descripcion||'';
+    document.getElementById('asiento-comprobante').value=a.comprobante_nro||'';
+    document.getElementById('asiento-estado').value=a.estado||'confirmado';
+    const lns=asientoLineas.filter(l=>l.asiento_id===id).sort((x,y)=>(x.orden||0)-(y.orden||0));
+    lineasDraft=lns.map(l=>({id:l.id,cuenta_id:l.cuenta_id,debe:parseFloat(l.debe||0),haber:parseFloat(l.haber||0),descripcion:l.descripcion||''}));
+    if(!lineasDraft.length)lineasDraft=[{cuenta_id:'',debe:0,haber:0,descripcion:''},{cuenta_id:'',debe:0,haber:0,descripcion:''}];
+  }
+  renderLineasAsiento();
+  openModal('modal-asiento');
+}
+function editAsiento(id){openModalAsiento(id);}
+
+function renderLineasAsiento(){
+  const cont=document.getElementById('asiento-lineas-list');
+  const opts=cuentasContables.filter(c=>c.imputable!==false&&c.activa!==false).sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'',undefined,{numeric:true}));
+  cont.innerHTML=lineasDraft.map((l,idx)=>`
+    <div style="display:grid;grid-template-columns:2fr 1.4fr 110px 110px 28px;gap:6px;align-items:center">
+      <select onchange="onLineaChange(${idx},'cuenta_id',this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--text);font-size:11px;font-family:var(--sans)"><option value="">— elegir cuenta —</option>${opts.map(c=>`<option value="${c.id}" ${l.cuenta_id===c.id?'selected':''}>${c.codigo} · ${c.nombre}</option>`).join('')}</select>
+      <input type="text" value="${(l.descripcion||'').replace(/"/g,'&quot;')}" oninput="onLineaChange(${idx},'descripcion',this.value)" placeholder="Descripción línea" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--text);font-size:11px;font-family:var(--sans)">
+      <input type="number" step="0.01" min="0" value="${l.debe||''}" oninput="onLineaChange(${idx},'debe',parseFloat(this.value)||0)" placeholder="Debe" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--green);font-size:11px;font-family:var(--mono);text-align:right">
+      <input type="number" step="0.01" min="0" value="${l.haber||''}" oninput="onLineaChange(${idx},'haber',parseFloat(this.value)||0)" placeholder="Haber" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--coral);font-size:11px;font-family:var(--mono);text-align:right">
+      <button class="btn btn-danger btn-sm" onclick="removeLineaAsiento(${idx})" style="padding:4px 6px"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button>
+    </div>`).join('');
+  recalcAsientoTotales();
+}
+function onLineaChange(idx,field,val){
+  if(!lineasDraft[idx])return;
+  // Si pone debe → limpia haber, y viceversa
+  if(field==='debe'&&val>0)lineasDraft[idx].haber=0;
+  if(field==='haber'&&val>0)lineasDraft[idx].debe=0;
+  lineasDraft[idx][field]=val;
+  recalcAsientoTotales();
+}
+function addLineaAsiento(){lineasDraft.push({cuenta_id:'',debe:0,haber:0,descripcion:''});renderLineasAsiento();}
+function removeLineaAsiento(idx){if(lineasDraft.length<=2)return notify('Mínimo 2 líneas','err');lineasDraft.splice(idx,1);renderLineasAsiento();}
+function recalcAsientoTotales(){
+  const td=lineasDraft.reduce((s,l)=>s+parseFloat(l.debe||0),0);
+  const th=lineasDraft.reduce((s,l)=>s+parseFloat(l.haber||0),0);
+  const diff=td-th;
+  document.getElementById('total-debe').textContent=fmtUSD(td);
+  document.getElementById('total-haber').textContent=fmtUSD(th);
+  const diffEl=document.getElementById('total-diff');
+  diffEl.textContent=fmtUSD(diff);
+  diffEl.style.color=Math.abs(diff)<0.01?'var(--green)':'var(--red)';
+}
+
+async function saveAsiento(){
+  const id=g('asiento-edit-id');
+  if(!g('asiento-fecha')||!g('asiento-descripcion'))return notify('Fecha y descripción son obligatorias','err');
+  if(lineasDraft.length<2)return notify('Mínimo 2 líneas','err');
+  for(const l of lineasDraft){
+    if(!l.cuenta_id)return notify('Cada línea debe tener una cuenta','err');
+    const tieneDebe=parseFloat(l.debe||0)>0;
+    const tieneHaber=parseFloat(l.haber||0)>0;
+    if(!tieneDebe&&!tieneHaber)return notify('Cada línea debe tener Debe o Haber > 0','err');
+    if(tieneDebe&&tieneHaber)return notify('Una línea no puede tener Debe Y Haber al mismo tiempo','err');
+  }
+  const td=lineasDraft.reduce((s,l)=>s+parseFloat(l.debe||0),0);
+  const th=lineasDraft.reduce((s,l)=>s+parseFloat(l.haber||0),0);
+  if(Math.abs(td-th)>=0.01)return notify(`Debe (${fmtUSD(td)}) ≠ Haber (${fmtUSD(th)})`,'err');
+  setBusy('btn-save-asiento',true);
+  try{
+    const cabecera={empresa_id:currentEmpresa.id,numero:parseInt(g('asiento-numero'))||1,fecha:g('asiento-fecha'),descripcion:g('asiento-descripcion'),comprobante_nro:g('asiento-comprobante')||null,estado:g('asiento-estado'),tipo:'manual'};
+    let asientoId;
+    if(id){
+      asientoId=id;
+      await PATCH('asientos',cabecera,`?id=eq.${id}`);
+      await DEL('asiento_lineas',`?asiento_id=eq.${id}`);
+    }else{
+      const r=await POST('asientos',cabecera);
+      asientoId=r[0].id;
+    }
+    const lns=lineasDraft.map((l,idx)=>({asiento_id:asientoId,cuenta_id:l.cuenta_id,debe:parseFloat(l.debe||0),haber:parseFloat(l.haber||0),descripcion:l.descripcion||null,orden:idx}));
+    if(lns.length)await POST('asiento_lineas',lns);
+    await loadAll();closeModal('modal-asiento');renderAll();notify(id?'Asiento actualizado':'Asiento registrado');
+  }catch(e){notify(e.message,'err');}
+  setBusy('btn-save-asiento',false,'Guardar asiento');
+}
+
+async function anularAsiento(id){
+  const a=asientos.find(x=>x.id===id);if(!a)return;
+  if(!confirm(`¿Anular asiento N° ${a.numero}? El asiento queda en la base pero marcado como anulado.`))return;
+  try{await PATCH('asientos',{estado:'anulado'},`?id=eq.${id}`);await loadAll();renderAll();notify('Asiento anulado');}
+  catch(e){notify(e.message,'err');}
+}
+
+// ─── LIBRO DIARIO ─────────────────────────────────────────────
+function renderLibroDiario(){
+  const cont=document.getElementById('ld-content');
+  if(!cont)return;
+  const desde=document.getElementById('ld-desde')?.value||'';
+  const hasta=document.getElementById('ld-hasta')?.value||'';
+  const list=asientos.filter(a=>a.estado==='confirmado'&&(!desde||a.fecha>=desde)&&(!hasta||a.fecha<=hasta)).sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')||(a.numero||0)-(b.numero||0));
+  let totalDebe=0,totalHaber=0;
+  document.getElementById('ld-stat-cantidad').textContent=list.length;
+  if(!list.length){
+    cont.innerHTML='<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg></div><div class="empty-title">Sin asientos en el período</div><div class="empty-msg">Cargá asientos confirmados desde la pestaña <b>Asientos</b> o ajustá los filtros de fecha.</div></div>';
+    document.getElementById('ld-stat-total').textContent=fmtUSD(0);
+    return;
+  }
+  const cuentaById={};cuentasContables.forEach(c=>{cuentaById[c.id]=c;});
+  let html='';
+  for(const a of list){
+    const lns=asientoLineas.filter(l=>l.asiento_id===a.id).sort((x,y)=>(x.orden||0)-(y.orden||0));
+    const tD=lns.reduce((s,l)=>s+parseFloat(l.debe||0),0);
+    const tH=lns.reduce((s,l)=>s+parseFloat(l.haber||0),0);
+    totalDebe+=tD;totalHaber+=tH;
+    html+=`<div style="margin-bottom:18px;border-bottom:1px solid var(--border);padding-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:11px"><div><span style="color:var(--accent);font-weight:500">N° ${a.numero}</span> <span style="color:var(--text3)">·</span> <span style="color:var(--text)">${a.fecha}</span> <span style="color:var(--text3)">·</span> <span style="color:var(--text2)">${a.descripcion}</span>${a.comprobante_nro?` <span style="color:var(--text3)">·</span> <span style="color:var(--text3)">${a.comprobante_nro}</span>`:''}</div></div>
+      <table style="width:100%;font-size:11px;border-collapse:collapse;font-family:var(--mono)"><thead><tr style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em"><th style="text-align:left;padding:3px 8px;width:130px">Código</th><th style="text-align:left;padding:3px 8px">Cuenta</th><th style="text-align:left;padding:3px 8px">Detalle</th><th style="text-align:right;padding:3px 8px;width:100px">Debe</th><th style="text-align:right;padding:3px 8px;width:100px">Haber</th></tr></thead><tbody>${lns.map(l=>{const c=cuentaById[l.cuenta_id]||{};return`<tr><td style="padding:3px 8px;color:var(--text2)">${c.codigo||'—'}</td><td style="padding:3px 8px;color:var(--text)">${c.nombre||'—'}</td><td style="padding:3px 8px;color:var(--text3)">${l.descripcion||''}</td><td style="padding:3px 8px;text-align:right;color:${parseFloat(l.debe||0)>0?'var(--green)':'var(--text3)'}">${parseFloat(l.debe||0)>0?fmtUSD(parseFloat(l.debe)):'—'}</td><td style="padding:3px 8px;text-align:right;color:${parseFloat(l.haber||0)>0?'var(--coral)':'var(--text3)'}">${parseFloat(l.haber||0)>0?fmtUSD(parseFloat(l.haber)):'—'}</td></tr>`;}).join('')}</tbody></table>
+    </div>`;
+  }
+  cont.innerHTML=html;
+  document.getElementById('ld-stat-total').textContent=fmtUSD(totalDebe);
 }
 
 // ─── ANIMACIÓN DE KPIs (count-up al cargar) ─────────────
