@@ -558,15 +558,33 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div id="ld-content" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px;font-family:var(--mono);font-size:12px"></div>
       </div>
     </div>
-    <!-- CONTABILIDAD: Libro mayor (placeholder) -->
+    <!-- CONTABILIDAD: Libro mayor -->
     <div class="page" id="page-libromayor">
-      <div class="page-header"><div class="page-title">Libro mayor</div><div class="page-sub">// movimientos por cuenta</div><div class="tabs"><div class="tab active">Por cuenta</div></div></div>
-      <div class="page-content"><div style="padding:48px;text-align:center;color:var(--text3);font-size:13px">Próxima fase: drill-down por cuenta con saldo acumulado.</div></div>
+      <div class="page-header"><div class="page-title">Libro mayor</div><div class="page-sub">// movimientos y saldo acumulado por cuenta</div><div class="tabs"><div class="tab active">Por cuenta</div></div></div>
+      <div class="page-content">
+        <div style="display:flex;gap:10px;align-items:end;margin-bottom:14px;flex-wrap:wrap">
+          <div class="form-group" style="margin:0;min-width:280px"><label>Cuenta</label><select id="lm-cuenta" onchange="renderLibroMayor()" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans);width:100%"><option value="">— elegir cuenta —</option></select></div>
+          <div class="form-group" style="margin:0"><label>Desde</label><input type="date" id="lm-desde" onchange="renderLibroMayor()" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans)"></div>
+          <div class="form-group" style="margin:0"><label>Hasta</label><input type="date" id="lm-hasta" onchange="renderLibroMayor()" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans)"></div>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('lm-desde').value='';document.getElementById('lm-hasta').value='';renderLibroMayor()">Limpiar</button>
+        </div>
+        <div class="stats-bar" id="lm-stats" style="display:none"></div>
+        <div id="lm-content" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px;font-family:var(--mono);font-size:12px"></div>
+      </div>
     </div>
-    <!-- CONTABILIDAD: Balance (placeholder) -->
+    <!-- CONTABILIDAD: Balance de comprobación -->
     <div class="page" id="page-balance">
-      <div class="page-header"><div class="page-title">Balance de comprobación</div><div class="page-sub">// sumas y saldos</div><div class="tabs"><div class="tab active">Período actual</div></div></div>
-      <div class="page-content"><div style="padding:48px;text-align:center;color:var(--text3);font-size:13px">Próxima fase: balance de comprobación con sumas y saldos.</div></div>
+      <div class="page-header"><div class="page-title">Balance de comprobación</div><div class="page-sub">// sumas y saldos · debe = haber</div><div class="tabs"><div class="tab active">Por período</div></div></div>
+      <div class="page-content">
+        <div style="display:flex;gap:10px;align-items:end;margin-bottom:14px;flex-wrap:wrap">
+          <div class="form-group" style="margin:0"><label>Desde</label><input type="date" id="bal-desde" onchange="renderBalance()" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans)"></div>
+          <div class="form-group" style="margin:0"><label>Hasta</label><input type="date" id="bal-hasta" onchange="renderBalance()" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans)"></div>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('bal-desde').value='';document.getElementById('bal-hasta').value='';renderBalance()">Limpiar</button>
+          <div style="flex:1"></div>
+          <div id="bal-balance-status" style="font-family:var(--mono);font-size:11px;padding:6px 12px;border-radius:5px"></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Código</th><th>Cuenta</th><th>Tipo</th><th style="text-align:right">Total Debe</th><th style="text-align:right">Total Haber</th><th style="text-align:right">Saldo deudor</th><th style="text-align:right">Saldo acreedor</th></tr></thead><tbody id="bal-tbody"></tbody><tfoot id="bal-tfoot"></tfoot></table></div>
+      </div>
     </div>
     <!-- CONTABILIDAD: Estado de resultados (placeholder) -->
     <div class="page" id="page-estado">
@@ -2408,7 +2426,7 @@ function notify(msg,type){
   el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);
 }
 
-function renderAll(){renderDash();renderMP();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();renderConfig();updateClientesDatalist();animateNumbers();}
+function renderAll(){renderDash();renderMP();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();populateLibroMayorSel();renderLibroMayor();renderBalance();renderConfig();updateClientesDatalist();animateNumbers();}
 
 // ─── PLAN DE CUENTAS ──────────────────────────────────────────
 function renderCuentas(filter=''){
@@ -2630,6 +2648,105 @@ function renderLibroDiario(){
   }
   cont.innerHTML=html;
   document.getElementById('ld-stat-total').textContent=fmtUSD(totalDebe);
+}
+
+// ─── LIBRO MAYOR ──────────────────────────────────────────────
+function populateLibroMayorSel(){
+  const sel=document.getElementById('lm-cuenta');
+  if(!sel)return;
+  const prev=sel.value;
+  const imp=cuentasContables.filter(c=>c.imputable!==false&&c.activa!==false).sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'',undefined,{numeric:true}));
+  sel.innerHTML='<option value="">— elegir cuenta —</option>'+imp.map(c=>`<option value="${c.id}" ${c.id===prev?'selected':''}>${c.codigo} · ${c.nombre}</option>`).join('');
+}
+
+function renderLibroMayor(){
+  const cont=document.getElementById('lm-content');
+  const stats=document.getElementById('lm-stats');
+  if(!cont)return;
+  const cuentaId=document.getElementById('lm-cuenta')?.value||'';
+  if(!cuentaId){
+    stats.style.display='none';
+    cont.innerHTML='<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 17V7"/><path d="M11 17V11"/><path d="M15 17V13"/><path d="M19 17V9"/></svg></div><div class="empty-title">Elegí una cuenta</div><div class="empty-msg">Seleccioná una cuenta del listado de arriba para ver sus movimientos y saldo acumulado.</div></div>';
+    return;
+  }
+  const cuenta=cuentasContables.find(c=>c.id===cuentaId);
+  if(!cuenta){stats.style.display='none';cont.innerHTML='';return;}
+  const desde=document.getElementById('lm-desde')?.value||'';
+  const hasta=document.getElementById('lm-hasta')?.value||'';
+  // Sólo asientos confirmados que tengan al menos una línea de esta cuenta
+  const asConfirmados=asientos.filter(a=>a.estado==='confirmado'&&(!desde||a.fecha>=desde)&&(!hasta||a.fecha<=hasta));
+  const asConfMap={};asConfirmados.forEach(a=>{asConfMap[a.id]=a;});
+  const movs=asientoLineas.filter(l=>l.cuenta_id===cuentaId&&asConfMap[l.asiento_id]).map(l=>({linea:l,asiento:asConfMap[l.asiento_id]})).sort((a,b)=>(a.asiento.fecha||'').localeCompare(b.asiento.fecha||'')||(a.asiento.numero||0)-(b.asiento.numero||0));
+  const totalDebe=movs.reduce((s,m)=>s+parseFloat(m.linea.debe||0),0);
+  const totalHaber=movs.reduce((s,m)=>s+parseFloat(m.linea.haber||0),0);
+  // Convención AR: Activo/Egreso → saldo deudor (debe-haber); Pasivo/PN/Ingreso → saldo acreedor (haber-debe)
+  const tipoNaturalDeudor=['activo','egreso'].includes(cuenta.tipo);
+  const saldoFinal=tipoNaturalDeudor?(totalDebe-totalHaber):(totalHaber-totalDebe);
+  stats.style.display='grid';
+  stats.innerHTML=`
+    <div class="stat-card"><div class="stat-label">Cuenta</div><div class="stat-value" style="font-size:13px;color:var(--accent)">${cuenta.codigo}</div><div style="font-size:11px;color:var(--text2);margin-top:2px">${cuenta.nombre}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Debe</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtUSD(totalDebe)}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Haber</div><div class="stat-value" style="color:var(--coral);font-size:14px">${fmtUSD(totalHaber)}</div></div>
+    <div class="stat-card"><div class="stat-label">Saldo ${tipoNaturalDeudor?'deudor':'acreedor'}</div><div class="stat-value" style="color:${saldoFinal>=0?'var(--green)':'var(--red)'};font-size:14px">${fmtUSD(saldoFinal)}</div></div>`;
+  if(!movs.length){
+    cont.innerHTML='<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="empty-title">Sin movimientos en el período</div><div class="empty-msg">Esta cuenta no tiene movimientos en el rango de fechas seleccionado.</div></div>';
+    return;
+  }
+  // Render con saldo acumulado por fila (en convención natural de la cuenta)
+  let acum=0;
+  let html='<table style="width:100%;font-size:11px;border-collapse:collapse;font-family:var(--mono)"><thead><tr style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border)"><th style="text-align:left;padding:6px 8px;width:90px">Fecha</th><th style="text-align:left;padding:6px 8px;width:60px">N° As.</th><th style="text-align:left;padding:6px 8px">Descripción</th><th style="text-align:right;padding:6px 8px;width:100px">Debe</th><th style="text-align:right;padding:6px 8px;width:100px">Haber</th><th style="text-align:right;padding:6px 8px;width:110px">Saldo</th></tr></thead><tbody>';
+  for(const m of movs){
+    const d=parseFloat(m.linea.debe||0);const h=parseFloat(m.linea.haber||0);
+    acum+=tipoNaturalDeudor?(d-h):(h-d);
+    html+=`<tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;color:var(--text2)">${m.asiento.fecha||'—'}</td><td style="padding:5px 8px;color:var(--accent)">${m.asiento.numero||'—'}</td><td style="padding:5px 8px;color:var(--text)">${m.asiento.descripcion||''}${m.linea.descripcion?` <span style="color:var(--text3)">· ${m.linea.descripcion}</span>`:''}</td><td style="padding:5px 8px;text-align:right;color:${d>0?'var(--green)':'var(--text3)'}">${d>0?fmtUSD(d):'—'}</td><td style="padding:5px 8px;text-align:right;color:${h>0?'var(--coral)':'var(--text3)'}">${h>0?fmtUSD(h):'—'}</td><td style="padding:5px 8px;text-align:right;color:${acum>=0?'var(--text)':'var(--red)'};font-weight:500">${fmtUSD(acum)}</td></tr>`;
+  }
+  html+=`</tbody><tfoot><tr style="font-weight:600;border-top:2px solid var(--border2)"><td colspan="3" style="padding:8px;color:var(--text3)">TOTALES</td><td style="padding:8px;text-align:right;color:var(--green)">${fmtUSD(totalDebe)}</td><td style="padding:8px;text-align:right;color:var(--coral)">${fmtUSD(totalHaber)}</td><td style="padding:8px;text-align:right;color:${saldoFinal>=0?'var(--green)':'var(--red)'}">${fmtUSD(saldoFinal)}</td></tr></tfoot></table>`;
+  cont.innerHTML=html;
+}
+
+// ─── BALANCE DE COMPROBACIÓN ──────────────────────────────────
+function renderBalance(){
+  const tbody=document.getElementById('bal-tbody');
+  const tfoot=document.getElementById('bal-tfoot');
+  const status=document.getElementById('bal-balance-status');
+  if(!tbody)return;
+  const desde=document.getElementById('bal-desde')?.value||'';
+  const hasta=document.getElementById('bal-hasta')?.value||'';
+  const asConfirmados=asientos.filter(a=>a.estado==='confirmado'&&(!desde||a.fecha>=desde)&&(!hasta||a.fecha<=hasta));
+  const asConfIds=new Set(asConfirmados.map(a=>a.id));
+  // Agregar por cuenta
+  const porCuenta={};
+  asientoLineas.forEach(l=>{
+    if(!asConfIds.has(l.asiento_id))return;
+    const k=l.cuenta_id;
+    if(!porCuenta[k])porCuenta[k]={debe:0,haber:0};
+    porCuenta[k].debe+=parseFloat(l.debe||0);
+    porCuenta[k].haber+=parseFloat(l.haber||0);
+  });
+  const cuentas=cuentasContables.filter(c=>c.imputable!==false&&porCuenta[c.id]).sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'',undefined,{numeric:true}));
+  const tipoBadge={activo:'badge-ok',pasivo:'badge-coral',patrimonio:'badge-purple',ingreso:'badge-blue',egreso:'badge-warn'};
+  let totalDebe=0,totalHaber=0,totalDeudor=0,totalAcreedor=0;
+  if(!cuentas.length){
+    tbody.innerHTML=`<tr><td colspan="7" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 17V7"/><path d="M11 17V11"/><path d="M15 17V13"/><path d="M19 17V9"/></svg></div><div class="empty-title">Sin movimientos en el período</div><div class="empty-msg">No hay asientos confirmados en el rango de fechas seleccionado, o aún no se cargaron asientos.</div></div></td></tr>`;
+    tfoot.innerHTML='';
+    if(status){status.textContent='—';status.style.background='transparent';status.style.color='var(--text3)';}
+    return;
+  }
+  tbody.innerHTML=cuentas.map(c=>{
+    const m=porCuenta[c.id];
+    const tipoNaturalDeudor=['activo','egreso'].includes(c.tipo);
+    const diff=m.debe-m.haber;
+    const saldoDeudor=diff>0?diff:0;
+    const saldoAcreedor=diff<0?-diff:0;
+    totalDebe+=m.debe;totalHaber+=m.haber;totalDeudor+=saldoDeudor;totalAcreedor+=saldoAcreedor;
+    return`<tr><td class="mono td-primary">${c.codigo}</td><td>${c.nombre}</td><td><span class="badge ${tipoBadge[c.tipo]||'badge-warn'}">${(c.tipo||'').toUpperCase()}</span></td><td class="mono" style="text-align:right;color:var(--green)">${fmtUSD(m.debe)}</td><td class="mono" style="text-align:right;color:var(--coral)">${fmtUSD(m.haber)}</td><td class="mono" style="text-align:right;color:${saldoDeudor>0?'var(--green)':'var(--text3)'}">${saldoDeudor>0?fmtUSD(saldoDeudor):'—'}</td><td class="mono" style="text-align:right;color:${saldoAcreedor>0?'var(--coral)':'var(--text3)'}">${saldoAcreedor>0?fmtUSD(saldoAcreedor):'—'}</td></tr>`;
+  }).join('');
+  const cuadra=Math.abs(totalDebe-totalHaber)<0.01;
+  tfoot.innerHTML=`<tr style="border-top:2px solid var(--border2);font-weight:600;background:var(--surface2)"><td colspan="3" class="mono" style="padding:10px 8px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-size:11px">TOTALES</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--green)">${fmtUSD(totalDebe)}</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--coral)">${fmtUSD(totalHaber)}</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--green)">${fmtUSD(totalDeudor)}</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--coral)">${fmtUSD(totalAcreedor)}</td></tr>`;
+  if(status){
+    if(cuadra){status.textContent='✓ Balance cuadrado';status.style.background='rgba(76,175,125,.12)';status.style.color='var(--green)';status.style.border='1px solid rgba(76,175,125,.3)';}
+    else{status.textContent=`✗ Diferencia: ${fmtUSD(totalDebe-totalHaber)}`;status.style.background='rgba(224,82,82,.12)';status.style.color='var(--red)';status.style.border='1px solid rgba(224,82,82,.3)';}
+  }
 }
 
 // ─── ANIMACIÓN DE KPIs (count-up al cargar) ─────────────
