@@ -11,6 +11,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
 :root{--bg:#0f0f0f;--surface:#1a1a1a;--surface2:#222;--border:#2e2e2e;--border2:#3a3a3a;--accent:#e8a030;--accent2:#c47f18;--teal:#2ab4a0;--blue:#4a9edd;--purple:#9b72cf;--red:#e05252;--green:#4caf7d;--coral:#e06840;--text:#e8e6e0;--text2:#9a9890;--text3:#5a5856;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -1980,9 +1981,11 @@ function renderDash(){
     <div class="kpi"><div class="kpi-label">OPs en proceso</div><div class="kpi-val" style="color:var(--accent)">${ops.filter(o=>o.estado==='en-proceso').length}</div></div>
   </div>
   <div class="dash-grid">
-    <div class="dash-card"><div class="dash-card-title">Piezas más producidas</div>${topProd.length?`<div class="chart-bar-wrap">${topProd.map(([p,c])=>`<div class="chart-bar-row"><div class="chart-bar-label" title="${p}">${p.length>12?p.slice(0,12)+'…':p}</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round((c/maxProd)*100)}%;background:var(--accent)"></div></div><div class="chart-bar-val">${c} u.</div></div>`).join('')}</div>`:'<div style="color:var(--text3);font-size:12px">Sin datos aún</div>'}</div>
-    <div class="dash-card"><div class="dash-card-title">Piezas más vendidas</div>${topVend.length?`<div class="chart-bar-wrap">${topVend.map(([p,c])=>`<div class="chart-bar-row"><div class="chart-bar-label" title="${p}">${p.length>12?p.slice(0,12)+'…':p}</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round((c/maxVend)*100)}%;background:var(--coral)"></div></div><div class="chart-bar-val">${c} u.</div></div>`).join('')}</div>`:'<div style="color:var(--text3);font-size:12px">Sin ventas aún</div>'}</div>
-    <div class="dash-card"><div class="dash-card-title">Clientes por importe</div>${topClientes.length?`<div class="chart-bar-wrap">${topClientes.map(([c,i])=>`<div class="chart-bar-row"><div class="chart-bar-label" title="${c}">${c.length>14?c.slice(0,14)+'…':c}</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round((i/maxCliente)*100)}%;background:var(--green)"></div></div><div class="chart-bar-val">${fmtUSD(i)}</div></div>`).join('')}</div>`:'<div style="color:var(--text3);font-size:12px">Sin clientes aún</div>'}</div>
+    <div class="dash-card"><div class="dash-card-title">Piezas más producidas</div>${topProd.length?'<div style="height:220px;position:relative"><canvas id="chart-prod"></canvas></div>':'<div style="color:var(--text3);font-size:12px;padding:32px 0;text-align:center">Sin datos aún</div>'}</div>
+    <div class="dash-card"><div class="dash-card-title">Piezas más vendidas</div>${topVend.length?'<div style="height:220px;position:relative"><canvas id="chart-vend"></canvas></div>':'<div style="color:var(--text3);font-size:12px;padding:32px 0;text-align:center">Sin ventas aún</div>'}</div>
+    <div class="dash-card"><div class="dash-card-title">Clientes por importe</div>${topClientes.length?'<div style="height:220px;position:relative"><canvas id="chart-clientes"></canvas></div>':'<div style="color:var(--text3);font-size:12px;padding:32px 0;text-align:center">Sin clientes aún</div>'}</div>
+    <div class="dash-card"><div class="dash-card-title">OPs por estado</div>${ops.length?'<div style="height:220px;position:relative"><canvas id="chart-ops-estado"></canvas></div>':'<div style="color:var(--text3);font-size:12px;padding:32px 0;text-align:center">Sin órdenes aún</div>'}</div>
+    <div class="dash-card" style="grid-column:1/-1"><div class="dash-card-title">Producción mensual (últimos 6 meses)</div>${ops.length?'<div style="height:240px;position:relative"><canvas id="chart-prod-mensual"></canvas></div>':'<div style="color:var(--text3);font-size:12px;padding:32px 0;text-align:center">Sin órdenes aún</div>'}</div>
     <div class="dash-card" style="grid-column:1/-1"><div class="dash-card-title">Rentabilidad por pieza</div>
       ${(()=>{
         const byPieza={};
@@ -2002,6 +2005,58 @@ function renderDash(){
     </div>
     <div class="dash-card"><div class="dash-card-title">Stock MP bajo mínimo</div>${lowBarras.length?`<div class="chart-bar-wrap">${lowBarras.map(b=>`<div class="chart-bar-row"><div class="chart-bar-label">${b.lote}</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.min(100,Math.round((b.kg_disponibles/b.kg_minimo)*100))}%;background:var(--red)"></div></div><div class="chart-bar-val">${parseFloat(b.kg_disponibles).toFixed(0)}mts</div></div>`).join('')}</div>`:'<div style="color:var(--green);font-size:12px">✓ Todo sobre mínimos</div>'}</div>
   </div>`;
+  setTimeout(()=>initDashCharts(topProd,topVend,topClientes),0);
+}
+
+// ─── DASHBOARD CHARTS (Chart.js) ──────────────────────────
+window._dashCharts=window._dashCharts||{};
+function initDashCharts(topProd,topVend,topClientes){
+  if(!window.Chart)return;
+  const grid='#2e2e2e',txt='#9a9890',txt3='#5a5856';
+  const baseOpts={
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1a1a1a',borderColor:'#2e2e2e',borderWidth:1,titleColor:'#e8e6e0',bodyColor:'#9a9890',titleFont:{family:'IBM Plex Sans',size:11},bodyFont:{family:'IBM Plex Mono',size:11},padding:8}},
+    scales:{x:{grid:{color:grid,drawBorder:false},ticks:{color:txt,font:{family:'IBM Plex Mono',size:10}}},y:{grid:{color:grid,drawBorder:false},ticks:{color:txt,font:{family:'IBM Plex Mono',size:10}}}}
+  };
+  const destroyIf=k=>{if(window._dashCharts[k]){window._dashCharts[k].destroy();delete window._dashCharts[k];}};
+
+  // Piezas más producidas (bar horizontal, ámbar)
+  const c1=document.getElementById('chart-prod');
+  if(c1&&topProd.length){
+    destroyIf('prod');
+    window._dashCharts.prod=new Chart(c1,{type:'bar',data:{labels:topProd.map(([p])=>p.length>14?p.slice(0,14)+'…':p),datasets:[{label:'Unidades',data:topProd.map(([,c])=>c),backgroundColor:'rgba(232,160,48,0.7)',borderColor:'#e8a030',borderWidth:1,borderRadius:3,borderSkipped:false}]},options:{...baseOpts,indexAxis:'y'}});
+  }
+  // Piezas más vendidas (bar horizontal, coral)
+  const c2=document.getElementById('chart-vend');
+  if(c2&&topVend.length){
+    destroyIf('vend');
+    window._dashCharts.vend=new Chart(c2,{type:'bar',data:{labels:topVend.map(([p])=>p.length>14?p.slice(0,14)+'…':p),datasets:[{label:'Unidades',data:topVend.map(([,c])=>c),backgroundColor:'rgba(224,104,64,0.7)',borderColor:'#e06840',borderWidth:1,borderRadius:3,borderSkipped:false}]},options:{...baseOpts,indexAxis:'y'}});
+  }
+  // Clientes por importe (bar horizontal, verde)
+  const c3=document.getElementById('chart-clientes');
+  if(c3&&topClientes.length){
+    destroyIf('clientes');
+    window._dashCharts.clientes=new Chart(c3,{type:'bar',data:{labels:topClientes.map(([c])=>c.length>16?c.slice(0,16)+'…':c),datasets:[{label:'USD',data:topClientes.map(([,i])=>i),backgroundColor:'rgba(76,175,125,0.7)',borderColor:'#4caf7d',borderWidth:1,borderRadius:3,borderSkipped:false}]},options:{...baseOpts,indexAxis:'y',plugins:{...baseOpts.plugins,tooltip:{...baseOpts.plugins.tooltip,callbacks:{label:ctx=>'US$ '+Math.round(ctx.parsed.x).toLocaleString('es-AR')}}}}});
+  }
+  // OPs por estado (donut)
+  const c4=document.getElementById('chart-ops-estado');
+  if(c4&&typeof ops!=='undefined'&&ops.length){
+    destroyIf('opsEstado');
+    const estadoCount={};ops.forEach(o=>{estadoCount[o.estado||'sin-estado']=(estadoCount[o.estado||'sin-estado']||0)+1;});
+    const colors={'en-proceso':'#e8a030','completada':'#4caf7d','suspendida':'#e05252','sin-estado':'#5a5856'};
+    const labels=Object.keys(estadoCount);
+    window._dashCharts.opsEstado=new Chart(c4,{type:'doughnut',data:{labels:labels.map(l=>l.replace('-',' ').toUpperCase()),datasets:[{data:Object.values(estadoCount),backgroundColor:labels.map(l=>colors[l]||'#5a5856'),borderColor:'#1a1a1a',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'right',labels:{color:txt,font:{family:'IBM Plex Sans',size:11},padding:10,boxWidth:10,boxHeight:10}},tooltip:baseOpts.plugins.tooltip}}});
+  }
+  // Producción mensual (line, últimos 6 meses, blue)
+  const c5=document.getElementById('chart-prod-mensual');
+  if(c5&&typeof ops!=='undefined'&&ops.length){
+    destroyIf('prodMensual');
+    const today=new Date();
+    const months=[];
+    for(let i=5;i>=0;i--){const d=new Date(today.getFullYear(),today.getMonth()-i,1);months.push({label:d.toLocaleString('es-AR',{month:'short'})+' '+String(d.getFullYear()).slice(2),y:d.getFullYear(),m:d.getMonth(),total:0});}
+    ops.forEach(o=>{if(!o.fecha)return;const d=new Date(o.fecha);const ent=months.find(x=>x.y===d.getFullYear()&&x.m===d.getMonth());if(ent)ent.total+=parseInt(o.cantidad||0);});
+    window._dashCharts.prodMensual=new Chart(c5,{type:'line',data:{labels:months.map(x=>x.label),datasets:[{label:'Unidades producidas',data:months.map(x=>x.total),borderColor:'#4a9edd',backgroundColor:'rgba(74,158,221,0.12)',borderWidth:2,fill:true,tension:0.35,pointBackgroundColor:'#4a9edd',pointBorderColor:'#1a1a1a',pointBorderWidth:2,pointRadius:4,pointHoverRadius:6}]},options:baseOpts});
+  }
 }
 
 // ─── TRAZABILIDAD ─────────────────────────────────────────────────
