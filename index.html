@@ -76,7 +76,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .search-box{flex:1;max-width:300px;position:relative}
 .search-box input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:7px 10px 7px 30px;color:var(--text);font-size:13px;font-family:var(--sans);outline:none}
 .search-box::before{content:'⌕';position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
-.btn{padding:7px 14px;border-radius:5px;font-size:12px;font-family:var(--sans);cursor:pointer;transition:all .15s;border:1px solid;font-weight:500}
+.btn{padding:7px 14px;border-radius:5px;font-size:12px;font-family:var(--sans);cursor:pointer;transition:all .15s;border:1px solid;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn-icon{width:13px;height:13px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center}
+.btn-icon svg{width:100%;height:100%;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.btn-sm .btn-icon{width:11px;height:11px}
 .btn-primary{background:var(--accent);border-color:var(--accent);color:#0f0f0f}
 .btn-primary:hover{background:var(--accent2)}
 .btn-primary:disabled{opacity:.4;cursor:not-allowed}
@@ -307,7 +310,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
         <div id="mp-alert" class="alert-bar">⚠ Hay barras con stock bajo el mínimo configurado</div>
         <div class="toolbar">
           <div class="search-box"><input type="text" placeholder="Buscar por tipo, OC, lote..." oninput="renderMP(this.value)"></div>
-          <button class="btn btn-ghost" onclick="openModal('modal-mp')">+ Nueva barra</button>
+          <button class="btn btn-ghost" onclick="openModal('modal-mp')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva barra</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Lote</th><th>Material</th><th>Perfil / Ø</th><th>Nro OC</th><th>Certificado</th><th>Mts disp.</th><th>Unid.</th><th>Estado</th><th></th></tr></thead><tbody id="mp-tbody"></tbody></table></div>
       </div>
@@ -319,7 +322,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
         <div class="stats-bar" id="pt-stats"></div>
         <div class="toolbar">
           <div class="search-box"><input type="text" placeholder="Buscar por pieza, lote..." oninput="renderPT(this.value)"></div>
-          <button class="btn btn-ghost" onclick="openModal('modal-pt')">+ Nuevo PT</button>
+          <button class="btn btn-ghost" onclick="openModal('modal-pt')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo PT</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Lote PT</th><th>Pieza</th><th>Descripción</th><th>Cant. disponible</th><th>Barra origen</th><th>Nro OC</th><th>Certificado</th><th>OP</th><th></th></tr></thead><tbody id="pt-tbody"></tbody></table></div>
       </div>
@@ -331,7 +334,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
         <div class="stats-bar" id="cert-stats"></div>
         <div class="toolbar">
           <div class="search-box"><input type="text" placeholder="Buscar por número, proveedor..." oninput="renderCert(this.value)"></div>
-          <button class="btn btn-ghost" onclick="openModal('modal-cert')">+ Nuevo certificado</button>
+          <button class="btn btn-ghost" onclick="openModal('modal-cert')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo certificado</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Nro. cert.</th><th>Proveedor</th><th>Material</th><th>Nro OC</th><th>Metros</th><th>Fecha</th><th>PDF</th><th>Barras</th><th></th></tr></thead><tbody id="cert-tbody"></tbody></table></div>
       </div>
@@ -343,7 +346,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
         <div class="stats-bar" id="op-stats"></div>
         <div class="toolbar">
           <div class="search-box"><input type="text" placeholder="Buscar por OP, pieza..." oninput="renderOP(this.value)"></div>
-          <button class="btn btn-ghost" onclick="openModal('modal-op')">+ Nueva orden</button>
+          <button class="btn btn-ghost" onclick="openModal('modal-op')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva orden</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Nº OT</th><th>Pieza</th><th>Código</th><th>Cant.</th><th>Barra</th><th>Mts</th><th>Merma</th><th>Horas</th><th>Estado</th><th>Inicio</th><th></th></tr></thead><tbody id="op-tbody"></tbody></table></div>
       </div>
@@ -363,7 +366,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
           <div class="stats-bar" id="compras-stats"></div>
           <div class="toolbar">
             <div class="search-box"><input type="text" placeholder="Buscar por OC, proveedor..." oninput="renderCompras(this.value)"></div>
-            <button class="btn btn-ghost" onclick="openOCModal()">+ Nueva OC</button>
+            <button class="btn btn-ghost" onclick="openOCModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva OC</button>
           </div>
           <div class="table-wrap"><table><thead><tr><th>Nro OC</th><th>Proveedor</th><th>Fecha</th><th>Entrega</th><th>Ítems</th><th>Total USD</th><th>Estado</th><th>Factura</th><th></th></tr></thead><tbody id="compras-tbody"></tbody></table></div>
         </div>
@@ -371,7 +374,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
           <div class="stats-bar" id="prov-stats"></div>
           <div class="toolbar">
             <div class="search-box"><input type="text" placeholder="Buscar por nombre, CUIT..." oninput="renderProveedores(this.value)"></div>
-            <button class="btn btn-ghost" onclick="openProveedorModal()">+ Nuevo proveedor</button>
+            <button class="btn btn-ghost" onclick="openProveedorModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo proveedor</button>
           </div>
           <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>CUIT</th><th>Contacto</th><th>Teléfono</th><th>Email</th><th>OCs</th><th>Deuda USD</th><th></th></tr></thead><tbody id="prov-tbody"></tbody></table></div>
         </div>
@@ -385,7 +388,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
         <div class="stats-bar" id="presup-stats"></div>
         <div class="toolbar">
           <div class="search-box"><input type="text" placeholder="Buscar por nro, cliente..." oninput="renderPresupuestos(this.value)"></div>
-          <button class="btn btn-ghost" onclick="openPresupuestoModal()">+ Nuevo presupuesto</button>
+          <button class="btn btn-ghost" onclick="openPresupuestoModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo presupuesto</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Nro</th><th>Cliente</th><th>Fecha</th><th>Vence</th><th>Ítems</th><th>Total USD</th><th>Estado</th><th></th></tr></thead><tbody id="presup-tbody"></tbody></table></div>
       </div>
@@ -409,8 +412,8 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
         <div class="stats-bar" id="clientes-stats"></div>
         <div class="toolbar">
           <div class="search-box"><input type="text" placeholder="Buscar por nombre, CUIT..." oninput="renderClientes(this.value)"></div>
-          <button class="btn btn-ghost" onclick="openImportClientes()" style="border-color:var(--accent);color:var(--accent)">↓ Importar Excel</button>
-          <button class="btn btn-ghost" onclick="openModalCliente()">+ Nuevo cliente</button>
+          <button class="btn btn-ghost" onclick="openImportClientes()" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg></span>Importar Excel</button>
+          <button class="btn btn-ghost" onclick="openModalCliente()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo cliente</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Contacto</th><th>Teléfono</th><th>Email</th><th>CUIT</th><th>Compras</th><th>Total facturado</th><th></th></tr></thead><tbody id="clientes-tbody"></tbody></table></div>
       </div>
@@ -465,7 +468,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
         <div id="config-tab-materiales">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
             <div style="flex:1;font-size:13px;color:var(--text2)">Tipos de acero y materiales disponibles al registrar barras.</div>
-            <button class="btn btn-ghost" onclick="openModal('modal-material')">+ Nuevo material</button>
+            <button class="btn btn-ghost" onclick="openModal('modal-material')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo material</button>
           </div>
           <div class="table-wrap">
             <table><thead><tr><th>Material / Norma</th><th>Descripción</th><th>Orden</th><th>Estado</th><th></th></tr></thead>
@@ -673,7 +676,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
       <!-- ITEMS -->
       <div class="section-label">Ítems de la venta</div>
       <div id="venta-items-wrap"></div>
-      <button class="btn btn-ghost btn-sm" onclick="addVentaItem()" style="margin-top:8px">+ Agregar ítem</button>
+      <button class="btn btn-ghost btn-sm" onclick="addVentaItem()" style="margin-top:8px"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Agregar ítem</button>
 
       <hr class="form-divider">
       <div class="form-row single">
@@ -730,7 +733,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
         <span style="color:var(--text3)">Detección de duplicados: por CUIT (si existe), sino por nombre.</span>
       </div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
-        <button class="btn btn-ghost" onclick="downloadClientesTemplate()" style="border-color:var(--green);color:var(--green)">↓ Descargar plantilla</button>
+        <button class="btn btn-ghost" onclick="downloadClientesTemplate()" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Descargar plantilla</button>
         <input type="file" id="import-cli-file" accept=".xlsx,.xls,.csv" onchange="onClienteFileChange(this)" style="flex:1;color:var(--text);font-size:12px">
       </div>
       <div id="import-cli-preview" style="font-size:11px;color:var(--text3)">Sin archivo cargado</div>
@@ -759,7 +762,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
     <div class="modal-body" id="ficha-cliente-body"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-ficha-cliente')">Cerrar</button>
-      <button class="btn btn-primary" onclick="editClienteFromFicha()">Editar datos</button>
+      <button class="btn btn-primary" onclick="editClienteFromFicha()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar datos</button>
     </div>
   </div>
 </div>
@@ -943,7 +946,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
       <div class="form-row"><div class="form-group"><label>Condición de pago</label><input type="text" id="presup-cond" placeholder="30 días"></div><div class="form-group"><label>Estado</label><select id="presup-estado"><option value="borrador">Borrador</option><option value="enviado">Enviado</option><option value="aprobado">Aprobado x cliente</option><option value="rechazado">Rechazado</option><option value="vencido">Vencido</option></select></div></div>
 
       <hr class="form-divider">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="section-label" style="margin:0">Ítems</div><button class="btn btn-ghost btn-sm" onclick="addPresupItem()">+ Ítem</button></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="section-label" style="margin:0">Ítems</div><button class="btn btn-ghost btn-sm" onclick="addPresupItem()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Ítem</button></div>
       <div id="presup-items-list" style="display:flex;flex-direction:column;gap:6px"></div>
 
       <div style="display:flex;justify-content:flex-end;margin-top:12px;gap:16px;align-items:center;font-size:13px">
@@ -956,7 +959,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-presupuesto')">Cancelar</button>
-      <button class="btn btn-ghost" id="btn-pdf-presup" onclick="generatePresupuestoPDFFromModal()" style="border-color:var(--accent);color:var(--accent)">Generar PDF</button>
+      <button class="btn btn-ghost" id="btn-pdf-presup" onclick="generatePresupuestoPDFFromModal()" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>Generar PDF</button>
       <button class="btn btn-primary" id="btn-save-presup" onclick="savePresupuesto()">Guardar presupuesto</button>
     </div>
   </div>
@@ -998,7 +1001,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
       <div class="form-row"><div class="form-group"><label>Condición de pago</label><input type="text" id="oc-cond" placeholder="30 días"></div><div class="form-group"><label>Observaciones</label><input type="text" id="oc-obs" placeholder="Notas de esta OC"></div></div>
 
       <hr class="form-divider">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="section-label" style="margin:0">Ítems</div><button class="btn btn-ghost btn-sm" onclick="addOCItem()">+ Ítem</button></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="section-label" style="margin:0">Ítems</div><button class="btn btn-ghost btn-sm" onclick="addOCItem()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Ítem</button></div>
       <div id="oc-items-list" style="display:flex;flex-direction:column;gap:6px"></div>
       <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:16px;font-size:13px"><div style="color:var(--text3)">Total USD:</div><div class="mono" id="oc-total" style="font-weight:700;color:var(--green);font-size:16px">$0.00</div></div>
 
@@ -1047,7 +1050,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
         <div style="padding:16px;border-right:1px solid var(--border);overflow-y:auto;max-height:520px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
             <div class="section-label">Operaciones (pasos)</div>
-            <button class="btn btn-ghost btn-sm" onclick="openAddOperacion()">+ Paso</button>
+            <button class="btn btn-ghost btn-sm" onclick="openAddOperacion()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Paso</button>
           </div>
           <div id="tiempos-ops-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px"></div>
           <div class="section-label" style="margin-top:14px">Bitácora de tiempos</div>
@@ -1820,7 +1823,7 @@ function renderMP(filter=''){
     <div class="stat-card"><div class="stat-label">Metros totales</div><div class="stat-value" style="color:var(--accent)">${totalKg.toFixed(0)}<span style="font-size:11px;color:var(--text3)"> mts</span></div></div>
     <div class="stat-card"><div class="stat-label">Stock bajo mínimo</div><div class="stat-value" style="color:${low.length?'var(--red)':'var(--text)'}">${low.length}</div></div>
     <div class="stat-card"><div class="stat-label">Materiales distintos</div><div class="stat-value">${[...new Set(barras.map(b=>b.material))].length}</div></div>`;
-  document.getElementById('mp-tbody').innerHTML=list.length?list.map(b=>{const cert=b.certificados;const isLow=b.kg_minimo>0&&b.kg_disponibles<=b.kg_minimo;return`<tr><td class="mono td-primary">${b.lote}</td><td>${b.material}</td><td>${b.perfil||''} ${b.diametro||''}</td><td class="mono">${b.nro_colada||'—'}</td><td>${cert?`<span class="badge badge-purple">${cert.nro}</span>`:'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:${isLow?'var(--red)':'var(--text)'}">${parseFloat(b.kg_disponibles).toFixed(1)}</td><td>${b.unidades||'—'}</td><td>${isLow?'<span class="badge badge-warn">STOCK BAJO</span>':'<span class="badge badge-ok">OK</span>'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editBarra('${b.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="showTrace('barra','${b.id}')">Trazar</button><button class="btn btn-danger btn-sm" onclick="deleteBarra('${b.id}')">×</button></td></tr>`;}):( `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text3)">Sin barras registradas</td></tr>`);
+  document.getElementById('mp-tbody').innerHTML=list.length?list.map(b=>{const cert=b.certificados;const isLow=b.kg_minimo>0&&b.kg_disponibles<=b.kg_minimo;return`<tr><td class="mono td-primary">${b.lote}</td><td>${b.material}</td><td>${b.perfil||''} ${b.diametro||''}</td><td class="mono">${b.nro_colada||'—'}</td><td>${cert?`<span class="badge badge-purple">${cert.nro}</span>`:'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:${isLow?'var(--red)':'var(--text)'}">${parseFloat(b.kg_disponibles).toFixed(1)}</td><td>${b.unidades||'—'}</td><td>${isLow?'<span class="badge badge-warn">STOCK BAJO</span>':'<span class="badge badge-ok">OK</span>'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editBarra('${b.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-ghost btn-sm" onclick="showTrace('barra','${b.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg></span>Trazar</button><button class="btn btn-danger btn-sm" onclick="deleteBarra('${b.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;}):( `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text3)">Sin barras registradas</td></tr>`);
 }
 
 function getPTReservado(ptId){
@@ -1845,7 +1848,7 @@ function renderPT(filter=''){
     <div class="stat-card"><div class="stat-label">Reservado</div><div class="stat-value" style="color:${totalReservado?'var(--accent)':'var(--text)'}">${totalReservado}</div></div>
     <div class="stat-card"><div class="stat-label">Disponible</div><div class="stat-value" style="color:var(--green)">${totalDisponible}</div></div>
     <div class="stat-card"><div class="stat-label">Valor stock (costo)</div><div class="stat-value" style="color:var(--green);font-size:13px">${fmtUSD(valorCosto)}</div></div>`;
-  document.getElementById('pt-tbody').innerHTML=list.length?list.map(p=>{const b=p.barras;const cert=b?.certificados;const op=p.ordenes_produccion;const reserv=getPTReservado(p.id);const disp=parseInt(p.cantidad||0)-reserv;const cStock=p.cantidad<=0?'var(--red)':p.cantidad<=3?'var(--accent)':'var(--text)';const cDisp=disp<=0?'var(--red)':disp<=3?'var(--accent)':'var(--green)';return`<tr><td class="mono td-primary">${p.lote}</td><td style="color:var(--teal);font-weight:500">${p.pieza}</td><td>${p.descripcion||'—'}</td><td class="mono" style="color:${cStock}">${p.cantidad}<span style="color:var(--text3);font-size:10px"> total</span>${reserv>0?`<div style="font-size:10px;color:var(--accent);font-family:var(--mono)">${reserv} reserv.</div><div style="font-size:10px;color:${cDisp};font-weight:700;font-family:var(--mono)">${disp} disp.</div>`:''}</td><td>${b?`<span class="badge badge-blue">${b.lote}</span>`:'—'}</td><td class="mono">${b?.nro_colada||'—'}</td><td>${cert?`<span class="badge badge-purple">${cert.nro}</span>`:'—'}</td><td class="mono">${op?.nro||'—'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editPT('${p.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="showTrace('pt','${p.id}')">Trazar</button><button class="btn btn-danger btn-sm" onclick="deletePT('${p.id}')">×</button></td></tr>`;}):(`<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text3)">Sin productos terminados</td></tr>`);
+  document.getElementById('pt-tbody').innerHTML=list.length?list.map(p=>{const b=p.barras;const cert=b?.certificados;const op=p.ordenes_produccion;const reserv=getPTReservado(p.id);const disp=parseInt(p.cantidad||0)-reserv;const cStock=p.cantidad<=0?'var(--red)':p.cantidad<=3?'var(--accent)':'var(--text)';const cDisp=disp<=0?'var(--red)':disp<=3?'var(--accent)':'var(--green)';return`<tr><td class="mono td-primary">${p.lote}</td><td style="color:var(--teal);font-weight:500">${p.pieza}</td><td>${p.descripcion||'—'}</td><td class="mono" style="color:${cStock}">${p.cantidad}<span style="color:var(--text3);font-size:10px"> total</span>${reserv>0?`<div style="font-size:10px;color:var(--accent);font-family:var(--mono)">${reserv} reserv.</div><div style="font-size:10px;color:${cDisp};font-weight:700;font-family:var(--mono)">${disp} disp.</div>`:''}</td><td>${b?`<span class="badge badge-blue">${b.lote}</span>`:'—'}</td><td class="mono">${b?.nro_colada||'—'}</td><td>${cert?`<span class="badge badge-purple">${cert.nro}</span>`:'—'}</td><td class="mono">${op?.nro||'—'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editPT('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-ghost btn-sm" onclick="showTrace('pt','${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg></span>Trazar</button><button class="btn btn-danger btn-sm" onclick="deletePT('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;}):(`<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text3)">Sin productos terminados</td></tr>`);
 }
 
 function renderCert(filter=''){
@@ -1860,7 +1863,7 @@ function renderCert(filter=''){
     <div class="stat-card"><div class="stat-label">Metros certificados</div><div class="stat-value" style="color:var(--accent)">${totalMetros.toFixed(1)}<span style="font-size:11px;color:var(--text3)"> mts</span></div></div>
     <div class="stat-card"><div class="stat-label">Con PDF adjunto</div><div class="stat-value" style="color:var(--blue)">${conPDF}</div></div>
     <div class="stat-card"><div class="stat-label">Proveedores</div><div class="stat-value">${proveedores}</div></div>`;
-  document.getElementById('cert-tbody').innerHTML=list.length?list.map(c=>{const vinc=barras.filter(b=>b.certificado_id===c.id).length;return`<tr><td class="mono td-primary">${c.nro}</td><td>${c.proveedor}</td><td><span class="badge badge-blue">${c.material}</span></td><td class="mono">${c.colada}</td><td class="mono">${c.metros?parseFloat(c.metros).toFixed(1)+' mts':'—'}</td><td>${c.fecha||'—'}</td><td>${c.file_data?`<span class="pdf-link" onclick="openPDF('${c.id}')">Ver PDF</span>`:'<span style="color:var(--text3)">No adjunto</span>'}</td><td><span class="badge badge-teal">${vinc} barra${vinc!==1?'s':''}</span></td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editCert('${c.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="deleteCert('${c.id}')">×</button></td></tr>`;}):(`<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text3)">Sin certificados</td></tr>`);
+  document.getElementById('cert-tbody').innerHTML=list.length?list.map(c=>{const vinc=barras.filter(b=>b.certificado_id===c.id).length;return`<tr><td class="mono td-primary">${c.nro}</td><td>${c.proveedor}</td><td><span class="badge badge-blue">${c.material}</span></td><td class="mono">${c.colada}</td><td class="mono">${c.metros?parseFloat(c.metros).toFixed(1)+' mts':'—'}</td><td>${c.fecha||'—'}</td><td>${c.file_data?`<span class="pdf-link" onclick="openPDF('${c.id}')">Ver PDF</span>`:'<span style="color:var(--text3)">No adjunto</span>'}</td><td><span class="badge badge-teal">${vinc} barra${vinc!==1?'s':''}</span></td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editCert('${c.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteCert('${c.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;}):(`<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text3)">Sin certificados</td></tr>`);
 }
 
 function renderOP(filter=''){
@@ -1876,7 +1879,7 @@ function renderOP(filter=''){
     <div class="stat-card"><div class="stat-label">Completadas</div><div class="stat-value" style="color:var(--green)">${completadas}</div></div>
     <div class="stat-card"><div class="stat-label">Mts consumidos</div><div class="stat-value">${totalMtsUsados.toFixed(1)}<span style="font-size:11px;color:var(--text3)"> mts</span></div></div>`;
   const list=ops.filter(o=>!f||o.nro.toLowerCase().includes(f)||o.pieza.toLowerCase().includes(f));
-  document.getElementById('op-tbody').innerHTML=list.length?list.map(o=>{const tratsOP=tratamientos.filter(t=>t.orden_id===o.id);return`<tr><td class="mono td-primary">${o.nro}</td><td style="color:var(--accent);font-weight:500">${o.pieza}</td><td class="mono" style="font-size:11px">${o.codigo_plano||'—'}</td><td class="mono">${o.cantidad}</td><td>${o.barras?`<span class="badge badge-blue">${o.barras.lote}</span>`:'—'}</td><td class="mono">${parseFloat(o.kg_usados||0).toFixed(1)}</td><td class="mono" style="color:var(--text3)">${parseFloat(o.merma_kg||0).toFixed(1)}</td><td class="mono">${o.horas_total||'—'}</td><td>${estadoBadge(o.estado)}</td><td>${o.fecha||'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap">${o.estado==='en-proceso'||o.estado==='suspendida'?`<button class="btn btn-ghost btn-sm" onclick="openTratamientos('${o.id}')" style="border-color:var(--teal);color:var(--teal)">+ Trat${tratsOP.length?` (${tratsOP.length})`:''}</button>`:''}<button class="btn btn-ghost btn-sm" onclick="openTiempos('${o.id}')" style="border-color:var(--accent);color:var(--accent)">⏱ Tiempos</button><button class="btn btn-ghost btn-sm" onclick="editOP('${o.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="deleteOP('${o.id}')">×</button></td></tr>`}).join(''):(`<tr><td colspan="11" style="text-align:center;padding:32px;color:var(--text3)">Sin órdenes</td></tr>`);
+  document.getElementById('op-tbody').innerHTML=list.length?list.map(o=>{const tratsOP=tratamientos.filter(t=>t.orden_id===o.id);return`<tr><td class="mono td-primary">${o.nro}</td><td style="color:var(--accent);font-weight:500">${o.pieza}</td><td class="mono" style="font-size:11px">${o.codigo_plano||'—'}</td><td class="mono">${o.cantidad}</td><td>${o.barras?`<span class="badge badge-blue">${o.barras.lote}</span>`:'—'}</td><td class="mono">${parseFloat(o.kg_usados||0).toFixed(1)}</td><td class="mono" style="color:var(--text3)">${parseFloat(o.merma_kg||0).toFixed(1)}</td><td class="mono">${o.horas_total||'—'}</td><td>${estadoBadge(o.estado)}</td><td>${o.fecha||'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap">${o.estado==='en-proceso'||o.estado==='suspendida'?`<button class="btn btn-ghost btn-sm" onclick="openTratamientos('${o.id}')" style="border-color:var(--teal);color:var(--teal)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Trat${tratsOP.length?` (${tratsOP.length})`:''}</button>`:''}<button class="btn btn-ghost btn-sm" onclick="openTiempos('${o.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>Tiempos</button><button class="btn btn-ghost btn-sm" onclick="editOP('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteOP('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`}).join(''):(`<tr><td colspan="11" style="text-align:center;padding:32px;color:var(--text3)">Sin órdenes</td></tr>`);
 }
 
 function renderVentas(filter=''){
@@ -1890,7 +1893,7 @@ function renderVentas(filter=''){
     <div class="stat-card"><div class="stat-label">Importe total</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtUSD(totalImp)}</div></div>
     <div class="stat-card"><div class="stat-label">Clientes distintos</div><div class="stat-value">${[...new Set(ventas.map(v=>v.cliente))].length}</div></div>`;
   const bE={entregado:'badge-ok',facturado:'badge-teal',pendiente:'badge-warn'};
-  document.getElementById('ventas-tbody').innerHTML=list.length?list.map(v=>{const items=v.venta_items||[];const importe=items.reduce((a,i)=>a+(i.cantidad*(i.precio_unitario||0)),0);const totalU=items.reduce((a,i)=>a+i.cantidad,0);const piezas=[...new Set(items.map(i=>i.pieza||''))].join(', ');return`<tr><td class="mono td-primary">${v.nro_remito}</td><td style="font-weight:500">${v.cliente}</td><td>${v.fecha||'—'}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${piezas}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td><span class="badge ${bE[v.estado]||'badge-warn'}">${v.estado.toUpperCase()}</span></td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')">Anular</button></td></tr>`;}):(`<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">Sin ventas registradas</td></tr>`);
+  document.getElementById('ventas-tbody').innerHTML=list.length?list.map(v=>{const items=v.venta_items||[];const importe=items.reduce((a,i)=>a+(i.cantidad*(i.precio_unitario||0)),0);const totalU=items.reduce((a,i)=>a+i.cantidad,0);const piezas=[...new Set(items.map(i=>i.pieza||''))].join(', ');return`<tr><td class="mono td-primary">${v.nro_remito}</td><td style="font-weight:500">${v.cliente}</td><td>${v.fecha||'—'}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${piezas}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td><span class="badge ${bE[v.estado]||'badge-warn'}">${v.estado.toUpperCase()}</span></td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>Anular</button></td></tr>`;}):(`<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">Sin ventas registradas</td></tr>`);
 }
 
 function renderDash(){
@@ -2060,8 +2063,8 @@ function renderConfig(){
       <td class="mono">${m.orden||0}</td>
       <td>${m.activo?'<span class="badge badge-ok">ACTIVO</span>':'<span class="badge badge-warn">INACTIVO</span>'}</td>
       <td style="display:flex;gap:4px">
-        <button class="btn btn-ghost btn-sm" onclick="editMaterial('${m.id}')">Editar</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteMaterial('${m.id}')">×</button>
+        <button class="btn btn-ghost btn-sm" onclick="editMaterial('${m.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteMaterial('${m.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button>
       </td>
     </tr>`).join(''):`<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text3)">Sin materiales. Agregá el primero con el botón de arriba.</td></tr>`;
   // Actualizar el select de materiales en el modal de nueva barra
@@ -2567,7 +2570,7 @@ function renderTratLista(opId){
         ${t.descripcion?`<div style="font-size:12px;color:var(--text3);margin-top:3px">${t.descripcion}</div>`:''}
         ${t.certificado_nro?`<div style="font-size:11px;font-family:var(--mono);color:var(--purple);margin-top:4px">Cert: ${t.certificado_nro}${t.certificado_file_data?` <span class="pdf-link" onclick="openTratPDF('${t.id}')">Ver PDF</span>`:''}</div>`:''}
       </div>
-      <button class="btn btn-danger btn-sm" onclick="deleteTratamiento('${t.id}')">×</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteTratamiento('${t.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button>
     </div>`).join('');
 }
 
@@ -2654,8 +2657,8 @@ function renderClientes(filter=''){
       <td class="mono" style="color:var(--green)">${fmtUSD(total)}</td>
       <td style="display:flex;gap:4px">
         <button class="btn btn-ghost btn-sm" onclick="openFichaCliente('${c.id}')">Ficha</button>
-        <button class="btn btn-ghost btn-sm" onclick="editCliente('${c.id}')">Editar</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteCliente('${c.id}')">×</button>
+        <button class="btn btn-ghost btn-sm" onclick="editCliente('${c.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCliente('${c.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button>
       </td>
     </tr>`;
   }).join(''):`<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">Sin clientes registrados</td></tr>`;
@@ -3001,7 +3004,7 @@ function renderTimerDisplay(){
 
 function renderTiemposOps(){
   const cont=document.getElementById('tiempos-ops-list');
-  if(!opOperaciones.length){cont.innerHTML='<div style="padding:18px;text-align:center;color:var(--text3);font-size:12px;border:1px dashed var(--border);border-radius:4px">Aún no hay pasos. Agregá con "+ Paso"</div>';return;}
+  if(!opOperaciones.length){cont.innerHTML='<div style="padding:18px;text-align:center;color:var(--text3);font-size:12px;border:1px dashed var(--border);border-radius:4px">Aún no hay pasos. Agregá con "<span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Paso"</div>';return;}
   cont.innerHTML=opOperaciones.map(o=>{
     const entries=opTimeEntries.filter(e=>e.operacion_id===o.id&&e.tipo==='productivo');
     const finished=entries.filter(e=>e.ended_at).reduce((s,e)=>s+(new Date(e.ended_at)-new Date(e.started_at))/60000,0);
@@ -3193,8 +3196,8 @@ function renderCompras(filter=''){
     const items=o.oc_items||ocItems.filter(i=>i.oc_id===o.id);
     const cantItems=items.length;
     const puedeRecibir=['enviada','confirmada','recibida_parcial'].includes(o.estado);
-    return `<tr><td class="mono td-primary">${o.nro}</td><td style="font-weight:500">${o.proveedores?.nombre||'—'}</td><td>${o.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${o.fecha_entrega_esperada||'—'}</td><td class="mono">${cantItems}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(o.total||0))}</td><td><span class="badge ${badges[o.estado]||'badge-warn'}">${o.estado.replace('_',' ').toUpperCase()}</span></td><td class="mono" style="font-size:11px">${o.factura_nro||'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap">${puedeRecibir?`<button class="btn btn-ghost btn-sm" onclick="openRecepcionModal('${o.id}')" style="border-color:var(--green);color:var(--green)">📥 Recibir</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editOC('${o.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="deleteOC('${o.id}')">×</button></td></tr>`;
-  }).join(''):'<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text3)">Sin órdenes de compra. Click en "+ Nueva OC".</td></tr>';
+    return `<tr><td class="mono td-primary">${o.nro}</td><td style="font-weight:500">${o.proveedores?.nombre||'—'}</td><td>${o.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${o.fecha_entrega_esperada||'—'}</td><td class="mono">${cantItems}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(o.total||0))}</td><td><span class="badge ${badges[o.estado]||'badge-warn'}">${o.estado.replace('_',' ').toUpperCase()}</span></td><td class="mono" style="font-size:11px">${o.factura_nro||'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap">${puedeRecibir?`<button class="btn btn-ghost btn-sm" onclick="openRecepcionModal('${o.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>Recibir</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editOC('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteOC('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+  }).join(''):'<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text3)">Sin órdenes de compra. Click en "<span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva OC".</td></tr>';
 }
 
 function renderProveedores(filter=''){
@@ -3206,7 +3209,7 @@ function renderProveedores(filter=''){
     <div class="stat-card"><div class="stat-label">Proveedores</div><div class="stat-value" style="color:var(--accent)">${totalProv}</div></div>
     <div class="stat-card"><div class="stat-label">Deuda total</div><div class="stat-value" style="color:var(--coral);font-size:14px">${fmtUSD(Object.values(deudaPorProv).reduce((a,b)=>a+b,0))}</div></div>`;
   const list=proveedores.filter(p=>!f||p.nombre.toLowerCase().includes(f)||(p.cuit||'').toLowerCase().includes(f));
-  document.getElementById('prov-tbody').innerHTML=list.length?list.map(p=>`<tr><td class="td-primary">${p.nombre}</td><td class="mono" style="font-size:11px">${p.cuit||'—'}</td><td>${p.contacto||'—'}</td><td class="mono" style="font-size:11px">${p.telefono||'—'}</td><td style="font-size:11px">${p.email||'—'}</td><td class="mono">${ocPorProv[p.id]||0}</td><td class="mono" style="color:${deudaPorProv[p.id]>0?'var(--coral)':'var(--text3)'}">${fmtUSD(deudaPorProv[p.id]||0)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editProveedor('${p.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="deleteProveedor('${p.id}')">×</button></td></tr>`).join(''):'<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">Sin proveedores registrados</td></tr>';
+  document.getElementById('prov-tbody').innerHTML=list.length?list.map(p=>`<tr><td class="td-primary">${p.nombre}</td><td class="mono" style="font-size:11px">${p.cuit||'—'}</td><td>${p.contacto||'—'}</td><td class="mono" style="font-size:11px">${p.telefono||'—'}</td><td style="font-size:11px">${p.email||'—'}</td><td class="mono">${ocPorProv[p.id]||0}</td><td class="mono" style="color:${deudaPorProv[p.id]>0?'var(--coral)':'var(--text3)'}">${fmtUSD(deudaPorProv[p.id]||0)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editProveedor('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteProveedor('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`).join(''):'<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">Sin proveedores registrados</td></tr>';
 }
 
 function openProveedorModal(id){
@@ -3285,7 +3288,7 @@ function calcOCTotal(){
 }
 function renderOCItems(){
   const cont=document.getElementById('oc-items-list');
-  if(!ocItemsDraft.length){cont.innerHTML='<div style="padding:18px;text-align:center;color:var(--text3);font-size:12px;border:1px dashed var(--border);border-radius:4px">Sin ítems. Click en "+ Ítem"</div>';return;}
+  if(!ocItemsDraft.length){cont.innerHTML='<div style="padding:18px;text-align:center;color:var(--text3);font-size:12px;border:1px dashed var(--border);border-radius:4px">Sin ítems. Click en "<span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Ítem"</div>';return;}
   cont.innerHTML=ocItemsDraft.map((it,idx)=>`<div style="display:grid;grid-template-columns:120px 2fr 1fr 80px 80px 100px 100px auto;gap:6px;align-items:center;padding:6px;background:var(--surface2);border-radius:4px">
     <select onchange="onOCItemChange(${idx},'tipo',this.value)" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:11px"><option value="materia_prima" ${it.tipo==='materia_prima'?'selected':''}>Materia prima</option><option value="insumo" ${it.tipo==='insumo'?'selected':''}>Insumo</option><option value="herramienta" ${it.tipo==='herramienta'?'selected':''}>Herramienta</option><option value="servicio" ${it.tipo==='servicio'?'selected':''}>Servicio</option><option value="otro" ${it.tipo==='otro'?'selected':''}>Otro</option></select>
     <input type="text" value="${it.descripcion.replace(/"/g,'&quot;')}" oninput="onOCItemChange(${idx},'descripcion',this.value)" placeholder="Descripción" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px">
@@ -3294,7 +3297,7 @@ function renderOCItems(){
     <select onchange="onOCItemChange(${idx},'unidad',this.value)" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:11px"><option value="un" ${it.unidad==='un'?'selected':''}>un</option><option value="kg" ${it.unidad==='kg'?'selected':''}>kg</option><option value="mts" ${it.unidad==='mts'?'selected':''}>mts</option><option value="ltrs" ${it.unidad==='ltrs'?'selected':''}>ltrs</option><option value="hs" ${it.unidad==='hs'?'selected':''}>hs</option><option value="global" ${it.unidad==='global'?'selected':''}>global</option></select>
     <input type="number" value="${it.precio_unitario}" min="0" step="0.01" oninput="onOCItemChange(${idx},'precio_unitario',this.value)" placeholder="USD" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px;font-family:var(--mono)">
     <span id="oc-item-sub-${idx}" class="mono" style="font-size:12px;color:var(--green);text-align:right">${fmtUSD(it.subtotal)}</span>
-    <button class="btn btn-danger btn-sm" onclick="removeOCItem(${idx})" style="padding:4px 8px">×</button>
+    <button class="btn btn-danger btn-sm" onclick="removeOCItem(${idx})" style="padding:4px 8px"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button>
   </div>`).join('');
 }
 
@@ -3414,7 +3417,7 @@ function renderPresupuestos(filter=''){
   document.getElementById('presup-tbody').innerHTML=list.length?list.map(p=>{
     const items=p.presupuesto_items||[];
     const puedeConvertir=['enviado','aprobado'].includes(p.estado);
-    return `<tr><td class="mono td-primary">${p.nro}</td><td style="font-weight:500">${p.cliente}</td><td>${p.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${p.fecha_vencimiento||'—'}</td><td class="mono">${items.length}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(p.total||0))}</td><td><span class="badge ${badges[p.estado]||'badge-warn'}">${p.estado.toUpperCase()}</span></td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="generatePresupuestoPDF('${p.id}')" style="border-color:var(--accent);color:var(--accent)">PDF</button>${puedeConvertir?`<button class="btn btn-ghost btn-sm" onclick="convertirPresupuesto('${p.id}')" style="border-color:var(--green);color:var(--green)">→ Venta</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editPresupuesto('${p.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="deletePresupuesto('${p.id}')">×</button></td></tr>`;
+    return `<tr><td class="mono td-primary">${p.nro}</td><td style="font-weight:500">${p.cliente}</td><td>${p.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${p.fecha_vencimiento||'—'}</td><td class="mono">${items.length}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(p.total||0))}</td><td><span class="badge ${badges[p.estado]||'badge-warn'}">${p.estado.toUpperCase()}</span></td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="generatePresupuestoPDF('${p.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>PDF</button>${puedeConvertir?`<button class="btn btn-ghost btn-sm" onclick="convertirPresupuesto('${p.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>Venta</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editPresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deletePresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
   }).join(''):'<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">Sin presupuestos. Click en "+ Nuevo".</td></tr>';
 }
 
@@ -3456,7 +3459,7 @@ function calcPresupTotal(){
 }
 function renderPresupItems(){
   const cont=document.getElementById('presup-items-list');
-  if(!presupItemsDraft.length){cont.innerHTML='<div style="padding:18px;text-align:center;color:var(--text3);font-size:12px;border:1px dashed var(--border);border-radius:4px">Sin ítems. Click en "+ Ítem"</div>';return;}
+  if(!presupItemsDraft.length){cont.innerHTML='<div style="padding:18px;text-align:center;color:var(--text3);font-size:12px;border:1px dashed var(--border);border-radius:4px">Sin ítems. Click en "<span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Ítem"</div>';return;}
   cont.innerHTML=presupItemsDraft.map((it,idx)=>{
     const ptOptions='<option value="">— manual —</option>'+pts.map(p=>`<option value="${p.id}" ${it.producto_id===p.id?'selected':''}>${p.pieza} (${p.lote})</option>`).join('');
     return `<div style="display:grid;grid-template-columns:180px 2fr 80px 100px 100px auto;gap:6px;align-items:center;padding:6px;background:var(--surface2);border-radius:4px">
@@ -3465,7 +3468,7 @@ function renderPresupItems(){
       <input type="number" value="${it.cantidad}" min="0" step="1" oninput="onPresupItemChange(${idx},'cantidad',this.value)" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px;font-family:var(--mono)">
       <input type="number" value="${it.precio_unitario}" min="0" step="0.01" oninput="onPresupItemChange(${idx},'precio_unitario',this.value)" placeholder="USD" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px;font-family:var(--mono)">
       <span class="mono" style="font-size:12px;color:var(--green);text-align:right">${fmtUSD(it.subtotal)}</span>
-      <button class="btn btn-danger btn-sm" onclick="removePresupItem(${idx})" style="padding:4px 8px">×</button>
+      <button class="btn btn-danger btn-sm" onclick="removePresupItem(${idx})" style="padding:4px 8px"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button>
     </div>`;
   }).join('');
 }
