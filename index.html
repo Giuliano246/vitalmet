@@ -1589,7 +1589,7 @@ async function loadAll(){
       GET('ventas','?order=created_at.desc&select=*,venta_items(*,productos_terminados(lote,pieza))'),
       GET('materiales','?order=orden.asc,nombre.asc&activo=eq.true').catch(()=>GET('materiales','?order=nombre.asc')).catch(()=>[]),
       GET('tratamientos','?order=created_at.desc').catch(()=>[]),
-      GET('usuarios','?order=created_at.asc'),
+      POST('rpc/get_usuarios_empresa',{}).catch(()=>[]),
       GET('permisos_usuario','?order=modulo.asc').catch(()=>[]),
       GET('clientes','?order=nombre.asc').catch(()=>[]),
       GET('vendedores','?order=nombre.asc&activo=eq.true').catch(()=>[]),
