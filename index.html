@@ -2078,7 +2078,51 @@ function notify(msg,type){
   el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);
 }
 
-function renderAll(){renderDash();renderMP();renderPT();renderCert();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderConfig();updateClientesDatalist();}
+function renderAll(){renderDash();renderMP();renderPT();renderCert();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderConfig();updateClientesDatalist();animateNumbers();}
+
+// ─── ANIMACIÓN DE KPIs (count-up al cargar) ─────────────
+window._numbersAnimated=false;
+function animateNumbers(){
+  if(window._numbersAnimated)return;
+  const targets=document.querySelectorAll('.stat-value, .kpi-val');
+  if(!targets.length)return;
+  window._numbersAnimated=true;
+  targets.forEach(el=>animateOneNumber(el));
+}
+function animateOneNumber(el){
+  const html=el.innerHTML;
+  const match=html.match(/-?\d[\d.,]*/);
+  if(!match)return;
+  const numStr=match[0];
+  let target;
+  let isLargeFormat=false;
+  let decimals=0;
+  if(/^\d{1,3}(\.\d{3})+$/.test(numStr)){
+    target=parseInt(numStr.replace(/\./g,''),10);
+    isLargeFormat=true;
+  }else if(/^\d+\.\d+$/.test(numStr)){
+    target=parseFloat(numStr);
+    decimals=numStr.split('.')[1].length;
+  }else{
+    target=parseInt(numStr.replace(/[.,]/g,''),10);
+  }
+  if(isNaN(target)||Math.abs(target)<1)return;
+  const start=performance.now();
+  const duration=800;
+  const easeOut=t=>1-Math.pow(1-t,3);
+  function tick(now){
+    const t=Math.min(1,(now-start)/duration);
+    const v=target*easeOut(t);
+    let display;
+    if(isLargeFormat)display=Math.round(v).toLocaleString('es-AR');
+    else if(decimals>0)display=v.toFixed(decimals);
+    else display=Math.round(v).toString();
+    el.innerHTML=html.replace(numStr,display);
+    if(t<1)requestAnimationFrame(tick);
+    else el.innerHTML=html;
+  }
+  requestAnimationFrame(tick);
+}
 
 
 // ─── MATERIALES ───────────────────────────────────────────────────
