@@ -174,6 +174,37 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
 .trace-venta{border-color:var(--coral)}.trace-venta .trace-node-value{color:var(--coral)}
 .venta-item-row{display:grid;grid-template-columns:2fr 70px 80px 60px 80px 60px 60px 60px 30px;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px}
 .venta-item-row:last-child{border-bottom:none}
+
+/* ─── #3 Modal animations ─── */
+@keyframes modalFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes modalScaleIn{from{transform:scale(0.96) translateY(8px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+.modal-overlay.open{animation:modalFadeIn 0.18s ease-out}
+.modal-overlay.open .modal{animation:modalScaleIn 0.22s cubic-bezier(0.16,1,0.3,1)}
+
+/* ─── #4 Skeleton loaders ─── */
+@keyframes skeletonShimmer{0%{background-position:-300px 0}100%{background-position:300px 0}}
+.skeleton{background:linear-gradient(90deg,var(--surface) 0%,var(--surface2) 50%,var(--surface) 100%);background-size:600px 100%;animation:skeletonShimmer 1.4s infinite linear;border:1px solid var(--border);border-radius:6px}
+.skeleton-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.skeleton-card{height:64px}
+.skeleton-bar{height:46px;margin-bottom:8px}
+.skeleton-line{height:14px;margin-bottom:8px;background-size:600px 100%}
+
+/* ─── #5 Focus rings (a11y) ─── */
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{box-shadow:0 0 0 3px rgba(232,160,48,.15)}
+.auth-form-group input:focus{box-shadow:0 0 0 3px rgba(232,160,48,.15)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.search-box input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,160,48,.15)}
+.nav-item:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+
+/* ─── #6 Row hover mejorado ─── */
+tbody tr{transition:background .15s ease,box-shadow .15s ease}
+tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important}
+}
+
 </style>
 </head>
 <body>
@@ -307,7 +338,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
     <!-- DASHBOARD -->
     <div class="page active" id="page-dash">
       <div class="page-header"><div class="page-title">Métricas</div><div class="page-sub">// resumen operativo en tiempo real</div><div class="tabs"><div class="tab active">General</div></div></div>
-      <div class="page-content" id="dash-content"><div style="padding:32px;color:var(--text3);font-size:13px;font-family:var(--mono)">Cargando datos...</div></div>
+      <div class="page-content" id="dash-content"><div class="skeleton-grid"><div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div><div class="skeleton skeleton-card"></div></div><div class="skeleton skeleton-bar"></div><div class="skeleton skeleton-bar"></div><div class="skeleton skeleton-bar"></div></div>
     </div>
     <!-- MATERIA PRIMA -->
     <div class="page" id="page-mp">
