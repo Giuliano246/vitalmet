@@ -586,10 +586,32 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="table-wrap"><table><thead><tr><th>Código</th><th>Cuenta</th><th>Tipo</th><th style="text-align:right">Total Debe</th><th style="text-align:right">Total Haber</th><th style="text-align:right">Saldo deudor</th><th style="text-align:right">Saldo acreedor</th></tr></thead><tbody id="bal-tbody"></tbody><tfoot id="bal-tfoot"></tfoot></table></div>
       </div>
     </div>
-    <!-- CONTABILIDAD: Estado de resultados (placeholder) -->
+    <!-- CONTABILIDAD: Estado de resultados -->
     <div class="page" id="page-estado">
-      <div class="page-header"><div class="page-title">Estado de resultados</div><div class="page-sub">// ingresos − egresos del período</div><div class="tabs"><div class="tab active">Período actual</div></div></div>
-      <div class="page-content"><div style="padding:48px;text-align:center;color:var(--text3);font-size:13px">Próxima fase: cálculo automático de resultados del ejercicio.</div></div>
+      <div class="page-header"><div class="page-title">Estado de resultados</div><div class="page-sub">// ingresos − egresos del período</div><div class="tabs"><div class="tab active">Por período</div></div></div>
+      <div class="page-content">
+        <div style="display:flex;gap:10px;align-items:end;margin-bottom:14px;flex-wrap:wrap">
+          <div class="form-group" style="margin:0"><label>Desde</label><input type="date" id="er-desde" onchange="renderEstadoResultados()" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans)"></div>
+          <div class="form-group" style="margin:0"><label>Hasta</label><input type="date" id="er-hasta" onchange="renderEstadoResultados()" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans)"></div>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('er-desde').value='';document.getElementById('er-hasta').value='';renderEstadoResultados()">Limpiar</button>
+        </div>
+        <div class="stats-bar" id="er-stats"></div>
+        <div id="er-content" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px"></div>
+      </div>
+    </div>
+    <!-- CONTABILIDAD: Balance general -->
+    <div class="page" id="page-balgral">
+      <div class="page-header"><div class="page-title">Balance general</div><div class="page-sub">// Activo = Pasivo + Patrimonio Neto</div><div class="tabs"><div class="tab active">Al cierre</div></div></div>
+      <div class="page-content">
+        <div style="display:flex;gap:10px;align-items:end;margin-bottom:14px;flex-wrap:wrap">
+          <div class="form-group" style="margin:0"><label>Saldos hasta</label><input type="date" id="bg-hasta" onchange="renderBalanceGeneral()" style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans)"></div>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('bg-hasta').value='';renderBalanceGeneral()">Limpiar</button>
+          <div style="flex:1"></div>
+          <div id="bg-balance-status" style="font-family:var(--mono);font-size:11px;padding:6px 12px;border-radius:5px"></div>
+        </div>
+        <div class="stats-bar" id="bg-stats"></div>
+        <div id="bg-content" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px"></div>
+      </div>
     </div>
 
     <!-- CONFIGURACIÓN -->
@@ -1727,10 +1749,10 @@ async function loadAll(){
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
-  contabilidad:[{k:'cuentas',l:'Plan de cuentas'},{k:'asientosp',l:'Asientos'},{k:'librodiario',l:'Libro diario'},{k:'libromayor',l:'Libro mayor'},{k:'balance',l:'Balance'},{k:'estado',l:'Estado de resultados'}],
+  contabilidad:[{k:'cuentas',l:'Plan de cuentas'},{k:'asientosp',l:'Asientos'},{k:'librodiario',l:'Libro diario'},{k:'libromayor',l:'Libro mayor'},{k:'balance',l:'Balance comprob.'},{k:'estado',l:'Estado de resultados'},{k:'balgral',l:'Balance general'}],
   ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'}],
   analisis:[{k:'costos',l:'Costos y rentabilidad'},{k:'trace',l:'Trazabilidad'}],
 };
@@ -2016,6 +2038,8 @@ async function saveVenta(){
       const pt=pts.find(p=>p.id===item.ptId);
       if(pt)await PATCH('productos_terminados',{cantidad:Math.max(0,pt.cantidad-item.cant)},`?id=eq.${item.ptId}`);
     }
+    // Asiento automático (no bloquea el flujo si falla)
+    await generarAsientoVenta(ventaId,totalVenta,clienteNombre,g('v-fecha'),g('v-remito'));
     await loadAll();closeModal('modal-venta');ventaItemsList=[];window.editingVentaId=null;
     resetF(['v-remito','v-cliente','v-cuit','v-fecha','v-condicion','v-estado','v-obs','v-grupo-bonif']);
     renderAll();notify(isEdit?'Venta actualizada':'Pedido registrado');
@@ -2426,7 +2450,7 @@ function notify(msg,type){
   el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);
 }
 
-function renderAll(){renderDash();renderMP();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();populateLibroMayorSel();renderLibroMayor();renderBalance();renderConfig();updateClientesDatalist();animateNumbers();}
+function renderAll(){renderDash();renderMP();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();populateLibroMayorSel();renderLibroMayor();renderBalance();renderEstadoResultados();renderBalanceGeneral();renderConfig();updateClientesDatalist();animateNumbers();}
 
 // ─── PLAN DE CUENTAS ──────────────────────────────────────────
 function renderCuentas(filter=''){
@@ -2747,6 +2771,155 @@ function renderBalance(){
     if(cuadra){status.textContent='✓ Balance cuadrado';status.style.background='rgba(76,175,125,.12)';status.style.color='var(--green)';status.style.border='1px solid rgba(76,175,125,.3)';}
     else{status.textContent=`✗ Diferencia: ${fmtUSD(totalDebe-totalHaber)}`;status.style.background='rgba(224,82,82,.12)';status.style.color='var(--red)';status.style.border='1px solid rgba(224,82,82,.3)';}
   }
+}
+
+// ─── ESTADO DE RESULTADOS ─────────────────────────────────────
+// Helper: agregar saldos por cuenta para un rango de fechas (asientos confirmados)
+function _agregarSaldos(desde,hasta){
+  const asConf=asientos.filter(a=>a.estado==='confirmado'&&(!desde||a.fecha>=desde)&&(!hasta||a.fecha<=hasta));
+  const ids=new Set(asConf.map(a=>a.id));
+  const por={};
+  asientoLineas.forEach(l=>{
+    if(!ids.has(l.asiento_id))return;
+    if(!por[l.cuenta_id])por[l.cuenta_id]={debe:0,haber:0};
+    por[l.cuenta_id].debe+=parseFloat(l.debe||0);
+    por[l.cuenta_id].haber+=parseFloat(l.haber||0);
+  });
+  return por;
+}
+
+function renderEstadoResultados(){
+  const cont=document.getElementById('er-content');
+  const stats=document.getElementById('er-stats');
+  if(!cont)return;
+  const desde=document.getElementById('er-desde')?.value||'';
+  const hasta=document.getElementById('er-hasta')?.value||'';
+  const por=_agregarSaldos(desde,hasta);
+  // Ingresos: tipo='ingreso' → saldo acreedor (haber - debe)
+  const ingresosCtas=cuentasContables.filter(c=>c.tipo==='ingreso'&&c.imputable!==false&&por[c.id]).sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'',undefined,{numeric:true}));
+  const egresosCtas=cuentasContables.filter(c=>c.tipo==='egreso'&&c.imputable!==false&&por[c.id]).sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'',undefined,{numeric:true}));
+  let totalIng=0,totalEgr=0;
+  const filaIng=ingresosCtas.map(c=>{const s=por[c.id];const saldo=parseFloat(s.haber||0)-parseFloat(s.debe||0);totalIng+=saldo;return{codigo:c.codigo,nombre:c.nombre,saldo};});
+  const filaEgr=egresosCtas.map(c=>{const s=por[c.id];const saldo=parseFloat(s.debe||0)-parseFloat(s.haber||0);totalEgr+=saldo;return{codigo:c.codigo,nombre:c.nombre,saldo};});
+  const resultado=totalIng-totalEgr;
+  const margen=totalIng>0?((resultado/totalIng)*100).toFixed(1):0;
+  stats.innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total Ingresos</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtUSD(totalIng)}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Egresos</div><div class="stat-value" style="color:var(--coral);font-size:14px">${fmtUSD(totalEgr)}</div></div>
+    <div class="stat-card"><div class="stat-label">Resultado</div><div class="stat-value" style="color:${resultado>=0?'var(--green)':'var(--red)'};font-size:14px">${fmtUSD(resultado)}</div></div>
+    <div class="stat-card"><div class="stat-label">Margen</div><div class="stat-value" style="color:${margen>20?'var(--green)':margen>5?'var(--accent)':'var(--red)'}">${margen}%</div></div>`;
+  if(!ingresosCtas.length&&!egresosCtas.length){
+    cont.innerHTML='<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div><div class="empty-title">Sin movimientos en el período</div><div class="empty-msg">No hay asientos confirmados con cuentas de ingreso o egreso en el rango seleccionado.</div></div>';
+    return;
+  }
+  let html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;font-family:var(--mono);font-size:12px">';
+  // Columna ingresos
+  html+='<div><div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(76,175,125,.3)">INGRESOS</div>';
+  if(filaIng.length){
+    html+='<table style="width:100%;border-collapse:collapse"><tbody>'+filaIng.map(f=>`<tr><td style="padding:4px 8px;color:var(--text2);width:90px">${f.codigo}</td><td style="padding:4px 8px;color:var(--text)">${f.nombre}</td><td style="padding:4px 8px;text-align:right;color:var(--green)">${fmtUSD(f.saldo)}</td></tr>`).join('')+'</tbody></table>';
+    html+=`<div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-weight:600"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.08em">Total Ingresos</span><span style="color:var(--green)">${fmtUSD(totalIng)}</span></div>`;
+  }else html+='<div style="color:var(--text3);font-size:11px;padding:12px 0">Sin movimientos</div>';
+  html+='</div>';
+  // Columna egresos
+  html+='<div><div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--coral);font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(224,104,64,.3)">EGRESOS</div>';
+  if(filaEgr.length){
+    html+='<table style="width:100%;border-collapse:collapse"><tbody>'+filaEgr.map(f=>`<tr><td style="padding:4px 8px;color:var(--text2);width:90px">${f.codigo}</td><td style="padding:4px 8px;color:var(--text)">${f.nombre}</td><td style="padding:4px 8px;text-align:right;color:var(--coral)">${fmtUSD(f.saldo)}</td></tr>`).join('')+'</tbody></table>';
+    html+=`<div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-weight:600"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.08em">Total Egresos</span><span style="color:var(--coral)">${fmtUSD(totalEgr)}</span></div>`;
+  }else html+='<div style="color:var(--text3);font-size:11px;padding:12px 0">Sin movimientos</div>';
+  html+='</div></div>';
+  // Resultado final
+  html+=`<div style="margin-top:18px;padding:14px;background:var(--surface2);border-radius:6px;display:flex;justify-content:space-between;align-items:center"><span style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--text3)">${resultado>=0?'GANANCIA DEL PERÍODO':'PÉRDIDA DEL PERÍODO'}</span><span style="font-family:var(--mono);font-size:18px;font-weight:600;color:${resultado>=0?'var(--green)':'var(--red)'}">${fmtUSD(resultado)}</span></div>`;
+  cont.innerHTML=html;
+}
+
+// ─── BALANCE GENERAL ──────────────────────────────────────────
+function renderBalanceGeneral(){
+  const cont=document.getElementById('bg-content');
+  const stats=document.getElementById('bg-stats');
+  const status=document.getElementById('bg-balance-status');
+  if(!cont)return;
+  const hasta=document.getElementById('bg-hasta')?.value||'';
+  const por=_agregarSaldos('',hasta);
+  // Calcular saldos por categoría
+  const calcSaldoNatural=(c,m)=>{const tipoNaturalDeudor=['activo','egreso'].includes(c.tipo);return tipoNaturalDeudor?(parseFloat(m.debe||0)-parseFloat(m.haber||0)):(parseFloat(m.haber||0)-parseFloat(m.debe||0));};
+  const cuentasConSaldo=t=>cuentasContables.filter(c=>c.tipo===t&&c.imputable!==false&&por[c.id]&&Math.abs(calcSaldoNatural(c,por[c.id]))>0.01).sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'',undefined,{numeric:true}));
+  const activos=cuentasConSaldo('activo');
+  const pasivos=cuentasConSaldo('pasivo');
+  const patrim=cuentasConSaldo('patrimonio');
+  const ingresos=cuentasContables.filter(c=>c.tipo==='ingreso'&&c.imputable!==false&&por[c.id]);
+  const egresos=cuentasContables.filter(c=>c.tipo==='egreso'&&c.imputable!==false&&por[c.id]);
+  const totalIng=ingresos.reduce((s,c)=>s+(parseFloat(por[c.id].haber||0)-parseFloat(por[c.id].debe||0)),0);
+  const totalEgr=egresos.reduce((s,c)=>s+(parseFloat(por[c.id].debe||0)-parseFloat(por[c.id].haber||0)),0);
+  const resultadoEjercicio=totalIng-totalEgr;
+  const totalAct=activos.reduce((s,c)=>s+calcSaldoNatural(c,por[c.id]),0);
+  const totalPas=pasivos.reduce((s,c)=>s+calcSaldoNatural(c,por[c.id]),0);
+  const totalPN=patrim.reduce((s,c)=>s+calcSaldoNatural(c,por[c.id]),0)+resultadoEjercicio;
+  const totalPasPN=totalPas+totalPN;
+  const cuadra=Math.abs(totalAct-totalPasPN)<0.01;
+  stats.innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total Activo</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtUSD(totalAct)}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Pasivo</div><div class="stat-value" style="color:var(--coral);font-size:14px">${fmtUSD(totalPas)}</div></div>
+    <div class="stat-card"><div class="stat-label">Patrimonio Neto</div><div class="stat-value" style="color:var(--purple);font-size:14px">${fmtUSD(totalPN)}</div></div>
+    <div class="stat-card"><div class="stat-label">Resultado del ejercicio</div><div class="stat-value" style="color:${resultadoEjercicio>=0?'var(--green)':'var(--red)'};font-size:13px">${fmtUSD(resultadoEjercicio)}</div></div>`;
+  if(status){
+    if(cuadra){status.textContent='✓ Activo = Pasivo + PN';status.style.background='rgba(76,175,125,.12)';status.style.color='var(--green)';status.style.border='1px solid rgba(76,175,125,.3)';}
+    else{status.textContent=`✗ Diferencia: ${fmtUSD(totalAct-totalPasPN)}`;status.style.background='rgba(224,82,82,.12)';status.style.color='var(--red)';status.style.border='1px solid rgba(224,82,82,.3)';}
+  }
+  if(!activos.length&&!pasivos.length&&!patrim.length){
+    cont.innerHTML='<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 17V7"/><path d="M11 17V11"/><path d="M15 17V13"/><path d="M19 17V9"/></svg></div><div class="empty-title">Sin saldos al cierre</div><div class="empty-msg">No hay asientos confirmados que afecten cuentas patrimoniales hasta la fecha indicada.</div></div>';
+    return;
+  }
+  const renderCol=(titulo,color,ctas,extra)=>{
+    let h=`<div><div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:${color};font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid ${color}33">${titulo}</div>`;
+    if(ctas.length){
+      h+='<table style="width:100%;border-collapse:collapse"><tbody>'+ctas.map(c=>{const saldo=calcSaldoNatural(c,por[c.id]);return`<tr><td style="padding:4px 8px;color:var(--text2);width:90px">${c.codigo}</td><td style="padding:4px 8px;color:var(--text)">${c.nombre}</td><td style="padding:4px 8px;text-align:right;color:${color}">${fmtUSD(saldo)}</td></tr>`;}).join('')+'</tbody></table>';
+    }
+    if(extra)h+=extra;
+    if(!ctas.length&&!extra)h+='<div style="color:var(--text3);font-size:11px;padding:12px 0">Sin saldos</div>';
+    h+='</div>';
+    return h;
+  };
+  const totalActDisp=`<div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-weight:600"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.08em">Total Activo</span><span style="color:var(--green)">${fmtUSD(totalAct)}</span></div>`;
+  const totalPasDisp=pasivos.length?`<div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-weight:600"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.08em">Total Pasivo</span><span style="color:var(--coral)">${fmtUSD(totalPas)}</span></div>`:'';
+  const pnExtra=`<div style="margin-top:8px;padding:6px 8px;background:var(--surface2);border-radius:4px;display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--text3)">Resultado del ejercicio</span><span style="color:${resultadoEjercicio>=0?'var(--green)':'var(--red)'};font-family:var(--mono)">${fmtUSD(resultadoEjercicio)}</span></div><div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-weight:600"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.08em">Total PN</span><span style="color:var(--purple)">${fmtUSD(totalPN)}</span></div>`;
+  let html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;font-family:var(--mono);font-size:12px">';
+  html+=renderCol('ACTIVO','var(--green)',activos,totalActDisp);
+  html+='<div>';
+  html+=renderCol('PASIVO','var(--coral)',pasivos,totalPasDisp);
+  html+='<div style="margin-top:18px"></div>';
+  html+=renderCol('PATRIMONIO NETO','var(--purple)',patrim,pnExtra);
+  html+='</div></div>';
+  html+=`<div style="margin-top:18px;padding:14px;background:var(--surface2);border-radius:6px;display:grid;grid-template-columns:1fr 1fr;gap:18px;font-family:var(--mono);font-size:13px"><div style="display:flex;justify-content:space-between"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.12em">Total Activo</span><span style="font-weight:600;color:var(--green)">${fmtUSD(totalAct)}</span></div><div style="display:flex;justify-content:space-between"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.12em">Total Pasivo + PN</span><span style="font-weight:600;color:${cuadra?'var(--accent)':'var(--red)'}">${fmtUSD(totalPasPN)}</span></div></div>`;
+  cont.innerHTML=html;
+}
+
+// ─── ASIENTO AUTOMÁTICO DESDE VENTA ───────────────────────────
+async function generarAsientoVenta(ventaId,total,cliente,fecha,nroRemito){
+  try{
+    const ctaDeudores=cuentasContables.find(c=>c.codigo==='1.2.01');
+    const ctaVentas=cuentasContables.find(c=>c.codigo==='4.1.01');
+    if(!ctaDeudores||!ctaVentas){console.warn('Plan de cuentas: no se encontraron 1.2.01 o 4.1.01 — asiento automático no generado');return;}
+    const tot=parseFloat(total||0);
+    if(tot<=0)return;
+    // Buscar asiento existente para esta venta
+    const existingArr=await GET('asientos',`?origen_tipo=eq.venta&origen_id=eq.${ventaId}`);
+    const existing=existingArr&&existingArr[0];
+    const cabecera={empresa_id:currentEmpresa.id,fecha:fecha||new Date().toISOString().slice(0,10),descripcion:`Venta a ${cliente||'cliente'}`,comprobante_nro:nroRemito||null,tipo:'auto-venta',origen_tipo:'venta',origen_id:ventaId,estado:'confirmado'};
+    let asientoId;
+    if(existing){
+      asientoId=existing.id;
+      await PATCH('asientos',cabecera,`?id=eq.${asientoId}`);
+      await DEL('asiento_lineas',`?asiento_id=eq.${asientoId}`);
+    }else{
+      const maxN=asientos.reduce((m,a)=>Math.max(m,parseInt(a.numero||0)||0),0);
+      const r=await POST('asientos',{...cabecera,numero:maxN+1});
+      asientoId=r[0].id;
+    }
+    await POST('asiento_lineas',[
+      {asiento_id:asientoId,cuenta_id:ctaDeudores.id,debe:tot,haber:0,descripcion:`Deuda cliente ${cliente||''}`,orden:0},
+      {asiento_id:asientoId,cuenta_id:ctaVentas.id,debe:0,haber:tot,descripcion:`Venta ${nroRemito||''}`,orden:1}
+    ]);
+  }catch(e){console.warn('Error generando asiento automático:',e);}
 }
 
 // ─── ANIMACIÓN DE KPIs (count-up al cargar) ─────────────
@@ -3678,7 +3851,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes'],analisis:['costos','trace'],contabilidad:['cuentas','asientosp','librodiario','libromayor','balance','estado']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes'],analisis:['costos','trace'],contabilidad:['cuentas','asientosp','librodiario','libromayor','balance','estado','balgral']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
