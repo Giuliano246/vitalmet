@@ -393,7 +393,6 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
         <div class="stats-bar" id="ventas-stats"></div>
         <div class="toolbar">
           <div class="search-box"><input type="text" placeholder="Buscar por cliente, remito..." oninput="renderVentas(this.value)"></div>
-          <button class="btn btn-coral" onclick="openModal('modal-venta')">+ Nueva venta</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Nro. remito</th><th>Cliente</th><th>Fecha</th><th>Piezas</th><th>Total unid.</th><th>Importe</th><th>Estado</th><th></th></tr></thead><tbody id="ventas-tbody"></tbody></table></div>
       </div>
@@ -867,29 +866,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
   </div>
 </div>
 
-<!-- MODAL: Editar venta -->
-<div class="modal-overlay" id="modal-edit-venta">
-  <div class="modal">
-    <div class="modal-header"><div class="modal-title">Editar venta</div><button class="modal-close" onclick="closeModal('modal-edit-venta')">×</button></div>
-    <div class="modal-body">
-      <input type="hidden" id="edit-venta-id">
-      <div class="form-row">
-        <div class="form-group"><label>Nro. remito</label><input type="text" id="edit-venta-remito" readonly style="opacity:.5"></div>
-        <div class="form-group"><label>Cliente</label><input type="text" id="edit-venta-cliente"></div>
-      </div>
-      <div class="form-row triple">
-        <div class="form-group"><label>Fecha</label><input type="date" id="edit-venta-fecha"></div>
-        <div class="form-group"><label>Condición pago</label><select id="edit-venta-condicion"><option>Contado</option><option>30 días</option><option>60 días</option><option>90 días</option><option>A convenir</option></select></div>
-        <div class="form-group"><label>Estado</label><select id="edit-venta-estado"><option value="entregado">Entregado</option><option value="pendiente">Pendiente</option><option value="facturado">Facturado</option></select></div>
-      </div>
-      <div class="form-row single"><div class="form-group"><label>Observaciones</label><textarea id="edit-venta-obs"></textarea></div></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-edit-venta')">Cancelar</button>
-      <button class="btn btn-primary" id="btn-save-edit-venta" onclick="saveEditVenta()">Guardar cambios</button>
-    </div>
-  </div>
-</div>
+<!-- MODAL: Editar venta — eliminado, ahora se usa modal-venta para crear y editar -->
 
 
 <!-- MODAL: Material -->
@@ -1525,26 +1502,32 @@ function openModal(id){
   if(id==='modal-mp'){populateCertSel();const s=document.getElementById('mp-material');if(s)s.innerHTML=getMaterialOptions();}
   if(id==='modal-op'){populateCertSel();populateBarraSel();autoDate('op-fecha');['op-fecha-fin','op-horas','op-codigo','op-oc-material','op-matriz-desc'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});document.getElementById('op-origen').value='barra';onOrigenChange();}
   if(id==='modal-venta'){
-    autoDate('v-fecha');autoDate('v-fecha-desde');autoDate('v-fecha-hasta');
-    ventaItemsList=[];renderVentaItems();
-    resetF(['v-remito','v-cliente','v-cuit','v-obs','v-grupo-bonif']);
-    document.getElementById('v-bonif1').value='0';
-    document.getElementById('v-coef-reg').value='USD';
-    document.getElementById('v-coef-emi').value='USD';
-    document.getElementById('v-coef-deuda').value='USD';
-    document.getElementById('v-estado').value='ingresado';
-    // Populate vendedores
+    // Populate selects siempre (vendedores, listas)
     const vSel=document.getElementById('v-vendedor');
     vSel.innerHTML='<option value="">Sin vendedor</option>'+vendedores.map(v=>`<option value="${v.id}">${v.codigo?v.codigo+' · ':''}${v.nombre}</option>`).join('');
-    // Populate listas de precios
     const lpSel=document.getElementById('v-lista-precios');
     lpSel.innerHTML='<option value="">Sin lista</option>'+listasPrecios.map(l=>`<option value="${l.id}">${l.codigo?l.codigo+' · ':''}${l.nombre}</option>`).join('');
+    // Si NO es edición → resetear a estado nueva venta
+    if(!window.editingVentaId){
+      autoDate('v-fecha');autoDate('v-fecha-desde');autoDate('v-fecha-hasta');
+      ventaItemsList=[];renderVentaItems();
+      resetF(['v-remito','v-cliente','v-cuit','v-obs','v-grupo-bonif']);
+      document.getElementById('v-bonif1').value='0';
+      document.getElementById('v-coef-reg').value='USD';
+      document.getElementById('v-coef-emi').value='USD';
+      document.getElementById('v-coef-deuda').value='USD';
+      document.getElementById('v-estado').value='ingresado';
+      document.querySelector('#modal-venta .modal-title').textContent='Nueva venta / pedido';
+      document.getElementById('btn-save-venta').textContent='Registrar pedido';
+      document.getElementById('v-remito').readOnly=false;
+      document.getElementById('v-remito').style.opacity='1';
+    }
     updateVTotal();
   }
   document.getElementById(id).classList.add('open');
 }
-function closeModal(id){document.getElementById(id).classList.remove('open');}
-document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+function closeModal(id){document.getElementById(id).classList.remove('open');if(id==='modal-venta')window.editingVentaId=null;}
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);}));
 function autoDate(id){const el=document.getElementById(id);if(el&&!el.value)el.value=new Date().toISOString().split('T')[0];}
 function g(id){return document.getElementById(id)?.value?.trim()||'';}
 
@@ -1704,24 +1687,27 @@ async function saveOP(){
 async function saveVenta(){
   if(!g('v-remito')||!g('v-cliente'))return notify('Completá nro pedido y razón social','err');
   if(!ventaItemsList.length)return notify('Agregá al menos un ítem','err');
+  const isEdit=!!window.editingVentaId;
+  // Validación stock: si es edit, sumar el stock de los items viejos antes de comparar
+  const ventaActual=isEdit?ventas.find(v=>v.id===window.editingVentaId):null;
+  const itemsViejos=ventaActual?(ventaActual.venta_items||[]):[];
+  const stockExtra={};
+  itemsViejos.forEach(i=>{stockExtra[i.producto_id]=(stockExtra[i.producto_id]||0)+i.cantidad;});
   for(const item of ventaItemsList){
     if(!item.ptId||item.cant<=0)return notify('Verificá los ítems','err');
     const pt=pts.find(p=>p.id===item.ptId);
-    if(!pt||item.cant>pt.cantidad)return notify(`Stock insuficiente: ${pt?.pieza||'producto'}`,'err');
+    const dispEffective=(pt?.cantidad||0)+(stockExtra[item.ptId]||0);
+    if(!pt||item.cant>dispEffective)return notify(`Stock insuficiente: ${pt?.pieza||'producto'}`,'err');
   }
   setBusy('btn-save-venta',true);
   try{
     const clienteNombre=g('v-cliente');
-    // Auto-crear cliente si no existe
     const clienteExiste=clientes.find(c=>c.nombre.toLowerCase()===clienteNombre.toLowerCase());
     if(!clienteExiste){
       await POST('clientes',{empresa_id:currentEmpresa.id,nombre:clienteNombre,cuit:g('v-cuit')||null});
     }
-    // Calcular total
     const totalVenta=ventaItemsList.reduce((a,i)=>a+(i.cant*(i.precio||0)),0);
-
-    const venta=await POST('ventas',{
-      empresa_id:currentEmpresa.id,
+    const ventaPayload={
       nro_remito:g('v-remito'),
       nro_pedido:g('v-remito'),
       cliente:clienteNombre,
@@ -1740,8 +1726,27 @@ async function saveVenta(){
       grupo_bonificacion:g('v-grupo-bonif')||null,
       vendedor_id:g('v-vendedor')||null,
       observaciones:g('v-obs')
-    });
-    const ventaId=venta[0].id;
+    };
+    let ventaId;
+    if(isEdit){
+      ventaId=window.editingVentaId;
+      // Devolver stock de items viejos
+      for(const oi of itemsViejos){
+        const pt=pts.find(p=>p.id===oi.producto_id);
+        if(pt)await PATCH('productos_terminados',{cantidad:pt.cantidad+oi.cantidad},`?id=eq.${pt.id}`);
+      }
+      // Borrar items viejos
+      await DEL('venta_items',`?venta_id=eq.${ventaId}`);
+      // Actualizar cabecera
+      await PATCH('ventas',ventaPayload,`?id=eq.${ventaId}`);
+    }else{
+      ventaPayload.empresa_id=currentEmpresa.id;
+      const venta=await POST('ventas',ventaPayload);
+      ventaId=venta[0].id;
+    }
+    // Recargar pts para tener stock actualizado tras devolución
+    if(isEdit)pts=await GET('productos_terminados','?order=created_at.desc');
+    // Crear items nuevos y descontar stock
     for(const item of ventaItemsList){
       await POST('venta_items',{
         venta_id:ventaId,
@@ -1754,13 +1759,13 @@ async function saveVenta(){
         bonif_1:item.bonif||0,
       });
       const pt=pts.find(p=>p.id===item.ptId);
-      await PATCH('productos_terminados',{cantidad:Math.max(0,pt.cantidad-item.cant)},`?id=eq.${item.ptId}`);
+      if(pt)await PATCH('productos_terminados',{cantidad:Math.max(0,pt.cantidad-item.cant)},`?id=eq.${item.ptId}`);
     }
-    await loadAll();closeModal('modal-venta');ventaItemsList=[];
+    await loadAll();closeModal('modal-venta');ventaItemsList=[];window.editingVentaId=null;
     resetF(['v-remito','v-cliente','v-cuit','v-fecha','v-condicion','v-estado','v-obs','v-grupo-bonif']);
-    renderAll();notify('Pedido registrado');
+    renderAll();notify(isEdit?'Venta actualizada':'Pedido registrado');
   }catch(e){notify(e.message,'err');}
-  setBusy('btn-save-venta',false,'Registrar pedido');
+  setBusy('btn-save-venta',false,window.editingVentaId?'Guardar cambios':'Registrar pedido');
 }
 
 function resetF(ids){ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
@@ -2339,29 +2344,33 @@ async function deleteOP(id){
 // ── VENTAS ──
 function editVenta(id){
   const v=ventas.find(x=>x.id===id);if(!v)return;
-  document.getElementById('edit-venta-id').value=v.id;
-  document.getElementById('edit-venta-remito').value=v.nro_remito;
-  document.getElementById('edit-venta-cliente').value=v.cliente;
-  document.getElementById('edit-venta-fecha').value=v.fecha||'';
-  document.getElementById('edit-venta-condicion').value=v.condicion_pago||'Contado';
-  document.getElementById('edit-venta-estado').value=v.estado||'entregado';
-  document.getElementById('edit-venta-obs').value=v.observaciones||'';
-  document.getElementById('modal-edit-venta').classList.add('open');
-}
-async function saveEditVenta(){
-  const id=document.getElementById('edit-venta-id').value;
-  setBusy('btn-save-edit-venta',true);
-  try{
-    await PATCH('ventas',{
-      cliente:document.getElementById('edit-venta-cliente').value,
-      fecha:document.getElementById('edit-venta-fecha').value||null,
-      condicion_pago:document.getElementById('edit-venta-condicion').value,
-      estado:document.getElementById('edit-venta-estado').value,
-      observaciones:document.getElementById('edit-venta-obs').value,
-    },`?id=eq.${id}`);
-    await loadAll();closeModal('modal-edit-venta');renderAll();notify('Venta actualizada');
-  }catch(e){notify(e.message,'err');}
-  setBusy('btn-save-edit-venta',false,'Guardar cambios');
+  window.editingVentaId=id;
+  // Cargar items existentes a la lista en memoria
+  const items=v.venta_items||[];
+  ventaItemsList=items.map(i=>({ptId:i.producto_id,cant:i.cantidad,precio:i.precio_unitario||0,bonif:i.bonif_1||0}));
+  // Abrir modal grande
+  openModal('modal-venta');
+  // Poblar campos con datos de la venta
+  document.getElementById('v-remito').value=v.nro_remito||'';
+  document.getElementById('v-remito').readOnly=true;
+  document.getElementById('v-remito').style.opacity='.6';
+  document.getElementById('v-cliente').value=v.cliente||'';
+  document.getElementById('v-cuit').value=v.cuit||'';
+  document.getElementById('v-fecha').value=v.fecha||'';
+  document.getElementById('v-fecha-desde').value=v.fecha_entrega_desde||'';
+  document.getElementById('v-fecha-hasta').value=v.fecha_entrega_hasta||'';
+  document.getElementById('v-estado').value=v.estado||'ingresado';
+  document.getElementById('v-condicion').value=v.condicion_pago||'Contado';
+  document.getElementById('v-vendedor').value=v.vendedor_id||'';
+  document.getElementById('v-lista-precios').value=v.lista_precios_id||'';
+  document.getElementById('v-grupo-bonif').value=v.grupo_bonificacion||'';
+  document.getElementById('v-bonif1').value=v.bonif_pct_1||0;
+  document.getElementById('v-obs').value=v.observaciones||'';
+  // Cambiar título y botón
+  document.querySelector('#modal-venta .modal-title').textContent='Editar venta';
+  document.getElementById('btn-save-venta').textContent='Guardar cambios';
+  renderVentaItems();
+  updateVTotal();
 }
 
 // ─── VERIFICAR SESIÓN EXISTENTE ────────────────────────────────────
@@ -2777,14 +2786,12 @@ function secSince(iso){return Math.floor((Date.now()-new Date(iso).getTime())/10
 
 async function loadTiemposData(opId){
   try{
-    [opOperaciones,opTimeEntries]=await Promise.all([
-      GET('op_operaciones',`?orden_id=eq.${opId}&order=secuencia.asc`).catch(()=>[]),
-      GET('op_time_entries',`?operacion_id=in.(${encodeURIComponent('select id from op_operaciones where orden_id=')+opId})&order=started_at.asc`).catch(()=>[])
-    ]);
-    // fallback: cargar entries filtrados por operaciones cargadas
-    if(opOperaciones.length&&!opTimeEntries.length){
+    opOperaciones=await GET('op_operaciones',`?orden_id=eq.${opId}&order=secuencia.asc`).catch(()=>[]);
+    if(opOperaciones.length){
       const ids=opOperaciones.map(o=>o.id).join(',');
       opTimeEntries=await GET('op_time_entries',`?operacion_id=in.(${ids})&order=started_at.asc`).catch(()=>[]);
+    }else{
+      opTimeEntries=[];
     }
   }catch(e){console.error('Error cargando tiempos:',e);opOperaciones=[];opTimeEntries=[];}
 }
