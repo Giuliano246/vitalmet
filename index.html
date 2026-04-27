@@ -327,6 +327,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <div class="nav-item" data-group="compras" onclick="showPage('compras')"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></span>Compras</div>
       <div class="nav-item" data-group="ventas" onclick="showPage('presupuestos')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></span>Ventas</div>
       <div class="nav-item" data-group="analisis" onclick="showPage('costos')"><span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>Análisis</div>
+      <div class="nav-item" data-group="contabilidad" onclick="showPage('cuentas')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 17V7"/><path d="M11 17V11"/><path d="M15 17V13"/><path d="M19 17V9"/></svg></span>Contabilidad</div>
       <div class="nav-item" data-group="config" onclick="showPage('config')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>Configuración</div>
     </nav>
     <div class="sidebar-footer">
@@ -518,6 +519,44 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       </div>
     </div>
 
+    <!-- CONTABILIDAD: Plan de cuentas -->
+    <div class="page" id="page-cuentas">
+      <div class="page-header"><div class="page-title">Plan de cuentas</div><div class="page-sub">// estructura jerárquica · partida doble</div><div class="tabs"><div class="tab active">Todas</div></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="cuentas-stats"></div>
+        <div class="toolbar">
+          <div class="search-box"><input type="text" placeholder="Buscar por código o nombre..." oninput="renderCuentas(this.value)"></div>
+          <button class="btn btn-ghost" onclick="openModalCuenta()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva cuenta</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Cuenta padre</th><th>Imputable</th><th>Activa</th><th></th></tr></thead><tbody id="cuentas-tbody"></tbody></table></div>
+      </div>
+    </div>
+    <!-- CONTABILIDAD: Asientos (placeholder fase 2) -->
+    <div class="page" id="page-asientosp">
+      <div class="page-header"><div class="page-title">Asientos contables</div><div class="page-sub">// alta y edición</div><div class="tabs"><div class="tab active">Todos</div></div></div>
+      <div class="page-content"><div style="padding:48px;text-align:center;color:var(--text3);font-size:13px">Próxima fase: alta de asientos manuales con partida doble.</div></div>
+    </div>
+    <!-- CONTABILIDAD: Libro diario (placeholder) -->
+    <div class="page" id="page-librodiario">
+      <div class="page-header"><div class="page-title">Libro diario</div><div class="page-sub">// listado cronológico</div><div class="tabs"><div class="tab active">Todos</div></div></div>
+      <div class="page-content"><div style="padding:48px;text-align:center;color:var(--text3);font-size:13px">Próxima fase: vista cronológica de asientos.</div></div>
+    </div>
+    <!-- CONTABILIDAD: Libro mayor (placeholder) -->
+    <div class="page" id="page-libromayor">
+      <div class="page-header"><div class="page-title">Libro mayor</div><div class="page-sub">// movimientos por cuenta</div><div class="tabs"><div class="tab active">Por cuenta</div></div></div>
+      <div class="page-content"><div style="padding:48px;text-align:center;color:var(--text3);font-size:13px">Próxima fase: drill-down por cuenta con saldo acumulado.</div></div>
+    </div>
+    <!-- CONTABILIDAD: Balance (placeholder) -->
+    <div class="page" id="page-balance">
+      <div class="page-header"><div class="page-title">Balance de comprobación</div><div class="page-sub">// sumas y saldos</div><div class="tabs"><div class="tab active">Período actual</div></div></div>
+      <div class="page-content"><div style="padding:48px;text-align:center;color:var(--text3);font-size:13px">Próxima fase: balance de comprobación con sumas y saldos.</div></div>
+    </div>
+    <!-- CONTABILIDAD: Estado de resultados (placeholder) -->
+    <div class="page" id="page-estado">
+      <div class="page-header"><div class="page-title">Estado de resultados</div><div class="page-sub">// ingresos − egresos del período</div><div class="tabs"><div class="tab active">Período actual</div></div></div>
+      <div class="page-content"><div style="padding:48px;text-align:center;color:var(--text3);font-size:13px">Próxima fase: cálculo automático de resultados del ejercicio.</div></div>
+    </div>
+
     <!-- CONFIGURACIÓN -->
     <div class="page" id="page-config">
       <div class="page-header"><div class="page-title">Configuración</div><div class="page-sub">// materiales, usuarios y permisos</div>
@@ -653,6 +692,21 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <div class="form-row single"><div class="form-group"><label>Observaciones</label><input type="text" id="herr-observaciones" placeholder="Notas"></div></div>
     </div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-herramienta')">Cancelar</button><button class="btn btn-primary" id="btn-save-herramienta" onclick="saveHerramienta()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Cuenta contable -->
+<div class="modal-overlay" id="modal-cuenta">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="modal-cuenta-title">Nueva cuenta</div><button class="modal-close" onclick="closeModal('modal-cuenta')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="cuenta-edit-id">
+      <div class="form-row" style="grid-template-columns:120px 1fr"><div class="form-group"><label>Código *</label><input type="text" id="cuenta-codigo" placeholder="1.1.06"></div><div class="form-group"><label>Nombre *</label><input type="text" id="cuenta-nombre" placeholder="Caja chica"></div></div>
+      <div class="form-row"><div class="form-group"><label>Tipo *</label><select id="cuenta-tipo"><option value="activo">Activo</option><option value="pasivo">Pasivo</option><option value="patrimonio">Patrimonio</option><option value="ingreso">Ingreso</option><option value="egreso">Egreso</option></select></div><div class="form-group"><label>Cuenta padre</label><select id="cuenta-padre"><option value="">— sin padre (raíz) —</option></select></div></div>
+      <div class="form-row"><div class="form-group" style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" id="cuenta-imputable" checked style="margin:0"><label for="cuenta-imputable" style="cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text2)">Imputable (se pueden cargar asientos en esta cuenta)</label></div><div class="form-group" style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" id="cuenta-activa" checked style="margin:0"><label for="cuenta-activa" style="cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text2)">Cuenta activa</label></div></div>
+      <div class="form-row single"><div class="form-group"><label>Observaciones</label><input type="text" id="cuenta-observaciones" placeholder="Notas internas"></div></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-cuenta')">Cancelar</button><button class="btn btn-primary" id="btn-save-cuenta" onclick="saveCuenta()">Guardar</button></div>
   </div>
 </div>
 
@@ -1332,6 +1386,7 @@ let currentSession=null, currentUser=null, currentEmpresa=null;
 let certs=[],barras=[],ops=[],pts=[],ventas=[],ventaItemsList=[],materiales=[],tratamientos=[],usuariosEmpresa=[],permisosUsuario=[],clientes=[],vendedores=[],listasPrecios=[],currentUserData=null;
 let proveedores=[],ordenesCompra=[],ocItems=[],recepciones=[],ocItemsDraft=[],currentOCId=null;
 let insumos=[],herramientas=[];
+let cuentasContables=[],asientos=[],asientoLineas=[];
 let presupuestos=[],presupItemsList=[],presupItemsDraft=[];
 let certFileData=null,certFileName=null;
 
@@ -1581,7 +1636,7 @@ async function loadEmpresaAndStart(){
 // ─── DATA ─────────────────────────────────────────────────────────
 async function loadAll(){
   try{
-    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos,insumos,herramientas]=await Promise.all([
+    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos,insumos,herramientas,cuentasContables,asientos,asientoLineas]=await Promise.all([
       GET('certificados','?order=created_at.desc'),
       GET('barras','?order=created_at.desc&select=*,certificados(nro,colada,proveedor)'),
       GET('ordenes_produccion','?order=created_at.desc&select=*,barras(lote)'),
@@ -1601,6 +1656,9 @@ async function loadAll(){
       GET('presupuestos','?order=fecha.desc&select=*,presupuesto_items(*)').catch(()=>[]),
       GET('insumos','?order=nombre.asc&select=*,proveedores(nombre)').catch(()=>[]),
       GET('herramientas','?order=nombre.asc&select=*,proveedores(nombre)').catch(()=>[]),
+      GET('cuentas_contables','?order=codigo.asc').catch(()=>[]),
+      GET('asientos','?order=fecha.desc,numero.desc').catch(()=>[]),
+      GET('asiento_lineas','?order=orden.asc&select=*,cuentas_contables(codigo,nombre)').catch(()=>[]),
     ]);
   }catch(e){
     console.error('Error cargando datos:',e);
@@ -1608,13 +1666,15 @@ async function loadAll(){
     materiales=materiales||[];tratamientos=tratamientos||[];usuariosEmpresa=usuariosEmpresa||[];permisosUsuario=permisosUsuario||[];clientes=clientes||[];vendedores=vendedores||[];listasPrecios=listasPrecios||[];
     proveedores=proveedores||[];ordenesCompra=ordenesCompra||[];ocItems=ocItems||[];recepciones=recepciones||[];presupuestos=presupuestos||[];
     insumos=insumos||[];herramientas=herramientas||[];
+    cuentasContables=cuentasContables||[];asientos=asientos||[];asientoLineas=asientoLineas||[];
   }
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',costos:'analisis',trace:'analisis',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
+  contabilidad:[{k:'cuentas',l:'Plan de cuentas'},{k:'asientosp',l:'Asientos'},{k:'librodiario',l:'Libro diario'},{k:'libromayor',l:'Libro mayor'},{k:'balance',l:'Balance'},{k:'estado',l:'Estado de resultados'}],
   ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'}],
   analisis:[{k:'costos',l:'Costos y rentabilidad'},{k:'trace',l:'Trazabilidad'}],
 };
@@ -2310,7 +2370,77 @@ function notify(msg,type){
   el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);
 }
 
-function renderAll(){renderDash();renderMP();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderConfig();updateClientesDatalist();animateNumbers();}
+function renderAll(){renderDash();renderMP();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderConfig();updateClientesDatalist();animateNumbers();}
+
+// ─── PLAN DE CUENTAS ──────────────────────────────────────────
+function renderCuentas(filter=''){
+  const f=(filter||'').toLowerCase();
+  const cuentaById={};cuentasContables.forEach(c=>{cuentaById[c.id]=c;});
+  const list=cuentasContables.filter(c=>!f||(c.codigo||'').toLowerCase().includes(f)||(c.nombre||'').toLowerCase().includes(f));
+  // ordenar por código (string)
+  list.sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'',undefined,{numeric:true}));
+  const total=cuentasContables.length;
+  const porTipo=t=>cuentasContables.filter(c=>c.tipo===t).length;
+  document.getElementById('cuentas-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total cuentas</div><div class="stat-value" style="color:var(--blue)">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Activos</div><div class="stat-value" style="color:var(--green)">${porTipo('activo')}</div></div>
+    <div class="stat-card"><div class="stat-label">Pasivos</div><div class="stat-value" style="color:var(--coral)">${porTipo('pasivo')}</div></div>
+    <div class="stat-card"><div class="stat-label">Ingresos / Egresos</div><div class="stat-value" style="color:var(--accent)">${porTipo('ingreso')} / ${porTipo('egreso')}</div></div>`;
+  const tipoBadge={activo:'badge-ok',pasivo:'badge-coral',patrimonio:'badge-purple',ingreso:'badge-blue',egreso:'badge-warn'};
+  document.getElementById('cuentas-tbody').innerHTML=list.length?list.map(c=>{
+    const nivel=(c.codigo||'').split('.').length-1;
+    const padding=nivel*16;
+    const padre=c.cuenta_padre_id?cuentaById[c.cuenta_padre_id]:null;
+    return`<tr><td class="mono td-primary" style="padding-left:${padding+8}px">${c.codigo}</td><td style="${nivel===0?'font-weight:600':nivel===1?'font-weight:500':''}">${c.nombre}</td><td><span class="badge ${tipoBadge[c.tipo]||'badge-warn'}">${(c.tipo||'').toUpperCase()}</span></td><td class="mono" style="font-size:11px;color:var(--text3)">${padre?padre.codigo+' · '+padre.nombre:'—'}</td><td class="mono" style="color:${c.imputable?'var(--green)':'var(--text3)'};font-size:11px">${c.imputable?'sí':'agrupadora'}</td><td class="mono" style="color:${c.activa?'var(--text)':'var(--red)'};font-size:11px">${c.activa?'activa':'inactiva'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editCuenta('${c.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteCuenta('${c.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+  }).join(''):`<tr><td colspan="7" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 17V7"/><path d="M11 17V11"/><path d="M15 17V13"/><path d="M19 17V9"/></svg></div><div class="empty-title">Sin cuentas configuradas</div><div class="empty-msg">Cargá la primera cuenta con <b>+ Nueva cuenta</b>. El plan estándar argentino se cargó automáticamente desde Supabase.</div></div></td></tr>`;
+}
+function openModalCuenta(id){
+  document.getElementById('modal-cuenta-title').textContent=id?'Editar cuenta':'Nueva cuenta';
+  document.getElementById('cuenta-edit-id').value=id||'';
+  resetF(['cuenta-codigo','cuenta-nombre','cuenta-observaciones']);
+  document.getElementById('cuenta-tipo').value='activo';
+  document.getElementById('cuenta-imputable').checked=true;
+  document.getElementById('cuenta-activa').checked=true;
+  // padre selector — solo cuentas no-imputables o cualquier cuenta que pueda ser padre
+  const padreSel=document.getElementById('cuenta-padre');
+  const opts=[...cuentasContables].sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'',undefined,{numeric:true}));
+  padreSel.innerHTML='<option value="">— sin padre (raíz) —</option>'+opts.map(c=>`<option value="${c.id}">${c.codigo} · ${c.nombre}</option>`).join('');
+  if(id){
+    const c=cuentasContables.find(x=>x.id===id);if(!c)return;
+    document.getElementById('cuenta-codigo').value=c.codigo||'';
+    document.getElementById('cuenta-nombre').value=c.nombre||'';
+    document.getElementById('cuenta-tipo').value=c.tipo||'activo';
+    document.getElementById('cuenta-padre').value=c.cuenta_padre_id||'';
+    document.getElementById('cuenta-imputable').checked=c.imputable!==false;
+    document.getElementById('cuenta-activa').checked=c.activa!==false;
+    document.getElementById('cuenta-observaciones').value=c.observaciones||'';
+  }
+  openModal('modal-cuenta');
+}
+function editCuenta(id){openModalCuenta(id);}
+async function saveCuenta(){
+  const id=g('cuenta-edit-id');
+  if(!g('cuenta-codigo')||!g('cuenta-nombre'))return notify('Código y nombre son obligatorios','err');
+  setBusy('btn-save-cuenta',true);
+  try{
+    const data={empresa_id:currentEmpresa.id,codigo:g('cuenta-codigo'),nombre:g('cuenta-nombre'),tipo:g('cuenta-tipo'),cuenta_padre_id:g('cuenta-padre')||null,imputable:document.getElementById('cuenta-imputable').checked,activa:document.getElementById('cuenta-activa').checked,observaciones:g('cuenta-observaciones')||null};
+    if(id)await PATCH('cuentas_contables',data,`?id=eq.${id}`);else await POST('cuentas_contables',data);
+    await loadAll();closeModal('modal-cuenta');renderAll();notify(id?'Cuenta actualizada':'Cuenta creada');
+  }catch(e){notify(e.message,'err');}
+  setBusy('btn-save-cuenta',false,'Guardar');
+}
+async function deleteCuenta(id){
+  const c=cuentasContables.find(x=>x.id===id);if(!c)return;
+  // Bloquear si tiene movimientos
+  const mov=asientoLineas.filter(l=>l.cuenta_id===id).length;
+  if(mov>0)return notify(`No se puede eliminar: la cuenta tiene ${mov} movimiento(s) en asientos`,'err');
+  // Bloquear si tiene hijas
+  const hijas=cuentasContables.filter(x=>x.cuenta_padre_id===id).length;
+  if(hijas>0)return notify(`No se puede eliminar: la cuenta tiene ${hijas} subcuenta(s)`,'err');
+  if(!confirm(`¿Eliminar cuenta "${c.codigo} · ${c.nombre}"?`))return;
+  try{await DEL('cuentas_contables',`?id=eq.${id}`);await loadAll();renderAll();notify('Cuenta eliminada');}
+  catch(e){notify(e.message,'err');}
+}
 
 // ─── ANIMACIÓN DE KPIs (count-up al cargar) ─────────────
 window._numbersAnimated=false;
@@ -3241,7 +3371,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes'],analisis:['costos','trace']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes'],analisis:['costos','trace'],contabilidad:['cuentas','asientosp','librodiario','libromayor','balance','estado']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
