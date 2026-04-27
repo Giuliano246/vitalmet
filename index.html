@@ -378,6 +378,30 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="table-wrap"><table><thead><tr><th>Nro. cert.</th><th>Proveedor</th><th>Material</th><th>Nro OC</th><th>Metros</th><th>Fecha</th><th>PDF</th><th>Barras</th><th></th></tr></thead><tbody id="cert-tbody"></tbody></table></div>
       </div>
     </div>
+    <!-- INSUMOS -->
+    <div class="page" id="page-insumos">
+      <div class="page-header"><div class="page-title">Insumos</div><div class="page-sub">// consumibles · lubricantes · soldadura · limpieza</div><div class="tabs"><div class="tab active">Todos</div></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="insumos-stats"></div>
+        <div class="toolbar">
+          <div class="search-box"><input type="text" placeholder="Buscar por nombre, código, categoría..." oninput="renderInsumos(this.value)"></div>
+          <button class="btn btn-ghost" onclick="openModalInsumo()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo insumo</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Stock</th><th>Unidad</th><th>Mínimo</th><th>Último precio</th><th>Proveedor</th><th></th></tr></thead><tbody id="insumos-tbody"></tbody></table></div>
+      </div>
+    </div>
+    <!-- HERRAMIENTAS -->
+    <div class="page" id="page-herramientas">
+      <div class="page-header"><div class="page-title">Herramientas</div><div class="page-sub">// insertos · mechas · hojas · instrumentos</div><div class="tabs"><div class="tab active">Todos</div></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="herramientas-stats"></div>
+        <div class="toolbar">
+          <div class="search-box"><input type="text" placeholder="Buscar por nombre, código, ubicación..." oninput="renderHerramientas(this.value)"></div>
+          <button class="btn btn-ghost" onclick="openModalHerramienta()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva herramienta</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Código</th><th>Nombre</th><th>Cantidad</th><th>Estado</th><th>Ubicación</th><th>Precio compra</th><th>Fecha compra</th><th>Proveedor</th><th></th></tr></thead><tbody id="herramientas-tbody"></tbody></table></div>
+      </div>
+    </div>
     <!-- ÓRDENES -->
     <div class="page" id="page-op">
       <div class="page-header"><div class="page-title">Órdenes de producción</div><div class="page-sub">// consumo MP → generación PT</div><div class="tabs"><div class="tab active">Historial</div></div></div>
@@ -597,6 +621,38 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <button class="btn btn-ghost" onclick="closeModal('modal-cert')">Cancelar</button>
       <button class="btn btn-primary" id="btn-save-cert" onclick="saveCert()">Guardar certificado</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL: Insumo -->
+<div class="modal-overlay" id="modal-insumo">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="modal-insumo-title">Nuevo insumo</div><button class="modal-close" onclick="closeModal('modal-insumo')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="insumo-edit-id">
+      <div class="form-row" style="grid-template-columns:120px 1fr 140px"><div class="form-group"><label>Código</label><input type="text" id="insumo-codigo" placeholder="INS-001"></div><div class="form-group"><label>Nombre *</label><input type="text" id="insumo-nombre" placeholder="Aceite hidráulico ISO 68"></div><div class="form-group"><label>Categoría</label><input type="text" id="insumo-categoria" placeholder="Lubricantes" list="insumo-cats-datalist"></div></div>
+      <datalist id="insumo-cats-datalist"><option>Lubricantes</option><option>Soldadura</option><option>Limpieza</option><option>Embalaje</option><option>Seguridad</option><option>Tornillería</option><option>Otros</option></datalist>
+      <div class="form-row single"><div class="form-group"><label>Descripción</label><input type="text" id="insumo-descripcion" placeholder="Detalle adicional"></div></div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr"><div class="form-group"><label>Cantidad</label><input type="number" id="insumo-cantidad" step="0.01" placeholder="0"></div><div class="form-group"><label>Unidad</label><select id="insumo-unidad"><option value="un">unidad</option><option value="kg">kg</option><option value="lt">litros</option><option value="ml">ml</option><option value="m">metros</option><option value="caja">caja</option><option value="par">par</option><option value="rollo">rollo</option></select></div><div class="form-group"><label>Stock mínimo</label><input type="number" id="insumo-minimo" step="0.01" placeholder="0"></div><div class="form-group"><label>Último precio USD</label><input type="number" id="insumo-precio" step="0.01" placeholder="0.00"></div></div>
+      <div class="form-row"><div class="form-group"><label>Último proveedor</label><select id="insumo-proveedor"><option value="">— ninguno —</option></select></div><div class="form-group"><label>Observaciones</label><input type="text" id="insumo-observaciones" placeholder="Notas"></div></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-insumo')">Cancelar</button><button class="btn btn-primary" id="btn-save-insumo" onclick="saveInsumo()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Herramienta -->
+<div class="modal-overlay" id="modal-herramienta">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="modal-herramienta-title">Nueva herramienta</div><button class="modal-close" onclick="closeModal('modal-herramienta')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="herr-edit-id">
+      <div class="form-row" style="grid-template-columns:120px 1fr"><div class="form-group"><label>Código</label><input type="text" id="herr-codigo" placeholder="H-001"></div><div class="form-group"><label>Nombre *</label><input type="text" id="herr-nombre" placeholder="Inserto CNMG 12 04 08"></div></div>
+      <div class="form-row single"><div class="form-group"><label>Descripción</label><input type="text" id="herr-descripcion" placeholder="Detalle, marca, especificación"></div></div>
+      <div class="form-row" style="grid-template-columns:100px 1fr 1fr"><div class="form-group"><label>Cantidad</label><input type="number" id="herr-cantidad" step="1" min="0" placeholder="1"></div><div class="form-group"><label>Estado</label><select id="herr-estado"><option value="nueva">Nueva</option><option value="en-uso">En uso</option><option value="mantenimiento">En mantenimiento</option><option value="dada-de-baja">Dada de baja</option></select></div><div class="form-group"><label>Ubicación</label><input type="text" id="herr-ubicacion" placeholder="Torno CNC / Depósito"></div></div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr"><div class="form-group"><label>Precio compra USD</label><input type="number" id="herr-precio" step="0.01" placeholder="0.00"></div><div class="form-group"><label>Fecha compra</label><input type="date" id="herr-fecha"></div><div class="form-group"><label>Proveedor</label><select id="herr-proveedor"><option value="">— ninguno —</option></select></div></div>
+      <div class="form-row single"><div class="form-group"><label>Observaciones</label><input type="text" id="herr-observaciones" placeholder="Notas"></div></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-herramienta')">Cancelar</button><button class="btn btn-primary" id="btn-save-herramienta" onclick="saveHerramienta()">Guardar</button></div>
   </div>
 </div>
 
@@ -1275,6 +1331,7 @@ const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 let currentSession=null, currentUser=null, currentEmpresa=null;
 let certs=[],barras=[],ops=[],pts=[],ventas=[],ventaItemsList=[],materiales=[],tratamientos=[],usuariosEmpresa=[],permisosUsuario=[],clientes=[],vendedores=[],listasPrecios=[],currentUserData=null;
 let proveedores=[],ordenesCompra=[],ocItems=[],recepciones=[],ocItemsDraft=[],currentOCId=null;
+let insumos=[],herramientas=[];
 let presupuestos=[],presupItemsList=[],presupItemsDraft=[];
 let certFileData=null,certFileName=null;
 
@@ -1524,7 +1581,7 @@ async function loadEmpresaAndStart(){
 // ─── DATA ─────────────────────────────────────────────────────────
 async function loadAll(){
   try{
-    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos]=await Promise.all([
+    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos,insumos,herramientas]=await Promise.all([
       GET('certificados','?order=created_at.desc'),
       GET('barras','?order=created_at.desc&select=*,certificados(nro,colada,proveedor)'),
       GET('ordenes_produccion','?order=created_at.desc&select=*,barras(lote)'),
@@ -1542,19 +1599,22 @@ async function loadAll(){
       GET('oc_items','?order=created_at.asc').catch(()=>[]),
       GET('recepciones_oc','?order=fecha.desc').catch(()=>[]),
       GET('presupuestos','?order=fecha.desc&select=*,presupuesto_items(*)').catch(()=>[]),
+      GET('insumos','?order=nombre.asc&select=*,proveedores(nombre)').catch(()=>[]),
+      GET('herramientas','?order=nombre.asc&select=*,proveedores(nombre)').catch(()=>[]),
     ]);
   }catch(e){
     console.error('Error cargando datos:',e);
     certs=certs||[];barras=barras||[];ops=ops||[];pts=pts||[];ventas=ventas||[];
     materiales=materiales||[];tratamientos=tratamientos||[];usuariosEmpresa=usuariosEmpresa||[];permisosUsuario=permisosUsuario||[];clientes=clientes||[];vendedores=vendedores||[];listasPrecios=listasPrecios||[];
     proveedores=proveedores||[];ordenesCompra=ordenesCompra||[];ocItems=ocItems||[];recepciones=recepciones||[];presupuestos=presupuestos||[];
+    insumos=insumos||[];herramientas=herramientas||[];
   }
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',costos:'analisis',trace:'analisis',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',costos:'analisis',trace:'analisis',config:'config'};
 const GROUP_TABS={
-  inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'}],
+  inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
   ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'}],
   analisis:[{k:'costos',l:'Costos y rentabilidad'},{k:'trace',l:'Trazabilidad'}],
 };
@@ -1905,6 +1965,123 @@ function renderCert(filter=''){
   document.getElementById('cert-tbody').innerHTML=list.length?list.map(c=>{const vinc=barras.filter(b=>b.certificado_id===c.id).length;return`<tr><td class="mono td-primary">${c.nro}</td><td>${c.proveedor}</td><td><span class="badge badge-blue">${c.material}</span></td><td class="mono">${c.colada}</td><td class="mono">${c.metros?parseFloat(c.metros).toFixed(1)+' mts':'—'}</td><td>${c.fecha||'—'}</td><td>${c.file_data?`<span class="pdf-link" onclick="openPDF('${c.id}')">Ver PDF</span>`:'<span style="color:var(--text3)">No adjunto</span>'}</td><td><span class="badge badge-teal">${vinc} barra${vinc!==1?'s':''}</span></td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editCert('${c.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteCert('${c.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;}):(`<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">Sin certificados</div><div class="empty-msg">Cargá los MTC con <b>+ Nuevo certificado</b> y vinculalos a las barras de materia prima.</div></div></td></tr>`);
 }
 
+// ─── INSUMOS ─────────────────────────────────────────────────
+function renderInsumos(filter=''){
+  const f=(filter||'').toLowerCase();
+  const list=insumos.filter(i=>!f||(i.nombre||'').toLowerCase().includes(f)||(i.codigo||'').toLowerCase().includes(f)||(i.categoria||'').toLowerCase().includes(f));
+  const total=insumos.length;
+  const lowStock=insumos.filter(i=>parseFloat(i.stock_minimo||0)>0&&parseFloat(i.cantidad||0)<=parseFloat(i.stock_minimo||0)).length;
+  const valorTotal=insumos.reduce((a,i)=>a+(parseFloat(i.cantidad||0)*parseFloat(i.ultimo_precio||0)),0);
+  const cats=[...new Set(insumos.map(i=>i.categoria).filter(Boolean))].length;
+  document.getElementById('insumos-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total insumos</div><div class="stat-value" style="color:var(--blue)">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Categorías</div><div class="stat-value" style="color:var(--teal)">${cats}</div></div>
+    <div class="stat-card"><div class="stat-label">Stock bajo mínimo</div><div class="stat-value" style="color:${lowStock?'var(--red)':'var(--text)'}">${lowStock}</div></div>
+    <div class="stat-card"><div class="stat-label">Valor total stock</div><div class="stat-value" style="color:var(--green);font-size:13px">${fmtUSD(valorTotal)}</div></div>`;
+  document.getElementById('insumos-tbody').innerHTML=list.length?list.map(i=>{
+    const isLow=parseFloat(i.stock_minimo||0)>0&&parseFloat(i.cantidad||0)<=parseFloat(i.stock_minimo||0);
+    return`<tr><td class="mono" style="font-size:11px">${i.codigo||'—'}</td><td class="td-primary">${i.nombre}</td><td>${i.categoria?`<span class="badge badge-teal">${i.categoria}</span>`:'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:${isLow?'var(--red)':'var(--text)'}">${parseFloat(i.cantidad||0).toFixed(2)}</td><td class="mono" style="font-size:11px">${i.unidad||'—'}</td><td class="mono" style="color:var(--text3);font-size:11px">${parseFloat(i.stock_minimo||0).toFixed(2)}</td><td class="mono" style="color:var(--green)">${i.ultimo_precio?fmtUSD(parseFloat(i.ultimo_precio)):'—'}</td><td style="font-size:11px">${i.proveedores?.nombre||'—'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editInsumo('${i.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteInsumo('${i.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+  }).join(''):`<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M5 8h14"/><path d="M5 8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2"/><rect x="3" y="8" width="18" height="14" rx="1"/><path d="M10 12h4"/></svg></div><div class="empty-title">Sin insumos cargados</div><div class="empty-msg">Cargá el primero con <b>+ Nuevo insumo</b>. Los insumos se suman automáticamente al recibir órdenes de compra del tipo "insumo".</div></div></td></tr>`;
+}
+function openModalInsumo(id){
+  document.getElementById('modal-insumo-title').textContent=id?'Editar insumo':'Nuevo insumo';
+  document.getElementById('insumo-edit-id').value=id||'';
+  resetF(['insumo-codigo','insumo-nombre','insumo-categoria','insumo-descripcion','insumo-cantidad','insumo-minimo','insumo-precio','insumo-observaciones']);
+  document.getElementById('insumo-unidad').value='un';
+  const provSel=document.getElementById('insumo-proveedor');
+  provSel.innerHTML='<option value="">— ninguno —</option>'+proveedores.map(p=>`<option value="${p.id}">${p.nombre}</option>`).join('');
+  if(id){
+    const i=insumos.find(x=>x.id===id);if(!i)return;
+    document.getElementById('insumo-codigo').value=i.codigo||'';
+    document.getElementById('insumo-nombre').value=i.nombre||'';
+    document.getElementById('insumo-categoria').value=i.categoria||'';
+    document.getElementById('insumo-descripcion').value=i.descripcion||'';
+    document.getElementById('insumo-cantidad').value=i.cantidad||0;
+    document.getElementById('insumo-unidad').value=i.unidad||'un';
+    document.getElementById('insumo-minimo').value=i.stock_minimo||0;
+    document.getElementById('insumo-precio').value=i.ultimo_precio||'';
+    document.getElementById('insumo-proveedor').value=i.proveedor_id||'';
+    document.getElementById('insumo-observaciones').value=i.observaciones||'';
+  }
+  openModal('modal-insumo');
+}
+function editInsumo(id){openModalInsumo(id);}
+async function saveInsumo(){
+  const id=g('insumo-edit-id');
+  if(!g('insumo-nombre'))return notify('Nombre es obligatorio','err');
+  setBusy('btn-save-insumo',true);
+  try{
+    const data={empresa_id:currentEmpresa.id,codigo:g('insumo-codigo')||null,nombre:g('insumo-nombre'),categoria:g('insumo-categoria')||null,descripcion:g('insumo-descripcion')||null,cantidad:parseFloat(g('insumo-cantidad'))||0,unidad:g('insumo-unidad')||'un',stock_minimo:parseFloat(g('insumo-minimo'))||0,ultimo_precio:parseFloat(g('insumo-precio'))||null,proveedor_id:g('insumo-proveedor')||null,observaciones:g('insumo-observaciones')||null};
+    if(id)await PATCH('insumos',data,`?id=eq.${id}`);else await POST('insumos',data);
+    await loadAll();closeModal('modal-insumo');renderAll();notify(id?'Insumo actualizado':'Insumo creado');
+  }catch(e){notify(e.message,'err');}
+  setBusy('btn-save-insumo',false,'Guardar');
+}
+async function deleteInsumo(id){
+  if(!confirm('¿Eliminar insumo? Esta acción no se puede deshacer.'))return;
+  try{await DEL('insumos',`?id=eq.${id}`);await loadAll();renderAll();notify('Insumo eliminado');}
+  catch(e){notify(e.message,'err');}
+}
+
+// ─── HERRAMIENTAS ────────────────────────────────────────────
+function renderHerramientas(filter=''){
+  const f=(filter||'').toLowerCase();
+  const list=herramientas.filter(h=>!f||(h.nombre||'').toLowerCase().includes(f)||(h.codigo||'').toLowerCase().includes(f)||(h.ubicacion||'').toLowerCase().includes(f));
+  const total=herramientas.length;
+  const enUso=herramientas.filter(h=>h.estado==='en-uso').length;
+  const mtto=herramientas.filter(h=>h.estado==='mantenimiento').length;
+  const valorTotal=herramientas.reduce((a,h)=>a+(parseFloat(h.cantidad||1)*parseFloat(h.precio_compra||0)),0);
+  document.getElementById('herramientas-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total herramientas</div><div class="stat-value" style="color:var(--blue)">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">En uso</div><div class="stat-value" style="color:var(--accent)">${enUso}</div></div>
+    <div class="stat-card"><div class="stat-label">En mantenimiento</div><div class="stat-value" style="color:${mtto?'var(--coral)':'var(--text)'}">${mtto}</div></div>
+    <div class="stat-card"><div class="stat-label">Valor total</div><div class="stat-value" style="color:var(--green);font-size:13px">${fmtUSD(valorTotal)}</div></div>`;
+  const estadoBadges={'nueva':'badge-blue','en-uso':'badge-warn','mantenimiento':'badge-coral','dada-de-baja':'badge-coral'};
+  document.getElementById('herramientas-tbody').innerHTML=list.length?list.map(h=>{
+    return`<tr><td class="mono" style="font-size:11px">${h.codigo||'—'}</td><td class="td-primary">${h.nombre}</td><td class="mono">${h.cantidad||1}</td><td><span class="badge ${estadoBadges[h.estado]||'badge-warn'}">${(h.estado||'nueva').replace('-',' ').toUpperCase()}</span></td><td style="font-size:11px">${h.ubicacion||'—'}</td><td class="mono" style="color:var(--green)">${h.precio_compra?fmtUSD(parseFloat(h.precio_compra)):'—'}</td><td class="mono" style="font-size:11px">${h.fecha_compra||'—'}</td><td style="font-size:11px">${h.proveedores?.nombre||'—'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editHerramienta('${h.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteHerramienta('${h.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+  }).join(''):`<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div><div class="empty-title">Sin herramientas cargadas</div><div class="empty-msg">Cargá la primera con <b>+ Nueva herramienta</b>. Cada herramienta recibida en una OC tipo "herramienta" se carga acá automáticamente.</div></div></td></tr>`;
+}
+function openModalHerramienta(id){
+  document.getElementById('modal-herramienta-title').textContent=id?'Editar herramienta':'Nueva herramienta';
+  document.getElementById('herr-edit-id').value=id||'';
+  resetF(['herr-codigo','herr-nombre','herr-descripcion','herr-cantidad','herr-ubicacion','herr-precio','herr-fecha','herr-observaciones']);
+  document.getElementById('herr-cantidad').value=1;
+  document.getElementById('herr-estado').value='nueva';
+  const provSel=document.getElementById('herr-proveedor');
+  provSel.innerHTML='<option value="">— ninguno —</option>'+proveedores.map(p=>`<option value="${p.id}">${p.nombre}</option>`).join('');
+  if(id){
+    const h=herramientas.find(x=>x.id===id);if(!h)return;
+    document.getElementById('herr-codigo').value=h.codigo||'';
+    document.getElementById('herr-nombre').value=h.nombre||'';
+    document.getElementById('herr-descripcion').value=h.descripcion||'';
+    document.getElementById('herr-cantidad').value=h.cantidad||1;
+    document.getElementById('herr-estado').value=h.estado||'nueva';
+    document.getElementById('herr-ubicacion').value=h.ubicacion||'';
+    document.getElementById('herr-precio').value=h.precio_compra||'';
+    document.getElementById('herr-fecha').value=h.fecha_compra||'';
+    document.getElementById('herr-proveedor').value=h.proveedor_id||'';
+    document.getElementById('herr-observaciones').value=h.observaciones||'';
+  }
+  openModal('modal-herramienta');
+}
+function editHerramienta(id){openModalHerramienta(id);}
+async function saveHerramienta(){
+  const id=g('herr-edit-id');
+  if(!g('herr-nombre'))return notify('Nombre es obligatorio','err');
+  setBusy('btn-save-herramienta',true);
+  try{
+    const data={empresa_id:currentEmpresa.id,codigo:g('herr-codigo')||null,nombre:g('herr-nombre'),descripcion:g('herr-descripcion')||null,cantidad:parseFloat(g('herr-cantidad'))||1,estado:g('herr-estado')||'nueva',ubicacion:g('herr-ubicacion')||null,precio_compra:parseFloat(g('herr-precio'))||null,fecha_compra:g('herr-fecha')||null,proveedor_id:g('herr-proveedor')||null,observaciones:g('herr-observaciones')||null};
+    if(id)await PATCH('herramientas',data,`?id=eq.${id}`);else await POST('herramientas',data);
+    await loadAll();closeModal('modal-herramienta');renderAll();notify(id?'Herramienta actualizada':'Herramienta creada');
+  }catch(e){notify(e.message,'err');}
+  setBusy('btn-save-herramienta',false,'Guardar');
+}
+async function deleteHerramienta(id){
+  if(!confirm('¿Eliminar herramienta? Esta acción no se puede deshacer.'))return;
+  try{await DEL('herramientas',`?id=eq.${id}`);await loadAll();renderAll();notify('Herramienta eliminada');}
+  catch(e){notify(e.message,'err');}
+}
+
 function renderOP(filter=''){
   const f=filter.toLowerCase();
   const estadoBadge=s=>s==='completada'?'<span class="badge badge-ok">COMPLETADA</span>':s==='suspendida'?'<span class="badge badge-coral">SUSPENDIDA</span>':'<span class="badge badge-warn">EN PROCESO</span>';
@@ -2133,7 +2310,7 @@ function notify(msg,type){
   el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);
 }
 
-function renderAll(){renderDash();renderMP();renderPT();renderCert();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderConfig();updateClientesDatalist();animateNumbers();}
+function renderAll(){renderDash();renderMP();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderConfig();updateClientesDatalist();animateNumbers();}
 
 // ─── ANIMACIÓN DE KPIs (count-up al cargar) ─────────────
 window._numbersAnimated=false;
@@ -3064,7 +3241,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes'],analisis:['costos','trace']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes'],analisis:['costos','trace']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
@@ -3427,7 +3604,7 @@ function renderOCItems(){
   const cont=document.getElementById('oc-items-list');
   if(!ocItemsDraft.length){cont.innerHTML='<div style="padding:18px;text-align:center;color:var(--text3);font-size:12px;border:1px dashed var(--border);border-radius:4px">Sin ítems. Click en "<span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Ítem"</div>';return;}
   cont.innerHTML=ocItemsDraft.map((it,idx)=>`<div style="display:grid;grid-template-columns:120px 2fr 1fr 80px 80px 100px 100px auto;gap:6px;align-items:center;padding:6px;background:var(--surface2);border-radius:4px">
-    <select onchange="onOCItemChange(${idx},'tipo',this.value)" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:11px"><option value="materia_prima" ${it.tipo==='materia_prima'?'selected':''}>Materia prima</option><option value="insumo" ${it.tipo==='insumo'?'selected':''}>Insumo</option><option value="herramienta" ${it.tipo==='herramienta'?'selected':''}>Herramienta</option><option value="servicio" ${it.tipo==='servicio'?'selected':''}>Servicio</option><option value="otro" ${it.tipo==='otro'?'selected':''}>Otro</option></select>
+    <select onchange="onOCItemChange(${idx},'tipo',this.value)" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:11px"><option value="materia_prima" ${it.tipo==='materia_prima'?'selected':''}>Materia prima</option><option value="insumo" ${it.tipo==='insumo'?'selected':''}>Insumo</option><option value="herramienta" ${it.tipo==='herramienta'?'selected':''}>Herramienta</option></select>
     <input type="text" value="${it.descripcion.replace(/"/g,'&quot;')}" oninput="onOCItemChange(${idx},'descripcion',this.value)" placeholder="Descripción" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px">
     <input type="text" value="${(it.material||'').replace(/"/g,'&quot;')}" oninput="onOCItemChange(${idx},'material',this.value)" placeholder="AISI 316" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px">
     <input type="number" value="${it.cantidad}" min="0" step="0.01" oninput="onOCItemChange(${idx},'cantidad',this.value)" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px;font-family:var(--mono)">
@@ -3510,12 +3687,26 @@ async function saveRecepcion(){
     const oc=ordenesCompra.find(x=>x.id===currentOCId);
     for(const r of recepcionesNuevas){
       let barraId=null;
-      // Si es materia prima → crear barra en stock
+      // Materia prima → crear barra en stock
       if(r.it.tipo==='materia_prima'){
         const lote=`${oc.nro}-${r.it.descripcion.slice(0,8).replace(/\s/g,'')}-${Date.now().toString().slice(-4)}`;
         const barraData={empresa_id:currentEmpresa.id,lote,material:r.it.material||r.it.descripcion,perfil:r.it.perfil||'',diametro:r.it.diametro||'',kg_disponibles:r.it.unidad==='kg'?r.qty:0,unidades:r.it.unidad==='un'?r.qty:0,nro_colada:'',certificado_id:certId,kg_minimo:0,proveedor_id:oc.proveedor_id,oc_id:currentOCId,observaciones:`Recepción OC ${oc.nro}`};
         const bres=await POST('barras',[barraData]);
         if(bres&&bres[0])barraId=bres[0].id;
+      }
+      // Insumo → buscar duplicado por nombre/código y sumar; si no existe, crear
+      else if(r.it.tipo==='insumo'){
+        const nombre=(r.it.descripcion||'').trim();
+        const existente=insumos.find(x=>(x.nombre||'').toLowerCase()===nombre.toLowerCase());
+        if(existente){
+          await PATCH('insumos',{cantidad:parseFloat(existente.cantidad||0)+r.qty,ultimo_precio:parseFloat(r.it.precio_unitario)||existente.ultimo_precio,proveedor_id:oc.proveedor_id||existente.proveedor_id,updated_at:new Date().toISOString()},`?id=eq.${existente.id}`);
+        }else{
+          await POST('insumos',{empresa_id:currentEmpresa.id,nombre,descripcion:r.it.descripcion||null,cantidad:r.qty,unidad:r.it.unidad||'un',ultimo_precio:parseFloat(r.it.precio_unitario)||null,proveedor_id:oc.proveedor_id,observaciones:`Recibido en OC ${oc.nro}`});
+        }
+      }
+      // Herramienta → siempre crear nueva (cada una es individual)
+      else if(r.it.tipo==='herramienta'){
+        await POST('herramientas',{empresa_id:currentEmpresa.id,nombre:(r.it.descripcion||'').trim(),descripcion:r.it.descripcion||null,cantidad:r.qty,estado:'nueva',precio_compra:parseFloat(r.it.precio_unitario)||null,fecha_compra:fecha,proveedor_id:oc.proveedor_id,observaciones:`Recibida en OC ${oc.nro}`});
       }
       await POST('recepciones_oc',[{empresa_id:currentEmpresa.id,oc_item_id:r.itemId,fecha,cantidad_recibida:r.qty,certificado_id:certId,barra_id:barraId,observaciones:obs}]);
       // actualizar cantidad_recibida del item
