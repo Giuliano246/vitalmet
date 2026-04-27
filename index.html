@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#0f0f0f;--surface:#1a1a1a;--surface2:#222;--border:#2e2e2e;--border2:#3a3a3a;--accent:#e8a030;--accent2:#c47f18;--teal:#2ab4a0;--blue:#4a9edd;--purple:#9b72cf;--red:#e05252;--green:#4caf7d;--coral:#e06840;--text:#e8e6e0;--text2:#9a9890;--text3:#5a5856;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -406,6 +407,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
         <div class="stats-bar" id="clientes-stats"></div>
         <div class="toolbar">
           <div class="search-box"><input type="text" placeholder="Buscar por nombre, CUIT..." oninput="renderClientes(this.value)"></div>
+          <button class="btn btn-ghost" onclick="openImportClientes()" style="border-color:var(--accent);color:var(--accent)">↓ Importar Excel</button>
           <button class="btn btn-ghost" onclick="openModalCliente()">+ Nuevo cliente</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Contacto</th><th>Teléfono</th><th>Email</th><th>CUIT</th><th>Compras</th><th>Total facturado</th><th></th></tr></thead><tbody id="clientes-tbody"></tbody></table></div>
@@ -708,6 +710,36 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-cliente')">Cancelar</button>
       <button class="btn btn-primary" id="btn-save-cliente" onclick="saveCliente()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Importar clientes desde Excel -->
+<div class="modal-overlay" id="modal-import-clientes">
+  <div class="modal" style="width:760px">
+    <div class="modal-header"><div class="modal-title">Importar clientes desde Excel</div><button class="modal-close" onclick="closeModal('modal-import-clientes')">×</button></div>
+    <div class="modal-body">
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:14px;font-size:12px;line-height:1.6;color:var(--text2)">
+        <strong style="color:var(--text)">Cómo importar:</strong><br>
+        1. Descargá la plantilla con los nombres de columnas correctos.<br>
+        2. Completala con tus clientes (una fila por cliente). Solo <strong>Nombre</strong> es obligatorio.<br>
+        3. Subí el archivo (.xlsx o .csv).<br>
+        4. Revisá el preview. Si está OK, click "Importar".<br>
+        <span style="color:var(--text3)">Detección de duplicados: por CUIT (si existe), sino por nombre.</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
+        <button class="btn btn-ghost" onclick="downloadClientesTemplate()" style="border-color:var(--green);color:var(--green)">↓ Descargar plantilla</button>
+        <input type="file" id="import-cli-file" accept=".xlsx,.xls,.csv" onchange="onClienteFileChange(this)" style="flex:1;color:var(--text);font-size:12px">
+      </div>
+      <div id="import-cli-preview" style="font-size:11px;color:var(--text3)">Sin archivo cargado</div>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)">
+        <input type="checkbox" id="import-cli-update" style="margin:0">
+        <label for="import-cli-update" style="cursor:pointer">Actualizar clientes existentes (sobrescribir CUIT/contacto/etc si ya existen). Por default los duplicados se saltan.</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-import-clientes')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-import-cli" onclick="importClientes()" disabled>Importar</button>
     </div>
   </div>
 </div>
@@ -2674,6 +2706,137 @@ async function saveCliente(){
     await loadAll();closeModal('modal-cliente');renderAll();
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-cliente',false,'Guardar');
+}
+
+// ─── IMPORTAR CLIENTES DESDE EXCEL ──────────────────────────
+const CLI_TEMPLATE_HEADERS=['Nombre','CUIT','Contacto','Teléfono','Email','Dirección','Notas'];
+const CLI_FIELD_MAP={
+  'nombre':'nombre','razon social':'nombre','razón social':'nombre','cliente':'nombre','razonsocial':'nombre',
+  'cuit':'cuit','cuil':'cuit','documento':'cuit',
+  'contacto':'contacto','persona de contacto':'contacto','persona contacto':'contacto',
+  'telefono':'telefono','teléfono':'telefono','tel':'telefono','celular':'telefono','cel':'telefono','tel/cel':'telefono',
+  'email':'email','mail':'email','correo':'email','e-mail':'email',
+  'direccion':'direccion','dirección':'direccion','domicilio':'direccion','dir':'direccion',
+  'notas':'notas','observaciones':'notas','obs':'notas','comentarios':'notas'
+};
+let importClientesData=null;
+
+function openImportClientes(){
+  document.getElementById('import-cli-file').value='';
+  document.getElementById('import-cli-preview').innerHTML='Sin archivo cargado';
+  document.getElementById('import-cli-update').checked=false;
+  document.getElementById('btn-import-cli').disabled=true;
+  importClientesData=null;
+  openModal('modal-import-clientes');
+}
+
+function downloadClientesTemplate(){
+  if(!window.XLSX){notify('Librería Excel no cargada. Recargá la página.','err');return;}
+  const ws=XLSX.utils.aoa_to_sheet([CLI_TEMPLATE_HEADERS,
+    ['ACME SA','30-12345678-9','Juan Pérez','+54 11 1234-5678','contacto@acme.com','Av. Siempre Viva 742','Cliente nuevo'],
+    ['','','','','','','']
+  ]);
+  ws['!cols']=[{wch:30},{wch:18},{wch:20},{wch:20},{wch:25},{wch:35},{wch:30}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Clientes');
+  XLSX.writeFile(wb,'Plantilla_Clientes_Vitalmet.xlsx');
+  notify('Plantilla descargada');
+}
+
+function onClienteFileChange(input){
+  const file=input.files[0];
+  const previewEl=document.getElementById('import-cli-preview');
+  const btn=document.getElementById('btn-import-cli');
+  if(!file){previewEl.innerHTML='Sin archivo cargado';btn.disabled=true;importClientesData=null;return;}
+  if(!window.XLSX){notify('Librería Excel no cargada. Recargá la página.','err');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const sheet=wb.Sheets[wb.SheetNames[0]];
+      const rawRows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:''});
+      if(!rawRows.length){previewEl.innerHTML='<span style="color:var(--coral)">El archivo está vacío.</span>';btn.disabled=true;return;}
+      // Headers (primera fila): mapear a campos DB
+      const headers=rawRows[0].map(h=>String(h||'').trim().toLowerCase());
+      const fieldByCol=headers.map(h=>CLI_FIELD_MAP[h]||null);
+      // Filas con datos
+      const parsed=[];
+      const errores=[];
+      for(let i=1;i<rawRows.length;i++){
+        const row=rawRows[i];
+        if(!row.some(c=>String(c||'').trim()))continue; // saltar filas vacías
+        const obj={};
+        fieldByCol.forEach((field,idx)=>{
+          if(field&&row[idx]!==undefined){
+            const v=String(row[idx]||'').trim();
+            if(v)obj[field]=v;
+          }
+        });
+        if(!obj.nombre){errores.push(`Fila ${i+1}: falta Nombre`);continue;}
+        parsed.push(obj);
+      }
+      if(!parsed.length){
+        previewEl.innerHTML=`<span style="color:var(--coral)">No se pudo leer ningún cliente válido.</span>${errores.length?'<br>'+errores.slice(0,5).join('<br>'):''}`;
+        btn.disabled=true;importClientesData=null;return;
+      }
+      importClientesData=parsed;
+      // Detectar duplicados (informativo)
+      let dupes=0;
+      parsed.forEach(c=>{
+        const exists=clientes.find(x=>(c.cuit&&x.cuit&&x.cuit===c.cuit)||(x.nombre.toLowerCase()===c.nombre.toLowerCase()));
+        if(exists)dupes++;
+      });
+      // Render preview
+      const head=Object.keys(CLI_FIELD_MAP).filter((k,i,a)=>a.findIndex(x=>CLI_FIELD_MAP[x]===CLI_FIELD_MAP[k])===i).map(k=>CLI_FIELD_MAP[k]);
+      const cols=['nombre','cuit','contacto','telefono','email','direccion','notas'];
+      let html=`<div style="margin-bottom:8px;color:var(--text2)"><strong>${parsed.length}</strong> clientes leídos · <strong style="color:${dupes>0?'var(--coral)':'var(--green)'}">${dupes}</strong> duplicados detectados`;
+      if(errores.length)html+=` · <strong style="color:var(--coral)">${errores.length}</strong> filas con error`;
+      html+='</div>';
+      html+='<div style="max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:5px"><table style="font-size:11px;width:100%;border-collapse:collapse"><thead><tr style="background:var(--surface2)">';
+      cols.forEach(c=>html+=`<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">${c}</th>`);
+      html+='</tr></thead><tbody>';
+      parsed.slice(0,10).forEach(c=>{
+        html+='<tr>';
+        cols.forEach(col=>html+=`<td style="padding:5px 8px;border-bottom:1px solid var(--border);color:var(--text2)">${(c[col]||'—').toString().slice(0,40)}</td>`);
+        html+='</tr>';
+      });
+      html+='</tbody></table></div>';
+      if(parsed.length>10)html+=`<div style="margin-top:6px;color:var(--text3);font-size:11px">Mostrando primeras 10 de ${parsed.length}</div>`;
+      if(errores.length){html+=`<div style="margin-top:8px;font-size:11px;color:var(--coral)">${errores.slice(0,3).join('<br>')}${errores.length>3?'<br>...y '+(errores.length-3)+' más':''}</div>`;}
+      previewEl.innerHTML=html;
+      btn.disabled=false;
+    }catch(err){
+      console.error(err);
+      previewEl.innerHTML=`<span style="color:var(--coral)">Error leyendo archivo: ${err.message}</span>`;
+      btn.disabled=true;importClientesData=null;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+async function importClientes(){
+  if(!importClientesData||!importClientesData.length){notify('No hay datos para importar','err');return;}
+  const updateExisting=document.getElementById('import-cli-update').checked;
+  setBusy('btn-import-cli',true);
+  let creados=0,actualizados=0,saltados=0,errores=0;
+  for(const c of importClientesData){
+    try{
+      const exists=clientes.find(x=>(c.cuit&&x.cuit&&x.cuit===c.cuit)||(x.nombre.toLowerCase()===c.nombre.toLowerCase()));
+      if(exists){
+        if(updateExisting){
+          await PATCH('clientes',{...c,empresa_id:currentEmpresa.id},`?id=eq.${exists.id}`);
+          actualizados++;
+        }else saltados++;
+      }else{
+        await POST('clientes',{...c,empresa_id:currentEmpresa.id});
+        creados++;
+      }
+    }catch(e){console.error('Error importando',c.nombre,e);errores++;}
+  }
+  await loadAll();renderAll();
+  setBusy('btn-import-cli',false,'Importar');
+  closeModal('modal-import-clientes');
+  notify(`Importación: ${creados} creados, ${actualizados} actualizados, ${saltados} saltados${errores?', '+errores+' con error':''}`);
 }
 
 async function deleteCliente(id){
