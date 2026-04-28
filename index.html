@@ -2063,6 +2063,21 @@ async function saveVenta(){
 function resetF(ids){ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
 function fmtUSD(n){return'US$ '+Math.round(n).toLocaleString('es-AR');}
 
+// ─── ESTADO INLINE EDITOR ─────────────────────────────────────────
+// Renderiza un <select> con apariencia de badge para cambiar el estado
+// en la tabla sin abrir el modal. Llama a cambiarEstado() onchange.
+function estadoSelect(table,id,current,values,badgeMap){
+  const cls=badgeMap[current]||'badge-warn';
+  const opts=values.map(v=>`<option value="${v}"${v===current?' selected':''}>${v.toUpperCase()}</option>`).join('');
+  return `<select class="badge ${cls}" style="border:none;cursor:pointer;font-weight:600;padding:3px 8px;border-radius:10px" onchange="cambiarEstado('${table}','${id}',this.value)">${opts}</select>`;
+}
+async function cambiarEstado(table,id,nuevoEstado){
+  try{
+    await PATCH(table,{estado:nuevoEstado},`?id=eq.${id}`);
+    await loadAll();renderAll();notify('Estado actualizado');
+  }catch(e){console.error('cambiarEstado',e);notify('Error: '+e.message,'err');}
+}
+
 // ─── RENDER ───────────────────────────────────────────────────────
 function renderMP(filter=''){
   const f=filter.toLowerCase();
@@ -2262,7 +2277,7 @@ function renderVentas(filter=''){
     <div class="stat-card"><div class="stat-label">Importe total</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtUSD(totalImp)}</div></div>
     <div class="stat-card"><div class="stat-label">Clientes distintos</div><div class="stat-value">${[...new Set(ventas.map(v=>v.cliente))].length}</div></div>`;
   const bE={entregado:'badge-ok',facturado:'badge-teal',pendiente:'badge-warn'};
-  document.getElementById('ventas-tbody').innerHTML=list.length?list.map(v=>{const items=v.venta_items||[];const importe=items.reduce((a,i)=>a+(i.cantidad*(i.precio_unitario||0)),0);const totalU=items.reduce((a,i)=>a+i.cantidad,0);const piezas=[...new Set(items.map(i=>i.pieza||''))].join(', ');return`<tr><td class="mono td-primary">${v.nro_remito}</td><td style="font-weight:500">${v.cliente}</td><td>${v.fecha||'—'}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${piezas}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td><span class="badge ${bE[v.estado]||'badge-warn'}">${v.estado.toUpperCase()}</span></td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>Anular</button></td></tr>`;}):(`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></div><div class="empty-title">Sin ventas registradas</div><div class="empty-msg">Las ventas se generan al convertir un presupuesto aprobado. Andá a <b>Presupuestos</b> y aprobalo.</div></div></td></tr>`);
+  document.getElementById('ventas-tbody').innerHTML=list.length?list.map(v=>{const items=v.venta_items||[];const importe=items.reduce((a,i)=>a+(i.cantidad*(i.precio_unitario||0)),0);const totalU=items.reduce((a,i)=>a+i.cantidad,0);const piezas=[...new Set(items.map(i=>i.pieza||''))].join(', ');return`<tr><td class="mono td-primary">${v.nro_remito}</td><td style="font-weight:500">${v.cliente}</td><td>${v.fecha||'—'}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${piezas}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td>${estadoSelect('ventas',v.id,v.estado,['pendiente','entregado','facturado'],bE)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>Anular</button></td></tr>`;}):(`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></div><div class="empty-title">Sin ventas registradas</div><div class="empty-msg">Las ventas se generan al convertir un presupuesto aprobado. Andá a <b>Presupuestos</b> y aprobalo.</div></div></td></tr>`);
 }
 
 function renderDash(){
@@ -4513,7 +4528,7 @@ function renderPresupuestos(filter=''){
   document.getElementById('presup-tbody').innerHTML=list.length?list.map(p=>{
     const items=p.presupuesto_items||[];
     const puedeConvertir=['enviado','aprobado'].includes(p.estado);
-    return `<tr><td class="mono td-primary">${p.nro}</td><td style="font-weight:500">${p.cliente}</td><td>${p.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${p.fecha_vencimiento||'—'}</td><td class="mono">${items.length}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(p.total||0))}</td><td><span class="badge ${badges[p.estado]||'badge-warn'}">${p.estado.toUpperCase()}</span></td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="generatePresupuestoPDF('${p.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>PDF</button>${puedeConvertir?`<button class="btn btn-ghost btn-sm" onclick="convertirPresupuesto('${p.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>Venta</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editPresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deletePresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+    return `<tr><td class="mono td-primary">${p.nro}</td><td style="font-weight:500">${p.cliente}</td><td>${p.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${p.fecha_vencimiento||'—'}</td><td class="mono">${items.length}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(p.total||0))}</td><td>${estadoSelect('presupuestos',p.id,p.estado,['borrador','enviado','aprobado','rechazado','vencido'],badges)}</td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="generatePresupuestoPDF('${p.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>PDF</button>${puedeConvertir?`<button class="btn btn-ghost btn-sm" onclick="convertirPresupuesto('${p.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>Venta</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editPresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deletePresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
   }).join(''):'<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">Sin presupuestos</div><div class="empty-msg">Generá uno con <b>+ Nuevo presupuesto</b>. Cuando el cliente lo apruebe, lo convertís en venta.</div></div></td></tr>';
 }
 
@@ -4607,6 +4622,12 @@ async function convertirPresupuesto(id){
   try{
     const items=p.presupuesto_items||[];
     const ventaNro='V-'+String(ventas.length+1).padStart(5,'0');
+    const clienteExiste=clientes.find(c=>c.nombre.toLowerCase()===(p.cliente||'').toLowerCase());
+    if(!clienteExiste && p.cliente){
+      await POST('clientes',{empresa_id:currentEmpresa.id,nombre:p.cliente,cuit:p.cuit||null});
+    }else if(clienteExiste && p.cuit && !clienteExiste.cuit){
+      await PATCH('clientes',{cuit:p.cuit},`?id=eq.${clienteExiste.id}`);
+    }
     const vres=await POST('ventas',{
       empresa_id:currentEmpresa.id,
       nro_remito:ventaNro,
@@ -4615,10 +4636,12 @@ async function convertirPresupuesto(id){
       fecha:new Date().toISOString().slice(0,10),
       estado:'pendiente',
       estado_pedido:'ingresado',
+      condicion_pago:p.condicion_pago||null,
+      fecha_entrega_hasta:p.fecha_vencimiento||null,
       coef_registracion_moneda:'USD',
       coef_emision_moneda:'USD',
       coef_deuda_moneda:'USD',
-      observaciones:`Generada desde presupuesto ${p.nro}`,
+      observaciones:`Generada desde presupuesto ${p.nro}${p.observaciones?' — '+p.observaciones:''}`,
       total:parseFloat(p.total)||0
     });
     const vid=vres[0].id;
