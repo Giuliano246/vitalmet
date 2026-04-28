@@ -4607,12 +4607,25 @@ async function convertirPresupuesto(id){
   try{
     const items=p.presupuesto_items||[];
     const ventaNro='V-'+String(ventas.length+1).padStart(5,'0');
-    const vres=await POST('ventas',[{empresa_id:currentEmpresa.id,nro_remito:ventaNro,cliente:p.cliente,fecha:new Date().toISOString().slice(0,10),estado:'ingresado',observaciones:`Generada desde presupuesto ${p.nro}`,total:p.total}]);
+    const vres=await POST('ventas',{
+      empresa_id:currentEmpresa.id,
+      nro_remito:ventaNro,
+      nro_pedido:ventaNro,
+      cliente:p.cliente,
+      fecha:new Date().toISOString().slice(0,10),
+      estado:'pendiente',
+      estado_pedido:'ingresado',
+      coef_registracion_moneda:'USD',
+      coef_emision_moneda:'USD',
+      coef_deuda_moneda:'USD',
+      observaciones:`Generada desde presupuesto ${p.nro}`,
+      total:parseFloat(p.total)||0
+    });
     const vid=vres[0].id;
     if(items.length){const viData=items.map(i=>({venta_id:vid,producto_id:i.producto_id||null,pieza:i.pieza,cantidad:parseFloat(i.cantidad)||0,precio_unitario:parseFloat(i.precio_unitario)||0,total:parseFloat(i.subtotal)||0}));await POST('venta_items',viData);}
     await PATCH('presupuestos',{estado:'convertido',venta_id:vid},`?id=eq.${id}`);
     await loadAll();renderAll();notify(`✓ Venta ${ventaNro} creada desde presupuesto`);
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){console.error('convertirPresupuesto error',e);notify('Error al convertir: '+(e.message||'ver consola'),'err');}
 }
 
 function generatePresupuestoPDFFromModal(){
