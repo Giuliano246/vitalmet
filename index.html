@@ -1974,7 +1974,9 @@ async function saveOP(){
   setBusy('btn-save-op',false,'Registrar orden');
 }
 
+let _savingVenta=false;
 async function saveVenta(){
+  if(_savingVenta)return;
   if(!g('v-remito')||!g('v-cliente'))return notify('Completá nro pedido y razón social','err');
   if(!ventaItemsList.length)return notify('Agregá al menos un ítem','err');
   const isEdit=!!window.editingVentaId;
@@ -1989,7 +1991,7 @@ async function saveVenta(){
     const dispEffective=(pt?.cantidad||0)+(stockExtra[item.ptId]||0);
     if(!pt||item.cant>dispEffective)return notify(`Stock insuficiente: ${pt?.pieza||'producto'}`,'err');
   }
-  setBusy('btn-save-venta',true);
+  _savingVenta=true;setBusy('btn-save-venta',true);
   try{
     const clienteNombre=g('v-cliente');
     const clienteExiste=clientes.find(c=>c.nombre.toLowerCase()===clienteNombre.toLowerCase());
@@ -2057,7 +2059,7 @@ async function saveVenta(){
     resetF(['v-remito','v-cliente','v-cuit','v-fecha','v-condicion','v-estado','v-obs','v-grupo-bonif']);
     renderAll();notify(isEdit?'Venta actualizada':'Pedido registrado');
   }catch(e){notify(e.message,'err');}
-  setBusy('btn-save-venta',false,window.editingVentaId?'Guardar cambios':'Registrar pedido');
+  finally{_savingVenta=false;setBusy('btn-save-venta',false,window.editingVentaId?'Guardar cambios':'Registrar pedido');}
 }
 
 function resetF(ids){ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
@@ -2646,7 +2648,9 @@ function recalcAsientoTotales(){
   diffEl.style.color=Math.abs(diff)<0.01?'var(--green)':'var(--red)';
 }
 
+let _savingAsiento=false;
 async function saveAsiento(){
+  if(_savingAsiento)return;
   const id=g('asiento-edit-id');
   if(!g('asiento-fecha')||!g('asiento-descripcion'))return notify('Fecha y descripción son obligatorias','err');
   if(lineasDraft.length<2)return notify('Mínimo 2 líneas','err');
@@ -2660,7 +2664,7 @@ async function saveAsiento(){
   const td=lineasDraft.reduce((s,l)=>s+parseFloat(l.debe||0),0);
   const th=lineasDraft.reduce((s,l)=>s+parseFloat(l.haber||0),0);
   if(Math.abs(td-th)>=0.01)return notify(`Debe (${fmtUSD(td)}) ≠ Haber (${fmtUSD(th)})`,'err');
-  setBusy('btn-save-asiento',true);
+  _savingAsiento=true;setBusy('btn-save-asiento',true);
   try{
     const cabecera={empresa_id:currentEmpresa.id,numero:parseInt(g('asiento-numero'))||1,fecha:g('asiento-fecha'),descripcion:g('asiento-descripcion'),comprobante_nro:g('asiento-comprobante')||null,estado:g('asiento-estado'),tipo:'manual'};
     let asientoId;
@@ -2676,7 +2680,7 @@ async function saveAsiento(){
     if(lns.length)await POST('asiento_lineas',lns);
     await loadAll();closeModal('modal-asiento');renderAll();notify(id?'Asiento actualizado':'Asiento registrado');
   }catch(e){notify(e.message,'err');}
-  setBusy('btn-save-asiento',false,'Guardar asiento');
+  finally{_savingAsiento=false;setBusy('btn-save-asiento',false,'Guardar asiento');}
 }
 
 async function anularAsiento(id){
@@ -4626,7 +4630,9 @@ function onPresupClienteChange(){
   document.getElementById('presup-cuit').value=c?.cuit||'';
 }
 
+let _savingPresup=false;
 async function savePresupuesto(){
+  if(_savingPresup)return;
   const id=document.getElementById('presup-edit-id').value;
   const nro=document.getElementById('presup-nro').value.trim();
   const cliente=document.getElementById('presup-cliente').value.trim();
@@ -4637,6 +4643,7 @@ async function savePresupuesto(){
   const desc=parseFloat(document.getElementById('presup-desc-pct').value||0);
   const total=sub*(1-desc/100);
   const data={nro,cliente,cuit:document.getElementById('presup-cuit').value.trim()||null,fecha,fecha_vencimiento:document.getElementById('presup-vence').value||null,condicion_pago:document.getElementById('presup-cond').value.trim()||null,subtotal:sub,descuento_pct:desc,total,estado:document.getElementById('presup-estado').value,observaciones:document.getElementById('presup-obs').value.trim()||null};
+  _savingPresup=true;
   try{setBusy('btn-save-presup',true);
     let pid;
     if(id){await PATCH('presupuestos',data,`?id=eq.${id}`);pid=id;await DEL('presupuesto_items',`?presupuesto_id=eq.${id}`);}
@@ -4645,7 +4652,7 @@ async function savePresupuesto(){
     if(items.length)await POST('presupuesto_items',items);
     await loadAll();closeModal('modal-presupuesto');renderAll();notify(id?'Presupuesto actualizado':'Presupuesto creado');
   }catch(e){notify('Error: '+e.message,'err');}
-  finally{setBusy('btn-save-presup',false);}
+  finally{_savingPresup=false;setBusy('btn-save-presup',false);}
 }
 async function deletePresupuesto(id){
   const p=presupuestos.find(x=>x.id===id);if(!p)return;
