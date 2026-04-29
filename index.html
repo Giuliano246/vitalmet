@@ -2568,7 +2568,7 @@ function renderAsientos(filter=''){
   document.getElementById('asientos-tbody').innerHTML=list.length?list.map(a=>{
     const lineas=asientoLineas.filter(l=>l.asiento_id===a.id);
     const totalAsiento=lineas.reduce((s,l)=>s+parseFloat(l.debe||0),0);
-    return`<tr><td class="mono td-primary">${a.numero||'—'}</td><td class="mono">${a.fecha||'—'}</td><td>${a.descripcion||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${a.comprobante_nro||'—'}</td><td class="mono" style="font-size:11px">${a.tipo||'manual'}</td><td class="mono" style="color:var(--green)">${fmtUSD(totalAsiento)}</td><td>${estadoSelect('asientos',a.id,a.estado||'borrador',['borrador','confirmado','anulado'],badges)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editAsiento('${a.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>${a.estado==='confirmado'?'Ver':'Editar'}</button>${a.estado!=='anulado'?`<button class="btn btn-danger btn-sm" onclick="anularAsiento('${a.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button>`:''}</td></tr>`;
+    return`<tr><td class="mono td-primary">${a.numero||'—'}</td><td class="mono">${a.fecha||'—'}</td><td>${a.descripcion||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${a.comprobante_nro||'—'}</td><td class="mono" style="font-size:11px">${a.tipo||'manual'}</td><td class="mono" style="color:var(--green)">${fmtUSD(totalAsiento)}</td><td>${estadoSelect('asientos',a.id,a.estado||'borrador',['borrador','confirmado','anulado'],badges)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editAsiento('${a.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>${a.estado==='confirmado'?'Ver':'Editar'}</button>${a.estado!=='anulado'?`<button class="btn btn-ghost btn-sm" onclick="anularAsiento('${a.id}')" style="border-color:var(--accent);color:var(--accent)" title="Anular (soft delete)"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span></button>`:''}<button class="btn btn-danger btn-sm" onclick="deleteAsiento('${a.id}')" title="Eliminar definitivamente"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
   }).join(''):`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg></div><div class="empty-title">Sin asientos cargados</div><div class="empty-msg">Cargá el primer asiento manual con <b>+ Nuevo asiento</b>. Validamos automáticamente que Debe = Haber.</div></div></td></tr>`;
 }
 
@@ -2670,6 +2670,20 @@ async function anularAsiento(id){
   if(!confirm(`¿Anular asiento N° ${a.numero}? El asiento queda en la base pero marcado como anulado.`))return;
   try{await PATCH('asientos',{estado:'anulado'},`?id=eq.${id}`);await loadAll();renderAll();notify('Asiento anulado');}
   catch(e){notify(e.message,'err');}
+}
+async function deleteAsiento(id){
+  const a=asientos.find(x=>x.id===id);if(!a)return;
+  const lineas=asientoLineas.filter(l=>l.asiento_id===id);
+  const auto=a.tipo&&a.tipo.startsWith('auto-');
+  let msg=`¿ELIMINAR DEFINITIVAMENTE el asiento N° ${a.numero}?\n\nSe borran ${lineas.length} línea(s) y el asiento.\nEsta acción NO se puede deshacer.`;
+  if(a.estado==='confirmado')msg+=`\n\n⚠ ESTADO: CONFIRMADO (afecta libros y balances).`;
+  if(auto)msg+=`\n\n⚠ Asiento automático (tipo: ${a.tipo}). Si la venta de origen sigue existiendo, podría regenerarse al editarla.`;
+  if(!confirm(msg))return;
+  try{
+    await DEL('asiento_lineas',`?asiento_id=eq.${id}`);
+    await DEL('asientos',`?id=eq.${id}`);
+    await loadAll();renderAll();notify('Asiento eliminado');
+  }catch(e){notify('Error: '+e.message,'err');}
 }
 
 // ─── LIBRO DIARIO ─────────────────────────────────────────────
