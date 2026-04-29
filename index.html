@@ -320,6 +320,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgMTA1IiB3aWR0aD0iNDAwIiBoZWlnaHQ9IjEwNSI+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzEsIDgpIHNjYWxlKDIuMSkiPgogICAgPHBvbHlnb24gcG9pbnRzPSIxNSwwIDQyLDAgNjMsMzAgMzYsMzAiIGZpbGw9IiMwMDc4YjQiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iNDYsMCA1NiwwIDc3LDMwIDY3LDMwIiBmaWxsPSIjMDA3OGI0Ii8+CiAgICA8cG9seWdvbiBwb2ludHM9IjU4LDAgODYsMCAxMDcsMzAgNzksMzAiIGZpbGw9IiM4YTkyOTkiLz4KICAgIDxwb2x5Z29uIHBvaW50cz0iOTUsMCAxMjUsMCAxNDYsMzAgMTE2LDMwIiBmaWxsPSIjOGE5Mjk5Ii8+CiAgPC9nPgogIDx0ZXh0IHg9IjIwMCIgeT0iMTAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSGVsdmV0aWNhIE5ldWUsIEhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMzgiIGZvbnQtd2VpZ2h0PSI3MDAiIGxldHRlci1zcGFjaW5nPSIzIiBmaWxsPSIjNGE1YzY4Ij5WSVRBTDx0c3BhbiBmaWxsPSIjMDA3OGI0Ij5TVE9DSzwvdHNwYW4+PC90ZXh0Pgo8L3N2Zz4=" class="logo-img" alt="VitalStock">
       <div class="logo-empresa" id="sidebar-empresa">—</div>
     </div>
+    <div id="cotizacion-badge" style="padding:8px 14px;border-bottom:1px solid var(--border);background:var(--surface2)"><span style="color:var(--text3);font-size:10px">USD: —</span></div>
     <nav class="nav">
       <div class="nav-item active" data-group="dash" onclick="showPage('dash')"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></span>Métricas</div>
       <div class="nav-item" data-group="inventario" onclick="showPage('mp')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></span>Inventario</div>
@@ -540,7 +541,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
           <div class="search-box"><input type="text" placeholder="Buscar por descripción, comprobante o número..." oninput="renderAsientos(this.value)"></div>
           <button class="btn btn-ghost" onclick="openModalAsiento()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo asiento</button>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>N°</th><th>Fecha</th><th>Descripción</th><th>Comprobante</th><th>Tipo</th><th>Total</th><th>Estado</th><th></th></tr></thead><tbody id="asientos-tbody"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>N°</th><th>Fecha</th><th>Descripción</th><th>Comprobante</th><th>Tipo</th><th>Mon.</th><th>Total ARS</th><th>Total USD</th><th>Estado</th><th></th></tr></thead><tbody id="asientos-tbody"></tbody></table></div>
       </div>
     </div>
     <!-- CONTABILIDAD: Libro diario -->
@@ -787,7 +788,8 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
     <div class="modal-body">
       <input type="hidden" id="asiento-edit-id">
       <div class="section-label">Cabecera</div>
-      <div class="form-row" style="grid-template-columns:90px 130px 1fr 130px 130px"><div class="form-group"><label>N°</label><input type="text" id="asiento-numero" readonly style="opacity:.6"></div><div class="form-group"><label>Fecha *</label><input type="date" id="asiento-fecha"></div><div class="form-group"><label>Descripción *</label><input type="text" id="asiento-descripcion" placeholder="Cobranza factura X"></div><div class="form-group"><label>Comprobante</label><input type="text" id="asiento-comprobante" placeholder="FA-001-12345"></div><div class="form-group"><label>Estado</label><select id="asiento-estado"><option value="confirmado">Confirmado</option><option value="borrador">Borrador</option><option value="anulado">Anulado</option></select></div></div>
+      <div class="form-row" style="grid-template-columns:80px 130px 1fr 120px 110px"><div class="form-group"><label>N°</label><input type="text" id="asiento-numero" readonly style="opacity:.6"></div><div class="form-group"><label>Fecha *</label><input type="date" id="asiento-fecha"></div><div class="form-group"><label>Descripción *</label><input type="text" id="asiento-descripcion" placeholder="Cobranza factura X"></div><div class="form-group"><label>Comprobante</label><input type="text" id="asiento-comprobante" placeholder="FA-001-12345"></div><div class="form-group"><label>Estado</label><select id="asiento-estado"><option value="confirmado">Confirmado</option><option value="borrador">Borrador</option><option value="anulado">Anulado</option></select></div></div>
+      <div class="form-row" style="grid-template-columns:130px 160px 130px 1fr"><div class="form-group"><label>Moneda *</label><select id="asiento-moneda" onchange="onAsientoMonedaChange()"><option value="ARS">Pesos (ARS)</option><option value="USD">Dólares (USD)</option></select></div><div class="form-group"><label>Cotización *</label><select id="asiento-tc-tipo" onchange="onTcTipoChange()"><option value="compra">Comprador (cobranza USD)</option><option value="venta">Vendedor (pago USD)</option></select></div><div class="form-group"><label>TC (ARS/USD) *</label><input type="number" step="0.01" min="0" id="asiento-tc" placeholder="0.00"></div><div class="form-group"><label>&nbsp;</label><div id="asiento-tc-info" style="font-size:10px;color:var(--text3);padding:6px 0">Comprador: TC al que el banco te compra USD (cobranza). Vendedor: al que te vende USD (pago).</div></div></div>
       <hr class="form-divider">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="section-label" style="margin:0">Líneas (partida doble)</div><button class="btn btn-ghost btn-sm" onclick="addLineaAsiento()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Línea</button></div>
       <div id="asiento-lineas-list" style="display:flex;flex-direction:column;gap:5px"></div>
@@ -1713,6 +1715,9 @@ async function loadEmpresaAndStart(){
     currentUserData=usuariosEmpresa.find(u=>u.id===currentUser.id)||null;
     aplicarPermisos();
     renderAll();
+    // Cotizacion USD oficial — fetch inicial + refresh cada 5min
+    fetchCotizacion();
+    if(!window._cotIv)window._cotIv=setInterval(()=>fetchCotizacion(true),5*60*1000);
   }catch(e){
     console.error('Error al iniciar:',e);
     // Si falla por sesión expirada, limpiar y mostrar login
@@ -2067,6 +2072,43 @@ function fmtUSD(n){return'US$ '+Math.round(n).toLocaleString('es-AR');}
 // Escapa HTML para prevenir XSS al interpolar campos de DB en innerHTML.
 // Usar SIEMPRE que el valor venga de input de usuario (razon social, descripcion, etc).
 function esc(s){if(s===null||s===undefined)return'';return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fmtARS(n){return'$ '+Math.round(n).toLocaleString('es-AR');}
+// Cotizacion divisa USD/ARS (BCRA mayorista ~= BNA divisa) — day-lag: el TC del dia es
+// el del dia habil anterior (convencion AFIP/contable). Cache 5min, fetch desde argentinadatos.com.
+let cotizacion={compra:null,venta:null,fecha:null,lastFetch:0,fuente:'BCRA mayorista'};
+async function fetchCotizacion(force){
+  const now=Date.now();
+  if(!force&&cotizacion.compra&&(now-cotizacion.lastFetch)<5*60*1000)return cotizacion;
+  try{
+    const r=await fetch('https://api.argentinadatos.com/v1/cotizaciones/dolares/mayorista');
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const arr=await r.json();
+    const today=new Date().toISOString().slice(0,10);
+    // Day-lag: ultimo registro con fecha estrictamente anterior a hoy.
+    const prev=arr.filter(x=>x.fecha<today).sort((a,b)=>b.fecha.localeCompare(a.fecha))[0];
+    if(!prev)throw new Error('Sin datos historicos');
+    cotizacion={compra:parseFloat(prev.compra)||null,venta:parseFloat(prev.venta)||null,fecha:prev.fecha,lastFetch:now,fuente:'BCRA mayorista'};
+  }catch(e){console.warn('Cotizacion fetch fallo:',e.message);}
+  renderCotizacionBadge();
+  return cotizacion;
+}
+function renderCotizacionBadge(){
+  const el=document.getElementById('cotizacion-badge');if(!el)return;
+  if(!cotizacion.compra&&!cotizacion.venta){el.innerHTML='<span style="color:var(--text3);font-size:10px">USD divisa: —</span> <button onclick="fetchCotizacion(true)" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:10px">↻</button>';return;}
+  const f=cotizacion.fecha?cotizacion.fecha.split('-').reverse().join('/'):'';
+  el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:6px"><span style="font-size:10px;color:var(--text3)" title="Fuente: ${cotizacion.fuente} (cotización del día hábil anterior)">USD divisa <span style="color:var(--text)">${f}</span></span><button onclick="fetchCotizacion(true)" title="Actualizar — fuente: ${cotizacion.fuente}" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:11px;padding:0">↻</button></div><div style="display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:11px"><div><span style="color:var(--text3);font-size:9px">C</span> <span style="color:var(--green);font-weight:600">${cotizacion.compra?cotizacion.compra.toFixed(2):'—'}</span></div><div><span style="color:var(--text3);font-size:9px">V</span> <span style="color:var(--coral);font-weight:600">${cotizacion.venta?cotizacion.venta.toFixed(2):'—'}</span></div></div>`;
+}
+// Convierte un monto de un asiento a su valor en ARS usando moneda + tipo_cambio del asiento.
+// Si el asiento es ARS, devuelve el monto directo. Si es USD, multiplica por TC.
+// Si no hay TC (asiento legacy USD sin TC), devuelve null.
+function toARS(monto,asiento){
+  if(!asiento)return null;
+  const m=parseFloat(monto)||0;
+  if(asiento.moneda==='ARS')return m;
+  if(asiento.moneda==='USD'){const tc=parseFloat(asiento.tipo_cambio)||0;return tc?m*tc:null;}
+  return null;
+}
+function asientoOf(lineaAsientoId){return asientos.find(a=>a.id===lineaAsientoId);}
 
 // ─── ESTADO INLINE EDITOR ─────────────────────────────────────────
 // Renderiza un <select> con apariencia de badge para cambiar el estado
@@ -2584,8 +2626,13 @@ function renderAsientos(filter=''){
   document.getElementById('asientos-tbody').innerHTML=list.length?list.map(a=>{
     const lineas=asientoLineas.filter(l=>l.asiento_id===a.id);
     const totalAsiento=lineas.reduce((s,l)=>s+parseFloat(l.debe||0),0);
-    return`<tr><td class="mono td-primary">${a.numero||'—'}</td><td class="mono">${a.fecha||'—'}</td><td>${a.descripcion||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${a.comprobante_nro||'—'}</td><td class="mono" style="font-size:11px">${a.tipo||'manual'}</td><td class="mono" style="color:var(--green)">${fmtUSD(totalAsiento)}</td><td>${estadoSelect('asientos',a.id,a.estado||'borrador',['borrador','confirmado','anulado'],badges)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editAsiento('${a.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>${a.estado==='confirmado'?'Ver':'Editar'}</button>${a.estado!=='anulado'?`<button class="btn btn-ghost btn-sm" onclick="anularAsiento('${a.id}')" style="border-color:var(--accent);color:var(--accent)" title="Anular (soft delete)"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span></button>`:''}<button class="btn btn-danger btn-sm" onclick="deleteAsiento('${a.id}')" title="Eliminar definitivamente"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
-  }).join(''):`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg></div><div class="empty-title">Sin asientos cargados</div><div class="empty-msg">Cargá el primer asiento manual con <b>+ Nuevo asiento</b>. Validamos automáticamente que Debe = Haber.</div></div></td></tr>`;
+    const mon=a.moneda||'USD';const tc=parseFloat(a.tipo_cambio)||0;const tt=a.tc_tipo;
+    const totARS=mon==='ARS'?totalAsiento:(tc?totalAsiento*tc:null);
+    const totUSD=mon==='USD'?totalAsiento:(tc?totalAsiento/tc:null);
+    const monBadge=mon==='ARS'?'<span class="badge badge-teal">ARS</span>':'<span class="badge badge-blue">USD</span>';
+    const ttLabel=tt==='compra'?'C':tt==='venta'?'V':'';
+    return`<tr><td class="mono td-primary">${a.numero||'—'}</td><td class="mono">${a.fecha||'—'}</td><td>${esc(a.descripcion)||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${esc(a.comprobante_nro)||'—'}</td><td class="mono" style="font-size:11px">${esc(a.tipo)||'manual'}</td><td>${monBadge}${tc?`<div style="font-size:9px;color:var(--text3);font-family:var(--mono)">TC ${tc.toFixed(2)}${ttLabel?' '+ttLabel:''}</div>`:''}</td><td class="mono" style="color:var(--green)">${totARS!==null?fmtARS(totARS):'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:var(--blue);font-size:11px">${totUSD!==null?fmtUSD(totUSD):'<span style="color:var(--text3)">—</span>'}</td><td>${estadoSelect('asientos',a.id,a.estado||'borrador',['borrador','confirmado','anulado'],badges)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editAsiento('${a.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>${a.estado==='confirmado'?'Ver':'Editar'}</button>${a.estado!=='anulado'?`<button class="btn btn-ghost btn-sm" onclick="anularAsiento('${a.id}')" style="border-color:var(--accent);color:var(--accent)" title="Anular (soft delete)"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span></button>`:''}<button class="btn btn-danger btn-sm" onclick="deleteAsiento('${a.id}')" title="Eliminar definitivamente"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+  }).join(''):`<tr><td colspan="10" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg></div><div class="empty-title">Sin asientos cargados</div><div class="empty-msg">Cargá el primer asiento manual con <b>+ Nuevo asiento</b>. Validamos automáticamente que Debe = Haber.</div></div></td></tr>`;
 }
 
 function openModalAsiento(id){
@@ -2597,6 +2644,9 @@ function openModalAsiento(id){
     const maxN=asientos.reduce((m,a)=>Math.max(m,parseInt(a.numero||0)||0),0);
     document.getElementById('asiento-numero').value=maxN+1;
     document.getElementById('asiento-estado').value='confirmado';
+    document.getElementById('asiento-moneda').value='ARS';
+    document.getElementById('asiento-tc-tipo').value='venta';
+    document.getElementById('asiento-tc').value=cotizacion.venta?cotizacion.venta.toFixed(2):'';
     lineasDraft=[{cuenta_id:'',debe:0,haber:0,descripcion:''},{cuenta_id:'',debe:0,haber:0,descripcion:''}];
   }else{
     const a=asientos.find(x=>x.id===id);if(!a)return;
@@ -2605,10 +2655,15 @@ function openModalAsiento(id){
     document.getElementById('asiento-descripcion').value=a.descripcion||'';
     document.getElementById('asiento-comprobante').value=a.comprobante_nro||'';
     document.getElementById('asiento-estado').value=a.estado||'confirmado';
+    document.getElementById('asiento-moneda').value=a.moneda||'ARS';
+    document.getElementById('asiento-tc-tipo').value=a.tc_tipo||(a.moneda==='USD'?'compra':'venta');
+    document.getElementById('asiento-tc').value=a.tipo_cambio?parseFloat(a.tipo_cambio).toFixed(2):((a.tc_tipo==='compra'?cotizacion.compra:cotizacion.venta)?.toFixed(2)||'');
     const lns=asientoLineas.filter(l=>l.asiento_id===id).sort((x,y)=>(x.orden||0)-(y.orden||0));
     lineasDraft=lns.map(l=>({id:l.id,cuenta_id:l.cuenta_id,debe:parseFloat(l.debe||0),haber:parseFloat(l.haber||0),descripcion:l.descripcion||''}));
     if(!lineasDraft.length)lineasDraft=[{cuenta_id:'',debe:0,haber:0,descripcion:''},{cuenta_id:'',debe:0,haber:0,descripcion:''}];
   }
+  // Refrescar cotizacion al abrir modal (no bloquea)
+  fetchCotizacion();
   renderLineasAsiento();
   openModal('modal-asiento');
 }
@@ -2641,11 +2696,28 @@ function recalcAsientoTotales(){
   const td=lineasDraft.reduce((s,l)=>s+parseFloat(l.debe||0),0);
   const th=lineasDraft.reduce((s,l)=>s+parseFloat(l.haber||0),0);
   const diff=td-th;
-  document.getElementById('total-debe').textContent=fmtUSD(td);
-  document.getElementById('total-haber').textContent=fmtUSD(th);
+  const mon=document.getElementById('asiento-moneda')?.value||'ARS';
+  const fmt=mon==='ARS'?fmtARS:fmtUSD;
+  document.getElementById('total-debe').textContent=fmt(td);
+  document.getElementById('total-haber').textContent=fmt(th);
   const diffEl=document.getElementById('total-diff');
-  diffEl.textContent=fmtUSD(diff);
+  diffEl.textContent=fmt(diff);
   diffEl.style.color=Math.abs(diff)<0.01?'var(--green)':'var(--red)';
+}
+function onAsientoMonedaChange(){
+  const mon=document.getElementById('asiento-moneda').value;
+  const sel=document.getElementById('asiento-tc-tipo');
+  // Default: USD ingreso (cobranza)→comprador. ARS o pago USD→vendedor.
+  if(sel)sel.value=mon==='USD'?'compra':'venta';
+  syncTcDesdeCotizacion();
+  recalcAsientoTotales();
+}
+function onTcTipoChange(){syncTcDesdeCotizacion();}
+function syncTcDesdeCotizacion(){
+  const tipo=document.getElementById('asiento-tc-tipo')?.value||'compra';
+  const tcInput=document.getElementById('asiento-tc');
+  const v=tipo==='compra'?cotizacion.compra:cotizacion.venta;
+  if(tcInput&&v)tcInput.value=v.toFixed(2);
 }
 
 let _savingAsiento=false;
@@ -2666,7 +2738,11 @@ async function saveAsiento(){
   if(Math.abs(td-th)>=0.01)return notify(`Debe (${fmtUSD(td)}) ≠ Haber (${fmtUSD(th)})`,'err');
   _savingAsiento=true;setBusy('btn-save-asiento',true);
   try{
-    const cabecera={empresa_id:currentEmpresa.id,numero:parseInt(g('asiento-numero'))||1,fecha:g('asiento-fecha'),descripcion:g('asiento-descripcion'),comprobante_nro:g('asiento-comprobante')||null,estado:g('asiento-estado'),tipo:'manual'};
+    const moneda=g('asiento-moneda')||'ARS';
+    const tc=parseFloat(g('asiento-tc'))||0;
+    const tcTipo=g('asiento-tc-tipo')||'venta';
+    if(!tc||tc<=0){notify('Ingresá un tipo de cambio válido','err');_savingAsiento=false;setBusy('btn-save-asiento',false,'Guardar asiento');return;}
+    const cabecera={empresa_id:currentEmpresa.id,numero:parseInt(g('asiento-numero'))||1,fecha:g('asiento-fecha'),descripcion:g('asiento-descripcion'),comprobante_nro:g('asiento-comprobante')||null,estado:g('asiento-estado'),tipo:'manual',moneda,tipo_cambio:tc,tc_tipo:tcTipo};
     let asientoId;
     if(id){
       asientoId=id;
@@ -2715,23 +2791,24 @@ function renderLibroDiario(){
   document.getElementById('ld-stat-cantidad').textContent=list.length;
   if(!list.length){
     cont.innerHTML='<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg></div><div class="empty-title">Sin asientos en el período</div><div class="empty-msg">Cargá asientos confirmados desde la pestaña <b>Asientos</b> o ajustá los filtros de fecha.</div></div>';
-    document.getElementById('ld-stat-total').textContent=fmtUSD(0);
+    document.getElementById('ld-stat-total').textContent=fmtARS(0);
     return;
   }
   const cuentaById={};cuentasContables.forEach(c=>{cuentaById[c.id]=c;});
   let html='';
   for(const a of list){
     const lns=asientoLineas.filter(l=>l.asiento_id===a.id).sort((x,y)=>(x.orden||0)-(y.orden||0));
-    const tD=lns.reduce((s,l)=>s+parseFloat(l.debe||0),0);
-    const tH=lns.reduce((s,l)=>s+parseFloat(l.haber||0),0);
+    const tD=lns.reduce((s,l)=>s+(toARS(l.debe,a)||0),0);
+    const tH=lns.reduce((s,l)=>s+(toARS(l.haber,a)||0),0);
     totalDebe+=tD;totalHaber+=tH;
+    const monInfo=a.moneda==='USD'?` <span style="color:var(--blue);font-size:10px">(USD · TC ${parseFloat(a.tipo_cambio||0).toFixed(2)} ${a.tc_tipo||''})</span>`:'';
     html+=`<div style="margin-bottom:18px;border-bottom:1px solid var(--border);padding-bottom:14px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:11px"><div><span style="color:var(--accent);font-weight:500">N° ${a.numero}</span> <span style="color:var(--text3)">·</span> <span style="color:var(--text)">${a.fecha}</span> <span style="color:var(--text3)">·</span> <span style="color:var(--text2)">${a.descripcion}</span>${a.comprobante_nro?` <span style="color:var(--text3)">·</span> <span style="color:var(--text3)">${a.comprobante_nro}</span>`:''}</div></div>
-      <table style="width:100%;font-size:11px;border-collapse:collapse;font-family:var(--mono)"><thead><tr style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em"><th style="text-align:left;padding:3px 8px;width:130px">Código</th><th style="text-align:left;padding:3px 8px">Cuenta</th><th style="text-align:left;padding:3px 8px">Detalle</th><th style="text-align:right;padding:3px 8px;width:100px">Debe</th><th style="text-align:right;padding:3px 8px;width:100px">Haber</th></tr></thead><tbody>${lns.map(l=>{const c=cuentaById[l.cuenta_id]||{};return`<tr><td style="padding:3px 8px;color:var(--text2)">${c.codigo||'—'}</td><td style="padding:3px 8px;color:var(--text)">${c.nombre||'—'}</td><td style="padding:3px 8px;color:var(--text3)">${l.descripcion||''}</td><td style="padding:3px 8px;text-align:right;color:${parseFloat(l.debe||0)>0?'var(--green)':'var(--text3)'}">${parseFloat(l.debe||0)>0?fmtUSD(parseFloat(l.debe)):'—'}</td><td style="padding:3px 8px;text-align:right;color:${parseFloat(l.haber||0)>0?'var(--coral)':'var(--text3)'}">${parseFloat(l.haber||0)>0?fmtUSD(parseFloat(l.haber)):'—'}</td></tr>`;}).join('')}</tbody></table>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:11px"><div><span style="color:var(--accent);font-weight:500">N° ${a.numero}</span> <span style="color:var(--text3)">·</span> <span style="color:var(--text)">${a.fecha}</span> <span style="color:var(--text3)">·</span> <span style="color:var(--text2)">${esc(a.descripcion)}</span>${a.comprobante_nro?` <span style="color:var(--text3)">·</span> <span style="color:var(--text3)">${esc(a.comprobante_nro)}</span>`:''}${monInfo}</div></div>
+      <table style="width:100%;font-size:11px;border-collapse:collapse;font-family:var(--mono)"><thead><tr style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em"><th style="text-align:left;padding:3px 8px;width:130px">Código</th><th style="text-align:left;padding:3px 8px">Cuenta</th><th style="text-align:left;padding:3px 8px">Detalle</th><th style="text-align:right;padding:3px 8px;width:120px">Debe (ARS)</th><th style="text-align:right;padding:3px 8px;width:120px">Haber (ARS)</th></tr></thead><tbody>${lns.map(l=>{const c=cuentaById[l.cuenta_id]||{};const dARS=toARS(l.debe,a);const hARS=toARS(l.haber,a);const dRaw=parseFloat(l.debe||0);const hRaw=parseFloat(l.haber||0);return`<tr><td style="padding:3px 8px;color:var(--text2)">${c.codigo||'—'}</td><td style="padding:3px 8px;color:var(--text)">${esc(c.nombre)||'—'}</td><td style="padding:3px 8px;color:var(--text3)">${esc(l.descripcion)||''}</td><td style="padding:3px 8px;text-align:right;color:${dRaw>0?'var(--green)':'var(--text3)'}">${dRaw>0?(dARS!==null?fmtARS(dARS):'—')+(a.moneda==='USD'?`<div style="font-size:9px;color:var(--text3)">${fmtUSD(dRaw)}</div>`:''):'—'}</td><td style="padding:3px 8px;text-align:right;color:${hRaw>0?'var(--coral)':'var(--text3)'}">${hRaw>0?(hARS!==null?fmtARS(hARS):'—')+(a.moneda==='USD'?`<div style="font-size:9px;color:var(--text3)">${fmtUSD(hRaw)}</div>`:''):'—'}</td></tr>`;}).join('')}</tbody></table>
     </div>`;
   }
   cont.innerHTML=html;
-  document.getElementById('ld-stat-total').textContent=fmtUSD(totalDebe);
+  document.getElementById('ld-stat-total').textContent=fmtARS(totalDebe);
 }
 
 // ─── LIBRO MAYOR ──────────────────────────────────────────────
@@ -2761,30 +2838,32 @@ function renderLibroMayor(){
   const asConfirmados=asientos.filter(a=>a.estado==='confirmado'&&(!desde||a.fecha>=desde)&&(!hasta||a.fecha<=hasta));
   const asConfMap={};asConfirmados.forEach(a=>{asConfMap[a.id]=a;});
   const movs=asientoLineas.filter(l=>l.cuenta_id===cuentaId&&asConfMap[l.asiento_id]).map(l=>({linea:l,asiento:asConfMap[l.asiento_id]})).sort((a,b)=>(a.asiento.fecha||'').localeCompare(b.asiento.fecha||'')||(a.asiento.numero||0)-(b.asiento.numero||0));
-  const totalDebe=movs.reduce((s,m)=>s+parseFloat(m.linea.debe||0),0);
-  const totalHaber=movs.reduce((s,m)=>s+parseFloat(m.linea.haber||0),0);
+  const totalDebe=movs.reduce((s,m)=>s+(toARS(m.linea.debe,m.asiento)||0),0);
+  const totalHaber=movs.reduce((s,m)=>s+(toARS(m.linea.haber,m.asiento)||0),0);
   // Convención AR: Activo/Egreso → saldo deudor (debe-haber); Pasivo/PN/Ingreso → saldo acreedor (haber-debe)
   const tipoNaturalDeudor=['activo','egreso'].includes(cuenta.tipo);
   const saldoFinal=tipoNaturalDeudor?(totalDebe-totalHaber):(totalHaber-totalDebe);
   stats.style.display='grid';
   stats.innerHTML=`
-    <div class="stat-card"><div class="stat-label">Cuenta</div><div class="stat-value" style="font-size:13px;color:var(--accent)">${cuenta.codigo}</div><div style="font-size:11px;color:var(--text2);margin-top:2px">${cuenta.nombre}</div></div>
-    <div class="stat-card"><div class="stat-label">Total Debe</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtUSD(totalDebe)}</div></div>
-    <div class="stat-card"><div class="stat-label">Total Haber</div><div class="stat-value" style="color:var(--coral);font-size:14px">${fmtUSD(totalHaber)}</div></div>
-    <div class="stat-card"><div class="stat-label">Saldo ${tipoNaturalDeudor?'deudor':'acreedor'}</div><div class="stat-value" style="color:${saldoFinal>=0?'var(--green)':'var(--red)'};font-size:14px">${fmtUSD(saldoFinal)}</div></div>`;
+    <div class="stat-card"><div class="stat-label">Cuenta</div><div class="stat-value" style="font-size:13px;color:var(--accent)">${cuenta.codigo}</div><div style="font-size:11px;color:var(--text2);margin-top:2px">${esc(cuenta.nombre)}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Debe</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtARS(totalDebe)}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Haber</div><div class="stat-value" style="color:var(--coral);font-size:14px">${fmtARS(totalHaber)}</div></div>
+    <div class="stat-card"><div class="stat-label">Saldo ${tipoNaturalDeudor?'deudor':'acreedor'}</div><div class="stat-value" style="color:${saldoFinal>=0?'var(--green)':'var(--red)'};font-size:14px">${fmtARS(saldoFinal)}</div></div>`;
   if(!movs.length){
     cont.innerHTML='<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="empty-title">Sin movimientos en el período</div><div class="empty-msg">Esta cuenta no tiene movimientos en el rango de fechas seleccionado.</div></div>';
     return;
   }
-  // Render con saldo acumulado por fila (en convención natural de la cuenta)
+  // Render con saldo acumulado por fila (en convención natural de la cuenta), en ARS
   let acum=0;
-  let html='<table style="width:100%;font-size:11px;border-collapse:collapse;font-family:var(--mono)"><thead><tr style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border)"><th style="text-align:left;padding:6px 8px;width:90px">Fecha</th><th style="text-align:left;padding:6px 8px;width:60px">N° As.</th><th style="text-align:left;padding:6px 8px">Descripción</th><th style="text-align:right;padding:6px 8px;width:100px">Debe</th><th style="text-align:right;padding:6px 8px;width:100px">Haber</th><th style="text-align:right;padding:6px 8px;width:110px">Saldo</th></tr></thead><tbody>';
+  let html='<table style="width:100%;font-size:11px;border-collapse:collapse;font-family:var(--mono)"><thead><tr style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border)"><th style="text-align:left;padding:6px 8px;width:90px">Fecha</th><th style="text-align:left;padding:6px 8px;width:60px">N° As.</th><th style="text-align:left;padding:6px 8px">Descripción</th><th style="text-align:right;padding:6px 8px;width:120px">Debe (ARS)</th><th style="text-align:right;padding:6px 8px;width:120px">Haber (ARS)</th><th style="text-align:right;padding:6px 8px;width:130px">Saldo (ARS)</th></tr></thead><tbody>';
   for(const m of movs){
-    const d=parseFloat(m.linea.debe||0);const h=parseFloat(m.linea.haber||0);
-    acum+=tipoNaturalDeudor?(d-h):(h-d);
-    html+=`<tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;color:var(--text2)">${m.asiento.fecha||'—'}</td><td style="padding:5px 8px;color:var(--accent)">${m.asiento.numero||'—'}</td><td style="padding:5px 8px;color:var(--text)">${m.asiento.descripcion||''}${m.linea.descripcion?` <span style="color:var(--text3)">· ${m.linea.descripcion}</span>`:''}</td><td style="padding:5px 8px;text-align:right;color:${d>0?'var(--green)':'var(--text3)'}">${d>0?fmtUSD(d):'—'}</td><td style="padding:5px 8px;text-align:right;color:${h>0?'var(--coral)':'var(--text3)'}">${h>0?fmtUSD(h):'—'}</td><td style="padding:5px 8px;text-align:right;color:${acum>=0?'var(--text)':'var(--red)'};font-weight:500">${fmtUSD(acum)}</td></tr>`;
+    const dARS=toARS(m.linea.debe,m.asiento)||0;const hARS=toARS(m.linea.haber,m.asiento)||0;
+    const dRaw=parseFloat(m.linea.debe||0);const hRaw=parseFloat(m.linea.haber||0);
+    acum+=tipoNaturalDeudor?(dARS-hARS):(hARS-dARS);
+    const usdHint=m.asiento.moneda==='USD'?` <span style="color:var(--blue);font-size:9px">(USD)</span>`:'';
+    html+=`<tr style="border-bottom:1px solid var(--border)"><td style="padding:5px 8px;color:var(--text2)">${m.asiento.fecha||'—'}</td><td style="padding:5px 8px;color:var(--accent)">${m.asiento.numero||'—'}${usdHint}</td><td style="padding:5px 8px;color:var(--text)">${esc(m.asiento.descripcion)||''}${m.linea.descripcion?` <span style="color:var(--text3)">· ${esc(m.linea.descripcion)}</span>`:''}</td><td style="padding:5px 8px;text-align:right;color:${dRaw>0?'var(--green)':'var(--text3)'}">${dRaw>0?fmtARS(dARS):'—'}</td><td style="padding:5px 8px;text-align:right;color:${hRaw>0?'var(--coral)':'var(--text3)'}">${hRaw>0?fmtARS(hARS):'—'}</td><td style="padding:5px 8px;text-align:right;color:${acum>=0?'var(--text)':'var(--red)'};font-weight:500">${fmtARS(acum)}</td></tr>`;
   }
-  html+=`</tbody><tfoot><tr style="font-weight:600;border-top:2px solid var(--border2)"><td colspan="3" style="padding:8px;color:var(--text3)">TOTALES</td><td style="padding:8px;text-align:right;color:var(--green)">${fmtUSD(totalDebe)}</td><td style="padding:8px;text-align:right;color:var(--coral)">${fmtUSD(totalHaber)}</td><td style="padding:8px;text-align:right;color:${saldoFinal>=0?'var(--green)':'var(--red)'}">${fmtUSD(saldoFinal)}</td></tr></tfoot></table>`;
+  html+=`</tbody><tfoot><tr style="font-weight:600;border-top:2px solid var(--border2)"><td colspan="3" style="padding:8px;color:var(--text3)">TOTALES (ARS)</td><td style="padding:8px;text-align:right;color:var(--green)">${fmtARS(totalDebe)}</td><td style="padding:8px;text-align:right;color:var(--coral)">${fmtARS(totalHaber)}</td><td style="padding:8px;text-align:right;color:${saldoFinal>=0?'var(--green)':'var(--red)'}">${fmtARS(saldoFinal)}</td></tr></tfoot></table>`;
   cont.innerHTML=html;
 }
 
@@ -2798,14 +2877,16 @@ function renderBalance(){
   const hasta=document.getElementById('bal-hasta')?.value||'';
   const asConfirmados=asientos.filter(a=>a.estado==='confirmado'&&(!desde||a.fecha>=desde)&&(!hasta||a.fecha<=hasta));
   const asConfIds=new Set(asConfirmados.map(a=>a.id));
-  // Agregar por cuenta
+  const asMap={};asConfirmados.forEach(a=>{asMap[a.id]=a;});
+  // Agregar por cuenta — todo en ARS
   const porCuenta={};
   asientoLineas.forEach(l=>{
     if(!asConfIds.has(l.asiento_id))return;
+    const a=asMap[l.asiento_id];
     const k=l.cuenta_id;
     if(!porCuenta[k])porCuenta[k]={debe:0,haber:0};
-    porCuenta[k].debe+=parseFloat(l.debe||0);
-    porCuenta[k].haber+=parseFloat(l.haber||0);
+    porCuenta[k].debe+=toARS(l.debe,a)||0;
+    porCuenta[k].haber+=toARS(l.haber,a)||0;
   });
   const cuentas=cuentasContables.filter(c=>c.imputable!==false&&porCuenta[c.id]).sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'',undefined,{numeric:true}));
   const tipoBadge={activo:'badge-ok',pasivo:'badge-coral',patrimonio:'badge-purple',ingreso:'badge-blue',egreso:'badge-warn'};
@@ -2823,13 +2904,13 @@ function renderBalance(){
     const saldoDeudor=diff>0?diff:0;
     const saldoAcreedor=diff<0?-diff:0;
     totalDebe+=m.debe;totalHaber+=m.haber;totalDeudor+=saldoDeudor;totalAcreedor+=saldoAcreedor;
-    return`<tr><td class="mono td-primary">${c.codigo}</td><td>${c.nombre}</td><td><span class="badge ${tipoBadge[c.tipo]||'badge-warn'}">${(c.tipo||'').toUpperCase()}</span></td><td class="mono" style="text-align:right;color:var(--green)">${fmtUSD(m.debe)}</td><td class="mono" style="text-align:right;color:var(--coral)">${fmtUSD(m.haber)}</td><td class="mono" style="text-align:right;color:${saldoDeudor>0?'var(--green)':'var(--text3)'}">${saldoDeudor>0?fmtUSD(saldoDeudor):'—'}</td><td class="mono" style="text-align:right;color:${saldoAcreedor>0?'var(--coral)':'var(--text3)'}">${saldoAcreedor>0?fmtUSD(saldoAcreedor):'—'}</td></tr>`;
+    return`<tr><td class="mono td-primary">${c.codigo}</td><td>${esc(c.nombre)}</td><td><span class="badge ${tipoBadge[c.tipo]||'badge-warn'}">${(c.tipo||'').toUpperCase()}</span></td><td class="mono" style="text-align:right;color:var(--green)">${fmtARS(m.debe)}</td><td class="mono" style="text-align:right;color:var(--coral)">${fmtARS(m.haber)}</td><td class="mono" style="text-align:right;color:${saldoDeudor>0?'var(--green)':'var(--text3)'}">${saldoDeudor>0?fmtARS(saldoDeudor):'—'}</td><td class="mono" style="text-align:right;color:${saldoAcreedor>0?'var(--coral)':'var(--text3)'}">${saldoAcreedor>0?fmtARS(saldoAcreedor):'—'}</td></tr>`;
   }).join('');
   const cuadra=Math.abs(totalDebe-totalHaber)<0.01;
-  tfoot.innerHTML=`<tr style="border-top:2px solid var(--border2);font-weight:600;background:var(--surface2)"><td colspan="3" class="mono" style="padding:10px 8px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-size:11px">TOTALES</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--green)">${fmtUSD(totalDebe)}</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--coral)">${fmtUSD(totalHaber)}</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--green)">${fmtUSD(totalDeudor)}</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--coral)">${fmtUSD(totalAcreedor)}</td></tr>`;
+  tfoot.innerHTML=`<tr style="border-top:2px solid var(--border2);font-weight:600;background:var(--surface2)"><td colspan="3" class="mono" style="padding:10px 8px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-size:11px">TOTALES (ARS)</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--green)">${fmtARS(totalDebe)}</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--coral)">${fmtARS(totalHaber)}</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--green)">${fmtARS(totalDeudor)}</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--coral)">${fmtARS(totalAcreedor)}</td></tr>`;
   if(status){
     if(cuadra){status.textContent='✓ Balance cuadrado';status.style.background='rgba(76,175,125,.12)';status.style.color='var(--green)';status.style.border='1px solid rgba(76,175,125,.3)';}
-    else{status.textContent=`✗ Diferencia: ${fmtUSD(totalDebe-totalHaber)}`;status.style.background='rgba(224,82,82,.12)';status.style.color='var(--red)';status.style.border='1px solid rgba(224,82,82,.3)';}
+    else{status.textContent=`✗ Diferencia: ${fmtARS(totalDebe-totalHaber)}`;status.style.background='rgba(224,82,82,.12)';status.style.color='var(--red)';status.style.border='1px solid rgba(224,82,82,.3)';}
   }
 }
 
@@ -2838,12 +2919,14 @@ function renderBalance(){
 function _agregarSaldos(desde,hasta){
   const asConf=asientos.filter(a=>a.estado==='confirmado'&&(!desde||a.fecha>=desde)&&(!hasta||a.fecha<=hasta));
   const ids=new Set(asConf.map(a=>a.id));
+  const asMap={};asConf.forEach(a=>{asMap[a.id]=a;});
   const por={};
   asientoLineas.forEach(l=>{
     if(!ids.has(l.asiento_id))return;
+    const a=asMap[l.asiento_id];
     if(!por[l.cuenta_id])por[l.cuenta_id]={debe:0,haber:0};
-    por[l.cuenta_id].debe+=parseFloat(l.debe||0);
-    por[l.cuenta_id].haber+=parseFloat(l.haber||0);
+    por[l.cuenta_id].debe+=toARS(l.debe,a)||0;
+    por[l.cuenta_id].haber+=toARS(l.haber,a)||0;
   });
   return por;
 }
@@ -2864,9 +2947,9 @@ function renderEstadoResultados(){
   const resultado=totalIng-totalEgr;
   const margen=totalIng>0?((resultado/totalIng)*100).toFixed(1):0;
   stats.innerHTML=`
-    <div class="stat-card"><div class="stat-label">Total Ingresos</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtUSD(totalIng)}</div></div>
-    <div class="stat-card"><div class="stat-label">Total Egresos</div><div class="stat-value" style="color:var(--coral);font-size:14px">${fmtUSD(totalEgr)}</div></div>
-    <div class="stat-card"><div class="stat-label">Resultado</div><div class="stat-value" style="color:${resultado>=0?'var(--green)':'var(--red)'};font-size:14px">${fmtUSD(resultado)}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Ingresos</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtARS(totalIng)}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Egresos</div><div class="stat-value" style="color:var(--coral);font-size:14px">${fmtARS(totalEgr)}</div></div>
+    <div class="stat-card"><div class="stat-label">Resultado</div><div class="stat-value" style="color:${resultado>=0?'var(--green)':'var(--red)'};font-size:14px">${fmtARS(resultado)}</div></div>
     <div class="stat-card"><div class="stat-label">Margen</div><div class="stat-value" style="color:${margen>20?'var(--green)':margen>5?'var(--accent)':'var(--red)'}">${margen}%</div></div>`;
   if(!ingresosCtas.length&&!egresosCtas.length){
     cont.innerHTML='<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div><div class="empty-title">Sin movimientos en el período</div><div class="empty-msg">No hay asientos confirmados con cuentas de ingreso o egreso en el rango seleccionado.</div></div>';
@@ -2876,19 +2959,19 @@ function renderEstadoResultados(){
   // Columna ingresos
   html+='<div><div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(76,175,125,.3)">INGRESOS</div>';
   if(filaIng.length){
-    html+='<table style="width:100%;border-collapse:collapse"><tbody>'+filaIng.map(f=>`<tr><td style="padding:4px 8px;color:var(--text2);width:90px">${f.codigo}</td><td style="padding:4px 8px;color:var(--text)">${f.nombre}</td><td style="padding:4px 8px;text-align:right;color:var(--green)">${fmtUSD(f.saldo)}</td></tr>`).join('')+'</tbody></table>';
-    html+=`<div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-weight:600"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.08em">Total Ingresos</span><span style="color:var(--green)">${fmtUSD(totalIng)}</span></div>`;
+    html+='<table style="width:100%;border-collapse:collapse"><tbody>'+filaIng.map(f=>`<tr><td style="padding:4px 8px;color:var(--text2);width:90px">${f.codigo}</td><td style="padding:4px 8px;color:var(--text)">${f.nombre}</td><td style="padding:4px 8px;text-align:right;color:var(--green)">${fmtARS(f.saldo)}</td></tr>`).join('')+'</tbody></table>';
+    html+=`<div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-weight:600"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.08em">Total Ingresos</span><span style="color:var(--green)">${fmtARS(totalIng)}</span></div>`;
   }else html+='<div style="color:var(--text3);font-size:11px;padding:12px 0">Sin movimientos</div>';
   html+='</div>';
   // Columna egresos
   html+='<div><div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--coral);font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(224,104,64,.3)">EGRESOS</div>';
   if(filaEgr.length){
-    html+='<table style="width:100%;border-collapse:collapse"><tbody>'+filaEgr.map(f=>`<tr><td style="padding:4px 8px;color:var(--text2);width:90px">${f.codigo}</td><td style="padding:4px 8px;color:var(--text)">${f.nombre}</td><td style="padding:4px 8px;text-align:right;color:var(--coral)">${fmtUSD(f.saldo)}</td></tr>`).join('')+'</tbody></table>';
-    html+=`<div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-weight:600"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.08em">Total Egresos</span><span style="color:var(--coral)">${fmtUSD(totalEgr)}</span></div>`;
+    html+='<table style="width:100%;border-collapse:collapse"><tbody>'+filaEgr.map(f=>`<tr><td style="padding:4px 8px;color:var(--text2);width:90px">${f.codigo}</td><td style="padding:4px 8px;color:var(--text)">${f.nombre}</td><td style="padding:4px 8px;text-align:right;color:var(--coral)">${fmtARS(f.saldo)}</td></tr>`).join('')+'</tbody></table>';
+    html+=`<div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-weight:600"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.08em">Total Egresos</span><span style="color:var(--coral)">${fmtARS(totalEgr)}</span></div>`;
   }else html+='<div style="color:var(--text3);font-size:11px;padding:12px 0">Sin movimientos</div>';
   html+='</div></div>';
   // Resultado final
-  html+=`<div style="margin-top:18px;padding:14px;background:var(--surface2);border-radius:6px;display:flex;justify-content:space-between;align-items:center"><span style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--text3)">${resultado>=0?'GANANCIA DEL PERÍODO':'PÉRDIDA DEL PERÍODO'}</span><span style="font-family:var(--mono);font-size:18px;font-weight:600;color:${resultado>=0?'var(--green)':'var(--red)'}">${fmtUSD(resultado)}</span></div>`;
+  html+=`<div style="margin-top:18px;padding:14px;background:var(--surface2);border-radius:6px;display:flex;justify-content:space-between;align-items:center"><span style="font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--text3)">${resultado>=0?'GANANCIA DEL PERÍODO':'PÉRDIDA DEL PERÍODO'}</span><span style="font-family:var(--mono);font-size:18px;font-weight:600;color:${resultado>=0?'var(--green)':'var(--red)'}">${fmtARS(resultado)}</span></div>`;
   cont.innerHTML=html;
 }
 
@@ -2917,13 +3000,13 @@ function renderBalanceGeneral(){
   const totalPasPN=totalPas+totalPN;
   const cuadra=Math.abs(totalAct-totalPasPN)<0.01;
   stats.innerHTML=`
-    <div class="stat-card"><div class="stat-label">Total Activo</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtUSD(totalAct)}</div></div>
-    <div class="stat-card"><div class="stat-label">Total Pasivo</div><div class="stat-value" style="color:var(--coral);font-size:14px">${fmtUSD(totalPas)}</div></div>
-    <div class="stat-card"><div class="stat-label">Patrimonio Neto</div><div class="stat-value" style="color:var(--purple);font-size:14px">${fmtUSD(totalPN)}</div></div>
-    <div class="stat-card"><div class="stat-label">Resultado del ejercicio</div><div class="stat-value" style="color:${resultadoEjercicio>=0?'var(--green)':'var(--red)'};font-size:13px">${fmtUSD(resultadoEjercicio)}</div></div>`;
+    <div class="stat-card"><div class="stat-label">Total Activo</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtARS(totalAct)}</div></div>
+    <div class="stat-card"><div class="stat-label">Total Pasivo</div><div class="stat-value" style="color:var(--coral);font-size:14px">${fmtARS(totalPas)}</div></div>
+    <div class="stat-card"><div class="stat-label">Patrimonio Neto</div><div class="stat-value" style="color:var(--purple);font-size:14px">${fmtARS(totalPN)}</div></div>
+    <div class="stat-card"><div class="stat-label">Resultado del ejercicio</div><div class="stat-value" style="color:${resultadoEjercicio>=0?'var(--green)':'var(--red)'};font-size:13px">${fmtARS(resultadoEjercicio)}</div></div>`;
   if(status){
     if(cuadra){status.textContent='✓ Activo = Pasivo + PN';status.style.background='rgba(76,175,125,.12)';status.style.color='var(--green)';status.style.border='1px solid rgba(76,175,125,.3)';}
-    else{status.textContent=`✗ Diferencia: ${fmtUSD(totalAct-totalPasPN)}`;status.style.background='rgba(224,82,82,.12)';status.style.color='var(--red)';status.style.border='1px solid rgba(224,82,82,.3)';}
+    else{status.textContent=`✗ Diferencia: ${fmtARS(totalAct-totalPasPN)}`;status.style.background='rgba(224,82,82,.12)';status.style.color='var(--red)';status.style.border='1px solid rgba(224,82,82,.3)';}
   }
   if(!activos.length&&!pasivos.length&&!patrim.length){
     cont.innerHTML='<div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 17V7"/><path d="M11 17V11"/><path d="M15 17V13"/><path d="M19 17V9"/></svg></div><div class="empty-title">Sin saldos al cierre</div><div class="empty-msg">No hay asientos confirmados que afecten cuentas patrimoniales hasta la fecha indicada.</div></div>';
@@ -2932,16 +3015,16 @@ function renderBalanceGeneral(){
   const renderCol=(titulo,color,ctas,extra)=>{
     let h=`<div><div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:${color};font-weight:500;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid ${color}33">${titulo}</div>`;
     if(ctas.length){
-      h+='<table style="width:100%;border-collapse:collapse"><tbody>'+ctas.map(c=>{const saldo=calcSaldoNatural(c,por[c.id]);return`<tr><td style="padding:4px 8px;color:var(--text2);width:90px">${c.codigo}</td><td style="padding:4px 8px;color:var(--text)">${c.nombre}</td><td style="padding:4px 8px;text-align:right;color:${color}">${fmtUSD(saldo)}</td></tr>`;}).join('')+'</tbody></table>';
+      h+='<table style="width:100%;border-collapse:collapse"><tbody>'+ctas.map(c=>{const saldo=calcSaldoNatural(c,por[c.id]);return`<tr><td style="padding:4px 8px;color:var(--text2);width:90px">${c.codigo}</td><td style="padding:4px 8px;color:var(--text)">${c.nombre}</td><td style="padding:4px 8px;text-align:right;color:${color}">${fmtARS(saldo)}</td></tr>`;}).join('')+'</tbody></table>';
     }
     if(extra)h+=extra;
     if(!ctas.length&&!extra)h+='<div style="color:var(--text3);font-size:11px;padding:12px 0">Sin saldos</div>';
     h+='</div>';
     return h;
   };
-  const totalActDisp=`<div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-weight:600"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.08em">Total Activo</span><span style="color:var(--green)">${fmtUSD(totalAct)}</span></div>`;
-  const totalPasDisp=pasivos.length?`<div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-weight:600"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.08em">Total Pasivo</span><span style="color:var(--coral)">${fmtUSD(totalPas)}</span></div>`:'';
-  const pnExtra=`<div style="margin-top:8px;padding:6px 8px;background:var(--surface2);border-radius:4px;display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--text3)">Resultado del ejercicio</span><span style="color:${resultadoEjercicio>=0?'var(--green)':'var(--red)'};font-family:var(--mono)">${fmtUSD(resultadoEjercicio)}</span></div><div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-weight:600"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.08em">Total PN</span><span style="color:var(--purple)">${fmtUSD(totalPN)}</span></div>`;
+  const totalActDisp=`<div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-weight:600"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.08em">Total Activo</span><span style="color:var(--green)">${fmtARS(totalAct)}</span></div>`;
+  const totalPasDisp=pasivos.length?`<div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-weight:600"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.08em">Total Pasivo</span><span style="color:var(--coral)">${fmtARS(totalPas)}</span></div>`:'';
+  const pnExtra=`<div style="margin-top:8px;padding:6px 8px;background:var(--surface2);border-radius:4px;display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--text3)">Resultado del ejercicio</span><span style="color:${resultadoEjercicio>=0?'var(--green)':'var(--red)'};font-family:var(--mono)">${fmtARS(resultadoEjercicio)}</span></div><div style="display:flex;justify-content:space-between;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-weight:600"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.08em">Total PN</span><span style="color:var(--purple)">${fmtARS(totalPN)}</span></div>`;
   let html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;font-family:var(--mono);font-size:12px">';
   html+=renderCol('ACTIVO','var(--green)',activos,totalActDisp);
   html+='<div>';
@@ -2949,7 +3032,7 @@ function renderBalanceGeneral(){
   html+='<div style="margin-top:18px"></div>';
   html+=renderCol('PATRIMONIO NETO','var(--purple)',patrim,pnExtra);
   html+='</div></div>';
-  html+=`<div style="margin-top:18px;padding:14px;background:var(--surface2);border-radius:6px;display:grid;grid-template-columns:1fr 1fr;gap:18px;font-family:var(--mono);font-size:13px"><div style="display:flex;justify-content:space-between"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.12em">Total Activo</span><span style="font-weight:600;color:var(--green)">${fmtUSD(totalAct)}</span></div><div style="display:flex;justify-content:space-between"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.12em">Total Pasivo + PN</span><span style="font-weight:600;color:${cuadra?'var(--accent)':'var(--red)'}">${fmtUSD(totalPasPN)}</span></div></div>`;
+  html+=`<div style="margin-top:18px;padding:14px;background:var(--surface2);border-radius:6px;display:grid;grid-template-columns:1fr 1fr;gap:18px;font-family:var(--mono);font-size:13px"><div style="display:flex;justify-content:space-between"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.12em">Total Activo</span><span style="font-weight:600;color:var(--green)">${fmtARS(totalAct)}</span></div><div style="display:flex;justify-content:space-between"><span style="color:var(--text3);text-transform:uppercase;font-size:10px;letter-spacing:.12em">Total Pasivo + PN</span><span style="font-weight:600;color:${cuadra?'var(--accent)':'var(--red)'}">${fmtARS(totalPasPN)}</span></div></div>`;
   cont.innerHTML=html;
 }
 
@@ -3060,32 +3143,32 @@ function renderRatios(){
   const seccion=(titulo,color,ratios)=>`<div style="margin-bottom:24px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:${color};font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid ${color}33">${titulo}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">${ratios.join('')}</div></div>`;
 
   const liquidez=[
-    ratioRow('Liquidez corriente',f2(r_liqCorr),`AC (${fmtUSD(ac)}) / PC (${fmtUSD(pc)})`,semaforo(r_liqCorr,1.5,1),'Capacidad de pagar deudas a corto plazo. Saludable: ≥ 1.5'),
-    ratioRow('Prueba ácida',f2(r_pruebaAcida),`(AC − Inv.) (${fmtUSD(ac-inventarios)}) / PC`,semaforo(r_pruebaAcida,1,0.7),'Liquidez sin contar inventarios. Saludable: ≥ 1.0'),
-    ratioRow('Liquidez absoluta',f2(r_liqAbs),`Caja (${fmtUSD(disponibilidades)}) / PC`,semaforo(r_liqAbs,0.3,0.15),'Cobertura inmediata con efectivo. Saludable: ≥ 0.3'),
-    ratioRow('Capital de trabajo',fmtUSD(v_capTrabajo),`AC − PC = ${fmtUSD(ac)} − ${fmtUSD(pc)}`,v_capTrabajo>=0?'var(--green)':'var(--red)','Excedente para operar. Negativo = déficit financiero')
+    ratioRow('Liquidez corriente',f2(r_liqCorr),`AC (${fmtARS(ac)}) / PC (${fmtARS(pc)})`,semaforo(r_liqCorr,1.5,1),'Capacidad de pagar deudas a corto plazo. Saludable: ≥ 1.5'),
+    ratioRow('Prueba ácida',f2(r_pruebaAcida),`(AC − Inv.) (${fmtARS(ac-inventarios)}) / PC`,semaforo(r_pruebaAcida,1,0.7),'Liquidez sin contar inventarios. Saludable: ≥ 1.0'),
+    ratioRow('Liquidez absoluta',f2(r_liqAbs),`Caja (${fmtARS(disponibilidades)}) / PC`,semaforo(r_liqAbs,0.3,0.15),'Cobertura inmediata con efectivo. Saludable: ≥ 0.3'),
+    ratioRow('Capital de trabajo',fmtARS(v_capTrabajo),`AC − PC = ${fmtARS(ac)} − ${fmtARS(pc)}`,v_capTrabajo>=0?'var(--green)':'var(--red)','Excedente para operar. Negativo = déficit financiero')
   ];
 
   const endeudamiento=[
-    ratioRow('Endeudamiento total',fpct(r_endTotal),`PT (${fmtUSD(pt)}) / AT (${fmtUSD(at)})`,semaforo(r_endTotal,0.5,0.7,false),'Proporción del activo financiada con deuda. Saludable: ≤ 50%'),
-    ratioRow('Endeudamiento sobre PN',f2(r_endPN),`PT (${fmtUSD(pt)}) / PN (${fmtUSD(pn)})`,semaforo(r_endPN,1,2,false),'Veces que la deuda supera al PN. Saludable: ≤ 1'),
-    ratioRow('Solvencia',f2(r_solvencia),`AT (${fmtUSD(at)}) / PT (${fmtUSD(pt)})`,semaforo(r_solvencia,2,1.5),'Veces que el activo cubre las deudas. Saludable: ≥ 2'),
-    ratioRow('Inmovilización',fpct(r_inmoviliz),`A. no corr. (${fmtUSD(anc)}) / AT`,semaforo(r_inmoviliz,0.5,0.7,false),'% de activo en bienes de uso. Industria: 30−60% típico')
+    ratioRow('Endeudamiento total',fpct(r_endTotal),`PT (${fmtARS(pt)}) / AT (${fmtARS(at)})`,semaforo(r_endTotal,0.5,0.7,false),'Proporción del activo financiada con deuda. Saludable: ≤ 50%'),
+    ratioRow('Endeudamiento sobre PN',f2(r_endPN),`PT (${fmtARS(pt)}) / PN (${fmtARS(pn)})`,semaforo(r_endPN,1,2,false),'Veces que la deuda supera al PN. Saludable: ≤ 1'),
+    ratioRow('Solvencia',f2(r_solvencia),`AT (${fmtARS(at)}) / PT (${fmtARS(pt)})`,semaforo(r_solvencia,2,1.5),'Veces que el activo cubre las deudas. Saludable: ≥ 2'),
+    ratioRow('Inmovilización',fpct(r_inmoviliz),`A. no corr. (${fmtARS(anc)}) / AT`,semaforo(r_inmoviliz,0.5,0.7,false),'% de activo en bienes de uso. Industria: 30−60% típico')
   ];
 
   const rentabilidad=[
-    ratioRow('Margen bruto',fpct(r_margenBruto),`(Ventas − CMV) / Ventas = ${fmtUSD(resultadoBruto)} / ${fmtUSD(ventas)}`,semaforo(r_margenBruto,0.30,0.15),'Rentabilidad sobre la venta antes de gastos. Saludable: ≥ 30%'),
-    ratioRow('Margen operativo',fpct(r_margenOp),`Result. operativo (${fmtUSD(resultadoOp)}) / Ventas`,semaforo(r_margenOp,0.15,0.05),'Eficiencia operativa. Saludable: ≥ 15%'),
-    ratioRow('Margen neto',fpct(r_margenNeto),`Result. neto (${fmtUSD(resultadoNeto)}) / Ingresos`,semaforo(r_margenNeto,0.10,0.03),'Rentabilidad final por peso facturado. Saludable: ≥ 10%'),
-    ratioRow('ROA (Return on Assets)',fpct(r_roa),`Result. neto / AT (${fmtUSD(at)})`,semaforo(r_roa,0.10,0.05),'Rentabilidad por uso del activo. Saludable: ≥ 10%'),
-    ratioRow('ROE (Return on Equity)',fpct(r_roe),`Result. neto / PN (${fmtUSD(pn)})`,semaforo(r_roe,0.15,0.08),'Rentabilidad para el dueño. Saludable: ≥ 15%')
+    ratioRow('Margen bruto',fpct(r_margenBruto),`(Ventas − CMV) / Ventas = ${fmtARS(resultadoBruto)} / ${fmtARS(ventas)}`,semaforo(r_margenBruto,0.30,0.15),'Rentabilidad sobre la venta antes de gastos. Saludable: ≥ 30%'),
+    ratioRow('Margen operativo',fpct(r_margenOp),`Result. operativo (${fmtARS(resultadoOp)}) / Ventas`,semaforo(r_margenOp,0.15,0.05),'Eficiencia operativa. Saludable: ≥ 15%'),
+    ratioRow('Margen neto',fpct(r_margenNeto),`Result. neto (${fmtARS(resultadoNeto)}) / Ingresos`,semaforo(r_margenNeto,0.10,0.03),'Rentabilidad final por peso facturado. Saludable: ≥ 10%'),
+    ratioRow('ROA (Return on Assets)',fpct(r_roa),`Result. neto / AT (${fmtARS(at)})`,semaforo(r_roa,0.10,0.05),'Rentabilidad por uso del activo. Saludable: ≥ 10%'),
+    ratioRow('ROE (Return on Equity)',fpct(r_roe),`Result. neto / PN (${fmtARS(pn)})`,semaforo(r_roe,0.15,0.08),'Rentabilidad para el dueño. Saludable: ≥ 15%')
   ];
 
   const actividad=[
-    ratioRow('Rotación de activos',f2(r_rotActivos),`Ventas (${fmtUSD(ventas)}) / AT (${fmtUSD(at)})`,semaforo(r_rotActivos,1.5,0.8),'Veces que el activo "rota" en ventas. Industria: 1−2 típico'),
-    ratioRow('Días de cobranza (DSO)',fdays(r_diasCob),`(C×C ${fmtUSD(cuentasACobrar)} × 365) / Ventas`,semaforo(r_diasCob,30,60,false),'Cuánto tarda el cliente en pagar. Saludable: ≤ 30 días'),
-    ratioRow('Días de inventario',fdays(r_diasInv),`(Inv. ${fmtUSD(inventarios)} × 365) / CMV`,semaforo(r_diasInv,60,120,false),'Cuánto tarda en venderse el stock. Industria metalúrgica: 60−90'),
-    ratioRow('Días de pago (DPO)',fdays(r_diasPago),`(Prov. ${fmtUSD(proveedores)} × 365) / CMV`,semaforo(r_diasPago,60,30),'Cuánto tardás en pagar a proveedores. Mayor = mejor financiamiento'),
+    ratioRow('Rotación de activos',f2(r_rotActivos),`Ventas (${fmtARS(ventas)}) / AT (${fmtARS(at)})`,semaforo(r_rotActivos,1.5,0.8),'Veces que el activo "rota" en ventas. Industria: 1−2 típico'),
+    ratioRow('Días de cobranza (DSO)',fdays(r_diasCob),`(C×C ${fmtARS(cuentasACobrar)} × 365) / Ventas`,semaforo(r_diasCob,30,60,false),'Cuánto tarda el cliente en pagar. Saludable: ≤ 30 días'),
+    ratioRow('Días de inventario',fdays(r_diasInv),`(Inv. ${fmtARS(inventarios)} × 365) / CMV`,semaforo(r_diasInv,60,120,false),'Cuánto tarda en venderse el stock. Industria metalúrgica: 60−90'),
+    ratioRow('Días de pago (DPO)',fdays(r_diasPago),`(Prov. ${fmtARS(proveedores)} × 365) / CMV`,semaforo(r_diasPago,60,30),'Cuánto tardás en pagar a proveedores. Mayor = mejor financiamiento'),
     ratioRow('Ciclo operativo',fdays(r_cicloOp),`Días inv. + Días cob. = ${fdays(r_diasInv)} + ${fdays(r_diasCob)}`,semaforo(r_cicloOp,90,150,false),'Tiempo total entre comprar MP y cobrar la venta'),
     ratioRow('Ciclo de caja',fdays(r_cicloEf),`Ciclo op. − Días pago`,semaforo(r_cicloEf,30,90,false),'Días que financiás la operación con tu plata. Menor = mejor')
   ];
@@ -3109,7 +3192,10 @@ async function generarAsientoVenta(ventaId,total,cliente,fecha,nroRemito){
     // Buscar asiento existente para esta venta
     const existingArr=await GET('asientos',`?origen_tipo=eq.venta&origen_id=eq.${ventaId}`);
     const existing=existingArr&&existingArr[0];
-    const cabecera={empresa_id:currentEmpresa.id,fecha:fecha||new Date().toISOString().slice(0,10),descripcion:`Venta a ${cliente||'cliente'}`,comprobante_nro:nroRemito||null,tipo:'auto-venta',origen_tipo:'venta',origen_id:ventaId,estado:'confirmado'};
+    // Auto-asiento desde venta: la venta esta en USD (cobranza→TC comprador del banco).
+    await fetchCotizacion();
+    const tcAuto=cotizacion.compra||cotizacion.venta||1;
+    const cabecera={empresa_id:currentEmpresa.id,fecha:fecha||new Date().toISOString().slice(0,10),descripcion:`Venta a ${cliente||'cliente'}`,comprobante_nro:nroRemito||null,tipo:'auto-venta',origen_tipo:'venta',origen_id:ventaId,estado:'confirmado',moneda:'USD',tipo_cambio:tcAuto,tc_tipo:'compra'};
     let asientoId;
     if(existing){
       asientoId=existing.id;
