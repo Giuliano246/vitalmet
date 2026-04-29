@@ -873,7 +873,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="form-group"><label>Nro pedido *</label><input type="text" id="v-remito" placeholder="10285"></div>
         <div class="form-group"><label>Razón social *</label><input type="text" id="v-cliente" placeholder="Nombre del cliente" list="clientes-datalist" oninput="onVentaClienteChange()"></div>
         <div class="form-group"><label>CUIT</label><input type="text" id="v-cuit" placeholder="20-12345678-9"></div>
-        <div class="form-group"><label>Estado pedido</label><select id="v-estado"><option value="ingresado">Ingresado</option><option value="aprobado_cliente">Aprobado x Cliente</option><option value="aprobado">Aprobado</option><option value="entregado">Entregado</option><option value="facturado">Facturado</option><option value="pendiente">Pendiente entrega</option></select></div>
+        <div class="form-group"><label>Estado</label><select id="v-estado"><option value="pendiente">Pendiente entrega</option><option value="entregado">Entregado</option><option value="facturado">Facturado</option></select></div>
         <div class="form-group"><label>Fecha</label><input type="date" id="v-fecha"></div>
       </div>
       <hr class="form-divider">
@@ -1811,7 +1811,7 @@ function openModal(id){
       document.getElementById('v-coef-reg').value='USD';
       document.getElementById('v-coef-emi').value='USD';
       document.getElementById('v-coef-deuda').value='USD';
-      document.getElementById('v-estado').value='ingresado';
+      document.getElementById('v-estado').value='pendiente';
       document.querySelector('#modal-venta .modal-title').textContent='Nueva venta / pedido';
       document.getElementById('btn-save-venta').textContent='Registrar pedido';
       document.getElementById('v-remito').readOnly=false;
@@ -2003,7 +2003,10 @@ async function saveVenta(){
     if(!clienteExiste){
       await POST('clientes',{empresa_id:currentEmpresa.id,nombre:clienteNombre,cuit:g('v-cuit')||null});
     }
-    const totalVenta=ventaItemsList.reduce((a,i)=>a+(i.cant*(i.precio||0)),0);
+    // Total con bonificacion: subtotal item × (1 - bonif_item%) → suma → × (1 - bonif_cabecera%)
+    const bonifCab=parseFloat(g('v-bonif1'))||0;
+    const totalBruto=ventaItemsList.reduce((a,i)=>{const sub=i.cant*(i.precio||0);const bi=parseFloat(i.bonif||0);return a+sub*(1-bi/100);},0);
+    const totalVenta=totalBruto*(1-bonifCab/100);
     const ventaPayload={
       nro_remito:g('v-remito'),
       nro_pedido:g('v-remito'),
@@ -2043,8 +2046,11 @@ async function saveVenta(){
     }
     // Recargar pts para tener stock actualizado tras devolución
     if(isEdit)pts=await GET('productos_terminados','?order=created_at.desc');
-    // Crear items nuevos y descontar stock
+    // Crear items nuevos y descontar stock — total del item ya con bonif item aplicada
     for(const item of ventaItemsList){
+      const subItem=item.cant*(item.precio||0);
+      const bi=parseFloat(item.bonif||0);
+      const totalItem=subItem*(1-bi/100);
       await POST('venta_items',{
         venta_id:ventaId,
         producto_id:item.ptId,
@@ -2052,8 +2058,8 @@ async function saveVenta(){
         cantidad:item.cant,
         precio_unitario:item.precio,
         tipo_cambio:1,
-        total:item.cant*(item.precio||0),
-        bonif_1:item.bonif||0,
+        total:totalItem,
+        bonif_1:bi,
       });
       const pt=pts.find(p=>p.id===item.ptId);
       if(pt)await PATCH('productos_terminados',{cantidad:Math.max(0,pt.cantidad-item.cant)},`?id=eq.${item.ptId}`);
@@ -2518,13 +2524,16 @@ async function deleteCert(id){
 }
 
 async function anularVenta(id){
-  if(!confirm('¿Anular esta venta? El stock de PT será repuesto.'))return;
+  if(!confirm('¿Anular esta venta? El stock de PT será repuesto y el asiento contable se anulará.'))return;
   try{
     const v=ventas.find(x=>x.id===id);
     for(const item of v.venta_items||[]){
       if(item.producto_id){const pt=pts.find(p=>p.id===item.producto_id);if(pt)await PATCH('productos_terminados',{cantidad:pt.cantidad+item.cantidad},`?id=eq.${item.producto_id}`);}
     }
-    await DEL('ventas',`?id=eq.${id}`);await loadAll();renderAll();notify('Venta anulada — stock PT repuesto');
+    // Anular asiento contable auto-generado (no-op si no existe)
+    try{await PATCH('asientos',{estado:'anulado'},`?origen_tipo=eq.venta&origen_id=eq.${id}`);}
+    catch(eA){console.warn('No se pudo anular el asiento de la venta:',eA.message);}
+    await DEL('ventas',`?id=eq.${id}`);await loadAll();renderAll();notify('Venta anulada — stock PT repuesto + asiento anulado');
   }catch(e){notify(e.message,'err');}
 }
 
@@ -3614,7 +3623,9 @@ function editVenta(id){
   document.getElementById('v-fecha').value=v.fecha||'';
   document.getElementById('v-fecha-desde').value=v.fecha_entrega_desde||'';
   document.getElementById('v-fecha-hasta').value=v.fecha_entrega_hasta||'';
-  document.getElementById('v-estado').value=v.estado||'ingresado';
+  // Normaliza estados legacy (ingresado, aprobado, aprobado_cliente) → pendiente
+  const estadoVal=['pendiente','entregado','facturado'].includes(v.estado)?v.estado:'pendiente';
+  document.getElementById('v-estado').value=estadoVal;
   document.getElementById('v-condicion').value=v.condicion_pago||'Contado';
   document.getElementById('v-vendedor').value=v.vendedor_id||'';
   document.getElementById('v-lista-precios').value=v.lista_precios_id||'';
@@ -4765,7 +4776,7 @@ async function convertirPresupuesto(id){
       cliente:p.cliente,
       fecha:new Date().toISOString().slice(0,10),
       estado:'pendiente',
-      estado_pedido:'ingresado',
+      estado_pedido:'pendiente',
       condicion_pago:p.condicion_pago||null,
       fecha_entrega_hasta:p.fecha_vencimiento||null,
       coef_registracion_moneda:'USD',
