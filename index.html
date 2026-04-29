@@ -1855,7 +1855,7 @@ function renderVentaItems(){
     return`<div style="display:grid;grid-template-columns:2fr 70px 80px 60px 80px 60px 30px;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px">
     <select onchange="ventaItemChange(${i},'ptId',this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;color:var(--text);font-size:11px;font-family:var(--sans);width:100%">
       <option value="">Seleccionar producto...</option>
-      ${pts.filter(p=>p.cantidad>0).map(p=>`<option value="${p.id}" ${item.ptId===p.id?'selected':''}>${p.pieza} — ${p.descripcion||''} (${p.cantidad} disp.)</option>`).join('')}
+      ${pts.filter(p=>p.cantidad>0).map(p=>`<option value="${p.id}" ${item.ptId===p.id?'selected':''}>${esc(p.pieza)} — ${esc(p.descripcion)||''} (${p.cantidad} disp.)</option>`).join('')}
     </select>
     <input type="number" min="1" value="${item.cant}" onchange="ventaItemChange(${i},'cant',+this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;color:var(--text);font-size:11px;text-align:right;width:100%">
     <input type="number" min="0" step="0.01" value="${item.precio||''}" placeholder="0.00" onchange="ventaItemChange(${i},'precio',+this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;color:var(--coral);font-size:11px;text-align:right;width:100%">
@@ -2062,6 +2062,9 @@ async function saveVenta(){
 
 function resetF(ids){ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
 function fmtUSD(n){return'US$ '+Math.round(n).toLocaleString('es-AR');}
+// Escapa HTML para prevenir XSS al interpolar campos de DB en innerHTML.
+// Usar SIEMPRE que el valor venga de input de usuario (razon social, descripcion, etc).
+function esc(s){if(s===null||s===undefined)return'';return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 // ─── ESTADO INLINE EDITOR ─────────────────────────────────────────
 // Renderiza un <select> con apariencia de badge para cambiar el estado
@@ -2115,7 +2118,7 @@ function renderPT(filter=''){
     <div class="stat-card"><div class="stat-label">Reservado</div><div class="stat-value" style="color:${totalReservado?'var(--accent)':'var(--text)'}">${totalReservado}</div></div>
     <div class="stat-card"><div class="stat-label">Disponible</div><div class="stat-value" style="color:var(--green)">${totalDisponible}</div></div>
     <div class="stat-card"><div class="stat-label">Valor stock (costo)</div><div class="stat-value" style="color:var(--green);font-size:13px">${fmtUSD(valorCosto)}</div></div>`;
-  document.getElementById('pt-tbody').innerHTML=list.length?list.map(p=>{const b=p.barras;const cert=b?.certificados;const op=p.ordenes_produccion;const reserv=getPTReservado(p.id);const disp=parseInt(p.cantidad||0)-reserv;const cStock=p.cantidad<=0?'var(--red)':p.cantidad<=3?'var(--accent)':'var(--text)';const cDisp=disp<=0?'var(--red)':disp<=3?'var(--accent)':'var(--green)';return`<tr><td class="mono td-primary">${p.lote}</td><td style="color:var(--teal);font-weight:500">${p.pieza}</td><td>${p.descripcion||'—'}</td><td class="mono" style="color:${cStock}">${p.cantidad}<span style="color:var(--text3);font-size:10px"> total</span>${reserv>0?`<div style="font-size:10px;color:var(--accent);font-family:var(--mono)">${reserv} reserv.</div><div style="font-size:10px;color:${cDisp};font-weight:700;font-family:var(--mono)">${disp} disp.</div>`:''}</td><td>${b?`<span class="badge badge-blue">${b.lote}</span>`:'—'}</td><td class="mono">${b?.nro_colada||'—'}</td><td>${cert?`<span class="badge badge-purple">${cert.nro}</span>`:'—'}</td><td class="mono">${op?.nro||'—'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editPT('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-ghost btn-sm" onclick="showTrace('pt','${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg></span>Trazar</button><button class="btn btn-danger btn-sm" onclick="deletePT('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;}):(`<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div><div class="empty-title">Sin productos terminados</div><div class="empty-msg">Los PT se generan al completar una orden de producción. Cargá una con <b>+ Nueva orden</b>.</div></div></td></tr>`);
+  document.getElementById('pt-tbody').innerHTML=list.length?list.map(p=>{const b=p.barras;const cert=b?.certificados;const op=p.ordenes_produccion;const reserv=getPTReservado(p.id);const disp=parseInt(p.cantidad||0)-reserv;const cStock=p.cantidad<=0?'var(--red)':p.cantidad<=3?'var(--accent)':'var(--text)';const cDisp=disp<=0?'var(--red)':disp<=3?'var(--accent)':'var(--green)';return`<tr><td class="mono td-primary">${esc(p.lote)}</td><td style="color:var(--teal);font-weight:500">${esc(p.pieza)}</td><td>${esc(p.descripcion)||'—'}</td><td class="mono" style="color:${cStock}">${p.cantidad}<span style="color:var(--text3);font-size:10px"> total</span>${reserv>0?`<div style="font-size:10px;color:var(--accent);font-family:var(--mono)">${reserv} reserv.</div><div style="font-size:10px;color:${cDisp};font-weight:700;font-family:var(--mono)">${disp} disp.</div>`:''}</td><td>${b?`<span class="badge badge-blue">${esc(b.lote)}</span>`:'—'}</td><td class="mono">${esc(b?.nro_colada)||'—'}</td><td>${cert?`<span class="badge badge-purple">${esc(cert.nro)}</span>`:'—'}</td><td class="mono">${esc(op?.nro)||'—'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editPT('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-ghost btn-sm" onclick="showTrace('pt','${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg></span>Trazar</button><button class="btn btn-danger btn-sm" onclick="deletePT('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;}):(`<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div><div class="empty-title">Sin productos terminados</div><div class="empty-msg">Los PT se generan al completar una orden de producción. Cargá una con <b>+ Nueva orden</b>.</div></div></td></tr>`);
 }
 
 function renderCert(filter=''){
@@ -2130,7 +2133,7 @@ function renderCert(filter=''){
     <div class="stat-card"><div class="stat-label">Metros certificados</div><div class="stat-value" style="color:var(--accent)">${totalMetros.toFixed(1)}<span style="font-size:11px;color:var(--text3)"> mts</span></div></div>
     <div class="stat-card"><div class="stat-label">Con PDF adjunto</div><div class="stat-value" style="color:var(--blue)">${conPDF}</div></div>
     <div class="stat-card"><div class="stat-label">Proveedores</div><div class="stat-value">${proveedores}</div></div>`;
-  document.getElementById('cert-tbody').innerHTML=list.length?list.map(c=>{const vinc=barras.filter(b=>b.certificado_id===c.id).length;return`<tr><td class="mono td-primary">${c.nro}</td><td>${c.proveedor}</td><td><span class="badge badge-blue">${c.material}</span></td><td class="mono">${c.colada}</td><td class="mono">${c.metros?parseFloat(c.metros).toFixed(1)+' mts':'—'}</td><td>${c.fecha||'—'}</td><td>${c.file_data?`<span class="pdf-link" onclick="openPDF('${c.id}')">Ver PDF</span>`:'<span style="color:var(--text3)">No adjunto</span>'}</td><td><span class="badge badge-teal">${vinc} barra${vinc!==1?'s':''}</span></td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editCert('${c.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteCert('${c.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;}):(`<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">Sin certificados</div><div class="empty-msg">Cargá los MTC con <b>+ Nuevo certificado</b> y vinculalos a las barras de materia prima.</div></div></td></tr>`);
+  document.getElementById('cert-tbody').innerHTML=list.length?list.map(c=>{const vinc=barras.filter(b=>b.certificado_id===c.id).length;return`<tr><td class="mono td-primary">${esc(c.nro)}</td><td>${esc(c.proveedor)}</td><td><span class="badge badge-blue">${esc(c.material)}</span></td><td class="mono">${esc(c.colada)}</td><td class="mono">${c.metros?parseFloat(c.metros).toFixed(1)+' mts':'—'}</td><td>${esc(c.fecha)||'—'}</td><td>${c.file_data?`<span class="pdf-link" onclick="openPDF('${c.id}')">Ver PDF</span>`:'<span style="color:var(--text3)">No adjunto</span>'}</td><td><span class="badge badge-teal">${vinc} barra${vinc!==1?'s':''}</span></td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editCert('${c.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteCert('${c.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;}):(`<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">Sin certificados</div><div class="empty-msg">Cargá los MTC con <b>+ Nuevo certificado</b> y vinculalos a las barras de materia prima.</div></div></td></tr>`);
 }
 
 // ─── INSUMOS ─────────────────────────────────────────────────
@@ -2277,7 +2280,7 @@ function renderVentas(filter=''){
     <div class="stat-card"><div class="stat-label">Importe total</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtUSD(totalImp)}</div></div>
     <div class="stat-card"><div class="stat-label">Clientes distintos</div><div class="stat-value">${[...new Set(ventas.map(v=>v.cliente))].length}</div></div>`;
   const bE={entregado:'badge-ok',facturado:'badge-teal',pendiente:'badge-warn'};
-  document.getElementById('ventas-tbody').innerHTML=list.length?list.map(v=>{const items=v.venta_items||[];const importe=items.reduce((a,i)=>a+(i.cantidad*(i.precio_unitario||0)),0);const totalU=items.reduce((a,i)=>a+i.cantidad,0);const piezas=[...new Set(items.map(i=>i.pieza||''))].join(', ');return`<tr><td class="mono td-primary">${v.nro_remito}</td><td style="font-weight:500">${v.cliente}</td><td>${v.fecha||'—'}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${piezas}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td>${estadoSelect('ventas',v.id,v.estado,['pendiente','entregado','facturado'],bE)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>Anular</button></td></tr>`;}):(`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></div><div class="empty-title">Sin ventas registradas</div><div class="empty-msg">Las ventas se generan al convertir un presupuesto aprobado. Andá a <b>Presupuestos</b> y aprobalo.</div></div></td></tr>`);
+  document.getElementById('ventas-tbody').innerHTML=list.length?list.map(v=>{const items=v.venta_items||[];const importe=items.reduce((a,i)=>a+(i.cantidad*(i.precio_unitario||0)),0);const totalU=items.reduce((a,i)=>a+i.cantidad,0);const piezas=[...new Set(items.map(i=>i.pieza||''))].join(', ');return`<tr><td class="mono td-primary">${esc(v.nro_remito)}</td><td style="font-weight:500">${esc(v.cliente)}</td><td>${esc(v.fecha)||'—'}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(piezas)}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td>${estadoSelect('ventas',v.id,v.estado,['pendiente','entregado','facturado'],bE)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>Anular</button></td></tr>`;}):(`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></div><div class="empty-title">Sin ventas registradas</div><div class="empty-msg">Las ventas se generan al convertir un presupuesto aprobado. Andá a <b>Presupuestos</b> y aprobalo.</div></div></td></tr>`);
 }
 
 function renderDash(){
@@ -2420,18 +2423,18 @@ function buildTraceCard(pt){
   return`<div class="trace-panel">
     <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;font-weight:500">Cadena de trazabilidad</div>
     <div class="trace-chain">
-      ${cert?`<div class="trace-node trace-cert"><div class="trace-node-label">Certificado MTC</div><div class="trace-node-value">${cert.nro}</div></div><div class="trace-arrow">→</div>`:''}
-      ${barra?`<div class="trace-node trace-barra"><div class="trace-node-label">Barra / OC</div><div class="trace-node-value">${barra.lote}</div></div><div class="trace-arrow">→</div>`:''}
-      ${op?`<div class="trace-node trace-op"><div class="trace-node-label">Orden producción</div><div class="trace-node-value">${op.nro}</div></div><div class="trace-arrow">→</div>`:''}
-      <div class="trace-node trace-pieza"><div class="trace-node-label">Producto terminado</div><div class="trace-node-value">${pt.lote}</div></div>
-      ${ventasVinc.length?`<div class="trace-arrow">→</div><div class="trace-node trace-venta"><div class="trace-node-label">Venta / cliente</div><div class="trace-node-value">${ventasVinc.map(v=>v.cliente).join(', ')}</div></div>`:''}
+      ${cert?`<div class="trace-node trace-cert"><div class="trace-node-label">Certificado MTC</div><div class="trace-node-value">${esc(cert.nro)}</div></div><div class="trace-arrow">→</div>`:''}
+      ${barra?`<div class="trace-node trace-barra"><div class="trace-node-label">Barra / OC</div><div class="trace-node-value">${esc(barra.lote)}</div></div><div class="trace-arrow">→</div>`:''}
+      ${op?`<div class="trace-node trace-op"><div class="trace-node-label">Orden producción</div><div class="trace-node-value">${esc(op.nro)}</div></div><div class="trace-arrow">→</div>`:''}
+      <div class="trace-node trace-pieza"><div class="trace-node-label">Producto terminado</div><div class="trace-node-value">${esc(pt.lote)}</div></div>
+      ${ventasVinc.length?`<div class="trace-arrow">→</div><div class="trace-node trace-venta"><div class="trace-node-label">Venta / cliente</div><div class="trace-node-value">${esc(ventasVinc.map(v=>v.cliente).join(', '))}</div></div>`:''}
     </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;font-size:11px">
-      ${cert?`<div style="background:var(--surface2);border-radius:5px;padding:8px"><div style="color:var(--text3);margin-bottom:3px">Proveedor</div><div style="font-family:var(--mono);color:var(--text);font-size:11px">${cert.proveedor||'—'}</div></div>`:''}
-      ${barra?`<div style="background:var(--surface2);border-radius:5px;padding:8px"><div style="color:var(--text3);margin-bottom:3px">Material / Ø</div><div style="font-family:var(--mono);color:var(--text);font-size:11px">${barra.material||''} ${barra.diametro||''}</div></div>`:''}
-      ${barra?`<div style="background:var(--surface2);border-radius:5px;padding:8px"><div style="color:var(--text3);margin-bottom:3px">Nro OC</div><div style="font-family:var(--mono);color:var(--text);font-size:11px">${barra.nro_colada||'—'}</div></div>`:''}
-      <div style="background:var(--surface2);border-radius:5px;padding:8px"><div style="color:var(--text3);margin-bottom:3px">Pieza / cant.</div><div style="color:var(--teal);font-size:11px">${pt.pieza} · ${pt.cantidad} disp.</div></div>
-      ${ventasVinc.length?`<div style="background:var(--surface2);border-radius:5px;padding:8px"><div style="color:var(--text3);margin-bottom:3px">Remito</div><div style="color:var(--coral);font-family:var(--mono);font-size:11px">${ventasVinc.map(v=>v.nro_remito).join(', ')}</div></div>`:''}
+      ${cert?`<div style="background:var(--surface2);border-radius:5px;padding:8px"><div style="color:var(--text3);margin-bottom:3px">Proveedor</div><div style="font-family:var(--mono);color:var(--text);font-size:11px">${esc(cert.proveedor)||'—'}</div></div>`:''}
+      ${barra?`<div style="background:var(--surface2);border-radius:5px;padding:8px"><div style="color:var(--text3);margin-bottom:3px">Material / Ø</div><div style="font-family:var(--mono);color:var(--text);font-size:11px">${esc(barra.material)||''} ${esc(barra.diametro)||''}</div></div>`:''}
+      ${barra?`<div style="background:var(--surface2);border-radius:5px;padding:8px"><div style="color:var(--text3);margin-bottom:3px">Nro OC</div><div style="font-family:var(--mono);color:var(--text);font-size:11px">${esc(barra.nro_colada)||'—'}</div></div>`:''}
+      <div style="background:var(--surface2);border-radius:5px;padding:8px"><div style="color:var(--text3);margin-bottom:3px">Pieza / cant.</div><div style="color:var(--teal);font-size:11px">${esc(pt.pieza)} · ${pt.cantidad} disp.</div></div>
+      ${ventasVinc.length?`<div style="background:var(--surface2);border-radius:5px;padding:8px"><div style="color:var(--text3);margin-bottom:3px">Remito</div><div style="color:var(--coral);font-family:var(--mono);font-size:11px">${esc(ventasVinc.map(v=>v.nro_remito).join(', '))}</div></div>`:''}
       ${cert?.file_data?`<div style="background:var(--surface2);border-radius:5px;padding:8px"><div style="color:var(--text3);margin-bottom:3px">PDF cert.</div><span class="pdf-link" onclick="openPDF('${cert.id}')">Ver certificado</span></div>`:''}
     </div>
   </div>`;
@@ -2447,11 +2450,22 @@ function showTrace(type,id){
 
 function openPDF(certId){
   const cert=certs.find(c=>c.id===certId);if(!cert?.file_data)return;
-  const win=window.open('','_blank');
-  if(cert.file_data.startsWith('data:application/pdf'))
-    win.document.write('<html><body style="margin:0"><embed src="'+cert.file_data+'" width="100%" height="100%" type="application/pdf"></body></html>');
-  else
-    win.document.write('<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+cert.file_data+'" style="max-width:100%;max-height:100vh"></body></html>');
+  const fd=cert.file_data;
+  // Validar prefijo data URL — bloquea inyeccion de HTML/JS via file_data adulterado
+  const isPDF=/^data:application\/pdf;base64,[A-Za-z0-9+/=]+$/.test(fd);
+  const isImg=/^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(fd);
+  if(!isPDF&&!isImg){notify('Archivo invalido o adulterado','err');return;}
+  const win=window.open('','_blank');if(!win)return;
+  // Construir DOM con setAttribute en lugar de document.write con concat
+  const doc=win.document;
+  doc.write('<!DOCTYPE html><html><head><title>Certificado</title></head><body style="margin:0"></body></html>');
+  doc.close();
+  if(isPDF){
+    const e=doc.createElement('embed');e.setAttribute('src',fd);e.setAttribute('type','application/pdf');e.style.width='100%';e.style.height='100vh';doc.body.appendChild(e);
+  }else{
+    doc.body.style.cssText='margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh';
+    const img=doc.createElement('img');img.setAttribute('src',fd);img.style.cssText='max-width:100%;max-height:100vh';doc.body.appendChild(img);
+  }
 }
 
 async function deleteCert(id){
@@ -3676,10 +3690,10 @@ function renderTratLista(opId){
   el.innerHTML=`<div class="section-label">Tratamientos registrados (${lista.length})</div>`+lista.map(t=>`
     <div style="background:var(--surface2);border-radius:6px;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start">
       <div>
-        <div style="font-weight:500;font-size:13px;color:var(--teal)">${t.tipo}</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:2px">${t.proveedor?t.proveedor+' · ':''}${t.fecha||''}</div>
-        ${t.descripcion?`<div style="font-size:12px;color:var(--text3);margin-top:3px">${t.descripcion}</div>`:''}
-        ${t.certificado_nro?`<div style="font-size:11px;font-family:var(--mono);color:var(--purple);margin-top:4px">Cert: ${t.certificado_nro}${t.certificado_file_data?` <span class="pdf-link" onclick="openTratPDF('${t.id}')">Ver PDF</span>`:''}</div>`:''}
+        <div style="font-weight:500;font-size:13px;color:var(--teal)">${esc(t.tipo)}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px">${t.proveedor?esc(t.proveedor)+' · ':''}${esc(t.fecha)||''}</div>
+        ${t.descripcion?`<div style="font-size:12px;color:var(--text3);margin-top:3px">${esc(t.descripcion)}</div>`:''}
+        ${t.certificado_nro?`<div style="font-size:11px;font-family:var(--mono);color:var(--purple);margin-top:4px">Cert: ${esc(t.certificado_nro)}${t.certificado_file_data?` <span class="pdf-link" onclick="openTratPDF('${t.id}')">Ver PDF</span>`:''}</div>`:''}
       </div>
       <button class="btn btn-danger btn-sm" onclick="deleteTratamiento('${t.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button>
     </div>`).join('');
@@ -3721,17 +3735,26 @@ async function deleteTratamiento(id){
 
 function openTratPDF(tratId){
   const t=tratamientos.find(x=>x.id===tratId);if(!t?.certificado_file_data)return;
-  const win=window.open('','_blank');
-  if(t.certificado_file_data.startsWith('data:application/pdf'))
-    win.document.write(`<html><body style="margin:0"><embed src="${t.certificado_file_data}" width="100%" height="100%" type="application/pdf"></body></html>`);
-  else
-    win.document.write(`<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${t.certificado_file_data}" style="max-width:100%;max-height:100vh"></body></html>`);
+  const fd=t.certificado_file_data;
+  const isPDF=/^data:application\/pdf;base64,[A-Za-z0-9+/=]+$/.test(fd);
+  const isImg=/^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(fd);
+  if(!isPDF&&!isImg){notify('Archivo invalido o adulterado','err');return;}
+  const win=window.open('','_blank');if(!win)return;
+  const doc=win.document;
+  doc.write('<!DOCTYPE html><html><head><title>Certificado tratamiento</title></head><body style="margin:0"></body></html>');
+  doc.close();
+  if(isPDF){
+    const e=doc.createElement('embed');e.setAttribute('src',fd);e.setAttribute('type','application/pdf');e.style.width='100%';e.style.height='100vh';doc.body.appendChild(e);
+  }else{
+    doc.body.style.cssText='margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh';
+    const img=doc.createElement('img');img.setAttribute('src',fd);img.style.cssText='max-width:100%;max-height:100vh';doc.body.appendChild(img);
+  }
 }
 
 // ─── CLIENTES ─────────────────────────────────────────────────────
 function updateClientesDatalist(){
   const dl=document.getElementById('clientes-datalist');
-  if(dl)dl.innerHTML=clientes.map(c=>`<option value="${c.nombre}">`).join('');
+  if(dl)dl.innerHTML=clientes.map(c=>`<option value="${esc(c.nombre)}">`).join('');
 }
 
 function getClienteVentas(nombre){
@@ -3759,11 +3782,11 @@ function renderClientes(filter=''){
     const ventasC=getClienteVentas(c.nombre);
     const total=ventasC.reduce((a,v)=>(v.venta_items||[]).reduce((b,i)=>b+(i.cantidad*(i.precio_unitario||0)),0)+a,0);
     return`<tr>
-      <td class="td-primary" style="cursor:pointer;color:var(--blue)" onclick="openFichaCliente('${c.id}')">${c.nombre}</td>
-      <td>${c.contacto||'—'}</td>
-      <td class="mono">${c.telefono||'—'}</td>
-      <td>${c.email||'—'}</td>
-      <td class="mono">${c.cuit||'—'}</td>
+      <td class="td-primary" style="cursor:pointer;color:var(--blue)" onclick="openFichaCliente('${c.id}')">${esc(c.nombre)}</td>
+      <td>${esc(c.contacto)||'—'}</td>
+      <td class="mono">${esc(c.telefono)||'—'}</td>
+      <td>${esc(c.email)||'—'}</td>
+      <td class="mono">${esc(c.cuit)||'—'}</td>
       <td class="mono">${ventasC.length}</td>
       <td class="mono" style="color:var(--green)">${fmtUSD(total)}</td>
       <td style="display:flex;gap:4px">
