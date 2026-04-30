@@ -4918,9 +4918,13 @@ function onPresupItemChange(idx,field,val){
   const it=presupItemsDraft[idx];if(!it)return;
   if(['cantidad','precio_unitario'].includes(field))val=parseFloat(val)||0;
   it[field]=val;
-  if(field==='producto_id'&&val){const pt=pts.find(x=>x.id===val);if(pt){it.pieza=pt.pieza;it.descripcion=pt.descripcion||'';it.precio_unitario=parseFloat(pt.precio_unitario||0);}}
+  // Cambio de producto: actualiza pieza+desc+precio → re-render completo necesario
+  if(field==='producto_id'&&val){const pt=pts.find(x=>x.id===val);if(pt){it.pieza=pt.pieza;it.descripcion=pt.descripcion||'';it.precio_unitario=parseFloat(pt.precio_unitario||0);}renderPresupItems();calcPresupTotal();return;}
+  // Cantidad/precio/pieza: solo actualiza subtotal en celda + total, sin re-render (preserva foco)
   it.subtotal=(parseFloat(it.cantidad)||0)*(parseFloat(it.precio_unitario)||0);
-  renderPresupItems();calcPresupTotal();
+  const subEl=document.getElementById(`presup-item-sub-${idx}`);
+  if(subEl)subEl.textContent=fmtUSD(it.subtotal);
+  calcPresupTotal();
 }
 function calcPresupTotal(){
   const sub=presupItemsDraft.reduce((a,i)=>a+(parseFloat(i.subtotal)||0),0);
@@ -4932,14 +4936,23 @@ function calcPresupTotal(){
 function renderPresupItems(){
   const cont=document.getElementById('presup-items-list');
   if(!presupItemsDraft.length){cont.innerHTML='<div style="padding:18px;text-align:center;color:var(--text3);font-size:12px;border:1px dashed var(--border);border-radius:4px">Sin ítems. Click en "<span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Ítem"</div>';return;}
-  cont.innerHTML=presupItemsDraft.map((it,idx)=>{
-    const ptOptions='<option value="">— manual —</option>'+pts.map(p=>`<option value="${p.id}" ${it.producto_id===p.id?'selected':''}>${p.pieza} (${p.lote})</option>`).join('');
+  // Header row con labels claros
+  const header=`<div style="display:grid;grid-template-columns:180px 2fr 80px 100px 100px auto;gap:6px;padding:0 6px;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);font-weight:500">
+    <div>Producto</div>
+    <div>Pieza / descripción</div>
+    <div style="text-align:right">Unidades</div>
+    <div style="text-align:right">Precio USD</div>
+    <div style="text-align:right">Subtotal</div>
+    <div></div>
+  </div>`;
+  cont.innerHTML=header+presupItemsDraft.map((it,idx)=>{
+    const ptOptions='<option value="">— manual —</option>'+pts.map(p=>`<option value="${p.id}" ${it.producto_id===p.id?'selected':''}>${esc(p.pieza)} (${esc(p.lote)})</option>`).join('');
     return `<div style="display:grid;grid-template-columns:180px 2fr 80px 100px 100px auto;gap:6px;align-items:center;padding:6px;background:var(--surface2);border-radius:4px">
       <select onchange="onPresupItemChange(${idx},'producto_id',this.value)" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:11px">${ptOptions}</select>
-      <input type="text" value="${it.pieza.replace(/"/g,'&quot;')}" oninput="onPresupItemChange(${idx},'pieza',this.value)" placeholder="Pieza / descripción" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px">
-      <input type="number" value="${it.cantidad}" min="0" step="1" oninput="onPresupItemChange(${idx},'cantidad',this.value)" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px;font-family:var(--mono)">
-      <input type="number" value="${it.precio_unitario}" min="0" step="0.01" oninput="onPresupItemChange(${idx},'precio_unitario',this.value)" placeholder="USD" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px;font-family:var(--mono)">
-      <span class="mono" style="font-size:12px;color:var(--green);text-align:right">${fmtUSD(it.subtotal)}</span>
+      <input type="text" value="${(it.pieza||'').replace(/"/g,'&quot;')}" onchange="onPresupItemChange(${idx},'pieza',this.value)" placeholder="Pieza / descripción" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px">
+      <input type="number" value="${it.cantidad}" min="0" step="1" onchange="onPresupItemChange(${idx},'cantidad',this.value)" placeholder="Unid." style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px;font-family:var(--mono);text-align:right">
+      <input type="number" value="${it.precio_unitario}" min="0" step="0.01" onchange="onPresupItemChange(${idx},'precio_unitario',this.value)" placeholder="USD" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--coral);font-size:12px;font-family:var(--mono);text-align:right">
+      <span id="presup-item-sub-${idx}" class="mono" style="font-size:12px;color:var(--green);text-align:right">${fmtUSD(it.subtotal)}</span>
       <button class="btn btn-danger btn-sm" onclick="removePresupItem(${idx})" style="padding:4px 8px"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button>
     </div>`;
   }).join('');
@@ -5082,26 +5095,32 @@ function generatePresupuestoPDF(id){
   doc.text(p.condicion_pago||'A convenir',50,y);
 
   // ─── TABLA DE ÍTEMS ─────────────────────
+  // Codigo viene del codigo_plano de la OP que generó el PT (presup item → producto_id → PT → orden_id → OP.codigo_plano)
   y+=8;
-  const rows=items.map((it,idx)=>[
-    String(idx+1),
-    it.pieza||'',
-    it.descripcion||'—',
-    String(it.cantidad||0),
-    fmtUSD(it.precio_unitario||0),
-    fmtUSD(it.subtotal||0)
-  ]);
+  const rows=items.map((it,idx)=>{
+    const pt=it.producto_id?pts.find(x=>x.id===it.producto_id):null;
+    const op=pt?ops.find(o=>o.id===pt.orden_id):null;
+    const codigo=op?.codigo_plano||'';
+    return [
+      String(idx+1),
+      codigo,
+      it.pieza||'',
+      String(it.cantidad||0),
+      fmtUSD(it.precio_unitario||0),
+      fmtUSD(it.subtotal||0)
+    ];
+  });
   doc.autoTable({
     startY:y,
-    head:[['#','Pieza','Descripción','Cantidad','Precio unit.','Total']],
-    body:rows.length?rows:[['—','Sin ítems','','','','']],
+    head:[['#','Código','Pieza','Cantidad','Precio unit.','Total']],
+    body:rows.length?rows:[['—','','Sin ítems','','','']],
     theme:'striped',
     headStyles:{fillColor:[60,90,130],textColor:255,fontStyle:'bold',fontSize:9},
     styles:{fontSize:9,cellPadding:2.5,overflow:'linebreak'},
     columnStyles:{
       0:{cellWidth:10,halign:'center'},
-      1:{cellWidth:38},
-      2:{cellWidth:60},
+      1:{cellWidth:36},
+      2:{cellWidth:62},
       3:{cellWidth:18,halign:'center'},
       4:{cellWidth:28,halign:'right'},
       5:{cellWidth:28,halign:'right'}
@@ -5146,14 +5165,9 @@ function generatePresupuestoPDF(id){
   // ─── FOOTER FIJO ────────────────────────
   const footerY=Math.max(finalY+10,260);
   doc.setDrawColor(220,220,220);doc.line(14,footerY,196,footerY);
-  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(60,60,60);
-  doc.text('Validez del presupuesto:',14,footerY+6);
-  doc.setFont('helvetica','normal');doc.setTextColor(90,90,90);
-  doc.text('30 días corridos desde la fecha de emisión.',14,footerY+10);
-  doc.setFont('helvetica','bold');doc.setTextColor(60,60,60);
-  doc.text('Forma de pago:',14,footerY+16);
-  doc.setFont('helvetica','normal');doc.setTextColor(90,90,90);
-  doc.text('Según condiciones acordadas. Precios expresados en USD, sujetos a cotización del día de pago.',14,footerY+20);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(60,60,60);
+  doc.text('Los precios indicados son en dólares y no incluyen IVA',14,footerY+6);
+  doc.text('El plazo de entrega se considera a partir de la recepción de la correspondiente Nota de Pedido',14,footerY+11);
 
   doc.setFontSize(7);doc.setTextColor(150,150,150);
   doc.text('VITALMET SA  ·  Perú 246, Villa Martelli, Bs. As.  ·  vitalmetsa.com',105,290,{align:'center'});
