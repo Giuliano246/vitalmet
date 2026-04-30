@@ -14,6 +14,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
 :root{--bg:#0f0f0f;--surface:#1a1a1a;--surface2:#222;--border:#2e2e2e;--border2:#3a3a3a;--accent:#e8a030;--accent2:#c47f18;--teal:#2ab4a0;--blue:#4a9edd;--purple:#9b72cf;--red:#e05252;--green:#4caf7d;--coral:#e06840;--text:#e8e6e0;--text2:#9a9890;--text3:#5a5856;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
+html[data-theme="light"]{--bg:#f5f4ef;--surface:#ffffff;--surface2:#efece4;--border:#dad6cb;--border2:#bdb7a9;--accent:#c47f18;--accent2:#a06310;--teal:#1f8f7e;--blue:#2f7ab8;--purple:#6e4eaa;--red:#c0392b;--green:#2f9764;--coral:#c25a36;--text:#1f1d18;--text2:#5a564b;--text3:#8a8678}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh}
 
@@ -331,8 +332,9 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <div class="nav-item" data-group="contabilidad" onclick="showPage('cuentas')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 17V7"/><path d="M11 17V11"/><path d="M15 17V13"/><path d="M19 17V9"/></svg></span>Contabilidad</div>
       <div class="nav-item" data-group="config" onclick="showPage('config')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>Configuración</div>
     </nav>
-    <div class="sidebar-footer">
-      <div class="user-info" id="sidebar-user">—</div>
+    <div class="sidebar-footer" style="position:relative">
+      <button onclick="toggleTheme()" id="btn-theme" title="Cambiar tema" style="position:absolute;top:8px;right:10px;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:2px 4px;line-height:1"><span id="theme-icon">☀</span></button>
+      <div class="user-info" id="sidebar-user" style="padding-right:22px">—</div>
       <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
     </div>
   </aside>
@@ -2109,6 +2111,10 @@ async function saveVenta(){
 
 function resetF(ids){ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
 function fmtUSD(n){return'US$ '+Math.round(n).toLocaleString('es-AR');}
+// Theme: dark/light toggle persistido en localStorage
+function applyTheme(t){document.documentElement.dataset.theme=t==='light'?'light':'dark';const icon=document.getElementById('theme-icon');if(icon)icon.textContent=t==='light'?'☾':'☀';}
+function toggleTheme(){const cur=document.documentElement.dataset.theme==='light'?'light':'dark';const next=cur==='light'?'dark':'light';localStorage.setItem('theme',next);applyTheme(next);}
+(function(){try{applyTheme(localStorage.getItem('theme')||'dark');}catch(e){}})();
 // Escapa HTML para prevenir XSS al interpolar campos de DB en innerHTML.
 // Usar SIEMPRE que el valor venga de input de usuario (razon social, descripcion, etc).
 function esc(s){if(s===null||s===undefined)return'';return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
