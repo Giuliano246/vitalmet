@@ -1702,8 +1702,11 @@ async function loadEmpresaAndStart(){
   // Persistir sesión en localStorage
   if(currentSession)localStorage.setItem('sb_session',JSON.stringify(currentSession));
   try{
-    const empData=await GET('empresas','?limit=1&select=*');
-    if(!empData||!empData.length)throw new Error('No se encontró la empresa. Verificá tu cuenta.');
+    // Resolver empresa del user logueado (no asumir limit=1) — necesario para RLS multi-tenant
+    const userRow=await GET('usuarios',`?id=eq.${currentUser.id}&select=empresa_id`);
+    if(!userRow||!userRow[0]||!userRow[0].empresa_id)throw new Error('Tu usuario no tiene empresa asignada. Contactá al admin.');
+    const empData=await GET('empresas',`?id=eq.${userRow[0].empresa_id}&select=*`);
+    if(!empData||!empData.length)throw new Error('No se encontró la empresa de tu usuario.');
     currentEmpresa=empData[0];
     document.getElementById('sidebar-empresa').textContent=currentEmpresa.nombre;
     document.getElementById('sidebar-user').textContent=currentUser.email;
