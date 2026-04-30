@@ -364,6 +364,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="toolbar">
           <div class="search-box"><input type="text" placeholder="Buscar por pieza, lote..." oninput="renderPT(this.value)"></div>
           <button class="btn btn-ghost" onclick="openModal('modal-pt')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo PT</button>
+          <button class="btn btn-ghost" onclick="openImportPT()" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg></span>Importar Excel</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Lote PT</th><th>Pieza</th><th>Descripción</th><th>Cant. disponible</th><th>Barra origen</th><th>Nro OC</th><th>Certificado</th><th>OP</th><th></th></tr></thead><tbody id="pt-tbody"></tbody></table></div>
       </div>
@@ -433,7 +434,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
             <div class="search-box"><input type="text" placeholder="Buscar por OC, proveedor..." oninput="renderCompras(this.value)"></div>
             <button class="btn btn-ghost" onclick="openOCModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva OC</button>
           </div>
-          <div class="table-wrap"><table><thead><tr><th>Nro OC</th><th>Proveedor</th><th>Fecha</th><th>Entrega</th><th>Ítems</th><th>Total USD</th><th>Estado</th><th>Factura</th><th></th></tr></thead><tbody id="compras-tbody"></tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>Nro OC</th><th>Proveedor</th><th>Fecha</th><th>Entrega</th><th>Ítems</th><th>Mon.</th><th>Total ARS</th><th>Total USD</th><th>Estado</th><th>Factura</th><th></th></tr></thead><tbody id="compras-tbody"></tbody></table></div>
         </div>
         <div id="compras-tab-prov" style="display:none">
           <div class="stats-bar" id="prov-stats"></div>
@@ -991,6 +992,35 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-import-pt">
+  <div class="modal" style="width:760px">
+    <div class="modal-header"><div class="modal-title">Importar productos terminados desde Excel</div><button class="modal-close" onclick="closeModal('modal-import-pt')">×</button></div>
+    <div class="modal-body">
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:14px;font-size:12px;line-height:1.6;color:var(--text2)">
+        <strong style="color:var(--text)">Cómo importar:</strong><br>
+        1. Descargá la plantilla con los nombres de columnas correctos.<br>
+        2. Completala con tus PT (una fila por producto). Obligatorios: <strong>Lote</strong>, <strong>Pieza</strong>, <strong>Cantidad</strong>.<br>
+        3. Subí el archivo (.xlsx o .csv).<br>
+        4. Revisá el preview. Si está OK, click "Importar".<br>
+        <span style="color:var(--text3)">Detección de duplicados: por Lote.</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
+        <button class="btn btn-ghost" onclick="downloadPTTemplate()" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Descargar plantilla</button>
+        <input type="file" id="import-pt-file" accept=".xlsx,.xls,.csv" onchange="onPTFileChange(this)" style="flex:1;color:var(--text);font-size:12px">
+      </div>
+      <div id="import-pt-preview" style="font-size:11px;color:var(--text3)">Sin archivo cargado</div>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)">
+        <input type="checkbox" id="import-pt-update" style="margin:0">
+        <label for="import-pt-update" style="cursor:pointer">Actualizar PT existentes (sobrescribir cantidad/costo si ya existe el lote). Por default los duplicados se saltan.</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-import-pt')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-import-pt" onclick="importPT()" disabled>Importar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Ficha cliente (historial) -->
 <div class="modal-overlay" id="modal-ficha-cliente">
   <div class="modal modal-lg">
@@ -1241,11 +1271,12 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="form-group"><label>Estado</label><select id="oc-estado"><option value="borrador">Borrador</option><option value="enviada">Enviada</option><option value="confirmada">Confirmada</option><option value="recibida_parcial">Recibida parcial</option><option value="recibida">Recibida</option><option value="facturada">Facturada</option><option value="anulada">Anulada</option></select></div>
       </div>
       <div class="form-row"><div class="form-group"><label>Condición de pago</label><input type="text" id="oc-cond" placeholder="30 días"></div><div class="form-group"><label>Observaciones</label><input type="text" id="oc-obs" placeholder="Notas de esta OC"></div></div>
+      <div class="form-row" style="grid-template-columns:130px 160px 130px 1fr"><div class="form-group"><label>Moneda *</label><select id="oc-moneda" onchange="onOCMonedaChange()"><option value="ARS">Pesos (ARS)</option><option value="USD">Dólares (USD)</option></select></div><div class="form-group"><label>Cotización *</label><select id="oc-tc-tipo" onchange="onOCTcTipoChange()"><option value="venta">Vendedor (pago USD)</option><option value="compra">Comprador (cobro USD)</option></select></div><div class="form-group"><label>TC (ARS/USD) *</label><input type="number" step="0.01" min="0" id="oc-tc" placeholder="0.00"></div><div class="form-group"><label>&nbsp;</label><div id="oc-tc-info" style="font-size:10px;color:var(--text3);padding:6px 0">Si pagás USD desde pesos, usá TC vendedor. Si la OC ya está en pesos, también vendedor por defecto.</div></div></div>
 
       <hr class="form-divider">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="section-label" style="margin:0">Ítems</div><button class="btn btn-ghost btn-sm" onclick="addOCItem()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Ítem</button></div>
       <div id="oc-items-list" style="display:flex;flex-direction:column;gap:6px"></div>
-      <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:16px;font-size:13px"><div style="color:var(--text3)">Total USD:</div><div class="mono" id="oc-total" style="font-weight:700;color:var(--green);font-size:16px">$0.00</div></div>
+      <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:16px;font-size:13px"><div style="color:var(--text3)" id="oc-total-label">Total:</div><div class="mono" id="oc-total" style="font-weight:700;color:var(--green);font-size:16px">$0.00</div></div>
 
       <hr class="form-divider">
       <div class="section-label">Factura del proveedor (cuando la recibas)</div>
@@ -4082,6 +4113,151 @@ async function importClientes(){
   notify(`Importación: ${creados} creados, ${actualizados} actualizados, ${saltados} saltados${errores?', '+errores+' con error':''}`);
 }
 
+// ─── IMPORTAR PRODUCTOS TERMINADOS DESDE EXCEL ──────────────
+const PT_TEMPLATE_HEADERS=['Lote','Pieza','Descripción','Cantidad','Costo unitario USD','Precio venta USD','Lote barra origen'];
+const PT_FIELD_MAP={
+  'lote':'lote','lote pt':'lote','codigo':'lote','código':'lote','sku':'lote',
+  'pieza':'pieza','producto':'pieza','nombre':'pieza','articulo':'pieza','artículo':'pieza',
+  'descripcion':'descripcion','descripción':'descripcion','desc':'descripcion','detalle':'descripcion',
+  'cantidad':'cantidad','stock':'cantidad','cant':'cantidad','unidades':'cantidad',
+  'costo':'costo_unitario','costo unitario':'costo_unitario','costo unitario usd':'costo_unitario','costo us$':'costo_unitario','costo usd':'costo_unitario',
+  'precio':'precio_unitario','precio unitario':'precio_unitario','precio venta':'precio_unitario','precio venta usd':'precio_unitario','precio usd':'precio_unitario','precio us$':'precio_unitario',
+  'barra':'barra_lote','barra origen':'barra_lote','lote barra':'barra_lote','lote barra origen':'barra_lote','origen':'barra_lote','materia prima':'barra_lote'
+};
+let importPTData=null;
+
+function openImportPT(){
+  document.getElementById('import-pt-file').value='';
+  document.getElementById('import-pt-preview').innerHTML='Sin archivo cargado';
+  document.getElementById('import-pt-update').checked=false;
+  document.getElementById('btn-import-pt').disabled=true;
+  importPTData=null;
+  openModal('modal-import-pt');
+}
+
+function downloadPTTemplate(){
+  if(!window.XLSX){notify('Librería Excel no cargada. Recargá la página.','err');return;}
+  const ws=XLSX.utils.aoa_to_sheet([PT_TEMPLATE_HEADERS,
+    ['PT-2024-001','Válvula esclusa','DN50 PN16 AISI 316',10,150.00,250.00,'B-2024-A'],
+    ['PT-2024-002','Brida ciega','3" 150# AISI 304',5,80.00,140.00,''],
+    ['','','','','','','']
+  ]);
+  ws['!cols']=[{wch:18},{wch:25},{wch:30},{wch:12},{wch:18},{wch:18},{wch:18}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'PT');
+  XLSX.writeFile(wb,'Plantilla_PT_Vitalmet.xlsx');
+  notify('Plantilla descargada');
+}
+
+function onPTFileChange(input){
+  const file=input.files[0];
+  const previewEl=document.getElementById('import-pt-preview');
+  const btn=document.getElementById('btn-import-pt');
+  if(!file){previewEl.innerHTML='Sin archivo cargado';btn.disabled=true;importPTData=null;return;}
+  if(!window.XLSX){notify('Librería Excel no cargada. Recargá la página.','err');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const sheet=wb.Sheets[wb.SheetNames[0]];
+      const rawRows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:''});
+      if(!rawRows.length){previewEl.innerHTML='<span style="color:var(--coral)">El archivo está vacío.</span>';btn.disabled=true;return;}
+      const headers=rawRows[0].map(h=>String(h||'').trim().toLowerCase());
+      const fieldByCol=headers.map(h=>PT_FIELD_MAP[h]||null);
+      const parsed=[];
+      const errores=[];
+      for(let i=1;i<rawRows.length;i++){
+        const row=rawRows[i];
+        if(!row.some(c=>String(c||'').trim()))continue;
+        const obj={};
+        fieldByCol.forEach((field,idx)=>{
+          if(field&&row[idx]!==undefined){
+            const v=String(row[idx]||'').trim();
+            if(v){
+              if(['cantidad','costo_unitario','precio_unitario'].includes(field))obj[field]=parseFloat(v.replace(',','.'))||0;
+              else obj[field]=v;
+            }
+          }
+        });
+        if(!obj.lote){errores.push(`Fila ${i+1}: falta Lote`);continue;}
+        if(!obj.pieza){errores.push(`Fila ${i+1}: falta Pieza`);continue;}
+        if(obj.cantidad===undefined||obj.cantidad===null){errores.push(`Fila ${i+1}: falta Cantidad`);continue;}
+        // Resolver barra por lote (opcional). Si lote no existe, se importa sin vinculo y se avisa.
+        if(obj.barra_lote){
+          const b=barras.find(x=>x.lote.toLowerCase()===obj.barra_lote.toLowerCase());
+          if(b)obj.barra_id=b.id;
+          else errores.push(`Fila ${i+1}: barra "${obj.barra_lote}" no existe — se importa sin vinculo`);
+        }
+        parsed.push(obj);
+      }
+      if(!parsed.length){
+        previewEl.innerHTML=`<span style="color:var(--coral)">No se pudo leer ningún PT válido.</span>${errores.length?'<br>'+errores.slice(0,5).join('<br>'):''}`;
+        btn.disabled=true;importPTData=null;return;
+      }
+      importPTData=parsed;
+      let dupes=0;
+      parsed.forEach(p=>{if(pts.find(x=>x.lote.toLowerCase()===p.lote.toLowerCase()))dupes++;});
+      const cols=['lote','pieza','descripcion','cantidad','costo_unitario','precio_unitario','barra_lote'];
+      let html=`<div style="margin-bottom:8px;color:var(--text2)"><strong>${parsed.length}</strong> PT leídos · <strong style="color:${dupes>0?'var(--coral)':'var(--green)'}">${dupes}</strong> duplicados detectados`;
+      if(errores.length)html+=` · <strong style="color:var(--coral)">${errores.length}</strong> filas con error`;
+      html+='</div>';
+      html+='<div style="max-height:240px;overflow:auto;border:1px solid var(--border);border-radius:5px"><table style="font-size:11px;width:100%;border-collapse:collapse"><thead><tr style="background:var(--surface2)">';
+      cols.forEach(c=>html+=`<th style="padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)">${c}</th>`);
+      html+='</tr></thead><tbody>';
+      parsed.slice(0,10).forEach(p=>{
+        html+='<tr>';
+        cols.forEach(col=>{
+          let val=p[col];
+          if(col==='barra_lote'&&p.barra_lote){val=p.barra_id?`✓ ${p.barra_lote}`:`✗ ${p.barra_lote} (no existe)`;}
+          html+=`<td style="padding:5px 8px;border-bottom:1px solid var(--border);color:var(--text2)">${(val!==undefined&&val!==null&&val!==''?val:'—').toString().slice(0,40)}</td>`;
+        });
+        html+='</tr>';
+      });
+      html+='</tbody></table></div>';
+      if(parsed.length>10)html+=`<div style="margin-top:6px;color:var(--text3);font-size:11px">Mostrando primeras 10 de ${parsed.length}</div>`;
+      if(errores.length){html+=`<div style="margin-top:8px;font-size:11px;color:var(--coral)">${errores.slice(0,3).join('<br>')}${errores.length>3?'<br>...y '+(errores.length-3)+' más':''}</div>`;}
+      previewEl.innerHTML=html;
+      btn.disabled=false;
+    }catch(err){
+      console.error(err);
+      previewEl.innerHTML=`<span style="color:var(--coral)">Error leyendo archivo: ${err.message}</span>`;
+      btn.disabled=true;importPTData=null;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+let _importingPT=false;
+async function importPT(){
+  if(_importingPT)return;
+  if(!importPTData||!importPTData.length){notify('No hay datos para importar','err');return;}
+  _importingPT=true;
+  const updateExisting=document.getElementById('import-pt-update').checked;
+  setBusy('btn-import-pt',true);
+  let creados=0,actualizados=0,saltados=0,errores=0;
+  for(const p of importPTData){
+    try{
+      // barra_lote es solo para preview — no es columna de DB
+      const {barra_lote,...payload}=p;
+      const exists=pts.find(x=>x.lote.toLowerCase()===payload.lote.toLowerCase());
+      if(exists){
+        if(updateExisting){
+          await PATCH('productos_terminados',{...payload,empresa_id:currentEmpresa.id},`?id=eq.${exists.id}`);
+          actualizados++;
+        }else saltados++;
+      }else{
+        await POST('productos_terminados',{...payload,empresa_id:currentEmpresa.id});
+        creados++;
+      }
+    }catch(e){console.error('Error importando PT',p.lote,e);errores++;}
+  }
+  await loadAll();renderAll();
+  _importingPT=false;
+  setBusy('btn-import-pt',false,'Importar');
+  closeModal('modal-import-pt');
+  notify(`Importación: ${creados} creados, ${actualizados} actualizados, ${saltados} saltados${errores?', '+errores+' con error':''}`);
+}
+
 async function deleteCliente(id){
   const c=clientes.find(x=>x.id===id);
   if(!c)return;
@@ -4415,27 +4591,34 @@ function switchComprasTab(tab){
   document.getElementById('compras-tab-prov').style.display=tab==='prov'?'':'none';
 }
 
+// Convierte total de OC a ARS y a USD usando moneda + tipo_cambio del OC
+function ocToARS(oc){const t=parseFloat(oc.total||0);if(!t)return 0;if(oc.moneda==='ARS')return t;const tc=parseFloat(oc.tipo_cambio)||0;return tc?t*tc:null;}
+function ocToUSD(oc){const t=parseFloat(oc.total||0);if(!t)return 0;if(oc.moneda==='USD')return t;const tc=parseFloat(oc.tipo_cambio)||0;return tc?t/tc:null;}
 function renderCompras(filter=''){
   const f=filter.toLowerCase();
   const totalOC=ordenesCompra.length;
   const pendientes=ordenesCompra.filter(o=>['borrador','enviada','confirmada','recibida_parcial'].includes(o.estado)).length;
   const recibidas=ordenesCompra.filter(o=>['recibida','facturada'].includes(o.estado)).length;
-  const totalUSD=ordenesCompra.reduce((a,o)=>a+parseFloat(o.total||0),0);
-  const deuda=ordenesCompra.filter(o=>o.estado==='facturada').reduce((a,o)=>a+parseFloat(o.total||0),0);
+  const totalARS=ordenesCompra.reduce((a,o)=>a+(ocToARS(o)||0),0);
+  const deudaARS=ordenesCompra.filter(o=>o.estado==='facturada').reduce((a,o)=>a+(ocToARS(o)||0),0);
   document.getElementById('compras-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Total OCs</div><div class="stat-value" style="color:var(--accent)">${totalOC}</div></div>
     <div class="stat-card"><div class="stat-label">Pendientes</div><div class="stat-value" style="color:${pendientes?'var(--accent)':'var(--text)'}">${pendientes}</div></div>
     <div class="stat-card"><div class="stat-label">Recibidas</div><div class="stat-value" style="color:var(--green)">${recibidas}</div></div>
-    <div class="stat-card"><div class="stat-label">Total compras</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtUSD(totalUSD)}</div></div>
-    <div class="stat-card"><div class="stat-label">Deuda facturada</div><div class="stat-value" style="color:var(--coral);font-size:14px">${fmtUSD(deuda)}</div></div>`;
+    <div class="stat-card"><div class="stat-label">Total compras (ARS)</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtARS(totalARS)}</div></div>
+    <div class="stat-card"><div class="stat-label">Deuda facturada (ARS)</div><div class="stat-value" style="color:var(--coral);font-size:14px">${fmtARS(deudaARS)}</div></div>`;
   const badges={borrador:'badge-warn',enviada:'badge-blue',confirmada:'badge-teal',recibida_parcial:'badge-warn',recibida:'badge-ok',facturada:'badge-ok',anulada:'badge-coral'};
   const list=ordenesCompra.filter(o=>!f||o.nro.toLowerCase().includes(f)||(o.proveedores?.nombre||'').toLowerCase().includes(f));
   document.getElementById('compras-tbody').innerHTML=list.length?list.map(o=>{
     const items=o.oc_items||ocItems.filter(i=>i.oc_id===o.id);
     const cantItems=items.length;
     const puedeRecibir=['enviada','confirmada','recibida_parcial'].includes(o.estado);
-    return `<tr><td class="mono td-primary">${o.nro}</td><td style="font-weight:500">${o.proveedores?.nombre||'—'}</td><td>${o.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${o.fecha_entrega_esperada||'—'}</td><td class="mono">${cantItems}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(o.total||0))}</td><td>${estadoSelect('ordenes_compra',o.id,o.estado||'borrador',['borrador','enviada','confirmada','recibida_parcial','recibida','facturada','anulada'],badges)}</td><td class="mono" style="font-size:11px">${o.factura_nro||'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="generateOCPDF('${o.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>NDP</button>${puedeRecibir?`<button class="btn btn-ghost btn-sm" onclick="openRecepcionModal('${o.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>Recibir</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editOC('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteOC('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
-  }).join(''):'<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></div><div class="empty-title">Sin órdenes de compra</div><div class="empty-msg">Generá la primera OC con <b>+ Nueva OC</b> seleccionando el proveedor y los ítems a comprar.</div></div></td></tr>';
+    const mon=o.moneda||'USD';const tc=parseFloat(o.tipo_cambio)||0;const tt=o.tc_tipo;
+    const tARS=ocToARS(o);const tUSD=ocToUSD(o);
+    const monBadge=mon==='ARS'?'<span class="badge badge-teal">ARS</span>':'<span class="badge badge-blue">USD</span>';
+    const ttLabel=tt==='compra'?'C':tt==='venta'?'V':'';
+    return `<tr><td class="mono td-primary">${esc(o.nro)}</td><td style="font-weight:500">${esc(o.proveedores?.nombre)||'—'}</td><td>${o.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${o.fecha_entrega_esperada||'—'}</td><td class="mono">${cantItems}</td><td>${monBadge}${tc?`<div style="font-size:9px;color:var(--text3);font-family:var(--mono)">TC ${tc.toFixed(2)}${ttLabel?' '+ttLabel:''}</div>`:''}</td><td class="mono" style="color:var(--green)">${tARS!==null?fmtARS(tARS):'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:var(--blue);font-size:11px">${tUSD!==null?fmtUSD(tUSD):'<span style="color:var(--text3)">—</span>'}</td><td>${estadoSelect('ordenes_compra',o.id,o.estado||'borrador',['borrador','enviada','confirmada','recibida_parcial','recibida','facturada','anulada'],badges)}</td><td class="mono" style="font-size:11px">${esc(o.factura_nro)||'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="generateOCPDF('${o.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>NDP</button>${puedeRecibir?`<button class="btn btn-ghost btn-sm" onclick="openRecepcionModal('${o.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>Recibir</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editOC('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteOC('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+  }).join(''):'<tr><td colspan="11" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></div><div class="empty-title">Sin órdenes de compra</div><div class="empty-msg">Generá la primera OC con <b>+ Nueva OC</b> seleccionando el proveedor y los ítems a comprar.</div></div></td></tr>';
 }
 
 function renderProveedores(filter=''){
@@ -4502,6 +4685,11 @@ function openOCModal(id){
   document.getElementById('oc-fact-nro').value=oc?.factura_nro||'';
   document.getElementById('oc-fact-fecha').value=oc?.factura_fecha||'';
   document.getElementById('oc-fact-vto').value=oc?.factura_vto||'';
+  // Moneda + TC: si OC nueva default USD/venta; si editas, usá lo guardado
+  document.getElementById('oc-moneda').value=oc?.moneda||'USD';
+  document.getElementById('oc-tc-tipo').value=oc?.tc_tipo||'venta';
+  document.getElementById('oc-tc').value=oc?.tipo_cambio?parseFloat(oc.tipo_cambio).toFixed(2):((oc?.tc_tipo==='compra'?cotizacion.compra:cotizacion.venta)?.toFixed(2)||'');
+  fetchCotizacion();
   // Cargar items al draft
   if(id){
     const items=oc?.oc_items||ocItems.filter(i=>i.oc_id===id);
@@ -4517,12 +4705,31 @@ function onOCItemChange(idx,field,val){
   if(['cantidad','precio_unitario'].includes(field))val=parseFloat(val)||0;
   it[field]=val;
   it.subtotal=(parseFloat(it.cantidad)||0)*(parseFloat(it.precio_unitario)||0);
-  document.getElementById(`oc-item-sub-${idx}`).textContent=fmtUSD(it.subtotal);
+  const fmt=(document.getElementById('oc-moneda')?.value||'USD')==='ARS'?fmtARS:fmtUSD;
+  document.getElementById(`oc-item-sub-${idx}`).textContent=fmt(it.subtotal);
   calcOCTotal();
 }
 function calcOCTotal(){
   const total=ocItemsDraft.reduce((a,i)=>a+(parseFloat(i.subtotal)||0),0);
-  document.getElementById('oc-total').textContent=fmtUSD(total);
+  const mon=document.getElementById('oc-moneda')?.value||'USD';
+  const fmt=mon==='ARS'?fmtARS:fmtUSD;
+  document.getElementById('oc-total').textContent=fmt(total);
+  const lbl=document.getElementById('oc-total-label');if(lbl)lbl.textContent=`Total ${mon}:`;
+}
+function onOCMonedaChange(){
+  const mon=document.getElementById('oc-moneda').value;
+  const sel=document.getElementById('oc-tc-tipo');
+  // Default: USD pago→vendedor (regla negocio user). ARS sin USD→vendedor por defecto.
+  if(sel)sel.value='venta';
+  syncOCTcDesdeCotizacion();
+  renderOCItems();calcOCTotal();
+}
+function onOCTcTipoChange(){syncOCTcDesdeCotizacion();}
+function syncOCTcDesdeCotizacion(){
+  const tipo=document.getElementById('oc-tc-tipo')?.value||'venta';
+  const tcInput=document.getElementById('oc-tc');
+  const v=tipo==='compra'?cotizacion.compra:cotizacion.venta;
+  if(tcInput&&v)tcInput.value=v.toFixed(2);
 }
 function renderOCItems(){
   const cont=document.getElementById('oc-items-list');
@@ -4539,15 +4746,22 @@ function renderOCItems(){
   </div>`).join('');
 }
 
+let _savingOC=false;
 async function saveOC(){
+  if(_savingOC)return;
   const id=document.getElementById('oc-edit-id').value;
   const nro=document.getElementById('oc-nro').value.trim();
   const proveedor_id=document.getElementById('oc-proveedor').value;
   const fecha=document.getElementById('oc-fecha').value;
   if(!nro||!proveedor_id||!fecha){notify('Nro, proveedor y fecha son obligatorios','err');return;}
   if(!ocItemsDraft.length){notify('Agregá al menos un ítem','err');return;}
+  const moneda=document.getElementById('oc-moneda').value||'USD';
+  const tc=parseFloat(document.getElementById('oc-tc').value)||0;
+  const tcTipo=document.getElementById('oc-tc-tipo').value||'venta';
+  if(!tc||tc<=0){notify('Ingresá un tipo de cambio válido','err');return;}
   const total=ocItemsDraft.reduce((a,i)=>a+(parseFloat(i.subtotal)||0),0);
-  const data={nro,proveedor_id,fecha,fecha_entrega_esperada:document.getElementById('oc-entrega').value||null,condicion_pago:document.getElementById('oc-cond').value.trim()||null,estado:document.getElementById('oc-estado').value,subtotal:total,total,observaciones:document.getElementById('oc-obs').value.trim()||null,factura_nro:document.getElementById('oc-fact-nro').value.trim()||null,factura_fecha:document.getElementById('oc-fact-fecha').value||null,factura_vto:document.getElementById('oc-fact-vto').value||null};
+  const data={nro,proveedor_id,fecha,fecha_entrega_esperada:document.getElementById('oc-entrega').value||null,condicion_pago:document.getElementById('oc-cond').value.trim()||null,estado:document.getElementById('oc-estado').value,subtotal:total,total,moneda,tipo_cambio:tc,tc_tipo:tcTipo,observaciones:document.getElementById('oc-obs').value.trim()||null,factura_nro:document.getElementById('oc-fact-nro').value.trim()||null,factura_fecha:document.getElementById('oc-fact-fecha').value||null,factura_vto:document.getElementById('oc-fact-vto').value||null};
+  _savingOC=true;
   try{setBusy('btn-save-oc',true);
     let ocId;
     if(id){await PATCH('ordenes_compra',data,`?id=eq.${id}`);ocId=id;await DEL('oc_items',`?oc_id=eq.${id}`);}
@@ -4556,7 +4770,7 @@ async function saveOC(){
     if(items.length)await POST('oc_items',items);
     await loadAll();closeModal('modal-oc');renderAll();notify(id?'OC actualizada':'OC creada');
   }catch(e){notify('Error: '+e.message,'err');}
-  finally{setBusy('btn-save-oc',false);}
+  finally{_savingOC=false;setBusy('btn-save-oc',false);}
 }
 
 async function deleteOC(id){
