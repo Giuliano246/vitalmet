@@ -3283,8 +3283,18 @@ function renderComparativoHA(){
     const pri=periodos[0];
     selMes.value=pri.mes;selAnio.value=pri.anio;
   }
-  if(!fechaInput.value)fechaInput.value=new Date().toISOString().slice(0,10);
-  // necesitamos al menos índice base e índice del mes-año de fecha corte
+  // Default fecha: último día del mes del último IPC cargado
+  // (no usar "hoy" porque INDEC publica con ~14 días de retraso → siempre falta el mes corriente)
+  if(!fechaInput.value){
+    const periodosCarg=[...indicesIpc].sort((a,b)=>(a.anio-b.anio)||(a.mes-b.mes));
+    if(periodosCarg.length){
+      const u=periodosCarg[periodosCarg.length-1];
+      const ultDia=new Date(u.anio,u.mes,0).getDate();
+      fechaInput.value=`${u.anio}-${String(u.mes).padStart(2,'0')}-${String(ultDia).padStart(2,'0')}`;
+    }else{
+      fechaInput.value=new Date().toISOString().slice(0,10);
+    }
+  }
   const fecha=fechaInput.value;
   const mesBase=parseInt(selMes.value,10);
   const anioBase=parseInt(selAnio.value,10);
@@ -3294,18 +3304,26 @@ function renderComparativoHA(){
     notify(`Falta índice IPC de ${MES_NOMBRE[mesBase]} ${anioBase}`,'err');
     return;
   }
-  // IPC del mes de "fecha corte"
+  // IPC del mes de "fecha corte" — con fallback al más reciente disponible
+  // (INDEC publica con ~14 días de delay → el mes corriente y a veces el anterior no existen aún)
   const [aF,mF]=fecha.split('-').map(s=>parseInt(s,10));
-  const idxFin=indicesIpc.find(i=>i.anio===aF&&i.mes===mF);
+  let idxFin=indicesIpc.find(i=>i.anio===aF&&i.mes===mF);
+  let warningFallback=null;
   if(!idxFin){
-    notify(`Falta índice IPC de ${MES_NOMBRE[mF]} ${aF} (mes de la fecha de corte). Cargalo o cambiá la fecha.`,'err');
-    document.getElementById('compha-info').innerHTML=`<div style="padding:10px 14px;background:rgba(224,82,82,.08);border:1px solid rgba(224,82,82,.3);border-radius:5px;color:var(--red);font-size:12px">⚠ Falta el índice IPC del mes <b>${MES_NOMBRE[mF]} ${aF}</b>. Cargalo en la tab Índices IPC para poder ver el reporte.</div>`;
-    document.getElementById('compha-stats').innerHTML='';
-    tbody.innerHTML='';document.getElementById('compha-tfoot').innerHTML='';
-    return;
+    const sortedDesc=[...indicesIpc].sort((a,b)=>(b.anio-a.anio)||(b.mes-a.mes));
+    idxFin=sortedDesc.find(i=>i.anio<aF||(i.anio===aF&&i.mes<=mF));
+    if(!idxFin){
+      document.getElementById('compha-info').innerHTML=`<div style="padding:10px 14px;background:rgba(224,82,82,.08);border:1px solid rgba(224,82,82,.3);border-radius:5px;color:var(--red);font-size:12px">⚠ No hay ningún índice IPC anterior o igual a <b>${MES_NOMBRE[mF]} ${aF}</b>. Cargá uno en la tab Índices IPC.</div>`;
+      document.getElementById('compha-stats').innerHTML='';
+      tbody.innerHTML='';document.getElementById('compha-tfoot').innerHTML='';
+      return;
+    }
+    warningFallback=`IPC de ${MES_NOMBRE[mF]} ${aF} aún no publicado por INDEC (sale ~día 14 del mes siguiente). Se usa el más reciente disponible: ${MES_NOMBRE[idxFin.mes]} ${idxFin.anio}.`;
   }
   const coef=Number(idxFin.indice)/Number(idxBase.indice);
-  document.getElementById('compha-info').innerHTML=`<div style="padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:5px;font-size:12px;color:var(--text2);line-height:1.6"><b style="color:var(--text)">Fecha corte:</b> ${fecha} (IPC ${Number(idxFin.indice).toFixed(4)}) <span style="color:var(--text3)">·</span> <b style="color:var(--text)">IPC Base:</b> ${MES_NOMBRE[mesBase]} ${anioBase} (${Number(idxBase.indice).toFixed(4)}) <span style="color:var(--text3)">·</span> <b style="color:var(--text)">Coeficiente:</b> <span class="mono" style="color:var(--accent);font-weight:600">${coef.toFixed(6)}</span></div>`;
+  const infoBanner=`<div style="padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:5px;font-size:12px;color:var(--text2);line-height:1.6"><b style="color:var(--text)">Fecha corte:</b> ${fecha} <span style="color:var(--text3)">·</span> <b style="color:var(--text)">IPC final:</b> ${MES_NOMBRE[idxFin.mes]} ${idxFin.anio} (${Number(idxFin.indice).toFixed(4)}) <span style="color:var(--text3)">·</span> <b style="color:var(--text)">IPC Base:</b> ${MES_NOMBRE[mesBase]} ${anioBase} (${Number(idxBase.indice).toFixed(4)}) <span style="color:var(--text3)">·</span> <b style="color:var(--text)">Coeficiente:</b> <span class="mono" style="color:var(--accent);font-weight:600">${coef.toFixed(6)}</span></div>`;
+  const warnBanner=warningFallback?`<div style="margin-top:8px;padding:8px 14px;background:rgba(255,165,0,.08);border:1px solid rgba(255,165,0,.3);border-left:3px solid var(--accent);border-radius:5px;color:var(--accent);font-size:11px;line-height:1.5">⚠ ${warningFallback}</div>`:'';
+  document.getElementById('compha-info').innerHTML=infoBanner+warnBanner;
   // saldos nominales (excluyendo asientos de ajuste para no doble-contar)
   const saldos=_saldosNominalesHasta(fecha);
   const tipoBadge={activo:'badge-ok',pasivo:'badge-coral',patrimonio:'badge-purple',ingreso:'badge-blue',egreso:'badge-warn'};
