@@ -749,6 +749,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="tabs">
           <div class="tab active" onclick="switchConfigTab('materiales')">Materiales</div>
           <div class="tab" onclick="switchConfigTab('usuarios')">Usuarios y permisos</div>
+          <div class="tab" onclick="switchConfigTab('imputacion')">Imputación contable</div>
         </div>
       </div>
       <div class="page-content">
@@ -779,6 +780,34 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
           <div class="table-wrap">
             <table><thead><tr><th>Email</th><th>Nombre</th><th>Rol</th><th>Módulos habilitados</th><th></th></tr></thead>
             <tbody id="usuarios-tbody"></tbody></table>
+          </div>
+        </div>
+        <!-- Tab imputación contable -->
+        <div id="config-tab-imputacion" style="display:none">
+          <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5">Definí qué cuentas usa el sistema cuando genera asientos automáticos desde ventas, compras, cobranzas y pagos. Si dejás una en blanco, esa automatización se desactiva (no rompe nada — simplemente no genera ese asiento).</div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px;margin-bottom:14px">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--blue);font-weight:600;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Ventas</div>
+            <div class="form-row"><div class="form-group"><label>Cuenta de Venta (default)</label><select id="cfg-cta-ventas"></select></div><div class="form-group"><label>Deudores por Ventas</label><select id="cfg-cta-deudores"></select></div></div>
+            <div class="form-row"><div class="form-group"><label>IVA Débito Fiscal</label><select id="cfg-cta-iva-debito"></select></div><div class="form-group"><label>Alícuota de IVA (%)</label><input type="number" id="cfg-iva-alicuota" step="0.01" min="0" max="100" placeholder="21"></div></div>
+            <div class="form-row single"><div class="form-group" style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" id="cfg-precios-con-iva" style="margin:0"><label for="cfg-precios-con-iva" style="cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text2)">Los precios cargados en presupuestos / ventas <b>incluyen</b> IVA (desactivado = precios netos)</label></div></div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px;margin-bottom:14px">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--coral);font-weight:600;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Compras</div>
+            <div class="form-row"><div class="form-group"><label>IVA Crédito Fiscal</label><select id="cfg-cta-iva-credito"></select></div><div class="form-group"><label>Proveedores</label><select id="cfg-cta-proveedores"></select></div></div>
+            <div class="form-row"><div class="form-group"><label>Compra de Materia Prima</label><select id="cfg-cta-compra-mp"></select></div><div class="form-group"><label>Compra de Insumos / Mercaderías</label><select id="cfg-cta-compra-insumos"></select></div></div>
+            <div class="form-row"><div class="form-group"><label>Compra de Herramientas</label><select id="cfg-cta-compra-herramientas"></select></div><div class="form-group"><label>Servicios de Terceros</label><select id="cfg-cta-compra-servicios"></select></div></div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px;margin-bottom:14px">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-weight:600;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Caja y Banco</div>
+            <div class="form-row"><div class="form-group"><label>Caja (default cobros/pagos en efectivo)</label><select id="cfg-cta-caja"></select></div><div class="form-group"><label>Banco (default cobros/pagos por transferencia)</label><select id="cfg-cta-banco"></select></div></div>
+          </div>
+
+          <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end">
+            <div id="cfg-status" style="flex:1;font-size:11px;color:var(--text3);font-family:var(--mono)"></div>
+            <button class="btn btn-primary" id="btn-save-cfg-imputacion" onclick="saveConfigContable()">Guardar configuración</button>
           </div>
         </div>
       </div>
@@ -1638,7 +1667,7 @@ let currentSession=null, currentUser=null, currentEmpresa=null;
 let certs=[],barras=[],ops=[],pts=[],ventas=[],ventaItemsList=[],materiales=[],tratamientos=[],usuariosEmpresa=[],permisosUsuario=[],clientes=[],vendedores=[],listasPrecios=[],currentUserData=null;
 let proveedores=[],ordenesCompra=[],ocItems=[],recepciones=[],ocItemsDraft=[],currentOCId=null;
 let insumos=[],herramientas=[];
-let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[];
+let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null;
 let presupuestos=[],presupItemsList=[],presupItemsDraft=[];
 let certFileData=null,certFileName=null;
 
@@ -1894,7 +1923,7 @@ async function loadEmpresaAndStart(){
 // ─── DATA ─────────────────────────────────────────────────────────
 async function loadAll(){
   try{
-    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos,insumos,herramientas,cuentasContables,asientos,asientoLineas,indicesIpc]=await Promise.all([
+    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos,insumos,herramientas,cuentasContables,asientos,asientoLineas,indicesIpc,configContable]=await Promise.all([
       GET('certificados','?order=created_at.desc'),
       GET('barras','?order=created_at.desc&select=*,certificados(nro,colada,proveedor)'),
       GET('ordenes_produccion','?order=created_at.desc&select=*,barras(lote)'),
@@ -1918,6 +1947,7 @@ async function loadAll(){
       GET('asientos','?order=fecha.desc,numero.desc').catch(()=>[]),
       GET('asiento_lineas','?order=orden.asc&select=*,cuentas_contables(codigo,nombre)').catch(()=>[]),
       GET('indices_ipc','?order=anio.desc,mes.desc').catch(()=>[]),
+      GET('config_contable','?limit=1').then(r=>r&&r[0]||null).catch(()=>null),
     ]);
   }catch(e){
     console.error('Error cargando datos:',e);
@@ -1925,7 +1955,7 @@ async function loadAll(){
     materiales=materiales||[];tratamientos=tratamientos||[];usuariosEmpresa=usuariosEmpresa||[];permisosUsuario=permisosUsuario||[];clientes=clientes||[];vendedores=vendedores||[];listasPrecios=listasPrecios||[];
     proveedores=proveedores||[];ordenesCompra=ordenesCompra||[];ocItems=ocItems||[];recepciones=recepciones||[];presupuestos=presupuestos||[];
     insumos=insumos||[];herramientas=herramientas||[];
-    cuentasContables=cuentasContables||[];asientos=asientos||[];asientoLineas=asientoLineas||[];indicesIpc=indicesIpc||[];
+    cuentasContables=cuentasContables||[];asientos=asientos||[];asientoLineas=asientoLineas||[];indicesIpc=indicesIpc||[];configContable=configContable||null;
   }
 }
 
@@ -4155,18 +4185,27 @@ function renderRatios(){
 // ─── ASIENTO AUTOMÁTICO DESDE VENTA ───────────────────────────
 async function generarAsientoVenta(ventaId,total,cliente,fecha,nroRemito){
   try{
-    const ctaDeudores=cuentasContables.find(c=>c.codigo==='1.2.01');
-    const ctaVentas=cuentasContables.find(c=>c.codigo==='4.1.01');
-    if(!ctaDeudores||!ctaVentas){console.warn('Plan de cuentas: no se encontraron 1.2.01 o 4.1.01 — asiento automático no generado');return;}
+    if(!configContable){console.warn('Asiento de venta no generado: falta configuración contable (Configuración → Imputación contable)');return;}
+    const ctaDeudores=cuentasContables.find(c=>c.id===configContable.cta_deudores);
+    const ctaVentas=cuentasContables.find(c=>c.id===configContable.cta_ventas_default);
+    const ctaIvaDeb=cuentasContables.find(c=>c.id===configContable.cta_iva_debito);
+    if(!ctaDeudores||!ctaVentas){console.warn('Asiento de venta no generado: faltan cuentas de Deudores o Ventas en Imputación contable');return;}
     const tot=parseFloat(total||0);
     if(tot<=0)return;
-    // Buscar asiento existente para esta venta
+    // Desagregar IVA según configuración
+    const ivaPct=Number(configContable.iva_alicuota)||0;
+    const aplicaIVA=ctaIvaDeb&&ivaPct>0;
+    let neto,iva,bruto;
+    if(!aplicaIVA){neto=tot;iva=0;bruto=tot;}
+    else if(configContable.precios_incluyen_iva){bruto=tot;neto=tot/(1+ivaPct);iva=bruto-neto;}
+    else {neto=tot;iva=tot*ivaPct;bruto=neto+iva;}
+    // Buscar asiento existente para esta venta (idempotencia)
     const existingArr=await GET('asientos',`?origen_tipo=eq.venta&origen_id=eq.${ventaId}`);
     const existing=existingArr&&existingArr[0];
-    // Auto-asiento desde venta: la venta esta en USD (cobranza→TC comprador del banco).
+    // Auto-asiento desde venta: la venta está en USD (cobranza→TC comprador del banco)
     await fetchCotizacion();
     const tcAuto=cotizacion.compra||cotizacion.venta||1;
-    const cabecera={empresa_id:currentEmpresa.id,fecha:fecha||new Date().toISOString().slice(0,10),descripcion:`Venta a ${cliente||'cliente'}`,comprobante_nro:nroRemito||null,tipo:'auto-venta',origen_tipo:'venta',origen_id:ventaId,estado:'confirmado',moneda:'USD',tipo_cambio:tcAuto,tc_tipo:'compra'};
+    const cabecera={empresa_id:currentEmpresa.id,fecha:fecha||new Date().toISOString().slice(0,10),descripcion:`Venta a ${cliente||'cliente'}`+(aplicaIVA?` (IVA ${(ivaPct*100).toFixed(0)}%)`:''),comprobante_nro:nroRemito||null,tipo:'auto-venta',origen_tipo:'venta',origen_id:ventaId,estado:'confirmado',moneda:'USD',tipo_cambio:tcAuto,tc_tipo:'compra'};
     let asientoId;
     if(existing){
       asientoId=existing.id;
@@ -4177,11 +4216,13 @@ async function generarAsientoVenta(ventaId,total,cliente,fecha,nroRemito){
       const r=await POST('asientos',{...cabecera,numero:maxN+1});
       asientoId=r[0].id;
     }
-    await POST('asiento_lineas',[
-      {asiento_id:asientoId,cuenta_id:ctaDeudores.id,debe:tot,haber:0,descripcion:`Deuda cliente ${cliente||''}`,orden:0},
-      {asiento_id:asientoId,cuenta_id:ctaVentas.id,debe:0,haber:tot,descripcion:`Venta ${nroRemito||''}`,orden:1}
-    ]);
-  }catch(e){console.warn('Error generando asiento automático:',e);}
+    const lineas=[
+      {asiento_id:asientoId,cuenta_id:ctaDeudores.id,debe:bruto,haber:0,descripcion:`Deuda cliente ${cliente||''}`,orden:0},
+      {asiento_id:asientoId,cuenta_id:ctaVentas.id,debe:0,haber:neto,descripcion:`Venta ${nroRemito||''}`,orden:1},
+    ];
+    if(aplicaIVA)lineas.push({asiento_id:asientoId,cuenta_id:ctaIvaDeb.id,debe:0,haber:iva,descripcion:`IVA Débito ${(ivaPct*100).toFixed(0)}% s/ ${nroRemito||''}`,orden:2});
+    await POST('asiento_lineas',lineas);
+  }catch(e){console.warn('Error generando asiento automático de venta:',e);}
 }
 
 // ─── ANIMACIÓN DE KPIs (count-up al cargar) ─────────────
@@ -4654,8 +4695,72 @@ checkExistingSession();
 function switchConfigTab(tab){
   document.getElementById('config-tab-materiales').style.display=tab==='materiales'?'block':'none';
   document.getElementById('config-tab-usuarios').style.display=tab==='usuarios'?'block':'none';
-  document.querySelectorAll('#page-config .tab').forEach((t,i)=>t.classList.toggle('active',(tab==='materiales'&&i===0)||(tab==='usuarios'&&i===1)));
+  document.getElementById('config-tab-imputacion').style.display=tab==='imputacion'?'block':'none';
+  document.querySelectorAll('#page-config .tab').forEach((t,i)=>t.classList.toggle('active',(tab==='materiales'&&i===0)||(tab==='usuarios'&&i===1)||(tab==='imputacion'&&i===2)));
   if(tab==='usuarios')renderUsuarios();
+  if(tab==='imputacion')renderImputacionContable();
+}
+
+// ─── IMPUTACIÓN CONTABLE (config_contable) ─────────────────────────
+function _llenarSelectCuentas(selId,tipos,valorActual){
+  const sel=document.getElementById(selId);if(!sel)return;
+  const opts=cuentasContables
+    .filter(c=>c.imputable!==false&&c.activa!==false&&(!tipos||tipos.includes(c.tipo)))
+    .sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'',undefined,{numeric:true}));
+  sel.innerHTML='<option value="">— sin asignar —</option>'+opts.map(c=>`<option value="${c.id}">${c.codigo} · ${esc(c.nombre)}</option>`).join('');
+  if(valorActual)sel.value=valorActual;
+}
+
+function renderImputacionContable(){
+  const c=configContable||{};
+  _llenarSelectCuentas('cfg-cta-ventas',['ingreso'],c.cta_ventas_default);
+  _llenarSelectCuentas('cfg-cta-deudores',['activo'],c.cta_deudores);
+  _llenarSelectCuentas('cfg-cta-iva-debito',['pasivo'],c.cta_iva_debito);
+  _llenarSelectCuentas('cfg-cta-iva-credito',['activo'],c.cta_iva_credito);
+  _llenarSelectCuentas('cfg-cta-proveedores',['pasivo'],c.cta_proveedores);
+  _llenarSelectCuentas('cfg-cta-compra-mp',['activo'],c.cta_compra_mp);
+  _llenarSelectCuentas('cfg-cta-compra-insumos',['activo','egreso'],c.cta_compra_insumos);
+  _llenarSelectCuentas('cfg-cta-compra-herramientas',['activo'],c.cta_compra_herramientas);
+  _llenarSelectCuentas('cfg-cta-compra-servicios',['egreso'],c.cta_compra_servicios);
+  _llenarSelectCuentas('cfg-cta-caja',['activo'],c.cta_caja_default);
+  _llenarSelectCuentas('cfg-cta-banco',['activo'],c.cta_banco_default);
+  document.getElementById('cfg-iva-alicuota').value=c.iva_alicuota!=null?(Number(c.iva_alicuota)*100).toFixed(2).replace(/\.?0+$/,''):'21';
+  document.getElementById('cfg-precios-con-iva').checked=c.precios_incluyen_iva===true;
+  document.getElementById('cfg-status').textContent=c.updated_at?`Última actualización: ${new Date(c.updated_at).toLocaleString('es-AR')}`:'Sin configurar';
+}
+
+async function saveConfigContable(){
+  const ivaPct=parseFloat(document.getElementById('cfg-iva-alicuota').value);
+  if(!isFinite(ivaPct)||ivaPct<0||ivaPct>100)return notify('Alícuota IVA inválida (debe ser 0–100)','err');
+  const v=id=>{const x=g(id);return x||null;};
+  const data={
+    empresa_id:currentEmpresa.id,
+    cta_ventas_default:v('cfg-cta-ventas'),
+    cta_deudores:v('cfg-cta-deudores'),
+    cta_iva_debito:v('cfg-cta-iva-debito'),
+    precios_incluyen_iva:document.getElementById('cfg-precios-con-iva').checked,
+    iva_alicuota:ivaPct/100,
+    cta_iva_credito:v('cfg-cta-iva-credito'),
+    cta_proveedores:v('cfg-cta-proveedores'),
+    cta_compra_insumos:v('cfg-cta-compra-insumos'),
+    cta_compra_mp:v('cfg-cta-compra-mp'),
+    cta_compra_herramientas:v('cfg-cta-compra-herramientas'),
+    cta_compra_servicios:v('cfg-cta-compra-servicios'),
+    cta_caja_default:v('cfg-cta-caja'),
+    cta_banco_default:v('cfg-cta-banco'),
+    updated_at:new Date().toISOString(),
+  };
+  setBusy('btn-save-cfg-imputacion',true);
+  try{
+    if(configContable){
+      await PATCH('config_contable',data,`?empresa_id=eq.${currentEmpresa.id}`);
+    }else{
+      await POST('config_contable',data);
+    }
+    await loadAll();renderImputacionContable();
+    notify('Imputación contable guardada');
+  }catch(e){notify(e.message,'err');}
+  setBusy('btn-save-cfg-imputacion',false,'Guardar configuración');
 }
 
 // ─── USUARIOS Y PERMISOS ──────────────────────────────────────────
