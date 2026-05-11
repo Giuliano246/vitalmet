@@ -630,6 +630,29 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div id="bg-content" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px"></div>
       </div>
     </div>
+    <!-- CONTABILIDAD: Ajuste por inflación -->
+    <div class="page" id="page-ajuste">
+      <div class="page-header"><div class="page-title">Ajuste por inflación</div><div class="page-sub">// reexpresión RT 6 · genera asiento contra RECPAM (412004)</div><div class="tabs"><div class="tab active">Generar</div></div></div>
+      <div class="page-content">
+        <div style="display:flex;gap:14px;align-items:end;margin-bottom:18px;flex-wrap:wrap;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:6px">
+          <div style="display:flex;gap:6px;align-items:end">
+            <div class="form-group" style="margin:0;width:130px"><label>Desde mes</label><select id="ajuste-mes-desde"></select></div>
+            <div class="form-group" style="margin:0;width:100px"><label>Año</label><select id="ajuste-anio-desde"></select></div>
+          </div>
+          <div style="color:var(--text3);padding-bottom:8px">→</div>
+          <div style="display:flex;gap:6px;align-items:end">
+            <div class="form-group" style="margin:0;width:130px"><label>Hasta mes</label><select id="ajuste-mes-hasta"></select></div>
+            <div class="form-group" style="margin:0;width:100px"><label>Año</label><select id="ajuste-anio-hasta"></select></div>
+          </div>
+          <button class="btn btn-ghost" onclick="calcularPreviewAjuste()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>Calcular preview</button>
+          <div style="flex:1"></div>
+          <button class="btn btn-primary" id="btn-gen-ajuste" onclick="generarAsientoAjusteInflacion()" disabled style="opacity:.4">Generar asiento</button>
+        </div>
+        <div id="ajuste-preview-info" style="margin-bottom:14px"></div>
+        <div class="stats-bar" id="ajuste-stats" style="margin-bottom:14px"></div>
+        <div class="table-wrap"><table><thead><tr><th>Código</th><th>Cuenta</th><th>Tipo</th><th style="text-align:right">Saldo actual (ARS)</th><th style="text-align:right">Saldo ajustado</th><th style="text-align:right">Debe</th><th style="text-align:right">Haber</th></tr></thead><tbody id="ajuste-tbody"></tbody><tfoot id="ajuste-tfoot"></tfoot></table></div>
+      </div>
+    </div>
     <!-- CONTABILIDAD: Índices IPC -->
     <div class="page" id="page-ipc">
       <div class="page-header"><div class="page-title">Índices IPC</div><div class="page-sub">// IPC INDEC mensual · base para ajuste por inflación (RT 6)</div><div class="tabs"><div class="tab active">Histórico</div></div></div>
@@ -1830,10 +1853,10 @@ async function loadAll(){
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
-  contabilidad:[{k:'cuentas',l:'Plan de cuentas'},{k:'asientosp',l:'Asientos'},{k:'librodiario',l:'Libro diario'},{k:'libromayor',l:'Libro mayor'},{k:'balance',l:'Balance comprob.'},{k:'estado',l:'Estado de resultados'},{k:'balgral',l:'Balance general'},{k:'ratios',l:'Ratios'},{k:'ipc',l:'Índices IPC'}],
+  contabilidad:[{k:'cuentas',l:'Plan de cuentas'},{k:'asientosp',l:'Asientos'},{k:'librodiario',l:'Libro diario'},{k:'libromayor',l:'Libro mayor'},{k:'balance',l:'Balance comprob.'},{k:'estado',l:'Estado de resultados'},{k:'balgral',l:'Balance general'},{k:'ratios',l:'Ratios'},{k:'ipc',l:'Índices IPC'},{k:'ajuste',l:'Ajuste inflación'}],
   ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'}],
   analisis:[{k:'costos',l:'Costos y rentabilidad'},{k:'trace',l:'Trazabilidad'}],
 };
@@ -2612,7 +2635,7 @@ function notify(msg,type){
   el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);
 }
 
-function renderAll(){renderDash();renderMP();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();populateLibroMayorSel();renderLibroMayor();renderBalance();renderEstadoResultados();renderBalanceGeneral();renderRatios();renderIndicesIPC();renderConfig();updateClientesDatalist();animateNumbers();}
+function renderAll(){renderDash();renderMP();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();populateLibroMayorSel();renderLibroMayor();renderBalance();renderEstadoResultados();renderBalanceGeneral();renderRatios();renderIndicesIPC();renderAjuste();renderConfig();updateClientesDatalist();animateNumbers();}
 
 // ─── PLAN DE CUENTAS ──────────────────────────────────────────
 function renderCuentas(filter=''){
@@ -2762,6 +2785,189 @@ async function deleteIndiceIPC(id){
   if(!confirm(`¿Eliminar índice de ${MES_NOMBRE[i.mes]} ${i.anio}?`))return;
   try{await DEL('indices_ipc',`?id=eq.${id}`);await loadAll();renderAll();notify('Índice eliminado');}
   catch(e){notify(e.message,'err');}
+}
+
+// ─── AJUSTE POR INFLACIÓN (RT 6) ──────────────────────────────
+let ajustePreview=null;
+const CTA_RECPAM_CODIGO='412004';
+
+function renderAjuste(){
+  const selMD=document.getElementById('ajuste-mes-desde');
+  const selAD=document.getElementById('ajuste-anio-desde');
+  const selMH=document.getElementById('ajuste-mes-hasta');
+  const selAH=document.getElementById('ajuste-anio-hasta');
+  if(!selMD)return;
+  // construir lista de períodos disponibles a partir de indicesIpc
+  const periodos=[...indicesIpc].sort((a,b)=>(a.anio-b.anio)||(a.mes-b.mes));
+  if(!periodos.length){
+    selMD.innerHTML=selAD.innerHTML=selMH.innerHTML=selAH.innerHTML='<option value="">— sin índices —</option>';
+    document.getElementById('ajuste-tbody').innerHTML=`<tr><td colspan="7" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/></svg></div><div class="empty-title">Sin índices IPC cargados</div><div class="empty-msg">Cargá al menos dos meses en <b>Índices IPC</b> antes de generar un ajuste por inflación.</div></div></td></tr>`;
+    document.getElementById('ajuste-stats').innerHTML='';
+    return;
+  }
+  const anios=[...new Set(periodos.map(p=>p.anio))].sort();
+  const meses=[1,2,3,4,5,6,7,8,9,10,11,12];
+  const optAnio=anios.map(a=>`<option value="${a}">${a}</option>`).join('');
+  const optMes=meses.map(m=>`<option value="${m}">${MES_NOMBRE[m]}</option>`).join('');
+  selMD.innerHTML=optMes;selAD.innerHTML=optAnio;
+  selMH.innerHTML=optMes;selAH.innerHTML=optAnio;
+  // defaults: Hasta = último período cargado, Desde = mismo mes año anterior si existe, sino el primero
+  const ult=periodos[periodos.length-1];
+  selMH.value=ult.mes;selAH.value=ult.anio;
+  const pref={anio:ult.anio-1,mes:ult.mes};
+  const desdeMatch=periodos.find(p=>p.anio===pref.anio&&p.mes===pref.mes)||periodos[0];
+  selMD.value=desdeMatch.mes;selAD.value=desdeMatch.anio;
+  // si ya hay preview previo, redibujar; si no, pintar tabla vacía instructiva
+  if(ajustePreview){pintarPreviewAjuste();}
+  else{
+    document.getElementById('ajuste-tbody').innerHTML=`<tr><td colspan="7" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="empty-title">Elegí el período y calculá el preview</div><div class="empty-msg">El ajuste reexpresa todas las cuentas marcadas como <b>no monetarias</b> aplicando el coeficiente <code>IPC_hasta / IPC_desde</code> sobre el saldo al cierre del período.</div></div></td></tr>`;
+    document.getElementById('ajuste-stats').innerHTML='';
+    document.getElementById('ajuste-preview-info').innerHTML='';
+    document.getElementById('ajuste-tfoot').innerHTML='';
+  }
+}
+
+function calcularAjusteInflacion(mesDesde,anioDesde,mesHasta,anioHasta){
+  const idxDesde=indicesIpc.find(i=>i.anio===anioDesde&&i.mes===mesDesde);
+  const idxHasta=indicesIpc.find(i=>i.anio===anioHasta&&i.mes===mesHasta);
+  if(!idxDesde)throw new Error(`Falta el índice IPC de ${MES_NOMBRE[mesDesde]} ${anioDesde}`);
+  if(!idxHasta)throw new Error(`Falta el índice IPC de ${MES_NOMBRE[mesHasta]} ${anioHasta}`);
+  const idxD=Number(idxDesde.indice),idxH=Number(idxHasta.indice);
+  if(!(idxD>0)||!(idxH>0))throw new Error('Índices con valor inválido');
+  const coef=idxH/idxD;
+  // fecha del asiento: último día del mes Hasta
+  const fechaAsiento=new Date(anioHasta,mesHasta,0).toISOString().slice(0,10);
+  // saldos acumulados hasta esa fecha (todo histórico)
+  const saldos=_agregarSaldos('',fechaAsiento);
+  // RECPAM cuenta
+  const ctaRecpam=cuentasContables.find(c=>c.codigo===CTA_RECPAM_CODIGO);
+  if(!ctaRecpam)throw new Error(`No se encontró la cuenta RECPAM (${CTA_RECPAM_CODIGO}). Corré la migration 009.`);
+  // ajustes por cuenta ajustable
+  const ajustes=[];
+  cuentasContables.forEach(c=>{
+    if(!c.es_ajustable||c.imputable===false||!c.activa)return;
+    if(c.id===ctaRecpam.id)return; // RECPAM no se ajusta a sí misma
+    const m=saldos[c.id];if(!m)return;
+    const debe=m.debe||0,haber=m.haber||0;
+    const saldoSigned=debe-haber;
+    const saldoAbs=Math.abs(saldoSigned);
+    if(saldoAbs<0.01)return;
+    const saldoAjustado=saldoAbs*coef;
+    const ajusteAbs=saldoAjustado-saldoAbs;
+    if(ajusteAbs<0.01&&ajusteAbs>-0.01)return;
+    // si el saldo está del lado deudor (debe>haber): el ajuste también va al debe (sube la cuenta)
+    // si el saldo está del lado acreedor (haber>debe): el ajuste va al haber (sube la cuenta)
+    const ajDebe=saldoSigned>0?ajusteAbs:0;
+    const ajHaber=saldoSigned<0?ajusteAbs:0;
+    ajustes.push({cuenta:c,saldoSigned,saldoAjustado:saldoSigned>0?saldoAjustado:-saldoAjustado,coef,ajusteAbs,debe:ajDebe,haber:ajHaber});
+  });
+  ajustes.sort((a,b)=>(a.cuenta.codigo||'').localeCompare(b.cuenta.codigo||'',undefined,{numeric:true}));
+  // RECPAM como contracuenta (cuadre)
+  const totDebe=ajustes.reduce((s,a)=>s+a.debe,0);
+  const totHaber=ajustes.reduce((s,a)=>s+a.haber,0);
+  const diff=totDebe-totHaber;
+  const recpamDebe=diff<0?Math.abs(diff):0;
+  const recpamHaber=diff>0?diff:0;
+  return {mesDesde,anioDesde,mesHasta,anioHasta,idxDesde,idxHasta,coef,fechaAsiento,ajustes,totDebe,totHaber,recpamDebe,recpamHaber,ctaRecpam};
+}
+
+function calcularPreviewAjuste(){
+  try{
+    const mD=parseInt(document.getElementById('ajuste-mes-desde').value,10);
+    const aD=parseInt(document.getElementById('ajuste-anio-desde').value,10);
+    const mH=parseInt(document.getElementById('ajuste-mes-hasta').value,10);
+    const aH=parseInt(document.getElementById('ajuste-anio-hasta').value,10);
+    if(!mD||!aD||!mH||!aH)return notify('Seleccioná los dos períodos','err');
+    // validar orden cronológico
+    if(aD*100+mD>=aH*100+mH)return notify('El período "Desde" debe ser anterior al "Hasta"','err');
+    ajustePreview=calcularAjusteInflacion(mD,aD,mH,aH);
+    pintarPreviewAjuste();
+    document.getElementById('btn-gen-ajuste').disabled=false;
+    document.getElementById('btn-gen-ajuste').style.opacity='1';
+  }catch(e){
+    notify(e.message||'Error calculando preview','err');
+    ajustePreview=null;
+    document.getElementById('btn-gen-ajuste').disabled=true;
+    document.getElementById('btn-gen-ajuste').style.opacity='.4';
+  }
+}
+
+function pintarPreviewAjuste(){
+  if(!ajustePreview)return;
+  const p=ajustePreview;
+  const tipoBadge={activo:'badge-ok',pasivo:'badge-coral',patrimonio:'badge-purple',ingreso:'badge-blue',egreso:'badge-warn'};
+  // info banner
+  document.getElementById('ajuste-preview-info').innerHTML=`<div style="padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:5px;font-size:12px;color:var(--text2);line-height:1.6"><b style="color:var(--text)">Período:</b> ${MES_NOMBRE[p.mesDesde]} ${p.anioDesde} → ${MES_NOMBRE[p.mesHasta]} ${p.anioHasta} <span style="color:var(--text3)">·</span> <b style="color:var(--text)">IPC Desde:</b> <span class="mono">${Number(p.idxDesde.indice).toFixed(4)}</span> <span style="color:var(--text3)">·</span> <b style="color:var(--text)">IPC Hasta:</b> <span class="mono">${Number(p.idxHasta.indice).toFixed(4)}</span> <span style="color:var(--text3)">·</span> <b style="color:var(--text)">Coeficiente:</b> <span class="mono" style="color:var(--accent);font-weight:600">${p.coef.toFixed(6)}</span> <span style="color:var(--text3)">·</span> <b style="color:var(--text)">Fecha del asiento:</b> <span class="mono">${p.fechaAsiento}</span></div>`;
+  // stats
+  const inflacionPct=(p.coef-1)*100;
+  const resultadoRecpam=p.recpamHaber-p.recpamDebe; // positivo = ganancia, negativo = pérdida
+  document.getElementById('ajuste-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Inflación del período</div><div class="stat-value mono" style="color:${inflacionPct>=0?'var(--coral)':'var(--green)'}">${inflacionPct>=0?'+':''}${inflacionPct.toFixed(2)}%</div></div>
+    <div class="stat-card"><div class="stat-label">Cuentas a ajustar</div><div class="stat-value" style="color:var(--blue)">${p.ajustes.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Total ajuste (Debe)</div><div class="stat-value mono" style="color:var(--green);font-size:14px">${fmtARS(p.totDebe)}</div></div>
+    <div class="stat-card"><div class="stat-label">RECPAM ${resultadoRecpam>=0?'(ganancia)':'(pérdida)'}</div><div class="stat-value mono" style="color:${resultadoRecpam>=0?'var(--green)':'var(--red)'};font-size:14px">${fmtARS(Math.abs(resultadoRecpam))}</div></div>`;
+  // tabla
+  const tbody=document.getElementById('ajuste-tbody');
+  if(!p.ajustes.length){
+    tbody.innerHTML=`<tr><td colspan="7" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg></div><div class="empty-title">Sin cuentas no monetarias con saldo</div><div class="empty-msg">Hasta la fecha <b>${p.fechaAsiento}</b> no hay saldos en cuentas marcadas como ajustables. Verificá que tengas asientos confirmados y cuentas marcadas como "No monetaria" en el plan.</div></div></td></tr>`;
+    document.getElementById('ajuste-tfoot').innerHTML='';
+    return;
+  }
+  tbody.innerHTML=p.ajustes.map(a=>{
+    const c=a.cuenta;
+    return`<tr><td class="mono td-primary">${c.codigo}</td><td>${esc(c.nombre)}</td><td><span class="badge ${tipoBadge[c.tipo]||'badge-warn'}">${(c.tipo||'').toUpperCase()}</span></td><td class="mono" style="text-align:right;color:${a.saldoSigned>0?'var(--green)':'var(--coral)'}">${fmtARS(Math.abs(a.saldoSigned))}</td><td class="mono" style="text-align:right;color:var(--text2)">${fmtARS(Math.abs(a.saldoAjustado))}</td><td class="mono" style="text-align:right;color:${a.debe>0?'var(--green)':'var(--text3)'}">${a.debe>0?fmtARS(a.debe):'—'}</td><td class="mono" style="text-align:right;color:${a.haber>0?'var(--coral)':'var(--text3)'}">${a.haber>0?fmtARS(a.haber):'—'}</td></tr>`;
+  }).join('')+`<tr style="background:var(--surface2);border-top:1px solid var(--border)"><td class="mono td-primary" style="color:var(--accent)">${p.ctaRecpam.codigo}</td><td style="font-weight:500">${esc(p.ctaRecpam.nombre)} <span style="color:var(--text3);font-weight:400">— contracuenta automática</span></td><td><span class="badge badge-purple">RECPAM</span></td><td style="text-align:right;color:var(--text3)">—</td><td style="text-align:right;color:var(--text3)">—</td><td class="mono" style="text-align:right;color:${p.recpamDebe>0?'var(--green)':'var(--text3)'}">${p.recpamDebe>0?fmtARS(p.recpamDebe):'—'}</td><td class="mono" style="text-align:right;color:${p.recpamHaber>0?'var(--coral)':'var(--text3)'}">${p.recpamHaber>0?fmtARS(p.recpamHaber):'—'}</td></tr>`;
+  const totD=p.totDebe+p.recpamDebe,totH=p.totHaber+p.recpamHaber;
+  const cuadra=Math.abs(totD-totH)<0.01;
+  document.getElementById('ajuste-tfoot').innerHTML=`<tr style="border-top:2px solid var(--border2);font-weight:600;background:var(--surface2)"><td colspan="5" class="mono" style="padding:10px 8px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-size:11px">TOTALES ${cuadra?'<span style="color:var(--green)">· ✓ cuadra</span>':'<span style="color:var(--red)">· ✗ no cuadra</span>'}</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--green)">${fmtARS(totD)}</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--coral)">${fmtARS(totH)}</td></tr>`;
+}
+
+async function generarAsientoAjusteInflacion(){
+  if(!ajustePreview)return notify('Calculá el preview antes de generar','err');
+  const p=ajustePreview;
+  if(!p.ajustes.length)return notify('No hay cuentas para ajustar','err');
+  const msg=`¿Generar asiento de ajuste por inflación del ${MES_NOMBRE[p.mesDesde]} ${p.anioDesde} → ${MES_NOMBRE[p.mesHasta]} ${p.anioHasta}?\n\nCoeficiente: ${p.coef.toFixed(4)}\nCuentas afectadas: ${p.ajustes.length}\nRECPAM: ${fmtARS(p.recpamHaber-p.recpamDebe)} (${p.recpamHaber>p.recpamDebe?'ganancia':'pérdida'})\n\nEl asiento se crea en estado BORRADOR para que lo revises antes de confirmar.`;
+  if(!confirm(msg))return;
+  setBusy('btn-gen-ajuste',true);
+  try{
+    const maxN=asientos.reduce((m,a)=>Math.max(m,parseInt(a.numero||0)||0),0);
+    const cabecera={
+      empresa_id:currentEmpresa.id,
+      numero:maxN+1,
+      fecha:p.fechaAsiento,
+      descripcion:`Ajuste por inflación ${MES_NOMBRE[p.mesDesde]} ${p.anioDesde} → ${MES_NOMBRE[p.mesHasta]} ${p.anioHasta} (coef ${p.coef.toFixed(4)})`,
+      comprobante_nro:null,
+      tipo:'auto-ajuste-inflacion',
+      origen_tipo:'ajuste_inflacion',
+      origen_id:null,
+      estado:'borrador',
+      moneda:'ARS',
+      tipo_cambio:null,
+      tc_tipo:null,
+    };
+    const r=await POST('asientos',cabecera);
+    const asientoId=r[0].id;
+    const lineas=[];
+    let orden=0;
+    p.ajustes.forEach(a=>{
+      lineas.push({asiento_id:asientoId,cuenta_id:a.cuenta.id,debe:a.debe||0,haber:a.haber||0,descripcion:`Reexpresión coef ${p.coef.toFixed(4)}`,orden:orden++});
+    });
+    // RECPAM (siempre la última línea)
+    if(p.recpamDebe>0||p.recpamHaber>0){
+      lineas.push({asiento_id:asientoId,cuenta_id:p.ctaRecpam.id,debe:p.recpamDebe||0,haber:p.recpamHaber||0,descripcion:`RECPAM período ${MES_NOMBRE[p.mesDesde]} ${p.anioDesde} → ${MES_NOMBRE[p.mesHasta]} ${p.anioHasta}`,orden:orden++});
+    }
+    await POST('asiento_lineas',lineas);
+    await loadAll();renderAll();
+    notify(`Asiento N° ${maxN+1} creado en borrador. Revisalo en "Asientos" y confirmalo cuando esté ok.`);
+    ajustePreview=null;
+    document.getElementById('btn-gen-ajuste').disabled=true;
+    document.getElementById('btn-gen-ajuste').style.opacity='.4';
+    // recalcular preview limpio
+    pintarPreviewAjuste();
+  }catch(e){
+    notify(e.message||'Error generando asiento','err');
+  }
+  setBusy('btn-gen-ajuste',false,'Generar asiento');
 }
 
 // ─── ASIENTOS CONTABLES ───────────────────────────────────────
@@ -4456,7 +4662,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes'],analisis:['costos','trace'],contabilidad:['cuentas','asientosp','librodiario','libromayor','balance','estado','balgral','ratios','ipc']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes'],analisis:['costos','trace'],contabilidad:['cuentas','asientosp','librodiario','libromayor','balance','estado','balgral','ratios','ipc','ajuste']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
