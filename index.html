@@ -725,6 +725,31 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       </div>
     </div>
 
+    <!-- CONTABILIDAD: Cobros y Pagos -->
+    <div class="page" id="page-cobpag">
+      <div class="page-header"><div class="page-title">Cobros y Pagos</div><div class="page-sub">// movimientos de caja / banco con asiento automático</div><div class="tabs"><div class="tab active">Registrar</div></div></div>
+      <div class="page-content">
+        <div style="display:flex;gap:14px;align-items:end;margin-bottom:18px;flex-wrap:wrap;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:6px">
+          <div style="display:flex;border:1px solid var(--border);border-radius:5px;overflow:hidden">
+            <button class="btn btn-ghost btn-sm" id="cp-tab-cobro" onclick="switchCobPag('cobro')" style="border-radius:0;border:none;background:var(--accent);color:#fff">Cobro de cliente</button>
+            <button class="btn btn-ghost btn-sm" id="cp-tab-pago" onclick="switchCobPag('pago')" style="border-radius:0;border:none">Pago a proveedor</button>
+          </div>
+          <div class="form-group" style="margin:0;width:160px"><label>Fecha</label><input type="date" id="cp-fecha"></div>
+          <div class="form-group" style="margin:0;flex:1;min-width:240px"><label id="cp-tercero-label">Cliente</label><input type="text" id="cp-tercero" placeholder="Razón social..." list="cp-tercero-list"><datalist id="cp-tercero-list"></datalist></div>
+          <div class="form-group" style="margin:0;width:140px"><label>Monto</label><input type="number" id="cp-monto" step="0.01" min="0" placeholder="0.00"></div>
+          <div class="form-group" style="margin:0;width:130px"><label>Moneda</label><select id="cp-moneda" onchange="onCobPagMonedaChange()"><option value="ARS">ARS</option><option value="USD" selected>USD</option></select></div>
+          <div class="form-group" style="margin:0;width:120px"><label>TC</label><input type="number" id="cp-tc" step="0.01" min="0" placeholder="auto"></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:end;margin-bottom:18px;flex-wrap:wrap;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:6px">
+          <div class="form-group" style="margin:0;width:180px"><label>Método de pago</label><select id="cp-metodo"><option value="caja">Caja (efectivo)</option><option value="banco">Banco (transferencia)</option></select></div>
+          <div class="form-group" style="margin:0;flex:1;min-width:180px"><label>Comprobante / Nº recibo</label><input type="text" id="cp-comprobante" placeholder="REC-001"></div>
+          <div class="form-group" style="margin:0;flex:2;min-width:200px"><label>Observaciones</label><input type="text" id="cp-obs" placeholder="Detalle adicional"></div>
+          <button class="btn btn-primary" id="btn-save-cobpag" onclick="registrarCobroOPago()">Registrar</button>
+        </div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:8px;font-weight:600">Últimos movimientos</div>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Tercero</th><th>Método</th><th>Comprobante</th><th style="text-align:right">Monto</th><th>Asiento</th><th></th></tr></thead><tbody id="cobpag-tbody"></tbody></table></div>
+      </div>
+    </div>
     <!-- CONTABILIDAD: Bimonetario -->
     <div class="page" id="page-bimon">
       <div class="page-header"><div class="page-title">Bimonetario</div><div class="page-sub">// balance consolidado en doble columna ARS / USD</div><div class="tabs"><div class="tab active">Al cierre</div></div></div>
@@ -1960,10 +1985,10 @@ async function loadAll(){
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
-  contabilidad:[{k:'cuentas',l:'Plan de cuentas'},{k:'asientosp',l:'Asientos'},{k:'librodiario',l:'Libro diario'},{k:'libromayor',l:'Libro mayor'},{k:'balance',l:'Balance comprob.'},{k:'estado',l:'Estado de resultados'},{k:'balgral',l:'Balance general'},{k:'bimon',l:'Bimonetario'},{k:'ratios',l:'Ratios'},{k:'compha',l:'Hist. vs Aj.'},{k:'compej',l:'Compar. ejerc.'},{k:'ipc',l:'Índices IPC'},{k:'ajuste',l:'Ajuste inflación'},{k:'cierre',l:'Cierre ejercicio'}],
+  contabilidad:[{k:'cuentas',l:'Plan de cuentas'},{k:'asientosp',l:'Asientos'},{k:'cobpag',l:'Cobros y Pagos'},{k:'librodiario',l:'Libro diario'},{k:'libromayor',l:'Libro mayor'},{k:'balance',l:'Balance comprob.'},{k:'estado',l:'Estado de resultados'},{k:'balgral',l:'Balance general'},{k:'bimon',l:'Bimonetario'},{k:'ratios',l:'Ratios'},{k:'compha',l:'Hist. vs Aj.'},{k:'compej',l:'Compar. ejerc.'},{k:'ipc',l:'Índices IPC'},{k:'ajuste',l:'Ajuste inflación'},{k:'cierre',l:'Cierre ejercicio'}],
   ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'}],
   analisis:[{k:'costos',l:'Costos y rentabilidad'},{k:'trace',l:'Trazabilidad'}],
 };
@@ -2742,7 +2767,7 @@ function notify(msg,type){
   el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);
 }
 
-function renderAll(){renderDash();renderMP();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();populateLibroMayorSel();renderLibroMayor();renderBalance();renderEstadoResultados();renderBalanceGeneral();renderRatios();renderIndicesIPC();renderAjuste();renderCierre();renderComparativoHA();renderComparativoEjercicios();renderBimonetario();renderConfig();updateClientesDatalist();animateNumbers();}
+function renderAll(){renderDash();renderMP();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();populateLibroMayorSel();renderLibroMayor();renderBalance();renderEstadoResultados();renderBalanceGeneral();renderRatios();renderIndicesIPC();renderAjuste();renderCierre();renderComparativoHA();renderComparativoEjercicios();renderBimonetario();renderCobPag();renderConfig();updateClientesDatalist();animateNumbers();}
 
 // ─── PLAN DE CUENTAS ──────────────────────────────────────────
 function renderCuentas(filter=''){
@@ -3470,6 +3495,133 @@ function renderComparativoEjercicios(){
   const totB=filas.reduce((s,f)=>s+f.sB,0);
   const totVar=totB-totA;
   document.getElementById('compej-tfoot').innerHTML=`<tr style="border-top:2px solid var(--border2);font-weight:600;background:var(--surface2)"><td colspan="3" class="mono" style="padding:10px 8px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-size:11px">TOTALES</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--text)">${totA>=0?'':'-'}${fmtARS(Math.abs(totA))}</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--text)">${totB>=0?'':'-'}${fmtARS(Math.abs(totB))}</td><td class="mono" style="text-align:right;padding:10px 8px;color:${totVar>=0?'var(--green)':'var(--red)'}">${totVar>=0?'+':''}${fmtARS(totVar)}</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--text3);font-size:11px">—</td></tr>`;
+}
+
+// ─── COBROS Y PAGOS (movimientos caja/banco con asiento auto) ─
+let cobPagModo='cobro';
+
+function switchCobPag(modo){
+  cobPagModo=modo;
+  document.getElementById('cp-tab-cobro').style.background=modo==='cobro'?'var(--accent)':'';
+  document.getElementById('cp-tab-cobro').style.color=modo==='cobro'?'#fff':'';
+  document.getElementById('cp-tab-pago').style.background=modo==='pago'?'var(--accent)':'';
+  document.getElementById('cp-tab-pago').style.color=modo==='pago'?'#fff':'';
+  document.getElementById('cp-tercero-label').textContent=modo==='cobro'?'Cliente':'Proveedor';
+  renderCobPagAutocomplete();
+}
+
+function renderCobPagAutocomplete(){
+  const list=document.getElementById('cp-tercero-list');if(!list)return;
+  if(cobPagModo==='cobro'){
+    list.innerHTML=clientes.map(c=>`<option value="${esc(c.nombre||'')}">`).join('');
+  }else{
+    list.innerHTML=proveedores.map(p=>`<option value="${esc(p.nombre||'')}">`).join('');
+  }
+}
+
+function onCobPagMonedaChange(){
+  const mon=document.getElementById('cp-moneda').value;
+  const tcInput=document.getElementById('cp-tc');
+  if(mon==='ARS'){tcInput.value='';tcInput.disabled=true;}
+  else{tcInput.disabled=false;if(!tcInput.value)tcInput.value=(cotizacion.compra||cotizacion.venta||'').toString();}
+}
+
+function renderCobPag(){
+  const fecha=document.getElementById('cp-fecha');
+  if(fecha&&!fecha.value)fecha.value=new Date().toISOString().slice(0,10);
+  renderCobPagAutocomplete();
+  onCobPagMonedaChange();
+  // Tabla de últimos movimientos: filtrar asientos auto-cobranza / auto-pago
+  const tbody=document.getElementById('cobpag-tbody');if(!tbody)return;
+  const lista=asientos.filter(a=>a.tipo==='auto-cobranza'||a.tipo==='auto-pago').sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')||(b.numero||0)-(a.numero||0)).slice(0,30);
+  if(!lista.length){
+    tbody.innerHTML=`<tr><td colspan="8" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Sin movimientos registrados. Cargá el primero arriba.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML=lista.map(a=>{
+    const esCobro=a.tipo==='auto-cobranza';
+    const lns=asientoLineas.filter(l=>l.asiento_id===a.id);
+    const totDebe=lns.reduce((s,l)=>s+(parseFloat(l.debe)||0),0);
+    const m=a.descripcion||'';
+    const terceroMatch=m.match(/(?:Cobro de|Pago a) (.+?)(?:\s+\(|$)/);
+    const tercero=terceroMatch?terceroMatch[1]:'—';
+    // Detectar método mirando cuenta de la primera línea (caja o banco)
+    let metodo='—';
+    if(lns.length){
+      const cuentaCajaBanco=esCobro?cuentasContables.find(c=>c.id===lns[0].cuenta_id):cuentasContables.find(c=>c.id===lns[lns.length-1].cuenta_id);
+      if(cuentaCajaBanco){metodo=cuentaCajaBanco.nombre||'—';}
+    }
+    return`<tr><td class="mono">${a.fecha||'—'}</td><td><span class="badge ${esCobro?'badge-blue':'badge-coral'}">${esCobro?'COBRO':'PAGO'}</span></td><td>${esc(tercero)}</td><td style="font-size:11px;color:var(--text2)">${esc(metodo)}</td><td class="mono" style="font-size:11px">${esc(a.comprobante_nro)||'—'}</td><td class="mono" style="text-align:right;color:${esCobro?'var(--green)':'var(--coral)'}">${a.moneda==='USD'?fmtUSD(totDebe/(parseFloat(a.tipo_cambio)||1)):fmtARS(totDebe)}<div style="font-size:9px;color:var(--text3)">${a.moneda||'ARS'}</div></td><td class="mono" style="font-size:11px;color:var(--accent)">#${a.numero||'—'}</td><td><button class="btn btn-danger btn-sm" onclick="anularCobPag('${a.id}')" title="Anular asiento"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span></button></td></tr>`;
+  }).join('');
+}
+
+async function anularCobPag(id){
+  const a=asientos.find(x=>x.id===id);if(!a)return;
+  if(!confirm(`¿Anular asiento N° ${a.numero} (${a.tipo})?\nQueda con estado "anulado", no se borra.`))return;
+  try{await PATCH('asientos',{estado:'anulado'},`?id=eq.${id}`);await loadAll();renderAll();notify('Movimiento anulado');}
+  catch(e){notify(e.message,'err');}
+}
+
+async function registrarCobroOPago(){
+  const fecha=document.getElementById('cp-fecha').value;
+  const tercero=document.getElementById('cp-tercero').value.trim();
+  const monto=parseFloat(document.getElementById('cp-monto').value);
+  const moneda=document.getElementById('cp-moneda').value;
+  const tc=parseFloat(document.getElementById('cp-tc').value)||0;
+  const metodo=document.getElementById('cp-metodo').value;
+  const comprobante=document.getElementById('cp-comprobante').value.trim()||null;
+  const obs=document.getElementById('cp-obs').value.trim()||null;
+  if(!fecha)return notify('Cargá la fecha','err');
+  if(!tercero)return notify(`Cargá el ${cobPagModo==='cobro'?'cliente':'proveedor'}`,'err');
+  if(!(monto>0))return notify('Monto inválido','err');
+  if(moneda==='USD'&&!(tc>0))return notify('Cargá el tipo de cambio (USD)','err');
+  if(!configContable)return notify('Falta configurar la imputación contable (Configuración → Imputación contable)','err');
+  const cfg=configContable;
+  // Cuentas según método
+  const ctaMedio=cuentasContables.find(c=>c.id===(metodo==='caja'?cfg.cta_caja_default:cfg.cta_banco_default));
+  if(!ctaMedio)return notify(`Falta cuenta de ${metodo} en Imputación contable`,'err');
+  // Cuenta contraparte según modo
+  const ctaCtraparte=cuentasContables.find(c=>c.id===(cobPagModo==='cobro'?cfg.cta_deudores:cfg.cta_proveedores));
+  if(!ctaCtraparte)return notify(`Falta cuenta de ${cobPagModo==='cobro'?'Deudores':'Proveedores'} en Imputación contable`,'err');
+  setBusy('btn-save-cobpag',true);
+  try{
+    const maxN=asientos.reduce((m,a)=>Math.max(m,parseInt(a.numero||0)||0),0);
+    const desc=cobPagModo==='cobro'?`Cobro de ${tercero}`:`Pago a ${tercero}`;
+    const cabecera={
+      empresa_id:currentEmpresa.id,
+      numero:maxN+1,
+      fecha,
+      descripcion:desc+(obs?` — ${obs}`:''),
+      comprobante_nro:comprobante,
+      tipo:cobPagModo==='cobro'?'auto-cobranza':'auto-pago',
+      origen_tipo:cobPagModo,
+      origen_id:null,
+      estado:'confirmado',
+      moneda,
+      tipo_cambio:moneda==='USD'?tc:null,
+      tc_tipo:moneda==='USD'?'venta':null,
+    };
+    const r=await POST('asientos',cabecera);
+    const asientoId=r[0].id;
+    // Para cobro: Medio (Caja/Banco) debe / Deudores haber
+    // Para pago: Proveedores debe / Medio (Caja/Banco) haber
+    const lineas=cobPagModo==='cobro'?[
+      {asiento_id:asientoId,cuenta_id:ctaMedio.id,debe:monto,haber:0,descripcion:`${ctaMedio.nombre} ${tercero}`,orden:0},
+      {asiento_id:asientoId,cuenta_id:ctaCtraparte.id,debe:0,haber:monto,descripcion:`Cancelación deuda ${tercero}`,orden:1},
+    ]:[
+      {asiento_id:asientoId,cuenta_id:ctaCtraparte.id,debe:monto,haber:0,descripcion:`Cancelación deuda ${tercero}`,orden:0},
+      {asiento_id:asientoId,cuenta_id:ctaMedio.id,debe:0,haber:monto,descripcion:`${ctaMedio.nombre} ${tercero}`,orden:1},
+    ];
+    await POST('asiento_lineas',lineas);
+    await loadAll();
+    notify(`✓ ${cobPagModo==='cobro'?'Cobro':'Pago'} registrado · Asiento N° ${maxN+1}`);
+    // limpiar form (mantener fecha/método/tercero por si hay varios)
+    document.getElementById('cp-monto').value='';
+    document.getElementById('cp-comprobante').value='';
+    document.getElementById('cp-obs').value='';
+    renderCobPag();
+  }catch(e){notify(e.message||'Error','err');}
+  setBusy('btn-save-cobpag',false,'Registrar');
 }
 
 // ─── BIMONETARIO (balance consolidado ARS / USD) ──────────────
@@ -4223,6 +4375,68 @@ async function generarAsientoVenta(ventaId,total,cliente,fecha,nroRemito){
     if(aplicaIVA)lineas.push({asiento_id:asientoId,cuenta_id:ctaIvaDeb.id,debe:0,haber:iva,descripcion:`IVA Débito ${(ivaPct*100).toFixed(0)}% s/ ${nroRemito||''}`,orden:2});
     await POST('asiento_lineas',lineas);
   }catch(e){console.warn('Error generando asiento automático de venta:',e);}
+}
+
+// ─── ASIENTO AUTOMÁTICO DESDE COMPRA (recepción de OC) ────────
+// Se invoca desde saveRecepcion con la lista de ítems recibidos en la sesión.
+// Genera UN asiento por sesión agrupando montos por cuenta según tipo de ítem.
+async function generarAsientoCompra(recepcionItems,oc,fecha){
+  try{
+    if(!configContable){console.warn('Asiento de compra no generado: falta configuración contable');return;}
+    if(!recepcionItems||!recepcionItems.length)return;
+    const cfg=configContable;
+    const ctaProv=cuentasContables.find(c=>c.id===cfg.cta_proveedores);
+    const ctaIva=cuentasContables.find(c=>c.id===cfg.cta_iva_credito);
+    if(!ctaProv){console.warn('Asiento de compra no generado: falta cuenta Proveedores en Imputación contable');return;}
+    // Mapeo tipo de ítem → cuenta de compra
+    const ctasPorTipo={
+      'materia_prima':cfg.cta_compra_mp,
+      'insumo':cfg.cta_compra_insumos,
+      'herramienta':cfg.cta_compra_herramientas,
+      'servicio':cfg.cta_compra_servicios,
+    };
+    const ivaPct=Number(cfg.iva_alicuota)||0;
+    const aplicaIVA=ctaIva&&ivaPct>0;
+    // Agrupar netos por cuenta de débito
+    const porCuenta={};
+    let totalNeto=0;
+    for(const r of recepcionItems){
+      const ctaId=ctasPorTipo[r.it.tipo];
+      if(!ctaId){console.warn(`Sin cuenta para tipo "${r.it.tipo}" en Imputación contable`);continue;}
+      const monto=(parseFloat(r.it.precio_unitario)||0)*r.qty;
+      if(monto<=0)continue;
+      const neto=cfg.precios_incluyen_iva?(monto/(1+ivaPct)):monto;
+      porCuenta[ctaId]=(porCuenta[ctaId]||0)+neto;
+      totalNeto+=neto;
+    }
+    if(totalNeto<=0){console.warn('Asiento de compra no generado: monto total = 0');return;}
+    const iva=aplicaIVA?totalNeto*ivaPct:0;
+    const bruto=totalNeto+iva;
+    const maxN=asientos.reduce((m,a)=>Math.max(m,parseInt(a.numero||0)||0),0);
+    const cabecera={
+      empresa_id:currentEmpresa.id,
+      numero:maxN+1,
+      fecha,
+      descripcion:`Compra OC ${oc.nro} — ${oc.proveedores?.nombre||'proveedor'}`+(aplicaIVA?` (IVA ${(ivaPct*100).toFixed(0)}%)`:''),
+      comprobante_nro:oc.factura_nro||oc.nro,
+      tipo:'auto-compra',
+      origen_tipo:'recepcion',
+      origen_id:null,
+      estado:'confirmado',
+      moneda:oc.moneda||'USD',
+      tipo_cambio:oc.tipo_cambio||null,
+      tc_tipo:oc.tc_tipo||null,
+    };
+    const r=await POST('asientos',cabecera);
+    const asientoId=r[0].id;
+    const lineas=[];let ord=0;
+    Object.entries(porCuenta).forEach(([ctaId,neto])=>{
+      lineas.push({asiento_id:asientoId,cuenta_id:ctaId,debe:neto,haber:0,descripcion:`Compra ${oc.nro}`,orden:ord++});
+    });
+    if(aplicaIVA)lineas.push({asiento_id:asientoId,cuenta_id:ctaIva.id,debe:iva,haber:0,descripcion:`IVA CF ${(ivaPct*100).toFixed(0)}%`,orden:ord++});
+    lineas.push({asiento_id:asientoId,cuenta_id:ctaProv.id,debe:0,haber:bruto,descripcion:`Proveedor ${oc.proveedores?.nombre||''}`,orden:ord++});
+    await POST('asiento_lineas',lineas);
+  }catch(e){console.warn('Error generando asiento automático de compra:',e);}
 }
 
 // ─── ANIMACIÓN DE KPIs (count-up al cargar) ─────────────
@@ -5374,7 +5588,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes'],analisis:['costos','trace'],contabilidad:['cuentas','asientosp','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes'],analisis:['costos','trace'],contabilidad:['cuentas','asientosp','cobpag','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
@@ -5890,6 +6104,8 @@ async function saveRecepcion(){
     const anyReceived=ocItemsReload.some(i=>parseFloat(i.cantidad_recibida||0)>0);
     const nuevoEstado=allComplete?'recibida':(anyReceived?'recibida_parcial':oc.estado);
     await PATCH('ordenes_compra',{estado:nuevoEstado},`?id=eq.${currentOCId}`);
+    // Asiento contable automático de compra
+    await generarAsientoCompra(recepcionesNuevas,oc,fecha);
     await loadAll();closeModal('modal-recepcion');renderAll();
     notify(allComplete?'✓ Recepción completa registrada':'Recepción parcial registrada');
   }catch(e){notify('Error: '+e.message,'err');console.error(e);}
