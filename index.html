@@ -672,18 +672,51 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
     </div>
     <!-- CONTABILIDAD: Cierre de ejercicio -->
     <div class="page" id="page-cierre">
-      <div class="page-header"><div class="page-title">Cierre de ejercicio</div><div class="page-sub">// refundición de resultados + pasaje a No Asignados</div><div class="tabs"><div class="tab active">Generar cierre</div></div></div>
+      <div class="page-header"><div class="page-title">Cierre y apertura</div><div class="page-sub">// ejercicio contable · refundición · pasaje · cierre patrimonial · apertura</div><div class="tabs"><div class="tab active">Generar</div></div></div>
       <div class="page-content">
-        <div style="display:flex;gap:14px;align-items:end;margin-bottom:18px;flex-wrap:wrap;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:6px">
-          <div class="form-group" style="margin:0;width:180px"><label>Inicio del ejercicio</label><input type="date" id="cierre-desde"></div>
-          <div class="form-group" style="margin:0;width:180px"><label>Cierre del ejercicio</label><input type="date" id="cierre-hasta"></div>
+        <!-- Panel 1: Selector / creación de ejercicio -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:14px">
+          <!-- Ejercicio -->
+          <div style="border-right:1px solid var(--border);padding-right:14px">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:600;margin-bottom:10px">Ejercicio</div>
+            <div class="form-group" style="margin-bottom:8px"><label>Seleccionar</label><select id="cierre-ejercicio-sel" onchange="onCierreEjercicioChange()"><option value="__new__">— Nuevo ejercicio —</option></select></div>
+            <div id="cierre-ejercicio-existente" style="display:none;font-size:11px;color:var(--text2);font-family:var(--mono);line-height:1.6"></div>
+            <div id="cierre-ejercicio-nuevo" style="display:flex;gap:8px;flex-wrap:wrap">
+              <div class="form-group" style="margin:0;width:70px"><label>N°</label><input type="number" id="cierre-numero" min="1" placeholder="auto"></div>
+              <div class="form-group" style="margin:0;width:140px"><label>Inicio</label><input type="date" id="cierre-desde"></div>
+              <div class="form-group" style="margin:0;width:140px"><label>Cierre</label><input type="date" id="cierre-hasta"></div>
+            </div>
+          </div>
+          <!-- Operación -->
+          <div style="border-right:1px solid var(--border);padding-right:14px">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:600;margin-bottom:10px">Operación</div>
+            <label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--text2);cursor:pointer;padding:5px 0"><input type="radio" name="cierre-op" value="generacion" checked style="margin:0"> Generación</label>
+            <label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--text3);cursor:not-allowed;padding:5px 0"><input type="radio" name="cierre-op" value="reversion" disabled style="margin:0"> Reversión <span style="font-size:10px;opacity:.6">(próximo)</span></label>
+            <label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--text3);cursor:not-allowed;padding:5px 0"><input type="radio" name="cierre-op" value="eliminacion" disabled style="margin:0"> Eliminación <span style="font-size:10px;opacity:.6">(próximo)</span></label>
+          </div>
+          <!-- Cierre + Apertura -->
+          <div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:600;margin-bottom:10px">Proceso</div>
+            <label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--text2);cursor:pointer;padding:4px 0;font-weight:600"><input type="checkbox" id="chk-paso-1" checked style="margin:0" onchange="onCierrePasoChange()"> Refundición de resultados</label>
+            <label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--text2);cursor:pointer;padding:4px 0;font-weight:600"><input type="checkbox" id="chk-paso-2" checked style="margin:0" onchange="onCierrePasoChange()"> Pasaje a Resultados No Asignados</label>
+            <label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--text2);cursor:pointer;padding:4px 0;font-weight:600"><input type="checkbox" id="chk-paso-3" style="margin:0" onchange="onCierrePasoChange()"> Cierre de cuentas patrimoniales</label>
+            <label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--text2);cursor:pointer;padding:4px 0;font-weight:600"><input type="checkbox" id="chk-paso-4" style="margin:0" onchange="onCierrePasoChange()"> Apertura de cuentas patrimoniales</label>
+            <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap">
+              <div class="form-group" style="margin:0;flex:1;min-width:130px"><label>Fecha registración</label><input type="date" id="cierre-fecha-reg"></div>
+              <div class="form-group" style="margin:0;flex:1;min-width:130px"><label>Fecha apertura</label><input type="date" id="cierre-fecha-apert"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Botones de acción -->
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">
           <button class="btn btn-ghost" onclick="calcularPreviewCierre()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>Calcular preview</button>
           <div style="flex:1"></div>
-          <button class="btn btn-primary" id="btn-gen-cierre" onclick="generarAsientosCierre()" disabled style="opacity:.4">Generar 2 asientos</button>
+          <button class="btn btn-primary" id="btn-gen-cierre" onclick="generarAsientosCierre()" disabled style="opacity:.4">Generar asientos</button>
         </div>
+        <!-- Info banner + stats + tablas -->
         <div id="cierre-preview-info" style="margin-bottom:14px"></div>
         <div class="stats-bar" id="cierre-stats" style="margin-bottom:14px"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
           <div>
             <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);margin-bottom:8px;font-weight:600">Ingresos</div>
             <div class="table-wrap"><table><thead><tr><th>Código</th><th>Cuenta</th><th style="text-align:right">Saldo (haber)</th></tr></thead><tbody id="cierre-ing-tbody"></tbody><tfoot id="cierre-ing-tfoot"></tfoot></table></div>
@@ -692,6 +725,16 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
             <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);margin-bottom:8px;font-weight:600">Egresos</div>
             <div class="table-wrap"><table><thead><tr><th>Código</th><th>Cuenta</th><th style="text-align:right">Saldo (debe)</th></tr></thead><tbody id="cierre-egr-tbody"></tbody><tfoot id="cierre-egr-tfoot"></tfoot></table></div>
           </div>
+        </div>
+        <!-- Cuentas patrimoniales (solo si paso 3 está activo) -->
+        <div id="cierre-patrim-wrap" style="display:none;margin-bottom:18px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--purple);margin-bottom:8px;font-weight:600">Cuentas patrimoniales a cerrar (Activo · Pasivo · PN)</div>
+          <div class="table-wrap"><table><thead><tr><th>Código</th><th>Cuenta</th><th>Tipo</th><th style="text-align:right">Saldo al cierre</th></tr></thead><tbody id="cierre-patrim-tbody"></tbody></table></div>
+        </div>
+        <!-- Histórico de ejercicios -->
+        <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);margin-bottom:8px;font-weight:600">Histórico de ejercicios</div>
+          <div class="table-wrap"><table><thead><tr><th>N°</th><th>Inicio</th><th>Fin</th><th>Estado</th><th>Fecha cierre</th><th>Asientos generados</th><th>Observaciones</th></tr></thead><tbody id="cierre-historico-tbody"></tbody></table></div>
         </div>
       </div>
     </div>
@@ -1698,7 +1741,7 @@ let currentSession=null, currentUser=null, currentEmpresa=null;
 let certs=[],barras=[],ops=[],pts=[],ventas=[],ventaItemsList=[],materiales=[],tratamientos=[],usuariosEmpresa=[],permisosUsuario=[],clientes=[],vendedores=[],listasPrecios=[],currentUserData=null;
 let proveedores=[],ordenesCompra=[],ocItems=[],recepciones=[],ocItemsDraft=[],currentOCId=null;
 let insumos=[],herramientas=[];
-let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null;
+let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[];
 let presupuestos=[],presupItemsList=[],presupItemsDraft=[];
 let certFileData=null,certFileName=null;
 
@@ -1954,7 +1997,7 @@ async function loadEmpresaAndStart(){
 // ─── DATA ─────────────────────────────────────────────────────────
 async function loadAll(){
   try{
-    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos,insumos,herramientas,cuentasContables,asientos,asientoLineas,indicesIpc,configContable]=await Promise.all([
+    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos,insumos,herramientas,cuentasContables,asientos,asientoLineas,indicesIpc,configContable,ejercicios]=await Promise.all([
       GET('certificados','?order=created_at.desc'),
       GET('barras','?order=created_at.desc&select=*,certificados(nro,colada,proveedor)'),
       GET('ordenes_produccion','?order=created_at.desc&select=*,barras(lote)'),
@@ -1979,6 +2022,7 @@ async function loadAll(){
       GET('asiento_lineas','?order=orden.asc&select=*,cuentas_contables(codigo,nombre)').catch(()=>[]),
       GET('indices_ipc','?order=anio.desc,mes.desc').catch(()=>[]),
       GET('config_contable','?limit=1').then(r=>r&&r[0]||null).catch(()=>null),
+      GET('ejercicios','?order=numero.asc').catch(()=>[]),
     ]);
   }catch(e){
     console.error('Error cargando datos:',e);
@@ -1986,7 +2030,7 @@ async function loadAll(){
     materiales=materiales||[];tratamientos=tratamientos||[];usuariosEmpresa=usuariosEmpresa||[];permisosUsuario=permisosUsuario||[];clientes=clientes||[];vendedores=vendedores||[];listasPrecios=listasPrecios||[];
     proveedores=proveedores||[];ordenesCompra=ordenesCompra||[];ocItems=ocItems||[];recepciones=recepciones||[];presupuestos=presupuestos||[];
     insumos=insumos||[];herramientas=herramientas||[];
-    cuentasContables=cuentasContables||[];asientos=asientos||[];asientoLineas=asientoLineas||[];indicesIpc=indicesIpc||[];configContable=configContable||null;
+    cuentasContables=cuentasContables||[];asientos=asientos||[];asientoLineas=asientoLineas||[];indicesIpc=indicesIpc||[];configContable=configContable||null;ejercicios=ejercicios||[];
   }
 }
 
@@ -2001,7 +2045,7 @@ const GROUP_TABS={
     {k:'libros',l:'Libros',sub:[{k:'librodiario',l:'Diario'},{k:'libromayor',l:'Mayor'}]},
     {k:'estados',l:'Estados contables',sub:[{k:'balance',l:'Balance comprob.'},{k:'estado',l:'Estado de Rdos.'},{k:'balgral',l:'Balance general'}]},
     {k:'analisis',l:'Análisis',sub:[{k:'ratios',l:'Ratios'},{k:'bimon',l:'Bimonetario'},{k:'compha',l:'Hist. vs Ajust.'},{k:'compej',l:'Compar. ejerc.'}]},
-    {k:'cierreinf',l:'Cierre e inflación',sub:[{k:'ipc',l:'Índices IPC'},{k:'ajuste',l:'Ajuste inflación'},{k:'cierre',l:'Cierre ejercicio'}]}
+    {k:'cierreinf',l:'Cierre e inflación',sub:[{k:'ipc',l:'Índices IPC'},{k:'ajuste',l:'Ajuste inflación'},{k:'cierre',l:'Cierre y apertura'}]}
   ],
   ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'}],
   analisis:[{k:'costos',l:'Costos y rentabilidad'},{k:'trace',l:'Trazabilidad'}],
@@ -2964,93 +3008,229 @@ async function deleteIndiceIPC(id){
 let cierrePreview=null;
 const CTA_RES_EJERCICIO='314001';
 const CTA_RES_NO_ASIG='314002';
+const CTA_CIERRE_EJERCICIO='314003';
 
-function renderCierre(){
-  const desde=document.getElementById('cierre-desde');
-  const hasta=document.getElementById('cierre-hasta');
-  if(!desde||!hasta)return;
-  // defaults: si están vacíos, sugiero año fiscal corriente
-  if(!desde.value&&!hasta.value){
-    const hoy=new Date();
-    const anioBase=hoy.getMonth()===11?hoy.getFullYear():hoy.getFullYear()-1;
-    // si todavía estamos antes de fin de año, sugiero el último ejercicio cerrado
-    desde.value=`${anioBase}-01-01`;
-    hasta.value=`${anioBase}-12-31`;
+// ── Helpers de ejercicios ────────────────────────────────────────
+function _siguienteNumeroEjercicio(){
+  if(!ejercicios.length)return 1;
+  return Math.max(...ejercicios.map(e=>e.numero||0))+1;
+}
+function esFechaEnEjercicioCerrado(fecha){
+  if(!fecha)return null;
+  return ejercicios.find(e=>e.estado==='cerrado'&&fecha>=e.fecha_inicio&&fecha<=e.fecha_fin)||null;
+}
+function _proximaFechaApertura(hasta){
+  if(!hasta)return '';
+  const d=new Date(hasta+'T00:00:00');
+  d.setDate(d.getDate()+1);
+  return d.toISOString().slice(0,10);
+}
+function _populateCierreEjercicioSel(){
+  const sel=document.getElementById('cierre-ejercicio-sel');if(!sel)return;
+  const cur=sel.value;
+  const opts=['<option value="__new__">— Nuevo ejercicio —</option>'];
+  ejercicios.slice().sort((a,b)=>(b.numero||0)-(a.numero||0)).forEach(e=>{
+    const tag=e.estado==='cerrado'?' [CERRADO]':'';
+    opts.push(`<option value="${e.id}">N° ${e.numero} · ${e.fecha_inicio} → ${e.fecha_fin}${tag}</option>`);
+  });
+  sel.innerHTML=opts.join('');
+  if(cur && [...sel.options].some(o=>o.value===cur))sel.value=cur;
+}
+function _cierreReadConfig(){
+  const sel=document.getElementById('cierre-ejercicio-sel');
+  const ejId=sel?sel.value:'__new__';
+  const op=document.querySelector('input[name="cierre-op"]:checked')?.value||'generacion';
+  let desde,hasta,numero,ejercicio=null;
+  if(ejId==='__new__'){
+    desde=document.getElementById('cierre-desde')?.value||'';
+    hasta=document.getElementById('cierre-hasta')?.value||'';
+    const numStr=document.getElementById('cierre-numero')?.value;
+    numero=numStr?parseInt(numStr):_siguienteNumeroEjercicio();
+  }else{
+    ejercicio=ejercicios.find(e=>e.id===ejId);
+    if(ejercicio){desde=ejercicio.fecha_inicio;hasta=ejercicio.fecha_fin;numero=ejercicio.numero;}
   }
-  if(cierrePreview){pintarPreviewCierre();}
-  else{
-    document.getElementById('cierre-ing-tbody').innerHTML=`<tr><td colspan="3" class="empty-cell" style="padding:30px;text-align:center;color:var(--text3);font-size:12px">Calculá el preview para ver el detalle</td></tr>`;
-    document.getElementById('cierre-egr-tbody').innerHTML=`<tr><td colspan="3" class="empty-cell" style="padding:30px;text-align:center;color:var(--text3);font-size:12px">Calculá el preview para ver el detalle</td></tr>`;
-    document.getElementById('cierre-ing-tfoot').innerHTML='';
-    document.getElementById('cierre-egr-tfoot').innerHTML='';
-    document.getElementById('cierre-stats').innerHTML='';
-    document.getElementById('cierre-preview-info').innerHTML='';
-  }
+  return {
+    op,ejercicio,desde,hasta,numero,
+    p1:document.getElementById('chk-paso-1')?.checked||false,
+    p2:document.getElementById('chk-paso-2')?.checked||false,
+    p3:document.getElementById('chk-paso-3')?.checked||false,
+    p4:document.getElementById('chk-paso-4')?.checked||false,
+    fechaReg:document.getElementById('cierre-fecha-reg')?.value||hasta,
+    fechaApert:document.getElementById('cierre-fecha-apert')?.value||'',
+  };
 }
 
-function calcularCierre(desde,hasta){
+function renderCierre(){
+  const sel=document.getElementById('cierre-ejercicio-sel');if(!sel)return;
+  _populateCierreEjercicioSel();
+  const desdeEl=document.getElementById('cierre-desde');
+  const hastaEl=document.getElementById('cierre-hasta');
+  if(desdeEl && !desdeEl.value){
+    let inicio,fin;
+    if(ejercicios.length){
+      const ult=ejercicios.slice().sort((a,b)=>(b.numero||0)-(a.numero||0))[0];
+      inicio=_proximaFechaApertura(ult.fecha_fin);
+      const d=new Date(inicio+'T00:00:00');d.setFullYear(d.getFullYear()+1);d.setDate(d.getDate()-1);
+      fin=d.toISOString().slice(0,10);
+    }else{
+      const hoy=new Date();
+      const anioBase=hoy.getMonth()===11?hoy.getFullYear():hoy.getFullYear()-1;
+      inicio=`${anioBase}-01-01`;fin=`${anioBase}-12-31`;
+    }
+    desdeEl.value=inicio;hastaEl.value=fin;
+  }
+  const numEl=document.getElementById('cierre-numero');
+  if(numEl && !numEl.value)numEl.value=_siguienteNumeroEjercicio();
+  const fechaRegEl=document.getElementById('cierre-fecha-reg');
+  const fechaApertEl=document.getElementById('cierre-fecha-apert');
+  if(fechaRegEl && !fechaRegEl.value && hastaEl?.value)fechaRegEl.value=hastaEl.value;
+  if(fechaApertEl && !fechaApertEl.value && hastaEl?.value)fechaApertEl.value=_proximaFechaApertura(hastaEl.value);
+  onCierreEjercicioChange();
+  if(cierrePreview)pintarPreviewCierre();else _clearCierreUI();
+  renderCierreHistorico();
+}
+
+function _clearCierreUI(){
+  const ing=document.getElementById('cierre-ing-tbody');
+  const egr=document.getElementById('cierre-egr-tbody');
+  if(ing)ing.innerHTML=`<tr><td colspan="3" class="empty-cell" style="padding:30px;text-align:center;color:var(--text3);font-size:12px">Calculá el preview para ver el detalle</td></tr>`;
+  if(egr)egr.innerHTML=`<tr><td colspan="3" class="empty-cell" style="padding:30px;text-align:center;color:var(--text3);font-size:12px">Calculá el preview para ver el detalle</td></tr>`;
+  ['cierre-ing-tfoot','cierre-egr-tfoot','cierre-stats','cierre-preview-info','cierre-patrim-tbody'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='';});
+}
+
+function onCierreEjercicioChange(){
+  const sel=document.getElementById('cierre-ejercicio-sel');if(!sel)return;
+  const isNew=sel.value==='__new__';
+  document.getElementById('cierre-ejercicio-nuevo').style.display=isNew?'flex':'none';
+  document.getElementById('cierre-ejercicio-existente').style.display=isNew?'none':'block';
+  if(!isNew){
+    const ej=ejercicios.find(e=>e.id===sel.value);
+    if(ej){
+      const cerrado=ej.estado==='cerrado';
+      const fechaCierre=ej.fecha_cierre_efectivo?new Date(ej.fecha_cierre_efectivo).toLocaleDateString('es-AR'):'-';
+      document.getElementById('cierre-ejercicio-existente').innerHTML=`
+        <div><b style="color:var(--text)">N° ${ej.numero}</b> · ${ej.fecha_inicio} → ${ej.fecha_fin}</div>
+        <div>Estado: <b style="color:${cerrado?'var(--red)':'var(--green)'}">${cerrado?'CERRADO':'abierto'}</b></div>
+        ${cerrado?`<div>Cierre efectivo: ${fechaCierre}</div>`:''}
+        ${ej.observaciones?`<div style="color:var(--text3);font-style:italic">${esc(ej.observaciones)}</div>`:''}`;
+      ['chk-paso-1','chk-paso-2','chk-paso-3','chk-paso-4'].forEach(id=>{
+        const el=document.getElementById(id);if(el){el.disabled=cerrado;if(cerrado)el.checked=false;}
+      });
+      const btn=document.getElementById('btn-gen-cierre');
+      if(btn){btn.disabled=cerrado;btn.style.opacity=cerrado?'.4':'1';}
+      // sincronizar fechaReg/fechaApert con las del ejercicio
+      const fr=document.getElementById('cierre-fecha-reg');if(fr&&!cerrado)fr.value=ej.fecha_fin;
+      const fa=document.getElementById('cierre-fecha-apert');if(fa&&!cerrado)fa.value=_proximaFechaApertura(ej.fecha_fin);
+    }
+  }else{
+    ['chk-paso-1','chk-paso-2','chk-paso-3','chk-paso-4'].forEach(id=>{
+      const el=document.getElementById(id);if(el)el.disabled=false;
+    });
+    cierrePreview=null;
+    const btn=document.getElementById('btn-gen-cierre');
+    if(btn){btn.disabled=true;btn.style.opacity='.4';}
+  }
+  onCierrePasoChange();
+}
+
+function onCierrePasoChange(){
+  const p3=document.getElementById('chk-paso-3')?.checked||false;
+  const p4=document.getElementById('chk-paso-4')?.checked||false;
+  const wrap=document.getElementById('cierre-patrim-wrap');if(wrap)wrap.style.display=p3?'block':'none';
+  const fa=document.getElementById('cierre-fecha-apert');if(fa)fa.disabled=!p4;
+  const c=_cierreReadConfig();
+  const n=(c.p1?1:0)+(c.p2?1:0)+(c.p3?1:0)+(c.p4?1:0);
+  const btn=document.getElementById('btn-gen-cierre');
+  if(btn)btn.textContent=`Generar ${n} asiento${n===1?'':'s'}`;
+}
+
+function calcularCierre(cfg){
   const ctaRE=cuentasContables.find(c=>c.codigo===CTA_RES_EJERCICIO);
   const ctaRNA=cuentasContables.find(c=>c.codigo===CTA_RES_NO_ASIG);
-  if(!ctaRE)throw new Error(`No se encontró la cuenta ${CTA_RES_EJERCICIO} (Resultado del Ejercicio). Corré la migration 010.`);
-  if(!ctaRNA)throw new Error(`No se encontró la cuenta ${CTA_RES_NO_ASIG} (Resultados No Asignados). Corré la migration 010.`);
-  const por=_agregarSaldos(desde,hasta);
-  // Ingresos: tipo='ingreso', saldo acreedor (haber - debe positivo)
-  const ingresos=[];
+  const ctaCierre=cuentasContables.find(c=>c.codigo===CTA_CIERRE_EJERCICIO);
+  if(cfg.p1 && !ctaRE)throw new Error(`No se encontró la cuenta ${CTA_RES_EJERCICIO} (Resultado del Ejercicio). Corré la migration 010.`);
+  if(cfg.p2 && !ctaRNA)throw new Error(`No se encontró la cuenta ${CTA_RES_NO_ASIG} (Resultados No Asignados). Corré la migration 010.`);
+  if((cfg.p3||cfg.p4) && !ctaCierre)throw new Error(`No se encontró la cuenta ${CTA_CIERRE_EJERCICIO} (Cierre de Ejercicio). Corré la migration 013.`);
+  const por=_agregarSaldos(cfg.desde,cfg.hasta);
+  const ingresos=[],egresos=[];
   cuentasContables.forEach(c=>{
-    if(c.tipo!=='ingreso'||c.imputable===false)return;
+    if(c.imputable===false)return;
     const m=por[c.id];if(!m)return;
-    const saldo=(m.haber||0)-(m.debe||0);
-    if(Math.abs(saldo)<0.01)return;
-    ingresos.push({cuenta:c,saldo,debe:m.debe||0,haber:m.haber||0});
+    if(c.tipo==='ingreso'){
+      const saldo=(m.haber||0)-(m.debe||0);
+      if(Math.abs(saldo)<0.01)return;
+      ingresos.push({cuenta:c,saldo,debe:m.debe||0,haber:m.haber||0});
+    }else if(c.tipo==='egreso'){
+      const saldo=(m.debe||0)-(m.haber||0);
+      if(Math.abs(saldo)<0.01)return;
+      egresos.push({cuenta:c,saldo,debe:m.debe||0,haber:m.haber||0});
+    }
   });
   ingresos.sort((a,b)=>(a.cuenta.codigo||'').localeCompare(b.cuenta.codigo||'',undefined,{numeric:true}));
-  // Egresos: tipo='egreso', saldo deudor (debe - haber positivo)
-  const egresos=[];
-  cuentasContables.forEach(c=>{
-    if(c.tipo!=='egreso'||c.imputable===false)return;
-    const m=por[c.id];if(!m)return;
-    const saldo=(m.debe||0)-(m.haber||0);
-    if(Math.abs(saldo)<0.01)return;
-    egresos.push({cuenta:c,saldo,debe:m.debe||0,haber:m.haber||0});
-  });
   egresos.sort((a,b)=>(a.cuenta.codigo||'').localeCompare(b.cuenta.codigo||'',undefined,{numeric:true}));
   const totIng=ingresos.reduce((s,x)=>s+x.saldo,0);
   const totEgr=egresos.reduce((s,x)=>s+x.saldo,0);
-  const resultadoEjercicio=totIng-totEgr; // positivo = ganancia
-  return {desde,hasta,ingresos,egresos,totIng,totEgr,resultadoEjercicio,ctaRE,ctaRNA};
+  const resultadoEjercicio=totIng-totEgr;
+
+  const patrim=[];
+  if(cfg.p3 || cfg.p4){
+    const porHasta=_agregarSaldos('',cfg.hasta);
+    cuentasContables.forEach(c=>{
+      if(c.imputable===false)return;
+      if(!['activo','pasivo','patrimonio'].includes(c.tipo))return;
+      if([CTA_RES_EJERCICIO,CTA_CIERRE_EJERCICIO].includes(c.codigo))return;
+      const m=porHasta[c.id];if(!m)return;
+      let saldo;
+      if(c.tipo==='activo')saldo=(m.debe||0)-(m.haber||0);
+      else saldo=(m.haber||0)-(m.debe||0);
+      if(Math.abs(saldo)<0.01)return;
+      patrim.push({cuenta:c,saldo,tipo:c.tipo});
+    });
+    if(cfg.p2 && Math.abs(resultadoEjercicio)>=0.01){
+      const rna=patrim.find(x=>x.cuenta.codigo===CTA_RES_NO_ASIG);
+      if(rna)rna.saldo+=resultadoEjercicio;
+      else if(ctaRNA)patrim.push({cuenta:ctaRNA,saldo:resultadoEjercicio,tipo:'patrimonio'});
+    }
+    patrim.sort((a,b)=>(a.cuenta.codigo||'').localeCompare(b.cuenta.codigo||'',undefined,{numeric:true}));
+  }
+  return {cfg,ingresos,egresos,totIng,totEgr,resultadoEjercicio,patrim,ctaRE,ctaRNA,ctaCierre};
 }
 
 function calcularPreviewCierre(){
   try{
-    const desde=document.getElementById('cierre-desde').value;
-    const hasta=document.getElementById('cierre-hasta').value;
-    if(!desde||!hasta)return notify('Cargá las dos fechas','err');
-    if(desde>=hasta)return notify('La fecha "Inicio" debe ser anterior a "Cierre"','err');
-    cierrePreview=calcularCierre(desde,hasta);
+    const cfg=_cierreReadConfig();
+    if(!cfg.desde||!cfg.hasta)return notify('Cargá las fechas inicio/fin del ejercicio','err');
+    if(cfg.desde>=cfg.hasta)return notify('Inicio debe ser anterior a Cierre','err');
+    if(!cfg.p1&&!cfg.p2&&!cfg.p3&&!cfg.p4)return notify('Marcá al menos un paso del proceso','err');
+    if(cfg.p4&&!cfg.fechaApert)return notify('Definí fecha de apertura','err');
+    cierrePreview=calcularCierre(cfg);
     pintarPreviewCierre();
-    document.getElementById('btn-gen-cierre').disabled=false;
-    document.getElementById('btn-gen-cierre').style.opacity='1';
+    const btn=document.getElementById('btn-gen-cierre');
+    if(btn){btn.disabled=false;btn.style.opacity='1';}
   }catch(e){
     notify(e.message||'Error calculando cierre','err');
     cierrePreview=null;
-    document.getElementById('btn-gen-cierre').disabled=true;
-    document.getElementById('btn-gen-cierre').style.opacity='.4';
+    const btn=document.getElementById('btn-gen-cierre');
+    if(btn){btn.disabled=true;btn.style.opacity='.4';}
   }
 }
 
 function pintarPreviewCierre(){
   if(!cierrePreview)return;
-  const p=cierrePreview;
-  // info banner
-  document.getElementById('cierre-preview-info').innerHTML=`<div style="padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:5px;font-size:12px;color:var(--text2);line-height:1.6"><b style="color:var(--text)">Ejercicio:</b> ${p.desde} → ${p.hasta} <span style="color:var(--text3)">·</span> <b style="color:var(--text)">Asientos a generar:</b> 1) Refundición Ingresos+Egresos → <span class="mono">${p.ctaRE.codigo} ${esc(p.ctaRE.nombre)}</span> · 2) Pasaje → <span class="mono">${p.ctaRNA.codigo} ${esc(p.ctaRNA.nombre)}</span></div>`;
-  // stats
+  const p=cierrePreview, cfg=p.cfg;
   const ganancia=p.resultadoEjercicio>0;
+  const pasosDetalle=[];
+  if(cfg.p1)pasosDetalle.push(`1) Refundición → <span class="mono">${p.ctaRE.codigo}</span>`);
+  if(cfg.p2)pasosDetalle.push(`2) Pasaje → <span class="mono">${p.ctaRNA.codigo}</span>`);
+  if(cfg.p3)pasosDetalle.push(`3) Cierre patrimoniales → <span class="mono">${p.ctaCierre.codigo}</span>`);
+  if(cfg.p4)pasosDetalle.push(`4) Apertura ${cfg.fechaApert}`);
+  document.getElementById('cierre-preview-info').innerHTML=`<div style="padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:5px;font-size:12px;color:var(--text2);line-height:1.6"><b style="color:var(--text)">Ejercicio N° ${cfg.numero}:</b> ${cfg.desde} → ${cfg.hasta} <span style="color:var(--text3)">·</span> <b style="color:var(--text)">Pasos:</b> ${pasosDetalle.join(' <span style="color:var(--text3)">·</span> ')}</div>`;
   document.getElementById('cierre-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Total Ingresos</div><div class="stat-value mono" style="color:var(--blue);font-size:14px">${fmtARS(p.totIng)}</div></div>
     <div class="stat-card"><div class="stat-label">Total Egresos</div><div class="stat-value mono" style="color:var(--coral);font-size:14px">${fmtARS(p.totEgr)}</div></div>
-    <div class="stat-card"><div class="stat-label">Resultado del ejercicio ${ganancia?'(ganancia)':'(pérdida)'}</div><div class="stat-value mono" style="color:${ganancia?'var(--green)':'var(--red)'};font-size:14px">${ganancia?'+':''}${fmtARS(p.resultadoEjercicio)}</div></div>
-    <div class="stat-card"><div class="stat-label">Cuentas a refundir</div><div class="stat-value" style="color:var(--accent)">${p.ingresos.length+p.egresos.length}</div></div>`;
-  // tablas
+    <div class="stat-card"><div class="stat-label">Resultado ${ganancia?'(ganancia)':'(pérdida)'}</div><div class="stat-value mono" style="color:${ganancia?'var(--green)':'var(--red)'};font-size:14px">${ganancia?'+':''}${fmtARS(p.resultadoEjercicio)}</div></div>
+    <div class="stat-card"><div class="stat-label">Refundir / Patrim.</div><div class="stat-value" style="color:var(--accent)">${p.ingresos.length+p.egresos.length} / ${p.patrim.length}</div></div>`;
   const ingTbody=document.getElementById('cierre-ing-tbody');
   if(!p.ingresos.length){
     ingTbody.innerHTML=`<tr><td colspan="3" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Sin ingresos en el período</td></tr>`;
@@ -3067,101 +3247,153 @@ function pintarPreviewCierre(){
     egrTbody.innerHTML=p.egresos.map(x=>`<tr><td class="mono td-primary">${x.cuenta.codigo}</td><td>${esc(x.cuenta.nombre)}</td><td class="mono" style="text-align:right;color:var(--coral)">${fmtARS(x.saldo)}</td></tr>`).join('');
     document.getElementById('cierre-egr-tfoot').innerHTML=`<tr style="border-top:2px solid var(--border2);font-weight:600;background:var(--surface2)"><td colspan="2" style="padding:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-size:11px">Total Egresos</td><td class="mono" style="text-align:right;padding:8px;color:var(--coral)">${fmtARS(p.totEgr)}</td></tr>`;
   }
+  const patTbody=document.getElementById('cierre-patrim-tbody');
+  if(cfg.p3 && patTbody){
+    if(!p.patrim.length){
+      patTbody.innerHTML=`<tr><td colspan="4" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Sin cuentas patrimoniales con saldo</td></tr>`;
+    }else{
+      patTbody.innerHTML=p.patrim.map(x=>`<tr><td class="mono td-primary">${x.cuenta.codigo}</td><td>${esc(x.cuenta.nombre)}</td><td style="font-size:11px;color:var(--text3);text-transform:uppercase">${x.tipo}</td><td class="mono" style="text-align:right;color:var(--purple)">${fmtARS(x.saldo)}</td></tr>`).join('');
+    }
+  }
+}
+
+function renderCierreHistorico(){
+  const tbody=document.getElementById('cierre-historico-tbody');if(!tbody)return;
+  if(!ejercicios.length){
+    tbody.innerHTML=`<tr><td colspan="7" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">No hay ejercicios cargados todavía</td></tr>`;
+    return;
+  }
+  const sorted=ejercicios.slice().sort((a,b)=>(b.numero||0)-(a.numero||0));
+  const keys=['asiento_refundicion_id','asiento_pasaje_id','asiento_cierre_patrimonial_id','asiento_apertura_id'];
+  const labels=['Ref.','Pas.','Cie.','Ap.'];
+  tbody.innerHTML=sorted.map(e=>{
+    const ases=keys.filter(k=>e[k]).length;
+    const lbl=labels.filter((l,i)=>e[keys[i]]).join(' · ');
+    const fcierre=e.fecha_cierre_efectivo?new Date(e.fecha_cierre_efectivo).toLocaleDateString('es-AR'):'—';
+    const badge=e.estado==='cerrado'?`<span style="font-size:10px;padding:2px 8px;background:rgba(224,82,82,.15);color:var(--red);border-radius:10px;letter-spacing:.05em">CERRADO</span>`:`<span style="font-size:10px;padding:2px 8px;background:rgba(76,175,125,.15);color:var(--green);border-radius:10px;letter-spacing:.05em">ABIERTO</span>`;
+    return `<tr><td class="mono td-primary">N° ${e.numero}</td><td class="mono">${e.fecha_inicio}</td><td class="mono">${e.fecha_fin}</td><td>${badge}</td><td class="mono" style="font-size:11px;color:var(--text3)">${fcierre}</td><td style="font-size:11px;color:var(--text3)">${ases?ases+' ('+lbl+')':'—'}</td><td style="font-size:11px;color:var(--text3)">${esc(e.observaciones||'')}</td></tr>`;
+  }).join('');
+}
+
+function _validarPartidaDoble(lineas,etiqueta){
+  const td=lineas.reduce((s,l)=>s+(l.debe||0),0);
+  const th=lineas.reduce((s,l)=>s+(l.haber||0),0);
+  if(Math.abs(td-th)>0.01)throw new Error(`Asiento "${etiqueta}" no cuadra: debe ${td.toFixed(2)} vs haber ${th.toFixed(2)}`);
 }
 
 async function generarAsientosCierre(){
   if(!cierrePreview)return notify('Calculá el preview primero','err');
-  const p=cierrePreview;
-  if(!p.ingresos.length&&!p.egresos.length)return notify('No hay cuentas de resultado con saldo en el período','err');
+  const p=cierrePreview, cfg=p.cfg;
+  const nAsientos=(cfg.p1?1:0)+(cfg.p2?1:0)+(cfg.p3?1:0)+(cfg.p4?1:0);
+  if(!nAsientos)return notify('No hay pasos seleccionados','err');
+  if(cfg.ejercicio && cfg.ejercicio.estado==='cerrado')return notify('Este ejercicio ya está cerrado','err');
   const ganancia=p.resultadoEjercicio>=0;
-  const msg=`¿Generar los 2 asientos de cierre del ejercicio ${p.desde} → ${p.hasta}?\n\nIngresos: ${fmtARS(p.totIng)}\nEgresos: ${fmtARS(p.totEgr)}\nResultado: ${fmtARS(p.resultadoEjercicio)} (${ganancia?'ganancia':'pérdida'})\n\n1° asiento: Refundición de Ingresos+Egresos → ${p.ctaRE.codigo} Resultado del Ejercicio\n2° asiento: Pasaje → ${p.ctaRNA.codigo} Resultados No Asignados\n\nAmbos se crean en BORRADOR para que los revises antes de confirmar.`;
-  if(!confirm(msg))return;
-  setBusy('btn-gen-cierre',true);
-  try{
-    let maxN=asientos.reduce((m,a)=>Math.max(m,parseInt(a.numero||0)||0),0);
-    // ── Asiento 1: Refundición de resultados ──
-    const cab1={
-      empresa_id:currentEmpresa.id,
-      numero:++maxN,
-      fecha:p.hasta,
-      descripcion:`Refundición de resultados — ejercicio ${p.desde} → ${p.hasta}`,
-      comprobante_nro:null,
-      tipo:'auto-cierre-resultados',
-      origen_tipo:'cierre_ejercicio',
-      origen_id:null,
-      estado:'borrador',
-      moneda:'ARS',
-      tipo_cambio:null,
-      tc_tipo:null,
-    };
-    const r1=await POST('asientos',cab1);
-    const asiento1Id=r1[0].id;
-    const lineas1=[];let ord=0;
-    // Ingresos: tienen saldo acreedor → los DEBITAMOS para cancelarlos
-    p.ingresos.forEach(x=>{
-      lineas1.push({asiento_id:asiento1Id,cuenta_id:x.cuenta.id,debe:x.saldo,haber:0,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++});
-    });
-    // Egresos: tienen saldo deudor → los ACREDITAMOS para cancelarlos
-    p.egresos.forEach(x=>{
-      lineas1.push({asiento_id:asiento1Id,cuenta_id:x.cuenta.id,debe:0,haber:x.saldo,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++});
-    });
-    // Resultado del Ejercicio: contracuenta
-    // si totIng > totEgr (ganancia): debe RE = totEgr, haber RE = totIng → neto haber = ganancia
-    // simplificación: una sola línea con la diferencia en el lado correcto
-    if(ganancia){
-      lineas1.push({asiento_id:asiento1Id,cuenta_id:p.ctaRE.id,debe:0,haber:p.resultadoEjercicio,descripcion:`Resultado del ejercicio (ganancia)`,orden:ord++});
-    }else if(p.resultadoEjercicio<0){
-      lineas1.push({asiento_id:asiento1Id,cuenta_id:p.ctaRE.id,debe:-p.resultadoEjercicio,haber:0,descripcion:`Resultado del ejercicio (pérdida)`,orden:ord++});
-    }
-    // Validar partida doble del asiento 1
-    const totDebe1=lineas1.reduce((s,l)=>s+(l.debe||0),0);
-    const totHaber1=lineas1.reduce((s,l)=>s+(l.haber||0),0);
-    if(Math.abs(totDebe1-totHaber1)>0.01){
-      throw new Error(`Asiento 1 no cuadra: debe ${totDebe1.toFixed(2)} vs haber ${totHaber1.toFixed(2)}`);
-    }
-    await POST('asiento_lineas',lineas1);
+  const lines=[`¿Generar ${nAsientos} asiento${nAsientos===1?'':'s'} del ejercicio N° ${cfg.numero} (${cfg.desde} → ${cfg.hasta})?`,''];
+  if(cfg.p1)lines.push(`1° Refundición Ing (${fmtARS(p.totIng)}) + Egr (${fmtARS(p.totEgr)}) → ${p.ctaRE.codigo}`);
+  if(cfg.p2)lines.push(`2° Pasaje ${ganancia?'ganancia':'pérdida'} ${fmtARS(Math.abs(p.resultadoEjercicio))} → ${p.ctaRNA.codigo}`);
+  if(cfg.p3)lines.push(`3° Cierre de ${p.patrim.length} cuentas patrimoniales → ${p.ctaCierre.codigo}`);
+  if(cfg.p4)lines.push(`4° Apertura el ${cfg.fechaApert} (inverso al cierre patrimonial)`);
+  lines.push('','Los asientos se generan en BORRADOR. El ejercicio queda CERRADO.');
+  if(!confirm(lines.join('\n')))return;
 
-    // ── Asiento 2: Pasaje a Resultados No Asignados ──
-    // Si fue ganancia: RE saldo acreedor → debitamos RE, acreditamos RNA
-    // Si fue pérdida: RE saldo deudor → acreditamos RE, debitamos RNA
-    if(Math.abs(p.resultadoEjercicio)>=0.01){
-      const cab2={
-        empresa_id:currentEmpresa.id,
-        numero:++maxN,
-        fecha:p.hasta,
-        descripcion:`Pasaje a Resultados No Asignados — ejercicio ${p.desde} → ${p.hasta}`,
-        comprobante_nro:null,
-        tipo:'auto-pasaje-resultados',
-        origen_tipo:'cierre_ejercicio',
-        origen_id:null,
-        estado:'borrador',
-        moneda:'ARS',
-        tipo_cambio:null,
-        tc_tipo:null,
-      };
-      const r2=await POST('asientos',cab2);
-      const asiento2Id=r2[0].id;
-      const lineas2=[];
-      if(ganancia){
-        lineas2.push({asiento_id:asiento2Id,cuenta_id:p.ctaRE.id,debe:p.resultadoEjercicio,haber:0,descripcion:'Cierre Resultado del Ejercicio',orden:0});
-        lineas2.push({asiento_id:asiento2Id,cuenta_id:p.ctaRNA.id,debe:0,haber:p.resultadoEjercicio,descripcion:'Ganancia del ejercicio',orden:1});
+  setBusy('btn-gen-cierre',true);
+  let maxN=asientos.reduce((m,a)=>Math.max(m,parseInt(a.numero||0)||0),0);
+  const base={empresa_id:currentEmpresa.id,estado:'borrador',moneda:'ARS',tipo_cambio:null,tc_tipo:null,comprobante_nro:null,origen_tipo:'cierre_ejercicio',origen_id:null};
+  const refs={};
+  try{
+    // ─ Paso 1: Refundición ─
+    if(cfg.p1){
+      const cab={...base,numero:++maxN,fecha:cfg.fechaReg,descripcion:`Refundición de resultados — ejercicio N° ${cfg.numero} (${cfg.desde} → ${cfg.hasta})`,tipo:'auto-cierre-resultados'};
+      const r=await POST('asientos',cab);const aid=r[0].id;
+      const lineas=[];let ord=0;
+      p.ingresos.forEach(x=>lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:x.saldo,haber:0,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++}));
+      p.egresos.forEach(x=>lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:0,haber:x.saldo,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++}));
+      if(p.resultadoEjercicio>0)lineas.push({asiento_id:aid,cuenta_id:p.ctaRE.id,debe:0,haber:p.resultadoEjercicio,descripcion:'Resultado del ejercicio (ganancia)',orden:ord++});
+      else if(p.resultadoEjercicio<0)lineas.push({asiento_id:aid,cuenta_id:p.ctaRE.id,debe:-p.resultadoEjercicio,haber:0,descripcion:'Resultado del ejercicio (pérdida)',orden:ord++});
+      _validarPartidaDoble(lineas,'Refundición');
+      if(lineas.length)await POST('asiento_lineas',lineas);
+      refs.asiento_refundicion_id=aid;
+    }
+    // ─ Paso 2: Pasaje a RNA ─
+    if(cfg.p2 && Math.abs(p.resultadoEjercicio)>=0.01){
+      const cab={...base,numero:++maxN,fecha:cfg.fechaReg,descripcion:`Pasaje a Resultados No Asignados — ejercicio N° ${cfg.numero}`,tipo:'auto-pasaje-resultados'};
+      const r=await POST('asientos',cab);const aid=r[0].id;
+      const lineas=[];
+      if(p.resultadoEjercicio>0){
+        lineas.push({asiento_id:aid,cuenta_id:p.ctaRE.id,debe:p.resultadoEjercicio,haber:0,descripcion:'Cierre Resultado del Ejercicio',orden:0});
+        lineas.push({asiento_id:aid,cuenta_id:p.ctaRNA.id,debe:0,haber:p.resultadoEjercicio,descripcion:'Ganancia del ejercicio',orden:1});
       }else{
-        lineas2.push({asiento_id:asiento2Id,cuenta_id:p.ctaRNA.id,debe:-p.resultadoEjercicio,haber:0,descripcion:'Pérdida del ejercicio',orden:0});
-        lineas2.push({asiento_id:asiento2Id,cuenta_id:p.ctaRE.id,debe:0,haber:-p.resultadoEjercicio,descripcion:'Cierre Resultado del Ejercicio',orden:1});
+        lineas.push({asiento_id:aid,cuenta_id:p.ctaRNA.id,debe:-p.resultadoEjercicio,haber:0,descripcion:'Pérdida del ejercicio',orden:0});
+        lineas.push({asiento_id:aid,cuenta_id:p.ctaRE.id,debe:0,haber:-p.resultadoEjercicio,descripcion:'Cierre Resultado del Ejercicio',orden:1});
       }
-      await POST('asiento_lineas',lineas2);
+      _validarPartidaDoble(lineas,'Pasaje');
+      await POST('asiento_lineas',lineas);
+      refs.asiento_pasaje_id=aid;
+    }
+    // ─ Paso 3: Cierre cuentas patrimoniales ─
+    if(cfg.p3 && p.patrim.length){
+      const cab={...base,numero:++maxN,fecha:cfg.fechaReg,descripcion:`Cierre de cuentas patrimoniales — ejercicio N° ${cfg.numero}`,tipo:'auto-cierre-patrimoniales'};
+      const r=await POST('asientos',cab);const aid=r[0].id;
+      const lineas=[];let ord=0,totDebe=0,totHaber=0;
+      p.patrim.forEach(x=>{
+        if(x.tipo==='activo'){
+          if(x.saldo>0){lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:0,haber:x.saldo,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++});totHaber+=x.saldo;}
+          else if(x.saldo<0){lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:-x.saldo,haber:0,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++});totDebe+=-x.saldo;}
+        }else{
+          if(x.saldo>0){lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:x.saldo,haber:0,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++});totDebe+=x.saldo;}
+          else if(x.saldo<0){lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:0,haber:-x.saldo,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++});totHaber+=-x.saldo;}
+        }
+      });
+      const dif=totDebe-totHaber;
+      if(Math.abs(dif)>=0.01){
+        if(dif>0)lineas.push({asiento_id:aid,cuenta_id:p.ctaCierre.id,debe:0,haber:dif,descripcion:'Saldo de cierre',orden:ord++});
+        else lineas.push({asiento_id:aid,cuenta_id:p.ctaCierre.id,debe:-dif,haber:0,descripcion:'Saldo de cierre',orden:ord++});
+      }
+      _validarPartidaDoble(lineas,'Cierre patrimoniales');
+      await POST('asiento_lineas',lineas);
+      refs.asiento_cierre_patrimonial_id=aid;
+    }
+    // ─ Paso 4: Apertura (inverso al cierre patrimonial) ─
+    if(cfg.p4 && p.patrim.length){
+      const cab={...base,numero:++maxN,fecha:cfg.fechaApert,descripcion:`Apertura de cuentas patrimoniales — siguiente al ejercicio N° ${cfg.numero}`,tipo:'auto-apertura'};
+      const r=await POST('asientos',cab);const aid=r[0].id;
+      const lineas=[];let ord=0,totDebe=0,totHaber=0;
+      p.patrim.forEach(x=>{
+        if(x.tipo==='activo'){
+          if(x.saldo>0){lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:x.saldo,haber:0,descripcion:`Apertura ${x.cuenta.codigo}`,orden:ord++});totDebe+=x.saldo;}
+          else if(x.saldo<0){lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:0,haber:-x.saldo,descripcion:`Apertura ${x.cuenta.codigo}`,orden:ord++});totHaber+=-x.saldo;}
+        }else{
+          if(x.saldo>0){lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:0,haber:x.saldo,descripcion:`Apertura ${x.cuenta.codigo}`,orden:ord++});totHaber+=x.saldo;}
+          else if(x.saldo<0){lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:-x.saldo,haber:0,descripcion:`Apertura ${x.cuenta.codigo}`,orden:ord++});totDebe+=-x.saldo;}
+        }
+      });
+      const dif=totDebe-totHaber;
+      if(Math.abs(dif)>=0.01){
+        if(dif>0)lineas.push({asiento_id:aid,cuenta_id:p.ctaCierre.id,debe:0,haber:dif,descripcion:'Saldo de apertura',orden:ord++});
+        else lineas.push({asiento_id:aid,cuenta_id:p.ctaCierre.id,debe:-dif,haber:0,descripcion:'Saldo de apertura',orden:ord++});
+      }
+      _validarPartidaDoble(lineas,'Apertura');
+      await POST('asiento_lineas',lineas);
+      refs.asiento_apertura_id=aid;
+    }
+
+    // ─ Crear o actualizar ejercicio (estado='cerrado') ─
+    if(cfg.ejercicio){
+      await PATCH('ejercicios',{...refs,estado:'cerrado',fecha_cierre_efectivo:new Date().toISOString()},`?id=eq.${cfg.ejercicio.id}`);
+    }else{
+      await POST('ejercicios',{empresa_id:currentEmpresa.id,numero:cfg.numero,fecha_inicio:cfg.desde,fecha_fin:cfg.hasta,estado:'cerrado',fecha_cierre_efectivo:new Date().toISOString(),...refs});
     }
 
     await loadAll();renderAll();
-    notify(`Cierre generado: 2 asientos en borrador. Revisalos en "Asientos" antes de confirmar.`);
+    notify(`Cierre generado: ${nAsientos} asiento${nAsientos===1?'':'s'} en borrador. Ejercicio N° ${cfg.numero} marcado como CERRADO.`);
     cierrePreview=null;
-    document.getElementById('btn-gen-cierre').disabled=true;
-    document.getElementById('btn-gen-cierre').style.opacity='.4';
-    pintarPreviewCierre();
+    _clearCierreUI();
+    const btn=document.getElementById('btn-gen-cierre');
+    if(btn){btn.disabled=true;btn.style.opacity='.4';}
   }catch(e){
     notify(e.message||'Error generando cierre','err');
   }
-  setBusy('btn-gen-cierre',false,'Generar 2 asientos');
+  setBusy('btn-gen-cierre',false,'Generar asientos');
 }
 
 // ─── AJUSTE POR INFLACIÓN (RT 6) ──────────────────────────────
@@ -3825,7 +4057,9 @@ function renderAsientos(filter=''){
     const totUSD=mon==='USD'?totalAsiento:(tc?totalAsiento/tc:null);
     const monBadge=mon==='ARS'?'<span class="badge badge-teal">ARS</span>':'<span class="badge badge-blue">USD</span>';
     const ttLabel=tt==='compra'?'C':tt==='venta'?'V':'';
-    return`<tr><td class="mono td-primary">${a.numero||'—'}</td><td class="mono">${a.fecha||'—'}</td><td>${esc(a.descripcion)||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${esc(a.comprobante_nro)||'—'}</td><td class="mono" style="font-size:11px">${esc(a.tipo)||'manual'}</td><td>${monBadge}${tc?`<div style="font-size:9px;color:var(--text3);font-family:var(--mono)">TC ${tc.toFixed(2)}${ttLabel?' '+ttLabel:''}</div>`:''}</td><td class="mono" style="color:var(--green)">${totARS!==null?fmtARS(totARS):'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:var(--blue);font-size:11px">${totUSD!==null?fmtUSD(totUSD):'<span style="color:var(--text3)">—</span>'}</td><td>${estadoSelect('asientos',a.id,a.estado||'borrador',['borrador','confirmado','anulado'],badges)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editAsiento('${a.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>${a.estado==='confirmado'?'Ver':'Editar'}</button>${a.estado!=='anulado'?`<button class="btn btn-ghost btn-sm" onclick="anularAsiento('${a.id}')" style="border-color:var(--accent);color:var(--accent)" title="Anular (soft delete)"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span></button>`:''}<button class="btn btn-danger btn-sm" onclick="deleteAsiento('${a.id}')" title="Eliminar definitivamente"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+    const ejCerr=esFechaEnEjercicioCerrado(a.fecha);
+    const cierreBadge=ejCerr?`<span style="display:inline-block;font-size:9px;padding:1px 6px;background:rgba(224,82,82,.12);color:var(--red);border-radius:8px;margin-left:6px;letter-spacing:.05em;font-family:var(--sans);vertical-align:middle" title="Ejercicio N° ${ejCerr.numero} cerrado">CERR</span>`:'';
+    return`<tr><td class="mono td-primary">${a.numero||'—'}</td><td class="mono">${a.fecha||'—'}${cierreBadge}</td><td>${esc(a.descripcion)||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${esc(a.comprobante_nro)||'—'}</td><td class="mono" style="font-size:11px">${esc(a.tipo)||'manual'}</td><td>${monBadge}${tc?`<div style="font-size:9px;color:var(--text3);font-family:var(--mono)">TC ${tc.toFixed(2)}${ttLabel?' '+ttLabel:''}</div>`:''}</td><td class="mono" style="color:var(--green)">${totARS!==null?fmtARS(totARS):'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:var(--blue);font-size:11px">${totUSD!==null?fmtUSD(totUSD):'<span style="color:var(--text3)">—</span>'}</td><td>${estadoSelect('asientos',a.id,a.estado||'borrador',['borrador','confirmado','anulado'],badges)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editAsiento('${a.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>${a.estado==='confirmado'?'Ver':'Editar'}</button>${a.estado!=='anulado'?`<button class="btn btn-ghost btn-sm" onclick="anularAsiento('${a.id}')" style="border-color:var(--accent);color:var(--accent)" title="Anular (soft delete)"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span></button>`:''}<button class="btn btn-danger btn-sm" onclick="deleteAsiento('${a.id}')" title="Eliminar definitivamente"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
   }).join(''):`<tr><td colspan="10" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg></div><div class="empty-title">Sin asientos cargados</div><div class="empty-msg">Cargá el primer asiento manual con <b>+ Nuevo asiento</b>. Validamos automáticamente que Debe = Haber.</div></div></td></tr>`;
 }
 
@@ -3919,6 +4153,9 @@ async function saveAsiento(){
   if(_savingAsiento)return;
   const id=g('asiento-edit-id');
   if(!g('asiento-fecha')||!g('asiento-descripcion'))return notify('Fecha y descripción son obligatorias','err');
+  // Bloquear si la fecha cae en un ejercicio cerrado (asientos manuales)
+  const ejCerrado=esFechaEnEjercicioCerrado(g('asiento-fecha'));
+  if(ejCerrado)return notify(`No se pueden cargar asientos en el ejercicio N° ${ejCerrado.numero} (${ejCerrado.fecha_inicio} → ${ejCerrado.fecha_fin}): está CERRADO.`,'err');
   if(lineasDraft.length<2)return notify('Mínimo 2 líneas','err');
   for(const l of lineasDraft){
     if(!l.cuenta_id)return notify('Cada línea debe tener una cuenta','err');
