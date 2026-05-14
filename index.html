@@ -67,8 +67,14 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .page-title{font-size:19px;font-weight:500;margin-bottom:3px}
 .page-sub{font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:16px}
 .tabs{display:flex}
+.tabs.has-sub{flex-direction:column;align-items:stretch}
+.tabs-main{display:flex;flex-wrap:wrap}
+.tabs-sub{display:flex;flex-wrap:wrap;gap:2px;padding:6px 0 4px;border-top:1px solid var(--border);margin-top:-1px}
 .tab{padding:7px 16px;font-size:12px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.subtab{padding:4px 11px;font-size:11px;color:var(--text3);cursor:pointer;border-radius:4px;transition:all .15s;font-family:var(--mono)}
+.subtab:hover{background:var(--surface2);color:var(--text2)}
+.subtab.active{background:var(--surface2);color:var(--accent)}
 .page-content{padding:22px 28px;flex:1}
 .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px 14px}
@@ -1988,12 +1994,32 @@ async function loadAll(){
 const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
-  contabilidad:[{k:'cuentas',l:'Plan de cuentas'},{k:'asientosp',l:'Asientos'},{k:'cobpag',l:'Cobros y Pagos'},{k:'librodiario',l:'Libro diario'},{k:'libromayor',l:'Libro mayor'},{k:'balance',l:'Balance comprob.'},{k:'estado',l:'Estado de resultados'},{k:'balgral',l:'Balance general'},{k:'bimon',l:'Bimonetario'},{k:'ratios',l:'Ratios'},{k:'compha',l:'Hist. vs Aj.'},{k:'compej',l:'Compar. ejerc.'},{k:'ipc',l:'Índices IPC'},{k:'ajuste',l:'Ajuste inflación'},{k:'cierre',l:'Cierre ejercicio'}],
+  contabilidad:[
+    {k:'cuentas',l:'Plan de cuentas'},
+    {k:'asientosp',l:'Asientos'},
+    {k:'cobpag',l:'Cobros y Pagos'},
+    {k:'libros',l:'Libros',sub:[{k:'librodiario',l:'Diario'},{k:'libromayor',l:'Mayor'}]},
+    {k:'estados',l:'Estados contables',sub:[{k:'balance',l:'Balance comprob.'},{k:'estado',l:'Estado de Rdos.'},{k:'balgral',l:'Balance general'}]},
+    {k:'analisis',l:'Análisis',sub:[{k:'ratios',l:'Ratios'},{k:'bimon',l:'Bimonetario'},{k:'compha',l:'Hist. vs Ajust.'},{k:'compej',l:'Compar. ejerc.'}]},
+    {k:'cierreinf',l:'Cierre e inflación',sub:[{k:'ipc',l:'Índices IPC'},{k:'ajuste',l:'Ajuste inflación'},{k:'cierre',l:'Cierre ejercicio'}]}
+  ],
   ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'}],
   analisis:[{k:'costos',l:'Costos y rentabilidad'},{k:'trace',l:'Trazabilidad'}],
 };
+// Mapa sub-página → tab-padre (para resaltar la tab principal cuando se está en una sub-página)
+const PAGE_TO_PARENT={
+  librodiario:'libros',libromayor:'libros',
+  balance:'estados',estado:'estados',balgral:'estados',
+  ratios:'analisis',bimon:'analisis',compha:'analisis',compej:'analisis',
+  ipc:'cierreinf',ajuste:'cierreinf',cierre:'cierreinf'
+};
 
 function showPage(p){
+  // Si p es una key de tab principal con sub-tabs, redirigir a la primera sub-página
+  for(const g in GROUP_TABS){
+    const pt=GROUP_TABS[g].find(t=>t.k===p && t.sub);
+    if(pt){return showPage(pt.sub[0].k);}
+  }
   document.querySelectorAll('.page').forEach(e=>e.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
   const pageEl=document.getElementById('page-'+p);
@@ -2004,7 +2030,22 @@ function showPage(p){
   // Inyectar tabs si el grupo tiene sub-páginas
   if(GROUP_TABS[group]){
     const tabsEl=pageEl.querySelector('.page-header > .tabs');
-    if(tabsEl){tabsEl.innerHTML=GROUP_TABS[group].map(t=>`<div class="tab ${t.k===p?'active':''}" onclick="showPage('${t.k}')">${t.l}</div>`).join('');}
+    if(tabsEl){
+      const parent=PAGE_TO_PARENT[p]||p;
+      const mainHtml=GROUP_TABS[group].map(t=>{
+        const target=t.sub?t.sub[0].k:t.k;
+        return `<div class="tab ${t.k===parent?'active':''}" onclick="showPage('${target}')">${t.l}</div>`;
+      }).join('');
+      const parentTab=GROUP_TABS[group].find(t=>t.k===parent);
+      if(parentTab && parentTab.sub){
+        const subHtml=parentTab.sub.map(s=>`<div class="subtab ${s.k===p?'active':''}" onclick="showPage('${s.k}')">${s.l}</div>`).join('');
+        tabsEl.className='tabs has-sub';
+        tabsEl.innerHTML=`<div class="tabs-main">${mainHtml}</div><div class="tabs-sub">${subHtml}</div>`;
+      }else{
+        tabsEl.className='tabs';
+        tabsEl.innerHTML=mainHtml;
+      }
+    }
   }
 }
 
