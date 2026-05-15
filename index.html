@@ -2884,10 +2884,11 @@ function openModalCuenta(id){
   document.getElementById('cuenta-imputable').checked=true;
   document.getElementById('cuenta-activa').checked=true;
   document.getElementById('cuenta-es-ajustable').checked=false;
-  // padre selector — solo cuentas no-imputables o cualquier cuenta que pueda ser padre
+  // padre selector — solo cuentas agrupadoras (imputable=false), excluyendo la cuenta actual
   const padreSel=document.getElementById('cuenta-padre');
-  const opts=[...cuentasContables].sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'',undefined,{numeric:true}));
+  const opts=cuentasContables.filter(c=>c.imputable===false&&c.id!==id).sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'',undefined,{numeric:true}));
   padreSel.innerHTML='<option value="">— sin padre (raíz) —</option>'+opts.map(c=>`<option value="${c.id}">${c.codigo} · ${c.nombre}</option>`).join('');
+  if(opts.length===0)padreSel.innerHTML+='<option disabled>(no hay cuentas agrupadoras creadas)</option>';
   if(id){
     const c=cuentasContables.find(x=>x.id===id);if(!c)return;
     document.getElementById('cuenta-codigo').value=c.codigo||'';
