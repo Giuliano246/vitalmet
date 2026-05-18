@@ -1737,6 +1737,13 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
 <script>
 const SUPA_URL='https://dqvlqhaxgvtilhiuatpv.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxdmxxaGF4Z3Z0aWxoaXVhdHB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MDU4MzcsImV4cCI6MjA5MTA4MTgzN30.-3sLblqE1qbEBTVfxT_88AtzLc_XfyvIBBLnm7nHGc8';
+// Microservicio vitalmet-billing (AFIP factura electrónica).
+// Detecta entorno: localhost en dev, dominio prod en Netlify.
+// La API key se inyecta en producción via Netlify env. En dev se lee de localStorage.
+const BILLING_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://localhost:8080'
+  : 'https://billing.vitalmetsa.com';
+const BILLING_API_KEY = localStorage.getItem('billing_api_key') || '';
 
 // ─── AUTH HELPERS ──────────────────────────────────────────────────
 let currentSession=null, currentUser=null, currentEmpresa=null;
@@ -2378,6 +2385,99 @@ async function saveVenta(){
   finally{_savingVenta=false;setBusy('btn-save-venta',false,window.editingVentaId?'Guardar cambios':'Registrar pedido');}
 }
 
+// ─── FACTURACIÓN ELECTRÓNICA AFIP (vitalmet-billing) ───────────────
+async function emitirFactura(ventaId){
+  if(!BILLING_API_KEY){
+    const k=prompt('Falta configurar billing_api_key. Pegá el API key del microservicio (se guarda en localStorage):');
+    if(!k)return;
+    localStorage.setItem('billing_api_key',k);
+    location.reload();return;
+  }
+  if(!confirm('¿Emitir factura electrónica para esta venta?\n\nEsto solicita un CAE a AFIP. La operación NO se puede deshacer (un CAE emitido queda en la base de AFIP, después solo se puede emitir una Nota de Crédito).'))return;
+  const vList=await GET('ventas',`?id=eq.${ventaId}&select=*,venta_items(*)`).catch(()=>[]);
+  const venta=vList[0];
+  if(!venta){notify('Venta no encontrada','err');return;}
+  const items=(venta.venta_items||[]).map(i=>({descripcion:(i.pieza||i.material||'Producto').toString().slice(0,200),cantidad:Number(i.cantidad)||0,precio_unit:Number(i.precio_unitario)||0,iva_pct:21}));
+  if(items.length===0){notify('La venta no tiene items','err');return;}
+  // Doc: si hay CUIT (11 dígitos) → 80=CUIT; si no → 99=Consumidor Final
+  const cuit=(venta.cuit||venta.cuit_cliente||'').toString().replace(/\D/g,'');
+  const docTipo=cuit.length===11?80:99;
+  const docNro=cuit.length===11?cuit:'0';
+  const payload={
+    punto_venta:1,
+    tipo_comprobante:6, // Factura B; cambiar a 1 (FacA) cuando cliente sea RI
+    concepto:1,
+    doc_tipo:docTipo,
+    doc_nro:docNro,
+    fecha:new Date().toISOString().slice(0,10),
+    moneda:'PES',
+    cotizacion_moneda:1,
+    items,
+  };
+  const btnId=`emitir-factura-${ventaId}`;
+  const btn=document.getElementById(btnId);
+  if(btn){btn.disabled=true;btn.textContent='Solicitando CAE...';}
+  try{
+    const res=await fetch(`${BILLING_URL}/facturar`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-API-Key':BILLING_API_KEY},
+      body:JSON.stringify(payload),
+    });
+    if(!res.ok){
+      const errBody=await res.json().catch(()=>({}));
+      const detail=errBody.detail;
+      const msg=typeof detail==='string'?detail:(detail?.mensaje||JSON.stringify(detail)||res.statusText);
+      throw new Error(msg);
+    }
+    const data=await res.json();
+    // Insert en facturas_emitidas
+    const fEmitida=await POST('facturas_emitidas',{
+      empresa_id:currentEmpresa.id,
+      venta_id:ventaId,
+      cae:data.cae,
+      cae_vto:data.cae_vto,
+      numero:data.numero,
+      punto_venta:data.punto_venta,
+      tipo_comprobante:data.tipo_comprobante,
+      fecha:data.fecha,
+      imp_neto:data.imp_neto,
+      imp_iva:data.imp_iva,
+      imp_total:data.imp_total,
+      moneda:'PES',
+      cotizacion_moneda:1,
+      doc_tipo:docTipo,
+      doc_nro:docNro,
+      resultado:data.resultado,
+      observaciones:(data.observaciones&&data.observaciones.length)?data.observaciones:null,
+      qr_url:data.qr_url,
+      afip_environment:(BILLING_URL.includes('localhost')||BILLING_URL.includes('vitalmetsa'))?'homologacion':'produccion',
+      created_by:currentUser?.id||null,
+    });
+    const facturaEmitidaId=Array.isArray(fEmitida)?fEmitida[0]?.id:fEmitida?.id;
+    if(facturaEmitidaId){
+      await PATCH('ventas',{factura_emitida_id:facturaEmitidaId,estado:'facturado'},`?id=eq.${ventaId}`);
+    }
+    await loadAll();renderVentas(document.querySelector('#page-ventas .search-box input')?.value||'');
+    notify(`✓ CAE ${data.cae} — Factura ${data.tipo_comprobante}-${String(data.punto_venta).padStart(5,'0')}-${String(data.numero).padStart(8,'0')}`,'ok');
+  }catch(e){
+    notify(`Error al facturar: ${e.message}`,'err');
+    if(btn){btn.disabled=false;btn.innerHTML='<span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m13 2-3 7h8l-9 13 3-9H4z"/></svg></span>Facturar';}
+  }
+}
+
+async function verFactura(facturaEmitidaId){
+  const list=await GET('facturas_emitidas',`?id=eq.${facturaEmitidaId}&select=*`).catch(()=>[]);
+  const f=list[0];
+  if(!f){notify('Factura no encontrada','err');return;}
+  const numero=`${f.tipo_comprobante}-${String(f.punto_venta).padStart(5,'0')}-${String(f.numero).padStart(8,'0')}`;
+  const msg=`Comprobante ${numero}\nCAE: ${f.cae}\nVto CAE: ${f.cae_vto}\nTotal: $${f.imp_total}\nAmbiente: ${f.afip_environment}`;
+  if(f.qr_url){
+    if(confirm(`${msg}\n\n¿Abrir QR oficial de AFIP en otra pestaña?`))window.open(f.qr_url,'_blank');
+  } else {
+    alert(msg);
+  }
+}
+
 function resetF(ids){ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
 function fmtUSD(n){return'US$ '+Math.round(n).toLocaleString('es-AR');}
 // Theme: dark/light toggle persistido en localStorage
@@ -2639,7 +2739,7 @@ function renderVentas(filter=''){
     <div class="stat-card"><div class="stat-label">Importe total</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtUSD(totalImp)}</div></div>
     <div class="stat-card"><div class="stat-label">Clientes distintos</div><div class="stat-value">${[...new Set(ventas.map(v=>v.cliente))].length}</div></div>`;
   const bE={entregado:'badge-ok',facturado:'badge-teal',pendiente:'badge-warn'};
-  document.getElementById('ventas-tbody').innerHTML=list.length?list.map(v=>{const items=v.venta_items||[];const importe=items.reduce((a,i)=>a+(i.cantidad*(i.precio_unitario||0)),0);const totalU=items.reduce((a,i)=>a+i.cantidad,0);const piezas=[...new Set(items.map(i=>i.pieza||''))].join(', ');return`<tr><td class="mono td-primary">${esc(v.nro_remito)}</td><td style="font-weight:500">${esc(v.cliente)}</td><td>${esc(v.fecha)||'—'}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(piezas)}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td>${estadoSelect('ventas',v.id,v.estado,['pendiente','entregado','facturado'],bE)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>Anular</button></td></tr>`;}):(`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></div><div class="empty-title">Sin ventas registradas</div><div class="empty-msg">Las ventas se generan al convertir un presupuesto aprobado. Andá a <b>Presupuestos</b> y aprobalo.</div></div></td></tr>`);
+  document.getElementById('ventas-tbody').innerHTML=list.length?list.map(v=>{const items=v.venta_items||[];const importe=items.reduce((a,i)=>a+(i.cantidad*(i.precio_unitario||0)),0);const totalU=items.reduce((a,i)=>a+i.cantidad,0);const piezas=[...new Set(items.map(i=>i.pieza||''))].join(', ');return`<tr><td class="mono td-primary">${esc(v.nro_remito)}</td><td style="font-weight:500">${esc(v.cliente)}</td><td>${esc(v.fecha)||'—'}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(piezas)}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td>${estadoSelect('ventas',v.id,v.estado,['pendiente','entregado','facturado'],bE)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button>${v.factura_emitida_id?`<button class="btn btn-ghost btn-sm" id="ver-factura-${v.id}" onclick="verFactura('${v.factura_emitida_id}')" title="CAE emitido — ver/descargar"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h3"/></svg></span>CAE</button>`:`<button class="btn btn-ghost btn-sm" id="emitir-factura-${v.id}" onclick="emitirFactura('${v.id}')" title="Solicitar CAE a AFIP" style="color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m13 2-3 7h8l-9 13 3-9H4z"/></svg></span>Facturar</button>`}<button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>Anular</button></td></tr>`;}):(`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></div><div class="empty-title">Sin ventas registradas</div><div class="empty-msg">Las ventas se generan al convertir un presupuesto aprobado. Andá a <b>Presupuestos</b> y aprobalo.</div></div></td></tr>`);
 }
 
 function renderDash(){
