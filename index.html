@@ -2376,8 +2376,9 @@ async function saveVenta(){
       const pt=pts.find(p=>p.id===item.ptId);
       if(pt)await PATCH('productos_terminados',{cantidad:Math.max(0,pt.cantidad-item.cant)},`?id=eq.${item.ptId}`);
     }
-    // Asiento automático (no bloquea el flujo si falla)
-    await generarAsientoVenta(ventaId,totalVenta,clienteNombre,g('v-fecha'),g('v-remito'));
+    // ANTES: se generaba asiento contable acá. Ahora el asiento se genera
+    // recién al emitir la factura electrónica (ver emitirFactura → generarAsientoFactura).
+    // Razón: hasta que no hay CAE, no hay hecho imponible documentado.
     await loadAll();closeModal('modal-venta');ventaItemsList=[];window.editingVentaId=null;
     resetF(['v-remito','v-cliente','v-cuit','v-fecha','v-condicion','v-estado','v-obs','v-grupo-bonif']);
     renderAll();notify(isEdit?'Venta actualizada':'Pedido registrado');
@@ -2456,6 +2457,8 @@ async function emitirFactura(ventaId){
     const facturaEmitidaId=Array.isArray(fEmitida)?fEmitida[0]?.id:fEmitida?.id;
     if(facturaEmitidaId){
       await PATCH('ventas',{factura_emitida_id:facturaEmitidaId,estado:'facturado'},`?id=eq.${ventaId}`);
+      // Asiento contable automático con los datos reales del CAE (no bloquea si falla)
+      await generarAsientoFactura(facturaEmitidaId,data,venta).catch(e=>console.warn('Asiento de factura no generado:',e));
     }
     await loadAll();renderVentas(document.querySelector('#page-ventas .search-box input')?.value||'');
     notify(`✓ CAE ${data.cae} — Factura ${data.tipo_comprobante}-${String(data.punto_venta).padStart(5,'0')}-${String(data.numero).padStart(8,'0')}`,'ok');
@@ -2476,6 +2479,70 @@ async function verFactura(facturaEmitidaId){
   } else {
     alert(msg);
   }
+}
+
+// Genera el asiento contable desde una factura emitida (post-CAE).
+// Usa los datos reales devueltos por AFIP (imp_neto, imp_iva, imp_total, fecha),
+// no los calculados por el ERP. Idempotente: si ya hay asiento con
+// origen_id=facturaEmitidaId, lo updatea en vez de duplicar.
+async function generarAsientoFactura(facturaEmitidaId,factura,venta){
+  if(!configContable){console.warn('Asiento de factura no generado: falta configuración contable (Configuración → Imputación contable)');return;}
+  const ctaDeudores=cuentasContables.find(c=>c.id===configContable.cta_deudores);
+  const ctaVentas=cuentasContables.find(c=>c.id===configContable.cta_ventas_default);
+  const ctaIvaDeb=cuentasContables.find(c=>c.id===configContable.cta_iva_debito);
+  if(!ctaDeudores||!ctaVentas){console.warn('Asiento de factura no generado: faltan cuentas Deudores o Ventas en Imputación contable');return;}
+  const neto=Number(factura.imp_neto)||0;
+  const iva=Number(factura.imp_iva)||0;
+  const total=Number(factura.imp_total)||0;
+  if(total<=0){console.warn('Asiento de factura no generado: total<=0');return;}
+  const aplicaIVA=ctaIvaDeb&&iva>0.005;
+  // Formato del comprobante: "B 00001-00000123"
+  const tipoStr={1:'A',2:'NC-A',3:'ND-A',6:'B',7:'NC-B',8:'ND-B',11:'C',12:'NC-C',13:'ND-C',51:'M',52:'NC-M',53:'ND-M'}[factura.tipo_comprobante]||String(factura.tipo_comprobante);
+  const comprobanteFmt=`${tipoStr} ${String(factura.punto_venta).padStart(5,'0')}-${String(factura.numero).padStart(8,'0')}`;
+  const cliente=(venta?.cliente||'cliente').toString().slice(0,80);
+  // Idempotencia: buscar asiento existente para esta factura
+  const existingArr=await GET('asientos',`?origen_tipo=eq.factura&origen_id=eq.${facturaEmitidaId}`).catch(()=>[]);
+  const existing=existingArr&&existingArr[0];
+  // Moneda del asiento: factura.moneda (PES o DOL). Si DOL se carga el TC real.
+  let moneda='ARS',tipoCambio=1,tcTipo='oficial';
+  if(factura.moneda==='DOL'){
+    moneda='USD';tipoCambio=Number(factura.cotizacion_moneda)||1;tcTipo='oficial';
+  } else if(factura.moneda==='PES'){
+    moneda='ARS';tipoCambio=1;
+  }
+  const cabecera={
+    empresa_id:currentEmpresa.id,
+    fecha:factura.fecha||new Date().toISOString().slice(0,10),
+    descripcion:`Factura ${comprobanteFmt} a ${cliente}`+(aplicaIVA?` (IVA $${iva.toFixed(2)})`:''),
+    comprobante_nro:comprobanteFmt,
+    tipo:'auto-factura',
+    origen_tipo:'factura',
+    origen_id:facturaEmitidaId,
+    estado:'confirmado',
+    moneda,
+    tipo_cambio:tipoCambio,
+    tc_tipo:tcTipo,
+  };
+  let asientoId;
+  if(existing){
+    asientoId=existing.id;
+    await PATCH('asientos',cabecera,`?id=eq.${asientoId}`);
+    await DEL('asiento_lineas',`?asiento_id=eq.${asientoId}`);
+  } else {
+    const maxN=asientos.reduce((m,a)=>Math.max(m,parseInt(a.numero||0)||0),0);
+    const r=await POST('asientos',{...cabecera,numero:maxN+1});
+    asientoId=Array.isArray(r)?r[0]?.id:r?.id;
+  }
+  if(!asientoId){console.warn('Asiento de factura: no se obtuvo asientoId');return;}
+  const lineas=[
+    {asiento_id:asientoId,cuenta_id:ctaDeudores.id,debe:total,haber:0,descripcion:`Deuda cliente ${cliente}`,orden:0},
+    {asiento_id:asientoId,cuenta_id:ctaVentas.id,debe:0,haber:neto,descripcion:`Venta s/Factura ${comprobanteFmt}`,orden:1},
+  ];
+  if(aplicaIVA){
+    lineas.push({asiento_id:asientoId,cuenta_id:ctaIvaDeb.id,debe:0,haber:iva,descripcion:`IVA Débito s/Factura ${comprobanteFmt}`,orden:2});
+  }
+  await POST('asiento_lineas',lineas);
+  console.log(`✓ Asiento contable generado para factura ${comprobanteFmt} (CAE ${factura.cae})`);
 }
 
 function resetF(ids){ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
