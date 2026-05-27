@@ -442,7 +442,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
             <div class="search-box"><input type="text" placeholder="Buscar por OC, proveedor..." oninput="renderCompras(this.value)"></div>
             <button class="btn btn-ghost" onclick="openOCModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva OC</button>
           </div>
-          <div class="table-wrap"><table><thead><tr><th>Nro OC</th><th>Proveedor</th><th>Fecha</th><th>Entrega</th><th>Ítems</th><th>Mon.</th><th>Total ARS</th><th>Total USD</th><th>Estado</th><th>Factura</th><th></th></tr></thead><tbody id="compras-tbody"></tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>Nro OC</th><th>Proveedor</th><th>Fecha</th><th>Entrega</th><th>Ítems</th><th>Mon.</th><th>Total ARS</th><th>Total USD</th><th>Estado</th><th>Remito</th><th>Cert MTC</th><th>Factura</th><th></th></tr></thead><tbody id="compras-tbody"></tbody></table></div>
         </div>
         <div id="compras-tab-prov" style="display:none">
           <div class="stats-bar" id="prov-stats"></div>
@@ -925,7 +925,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
 
 <div class="modal-overlay" id="modal-cert">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">Registrar certificado MTC</div><button class="modal-close" onclick="closeModal('modal-cert')">×</button></div>
+    <div class="modal-header"><div class="modal-title">Registrar certificado MTC</div><button class="modal-close" onclick="cancelCertModal()">×</button></div>
     <div class="modal-body">
       <div class="form-row">
         <div class="form-group"><label>Nro. certificado *</label><input type="text" id="cert-nro" placeholder="MTC-2024-1892"></div>
@@ -948,7 +948,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-cert')">Cancelar</button>
+      <button class="btn btn-ghost" onclick="cancelCertModal()">Cancelar</button>
       <button class="btn btn-primary" id="btn-save-cert" onclick="saveCert()">Guardar certificado</button>
     </div>
   </div>
@@ -1512,6 +1512,14 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:16px;font-size:13px"><div style="color:var(--text3)" id="oc-total-label">Total:</div><div class="mono" id="oc-total" style="font-weight:700;color:var(--green);font-size:16px">$0.00</div></div>
 
       <hr class="form-divider">
+      <div class="section-label">Remito y certificado <span style="color:var(--text3);text-transform:none;letter-spacing:0;margin-left:4px">(documentación del proveedor — opcional)</span></div>
+      <div class="form-row" style="grid-template-columns:1fr 1.4fr auto;align-items:end">
+        <div class="form-group"><label>Nro remito</label><input type="text" id="oc-remito-nro" placeholder="R-0001-00012345"></div>
+        <div class="form-group"><label>Certificado MTC</label><select id="oc-cert-link"><option value="">— ninguno —</option></select></div>
+        <button type="button" class="btn" style="background:transparent;border-color:var(--green);color:var(--green);padding:7px 10px;font-size:11px;white-space:nowrap" onclick="openNewCertFromOC()">+ Nuevo cert</button>
+      </div>
+
+      <hr class="form-divider">
       <div class="section-label">Factura del proveedor (cuando la recibas)</div>
       <div class="form-row" style="grid-template-columns:1fr 140px 140px">
         <div class="form-group"><label>Nro factura</label><input type="text" id="oc-fact-nro" placeholder="A-0001-00012345"></div>
@@ -1532,7 +1540,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
     <div class="modal-header"><div class="modal-title">📥 Recepción de mercadería <span id="recep-oc-nro" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="modal-close" onclick="closeModal('modal-recepcion')">×</button></div>
     <div class="modal-body">
       <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Marcá cuánto llegó de cada ítem. Si es acero (materia prima), automáticamente se crea una barra en stock al guardar.</p>
-      <div class="form-row"><div class="form-group"><label>Fecha recepción</label><input type="date" id="recep-fecha"></div><div class="form-group"><label>Certificado MTC (opcional)</label><select id="recep-cert"><option value="">— ninguno —</option></select></div></div>
+      <div class="form-row" style="grid-template-columns:140px 1fr 1fr"><div class="form-group"><label>Fecha recepción</label><input type="date" id="recep-fecha"></div><div class="form-group"><label>Nro remito</label><input type="text" id="recep-remito-nro" placeholder="R-0001-00012345"></div><div class="form-group"><label>Certificado MTC (opcional)</label><select id="recep-cert"><option value="">— ninguno —</option></select></div></div>
       <hr class="form-divider">
       <div id="recep-items-list" style="display:flex;flex-direction:column;gap:8px"></div>
       <div class="form-row single" style="margin-top:10px"><div class="form-group"><label>Observaciones</label><input type="text" id="recep-obs" placeholder="Notas de la recepción"></div></div>
@@ -2020,7 +2028,7 @@ async function loadAll(){
       GET('vendedores','?order=nombre.asc&activo=eq.true').catch(()=>[]),
       GET('listas_precios','?order=nombre.asc&activo=eq.true').catch(()=>[]),
       GET('proveedores','?order=nombre.asc&activo=eq.true').catch(()=>[]),
-      GET('ordenes_compra','?order=fecha.desc&select=*,proveedores(*),oc_items(*)').catch(()=>[]),
+      GET('ordenes_compra','?order=fecha.desc&select=*,proveedores(*),oc_items(*),certificados(id,nro,material,colada)').catch(()=>[]),
       GET('oc_items','?order=created_at.asc').catch(()=>[]),
       GET('recepciones_oc','?order=fecha.desc').catch(()=>[]),
       GET('presupuestos','?order=fecha.desc&select=*,presupuesto_items(*)').catch(()=>[]),
@@ -2227,9 +2235,10 @@ async function saveCert(){
   if(!g('cert-nro')||!g('cert-prov')||!g('cert-mat')||!g('cert-colada'))return notify('Completá los campos obligatorios','err');
   setBusy('btn-save-cert',true);
   try{
+    const nroNuevo=g('cert-nro');
     await POST('certificados',{
       empresa_id:currentEmpresa.id,
-      nro:g('cert-nro'),
+      nro:nroNuevo,
       proveedor:g('cert-prov'),
       material:g('cert-mat'),
       colada:g('cert-colada'),
@@ -2245,6 +2254,13 @@ async function saveCert(){
     document.getElementById('cert-file-name').textContent='Ningún archivo seleccionado';
     renderAll();
     notify('Certificado registrado');
+    // Si veníamos del modal de OC, volver y pre-seleccionar el cert recién creado
+    if(_certReturnToOC){
+      _certReturnToOC=false;
+      const nuevoCert=certs.find(c=>c.nro===nroNuevo);
+      populateOCCertSelect(nuevoCert?.id||'');
+      openModal('modal-oc');
+    }
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-cert',false,'Guardar certificado');
 }
@@ -6372,8 +6388,9 @@ function renderCompras(filter=''){
     const tARS=ocToARS(o);const tUSD=ocToUSD(o);
     const monBadge=mon==='ARS'?'<span class="badge badge-teal">ARS</span>':'<span class="badge badge-blue">USD</span>';
     const ttLabel=tt==='compra'?'C':tt==='venta'?'V':'';
-    return `<tr><td class="mono td-primary">${esc(o.nro)}</td><td style="font-weight:500">${esc(o.proveedores?.nombre)||'—'}</td><td>${o.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${o.fecha_entrega_esperada||'—'}</td><td class="mono">${cantItems}</td><td>${monBadge}${tc?`<div style="font-size:9px;color:var(--text3);font-family:var(--mono)">TC ${tc.toFixed(2)}${ttLabel?' '+ttLabel:''}</div>`:''}</td><td class="mono" style="color:var(--green)">${tARS!==null?fmtARS(tARS):'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:var(--blue);font-size:11px">${tUSD!==null?fmtUSD(tUSD):'<span style="color:var(--text3)">—</span>'}</td><td>${estadoSelect('ordenes_compra',o.id,o.estado||'borrador',['borrador','enviada','confirmada','recibida_parcial','recibida','facturada','anulada'],badges)}</td><td class="mono" style="font-size:11px">${esc(o.factura_nro)||'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="generateOCPDF('${o.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>NDP</button>${puedeRecibir?`<button class="btn btn-ghost btn-sm" onclick="openRecepcionModal('${o.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>Recibir</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editOC('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteOC('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
-  }).join(''):'<tr><td colspan="11" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></div><div class="empty-title">Sin órdenes de compra</div><div class="empty-msg">Generá la primera OC con <b>+ Nueva OC</b> seleccionando el proveedor y los ítems a comprar.</div></div></td></tr>';
+    const certNro=o.certificados?.nro;
+    return `<tr><td class="mono td-primary">${esc(o.nro)}</td><td style="font-weight:500">${esc(o.proveedores?.nombre)||'—'}</td><td>${o.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${o.fecha_entrega_esperada||'—'}</td><td class="mono">${cantItems}</td><td>${monBadge}${tc?`<div style="font-size:9px;color:var(--text3);font-family:var(--mono)">TC ${tc.toFixed(2)}${ttLabel?' '+ttLabel:''}</div>`:''}</td><td class="mono" style="color:var(--green)">${tARS!==null?fmtARS(tARS):'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:var(--blue);font-size:11px">${tUSD!==null?fmtUSD(tUSD):'<span style="color:var(--text3)">—</span>'}</td><td>${estadoSelect('ordenes_compra',o.id,o.estado||'borrador',['borrador','enviada','confirmada','recibida_parcial','recibida','facturada','anulada'],badges)}</td><td class="mono" style="font-size:11px">${esc(o.remito_nro)||'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="font-size:11px">${certNro?`<span style="color:var(--teal)">${esc(certNro)}</span>`:'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="font-size:11px">${esc(o.factura_nro)||'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="generateOCPDF('${o.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>NDP</button>${puedeRecibir?`<button class="btn btn-ghost btn-sm" onclick="openRecepcionModal('${o.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>Recibir</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editOC('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteOC('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+  }).join(''):'<tr><td colspan="13" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></div><div class="empty-title">Sin órdenes de compra</div><div class="empty-msg">Generá la primera OC con <b>+ Nueva OC</b> seleccionando el proveedor y los ítems a comprar.</div></div></td></tr>';
 }
 
 function renderProveedores(filter=''){
@@ -6424,6 +6441,25 @@ async function deleteProveedor(id){
   catch(e){notify('Error: '+e.message,'err');}
 }
 
+function populateOCCertSelect(selectedId){
+  const s=document.getElementById('oc-cert-link');if(!s)return;
+  s.innerHTML='<option value="">— ninguno —</option>'+certs.map(c=>`<option value="${c.id}" ${selectedId===c.id?'selected':''}>${c.nro} — ${c.material||''} ${c.colada?'('+c.colada+')':''}</option>`).join('');
+}
+let _certReturnToOC=false;
+function openNewCertFromOC(){
+  _certReturnToOC=true;
+  // Cerrar OC visualmente pero conservar todos los valores del form (siguen en DOM)
+  closeModal('modal-oc');
+  openModal('modal-cert');
+}
+function cancelCertModal(){
+  // Si veníamos del modal de OC, volver sin crear cert
+  const veniaDeOC=_certReturnToOC;
+  _certReturnToOC=false;
+  closeModal('modal-cert');
+  if(veniaDeOC)openModal('modal-oc');
+}
+
 function openOCModal(id){
   currentOCId=id||null;
   document.getElementById('modal-oc-title').textContent=id?'Editar OC':'Nueva orden de compra';
@@ -6440,6 +6476,9 @@ function openOCModal(id){
   document.getElementById('oc-fact-nro').value=oc?.factura_nro||'';
   document.getElementById('oc-fact-fecha').value=oc?.factura_fecha||'';
   document.getElementById('oc-fact-vto').value=oc?.factura_vto||'';
+  // Remito + certificado MTC
+  document.getElementById('oc-remito-nro').value=oc?.remito_nro||'';
+  populateOCCertSelect(oc?.certificado_id||'');
   // Moneda + TC: si OC nueva default USD/venta; si editas, usá lo guardado
   document.getElementById('oc-moneda').value=oc?.moneda||'USD';
   document.getElementById('oc-tc-tipo').value=oc?.tc_tipo||'venta';
@@ -6515,7 +6554,7 @@ async function saveOC(){
   const tcTipo=document.getElementById('oc-tc-tipo').value||'venta';
   if(!tc||tc<=0){notify('Ingresá un tipo de cambio válido','err');return;}
   const total=ocItemsDraft.reduce((a,i)=>a+(parseFloat(i.subtotal)||0),0);
-  const data={nro,proveedor_id,fecha,fecha_entrega_esperada:document.getElementById('oc-entrega').value||null,condicion_pago:document.getElementById('oc-cond').value.trim()||null,estado:document.getElementById('oc-estado').value,subtotal:total,total,moneda,tipo_cambio:tc,tc_tipo:tcTipo,observaciones:document.getElementById('oc-obs').value.trim()||null,factura_nro:document.getElementById('oc-fact-nro').value.trim()||null,factura_fecha:document.getElementById('oc-fact-fecha').value||null,factura_vto:document.getElementById('oc-fact-vto').value||null};
+  const data={nro,proveedor_id,fecha,fecha_entrega_esperada:document.getElementById('oc-entrega').value||null,condicion_pago:document.getElementById('oc-cond').value.trim()||null,estado:document.getElementById('oc-estado').value,subtotal:total,total,moneda,tipo_cambio:tc,tc_tipo:tcTipo,observaciones:document.getElementById('oc-obs').value.trim()||null,factura_nro:document.getElementById('oc-fact-nro').value.trim()||null,factura_fecha:document.getElementById('oc-fact-fecha').value||null,factura_vto:document.getElementById('oc-fact-vto').value||null,remito_nro:document.getElementById('oc-remito-nro').value.trim()||null,certificado_id:document.getElementById('oc-cert-link').value||null};
   _savingOC=true;
   try{setBusy('btn-save-oc',true);
     let ocId;
@@ -6541,7 +6580,9 @@ function openRecepcionModal(ocId){
   document.getElementById('recep-oc-nro').textContent=`${oc.nro} · ${oc.proveedores?.nombre||''}`;
   document.getElementById('recep-fecha').value=new Date().toISOString().slice(0,10);
   document.getElementById('recep-obs').value='';
-  document.getElementById('recep-cert').innerHTML='<option value="">— ninguno —</option>'+certs.map(c=>`<option value="${c.id}">${c.nro} · ${c.material||''}</option>`).join('');
+  // Pre-cargar remito + cert desde la OC si ya los cargó al crearla
+  document.getElementById('recep-remito-nro').value=oc.remito_nro||'';
+  document.getElementById('recep-cert').innerHTML='<option value="">— ninguno —</option>'+certs.map(c=>`<option value="${c.id}" ${oc.certificado_id===c.id?'selected':''}>${c.nro} · ${c.material||''}</option>`).join('');
   const items=oc.oc_items||ocItems.filter(i=>i.oc_id===ocId);
   const cont=document.getElementById('recep-items-list');
   cont.innerHTML=items.map(it=>{
@@ -6563,6 +6604,7 @@ function openRecepcionModal(ocId){
 async function saveRecepcion(){
   const fecha=document.getElementById('recep-fecha').value;
   const certId=document.getElementById('recep-cert').value||null;
+  const remitoNro=document.getElementById('recep-remito-nro').value.trim()||null;
   const obs=document.getElementById('recep-obs').value.trim()||null;
   const rows=document.querySelectorAll('#recep-items-list > div');
   const recepcionesNuevas=[];
@@ -6601,7 +6643,7 @@ async function saveRecepcion(){
       else if(r.it.tipo==='herramienta'){
         await POST('herramientas',{empresa_id:currentEmpresa.id,nombre:(r.it.descripcion||'').trim(),descripcion:r.it.descripcion||null,cantidad:r.qty,estado:'nueva',precio_compra:parseFloat(r.it.precio_unitario)||null,fecha_compra:fecha,proveedor_id:oc.proveedor_id,observaciones:`Recibida en OC ${oc.nro}`});
       }
-      await POST('recepciones_oc',[{empresa_id:currentEmpresa.id,oc_item_id:r.itemId,fecha,cantidad_recibida:r.qty,certificado_id:certId,barra_id:barraId,observaciones:obs}]);
+      await POST('recepciones_oc',[{empresa_id:currentEmpresa.id,oc_item_id:r.itemId,fecha,cantidad_recibida:r.qty,certificado_id:certId,barra_id:barraId,remito_nro:remitoNro,observaciones:obs}]);
       // actualizar cantidad_recibida del item
       const nuevaRecibida=(parseFloat(r.it.cantidad_recibida)||0)+r.qty;
       await PATCH('oc_items',{cantidad_recibida:nuevaRecibida},`?id=eq.${r.itemId}`);
