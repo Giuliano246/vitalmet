@@ -13,8 +13,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
-:root{--bg:#0f0f0f;--surface:#1a1a1a;--surface2:#222;--border:#2e2e2e;--border2:#3a3a3a;--accent:#e8a030;--accent2:#c47f18;--teal:#2ab4a0;--blue:#4a9edd;--purple:#9b72cf;--red:#e05252;--green:#4caf7d;--coral:#e06840;--text:#e8e6e0;--text2:#9a9890;--text3:#5a5856;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
-html[data-theme="light"]{--bg:#f5f4ef;--surface:#ffffff;--surface2:#efece4;--border:#dad6cb;--border2:#bdb7a9;--accent:#c47f18;--accent2:#a06310;--teal:#1f8f7e;--blue:#2f7ab8;--purple:#6e4eaa;--red:#c0392b;--green:#2f9764;--coral:#c25a36;--text:#1f1d18;--text2:#5a564b;--text3:#8a8678}
+:root{--bg:#100e0b;--surface:#1b1814;--surface2:#262019;--border:#352d23;--border2:#463c2e;--accent:#e3a142;--accent2:#c4882c;--teal:#36b09e;--blue:#5a9ec9;--purple:#a07fc9;--red:#df5a4a;--green:#5aaa78;--coral:#e0764a;--text:#ece7dd;--text2:#a39a89;--text3:#8a8073;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
+html[data-theme="light"]{--bg:#f6f1e8;--surface:#fffefb;--surface2:#ede5d6;--border:#e0d7c4;--border2:#cabb9e;--accent:#8b5e34;--accent2:#6f4a28;--teal:#2a7d70;--blue:#36678f;--purple:#715299;--red:#b23b2e;--green:#2f7d57;--coral:#b75a36;--text:#2a241c;--text2:#5c5141;--text3:#6f6552}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh}
 
@@ -98,7 +98,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .btn-sm{padding:4px 9px;font-size:11px}
 .btn-danger{background:transparent;border-color:var(--red);color:var(--red)}
 .btn-danger:hover{background:rgba(224,82,82,.1)}
-.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow-x:auto}
 table{width:100%;border-collapse:collapse;table-layout:auto}
 thead th{padding:8px 8px;text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;font-weight:500;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
 tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
@@ -133,6 +133,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
 .form-group label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;font-weight:500}
 .form-group input,.form-group select,.form-group textarea{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans);outline:none;transition:border-color .15s;width:100%}
 .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent)}
+.form-group input:focus-visible,.form-group select:focus-visible,.form-group textarea:focus-visible,.auth-form-group input:focus-visible,.search-box input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .form-group select option{background:var(--surface2)}
 .form-group textarea{resize:vertical;min-height:56px}
 .form-divider{border:none;border-top:1px solid var(--border);margin:14px 0}
@@ -1537,7 +1538,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
 <!-- MODAL: Recepción de OC -->
 <div class="modal-overlay" id="modal-recepcion">
   <div class="modal" style="width:780px">
-    <div class="modal-header"><div class="modal-title">📥 Recepción de mercadería <span id="recep-oc-nro" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="modal-close" onclick="closeModal('modal-recepcion')">×</button></div>
+    <div class="modal-header"><div class="modal-title"><span style="display:inline-flex;vertical-align:-3px;width:16px;height:16px;margin-right:6px"><svg viewBox="0 0 24 24" style="width:100%;height:100%;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>Recepción de mercadería <span id="recep-oc-nro" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="modal-close" onclick="closeModal('modal-recepcion')">×</button></div>
     <div class="modal-body">
       <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Marcá cuánto llegó de cada ítem. Si es acero (materia prima), automáticamente se crea una barra en stock al guardar.</p>
       <div class="form-row" style="grid-template-columns:140px 1fr 1fr"><div class="form-group"><label>Fecha recepción</label><input type="date" id="recep-fecha"></div><div class="form-group"><label>Nro remito</label><input type="text" id="recep-remito-nro" placeholder="R-0001-00012345"></div><div class="form-group"><label>Certificado MTC (opcional)</label><select id="recep-cert"><option value="">— ninguno —</option></select></div></div>
@@ -1556,7 +1557,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
 <div class="modal-overlay" id="modal-tiempos">
   <div class="modal" style="width:980px;max-width:95vw">
     <div class="modal-header">
-      <div class="modal-title">⏱ Captura de tiempos <span id="tiempos-op-nro" style="color:var(--accent);font-weight:400;margin-left:8px"></span></div>
+      <div class="modal-title"><span style="display:inline-flex;vertical-align:-3px;width:16px;height:16px;margin-right:6px"><svg viewBox="0 0 24 24" style="width:100%;height:100%;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>Captura de tiempos <span id="tiempos-op-nro" style="color:var(--accent);font-weight:400;margin-left:8px"></span></div>
       <button class="modal-close" onclick="closeTiempos()">×</button>
     </div>
     <div class="modal-body" style="padding:0">
@@ -1576,8 +1577,8 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
             <div id="tiempos-timer" style="font-family:var(--mono);font-size:52px;font-weight:700;letter-spacing:-2px;margin:8px 0">00:00:00</div>
             <div id="tiempos-status" style="font-size:12px;opacity:0.85;margin-bottom:14px">Seleccioná un paso</div>
             <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
-              <button id="tiempos-btn-play" class="btn" style="background:var(--green);color:white;min-width:120px" onclick="startTiempoOp()">▶ INICIAR</button>
-              <button id="tiempos-btn-pause" class="btn" style="background:#f59e0b;color:white;min-width:120px" onclick="openPauseTiempo()" disabled>⏸ PAUSAR</button>
+              <button id="tiempos-btn-play" class="btn" style="background:var(--green);color:white;min-width:120px" onclick="startTiempoOp()"><span class="btn-icon"><svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><polygon points="6 3 20 12 6 21 6 3"/></svg></span>INICIAR</button>
+              <button id="tiempos-btn-pause" class="btn" style="background:#f59e0b;color:white;min-width:120px" onclick="openPauseTiempo()" disabled><span class="btn-icon"><svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></span>PAUSAR</button>
               <button id="tiempos-btn-stop" class="btn btn-danger" style="min-width:120px" onclick="completeTiempoOp()" disabled>✓ COMPLETAR</button>
             </div>
           </div>
@@ -3037,7 +3038,19 @@ function notify(msg,type){
   el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);
 }
 
-function renderAll(){renderDash();renderMP();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();populateLibroMayorSel();renderLibroMayor();renderBalance();renderEstadoResultados();renderBalanceGeneral();renderRatios();renderIndicesIPC();renderAjuste();renderCierre();renderComparativoHA();renderComparativoEjercicios();renderBimonetario();renderCobPag();renderConfig();updateClientesDatalist();animateNumbers();}
+function renderAll(){renderDash();renderMP();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();populateLibroMayorSel();renderLibroMayor();renderBalance();renderEstadoResultados();renderBalanceGeneral();renderRatios();renderIndicesIPC();renderAjuste();renderCierre();renderComparativoHA();renderComparativoEjercicios();renderBimonetario();renderCobPag();renderConfig();updateClientesDatalist();animateNumbers();applyIconButtonLabels();}
+// A11y: nombre accesible para botones solo-ícono (sin texto visible) generados por render
+function applyIconButtonLabels(){
+  document.querySelectorAll('button:not([aria-label])').forEach(b=>{
+    if(b.textContent.trim()!==''||!b.querySelector('svg'))return;
+    const oc=b.getAttribute('onclick')||'';
+    let label='Acción';
+    if(/^\s*(delete|remove)/i.test(oc))label='Eliminar';
+    else if(/anular/i.test(oc))label='Anular';
+    else if(/edit/i.test(oc))label='Editar';
+    b.setAttribute('aria-label',label);
+  });
+}
 
 // ─── PLAN DE CUENTAS ──────────────────────────────────────────
 // Estado de colapso de agrupadoras. Por defecto TODAS colapsadas
