@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Preview — OC con Remito + Certificado</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f0f0f;--surface:#1a1a1a;--surface2:#222;--border:#2e2e2e;--border2:#3a3a3a;--accent:#e8a030;--accent2:#c47f18;--teal:#2ab4a0;--blue:#4a9edd;--green:#4caf7d;--red:#e05252;--text:#e8e6e0;--text2:#9a9890;--text3:#5a5856;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;padding:40px 20px;min-height:100vh}
+.preview-grid{display:flex;flex-direction:column;gap:60px;max-width:1200px;margin:0 auto}
+.preview-title{font-family:var(--mono);font-size:13px;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;text-align:center}
+.preview-sub{font-size:11px;color:var(--text3);text-align:center;margin-bottom:24px;font-family:var(--mono)}
+.diff{color:var(--green);background:rgba(76,175,125,.08);border-left:3px solid var(--green);padding:2px 8px;margin-left:-8px}
+
+/* Modal */
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:8px;margin:0 auto;overflow:hidden}
+.modal-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-title{font-size:15px;font-weight:500}
+.modal-close{background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;line-height:1;padding:0 4px}
+.modal-body{padding:18px 22px}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-row.single{grid-template-columns:1fr}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;font-weight:500}
+.form-group input,.form-group select{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans);outline:none;width:100%}
+.form-group.with-btn{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:end}
+.form-group.with-btn label{grid-column:1/-1}
+.form-divider{border:none;border-top:1px solid var(--border);margin:14px 0}
+.section-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;font-weight:500}
+.section-label.new{color:var(--green)}
+.btn{padding:7px 14px;border-radius:5px;font-size:12px;font-family:var(--sans);cursor:pointer;border:1px solid;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#0f0f0f}
+.btn-ghost{background:transparent;border-color:var(--border2);color:var(--text2)}
+.btn-sm{padding:4px 9px;font-size:11px}
+.btn-new-cert{background:transparent;border-color:var(--green);color:var(--green);padding:7px 10px;font-size:11px;white-space:nowrap}
+.fake-item{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:8px 10px;display:grid;grid-template-columns:120px 1fr 70px 80px 90px 90px 30px;gap:8px;font-size:11px;color:var(--text2);align-items:center}
+.placeholder-input{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:5px 7px;font-size:11px;color:var(--text)}
+
+/* Table for OC list */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;max-width:1100px;margin:0 auto}
+table{width:100%;border-collapse:collapse}
+thead th{padding:8px;text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;font-weight:500;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
+thead th.new{color:var(--green)}
+tbody td{padding:7px 8px;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border)}
+tbody td.new{background:rgba(76,175,125,.05)}
+.mono{font-family:var(--mono);font-size:12px}
+.td-primary{color:var(--text)!important;font-weight:500}
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:3px;font-size:10px;font-family:var(--mono);font-weight:500;background:rgba(74,158,221,.12);color:var(--blue);border:1px solid rgba(74,158,221,.25)}
+.legend{display:flex;gap:14px;justify-content:center;margin-top:18px;font-size:11px;color:var(--text3);font-family:var(--mono)}
+.legend-dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.legend-new{background:rgba(76,175,125,.15);border:1px solid var(--green)}
+</style>
+</head>
+<body>
+
+<div class="preview-grid">
+
+  <!-- ============ MODAL OC ============ -->
+  <div>
+    <div class="preview-title">— Preview 1 —</div>
+    <div class="preview-sub">Modal "Nueva orden de compra" / "Editar OC"</div>
+
+    <div class="modal" style="width:880px;max-width:95vw">
+      <div class="modal-header">
+        <div class="modal-title">Editar OC</div>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+
+        <div class="section-label">Cabecera</div>
+        <div class="form-row" style="grid-template-columns:120px 1fr 130px 130px 130px">
+          <div class="form-group"><label>Nro OC *</label><input type="text" value="OC-0042"></div>
+          <div class="form-group"><label>Proveedor *</label><select><option>Aceros del Plata SA</option></select></div>
+          <div class="form-group"><label>Fecha *</label><input type="date" value="2026-05-27"></div>
+          <div class="form-group"><label>Entrega esperada</label><input type="date" value="2026-06-10"></div>
+          <div class="form-group"><label>Estado</label><select><option>Confirmada</option></select></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Condición de pago</label><input type="text" value="30 días"></div>
+          <div class="form-group"><label>Observaciones</label><input type="text" value="Material para OP-340"></div>
+        </div>
+        <div class="form-row" style="grid-template-columns:130px 160px 130px 1fr">
+          <div class="form-group"><label>Moneda *</label><select><option>Dólares (USD)</option></select></div>
+          <div class="form-group"><label>Cotización *</label><select><option>Vendedor (pago USD)</option></select></div>
+          <div class="form-group"><label>TC (ARS/USD) *</label><input type="number" value="1180.00"></div>
+          <div class="form-group"><label>&nbsp;</label><div style="font-size:10px;color:var(--text3);padding:6px 0">Si pagás USD desde pesos, usá TC vendedor.</div></div>
+        </div>
+
+        <hr class="form-divider">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="section-label" style="margin:0">Ítems</div>
+          <button class="btn btn-ghost btn-sm">+ Ítem</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div class="fake-item">
+            <div class="placeholder-input">materia_prima</div>
+            <div class="placeholder-input">Barra redonda AISI 316 Ø2"</div>
+            <div class="placeholder-input" style="text-align:right">12</div>
+            <div class="placeholder-input">mts</div>
+            <div class="placeholder-input" style="text-align:right">85.00</div>
+            <div class="placeholder-input" style="text-align:right">1,020</div>
+            <div style="color:var(--red);text-align:center">×</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:16px;font-size:13px">
+          <div style="color:var(--text3)">Total:</div>
+          <div class="mono" style="font-weight:700;color:var(--green);font-size:16px">USD 1,020.00</div>
+        </div>
+
+        <hr class="form-divider">
+
+        <!-- ★ NUEVA SECCIÓN ★ -->
+        <div class="section-label new diff">Remito y certificado <span style="color:var(--text3);text-transform:none;letter-spacing:0;margin-left:4px">(opcional — del proveedor)</span></div>
+        <div class="form-row" style="grid-template-columns:1fr 1.4fr auto;align-items:end">
+          <div class="form-group">
+            <label>Nro remito</label>
+            <input type="text" placeholder="R-0001-00012345" value="R-0001-00045821">
+          </div>
+          <div class="form-group">
+            <label>Certificado MTC</label>
+            <select>
+              <option>— ninguno —</option>
+              <option>MTC-2024-1892 — AISI 316 (col. 8821)</option>
+              <option selected>MTC-2025-0034 — AISI 316 (col. 9102)</option>
+            </select>
+          </div>
+          <button class="btn-new-cert">+ Nuevo cert</button>
+        </div>
+
+        <hr class="form-divider">
+
+        <div class="section-label">Factura del proveedor (cuando la recibas)</div>
+        <div class="form-row" style="grid-template-columns:1fr 140px 140px">
+          <div class="form-group"><label>Nro factura</label><input type="text" placeholder="A-0001-00012345"></div>
+          <div class="form-group"><label>Fecha factura</label><input type="date"></div>
+          <div class="form-group"><label>Vencimiento</label><input type="date"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost">Cancelar</button>
+        <button class="btn btn-primary">Guardar OC</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============ MODAL RECEPCION ============ -->
+  <div>
+    <div class="preview-title">— Preview 2 —</div>
+    <div class="preview-sub">Modal "Recepción de mercadería" (se abre desde el botón "Recibir")</div>
+
+    <div class="modal" style="width:780px;max-width:95vw">
+      <div class="modal-header">
+        <div class="modal-title">📥 Recepción de mercadería <span style="color:var(--accent);margin-left:8px;font-weight:400">OC-0042</span></div>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Marcá cuánto llegó de cada ítem. Si es acero (materia prima), automáticamente se crea una barra en stock al guardar.</p>
+
+        <!-- ★ ANTES era una sola fila con fecha + cert. Ahora 3 columnas: fecha + remito + cert ★ -->
+        <div class="form-row" style="grid-template-columns:140px 1fr 1fr">
+          <div class="form-group">
+            <label>Fecha recepción</label>
+            <input type="date" value="2026-06-08">
+          </div>
+          <div class="form-group diff" style="padding:2px 6px;margin-left:-6px">
+            <label>Nro remito</label>
+            <input type="text" placeholder="R-0001-00045821">
+          </div>
+          <div class="form-group">
+            <label>Certificado MTC (opcional)</label>
+            <select>
+              <option>— ninguno —</option>
+              <option>MTC-2025-0034 — AISI 316 (col. 9102)</option>
+            </select>
+          </div>
+        </div>
+
+        <hr class="form-divider">
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:10px">
+            <div style="font-size:12px;color:var(--text);font-weight:500;margin-bottom:6px">Barra redonda AISI 316 Ø2" — pendiente 12 mts</div>
+            <div style="display:grid;grid-template-columns:1fr 120px;gap:8px;align-items:center">
+              <input type="range" min="0" max="12" value="12" style="accent-color:var(--accent)">
+              <div class="mono" style="text-align:right">12 / 12 mts</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-row single" style="margin-top:10px">
+          <div class="form-group"><label>Observaciones</label><input type="text" placeholder="Notas de la recepción"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost">Cancelar</button>
+        <button class="btn btn-primary">Registrar recepción</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ============ TABLA OC ============ -->
+  <div>
+    <div class="preview-title">— Preview 3 —</div>
+    <div class="preview-sub">Tabla "Órdenes de compra" — columnas Remito + Cert agregadas</div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nro</th>
+            <th>Proveedor</th>
+            <th>Fecha</th>
+            <th>Items</th>
+            <th>Total ARS</th>
+            <th>Total USD</th>
+            <th>Estado</th>
+            <th class="new">Remito</th>
+            <th class="new">Cert MTC</th>
+            <th>Factura</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mono td-primary">OC-0042</td>
+            <td style="color:var(--text)">Aceros del Plata SA</td>
+            <td class="mono">2026-05-27</td>
+            <td class="mono">1</td>
+            <td class="mono" style="color:var(--green)">$1,203,600</td>
+            <td class="mono" style="color:var(--blue)">USD 1,020</td>
+            <td><span class="badge">Confirmada</span></td>
+            <td class="mono new">R-0001-00045821</td>
+            <td class="mono new"><span style="color:var(--teal)">MTC-2025-0034</span></td>
+            <td class="mono">—</td>
+            <td><button class="btn btn-ghost btn-sm">Editar</button></td>
+          </tr>
+          <tr>
+            <td class="mono td-primary">OC-0041</td>
+            <td style="color:var(--text)">Insumos Industriales SRL</td>
+            <td class="mono">2026-05-21</td>
+            <td class="mono">3</td>
+            <td class="mono" style="color:var(--green)">$348,000</td>
+            <td class="mono" style="color:var(--blue)">—</td>
+            <td><span class="badge" style="background:rgba(76,175,125,.12);color:var(--green);border-color:rgba(76,175,125,.25)">Recibida</span></td>
+            <td class="mono new">R-0003-00099812</td>
+            <td class="mono new" style="color:var(--text3)">—</td>
+            <td class="mono">A-0003-00012987</td>
+            <td><button class="btn btn-ghost btn-sm">Editar</button></td>
+          </tr>
+          <tr>
+            <td class="mono td-primary">OC-0040</td>
+            <td style="color:var(--text)">Aceros del Plata SA</td>
+            <td class="mono">2026-05-14</td>
+            <td class="mono">2</td>
+            <td class="mono" style="color:var(--green)">$2,950,000</td>
+            <td class="mono" style="color:var(--blue)">USD 2,500</td>
+            <td><span class="badge" style="background:rgba(76,175,125,.12);color:var(--green);border-color:rgba(76,175,125,.25)">Facturada</span></td>
+            <td class="mono new">R-0001-00045102</td>
+            <td class="mono new"><span style="color:var(--teal)">MTC-2024-1892</span></td>
+            <td class="mono">A-0001-00012345</td>
+            <td><button class="btn btn-ghost btn-sm">Editar</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="legend">
+      <span><span class="legend-dot legend-new"></span>Campos nuevos</span>
+      <span>· El nro de cert clickeable abrirá la ficha del MTC en Trazabilidad</span>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

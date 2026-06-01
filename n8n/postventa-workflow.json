@@ -1,0 +1,313 @@
+{
+  "name": "Vitalmet - Postventa Automatico",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Postventa Vitalmet\n\n**Que hace:** cada 10 minutos consulta la vista `ventas_pendientes_mail` de Supabase y envia los mails postventa correspondientes.\n\n**Antes de activar:**\n1. Crear credencial **Supabase API** (host + service_role key o anon key)\n2. Crear credencial **SMTP** (smtp.office365.com:587, tu email + password)\n3. Cambiar `TEST_MODE` a `false` cuando quieras que lleguen a clientes reales\n4. Cargar templates en `email_templates` con `trigger_estado` seteado\n\n**Modo test:** con `TEST_MODE=true` todos los mails van a `TEST_EMAIL` (vos) y el asunto se marca con `[TEST -> cliente@real.com]` para que veas como hubiera salido.\n\n**Anti-duplicacion:** la vista excluye autom. las ventas ya enviadas (via email_log).",
+        "height": 360,
+        "width": 480,
+        "color": 4
+      },
+      "id": "n0",
+      "name": "README",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-40, -40]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "id": "n1",
+      "name": "Cada 10 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 400]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1",
+              "name": "TEST_MODE",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "c2",
+              "name": "TEST_EMAIL",
+              "value": "giuliano@vitalmetsa.com",
+              "type": "string"
+            },
+            {
+              "id": "c3",
+              "name": "FROM_EMAIL",
+              "value": "giuliano@vitalmetsa.com",
+              "type": "string"
+            },
+            {
+              "id": "c4",
+              "name": "FROM_NAME",
+              "value": "Vitalmet SA",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "n2",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "content": "### Config\n- `TEST_MODE`: `true` = mails a TEST_EMAIL; `false` = mails reales al cliente\n- `TEST_EMAIL`: a donde redirigir en modo test\n- `FROM_EMAIL` / `FROM_NAME`: remitente",
+        "height": 200,
+        "width": 260,
+        "color": 3
+      },
+      "id": "n2b",
+      "name": "Nota Config",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [440, 160]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "ventas_pendientes_mail",
+        "returnAll": true,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": []
+        }
+      },
+      "id": "n3",
+      "name": "Buscar ventas pendientes",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [680, 400],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CRED_ID",
+          "name": "Supabase Vitalmet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### Lee la vista\nConsulta `ventas_pendientes_mail` — un row = 1 mail a enviar.\n\nLa vista ya filtra:\n- estados relevantes\n- clientes con email\n- delay cumplido\n- sin mail previo",
+        "height": 220,
+        "width": 260,
+        "color": 3
+      },
+      "id": "n3b",
+      "name": "Nota Supabase",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [660, 160]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ═══════════════════════════════════════════════\n// Renderiza el template reemplazando {placeholders}\n// ═══════════════════════════════════════════════\nconst ctx = $input.item.json;\nconst cfg = $('Config').first().json;\n\nconst testMode  = cfg.TEST_MODE === true;\nconst testEmail = cfg.TEST_EMAIL;\n\n// Formatea total como 'USD 1.234,56'\nconst fmtUSD = (n) => {\n  if (n === null || n === undefined || n === '') return '';\n  const num = Number(n);\n  if (Number.isNaN(num)) return '';\n  return 'USD ' + num.toLocaleString('es-AR', {\n    minimumFractionDigits: 2,\n    maximumFractionDigits: 2\n  });\n};\n\nconst replacements = {\n  '{cliente}':              ctx.cliente_nombre       || '',\n  '{contacto}':             ctx.cliente_contacto     || 'equipo',\n  '{nro_pedido}':           ctx.nro_pedido           || '—',\n  '{nro_remito}':           ctx.nro_remito           || '—',\n  '{pieza}':                'los productos',\n  '{fecha_entrega_desde}':  ctx.fecha_entrega_desde  || '',\n  '{fecha_entrega_hasta}':  ctx.fecha_entrega_hasta  || '',\n  '{total}':                fmtUSD(ctx.total),\n  '{condicion_pago}':       ctx.condicion_pago       || '',\n  '{catalogo_url}':         ctx.catalogo_url         || 'https://vitalmetsa.com'\n};\n\nlet subject = ctx.template_subject || '';\nlet body    = ctx.template_body    || '';\n\nfor (const [key, value] of Object.entries(replacements)) {\n  subject = subject.split(key).join(value);\n  body    = body.split(key).join(value);\n}\n\n// En test mode redirigir + marcar el asunto\nconst toEmail       = testMode ? testEmail : ctx.cliente_email;\nconst subjectFinal  = testMode\n  ? `[TEST -> ${ctx.cliente_email}] ${subject}`\n  : subject;\n\nreturn {\n  json: {\n    ...ctx,\n    to_email:          toEmail,\n    rendered_subject:  subjectFinal,\n    rendered_body:     body,\n    is_test:           testMode\n  }\n};"
+      },
+      "id": "n4",
+      "name": "Renderizar template",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "content": "### Reemplaza placeholders\nMapa de variables:\n- `{cliente}` `{contacto}`\n- `{nro_pedido}` `{nro_remito}`\n- `{fecha_entrega_desde}` `{fecha_entrega_hasta}`\n- `{total}` `{condicion_pago}`\n- `{catalogo_url}`\n\nSi `TEST_MODE=true` redirige a TEST_EMAIL.",
+        "height": 260,
+        "width": 260,
+        "color": 3
+      },
+      "id": "n4b",
+      "name": "Nota Code",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [880, 100]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Config').first().json.FROM_EMAIL }}",
+        "toEmail": "={{ $json.to_email }}",
+        "subject": "={{ $json.rendered_subject }}",
+        "emailFormat": "html",
+        "html": "={{ $json.rendered_body }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "n5",
+      "name": "Enviar mail",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1140, 400],
+      "credentials": {
+        "smtp": {
+          "id": "SMTP_CRED_ID",
+          "name": "Outlook SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### SMTP\nConfig sugerida:\n- Host: `smtp.office365.com`\n- Port: `587`\n- SSL/TLS: `STARTTLS`\n- User: tu email\n- Pass: password o app password\n\n(despues se puede migrar al nodo Microsoft Outlook con OAuth2)",
+        "height": 220,
+        "width": 260,
+        "color": 5
+      },
+      "id": "n5b",
+      "name": "Nota SMTP",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1120, 140]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "tableId": "email_log",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "empresa_id",
+              "fieldValue": "={{ $json.empresa_id }}"
+            },
+            {
+              "fieldId": "venta_id",
+              "fieldValue": "={{ $json.venta_id }}"
+            },
+            {
+              "fieldId": "cliente_id",
+              "fieldValue": "={{ $json.cliente_id }}"
+            },
+            {
+              "fieldId": "template_id",
+              "fieldValue": "={{ $json.template_id }}"
+            },
+            {
+              "fieldId": "to_email",
+              "fieldValue": "={{ $json.cliente_email }}"
+            },
+            {
+              "fieldId": "subject",
+              "fieldValue": "={{ $json.rendered_subject }}"
+            },
+            {
+              "fieldId": "trigger_estado",
+              "fieldValue": "={{ $json.estado }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "enviado"
+            }
+          ]
+        }
+      },
+      "id": "n6",
+      "name": "Registrar en email_log",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1380, 400],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CRED_ID",
+          "name": "Supabase Vitalmet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "### Log final\nCada mail enviado queda en `email_log` con `trigger_estado` = estado de la venta.\n\nEsto permite que la proxima corrida NO lo vuelva a mandar.",
+        "height": 200,
+        "width": 260,
+        "color": 3
+      },
+      "id": "n6b",
+      "name": "Nota Log",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1360, 160]
+    }
+  ],
+  "connections": {
+    "Cada 10 minutos": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Buscar ventas pendientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar ventas pendientes": {
+      "main": [
+        [
+          {
+            "node": "Renderizar template",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Renderizar template": {
+      "main": [
+        [
+          {
+            "node": "Enviar mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar mail": {
+      "main": [
+        [
+          {
+            "node": "Registrar en email_log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "vitalmet-postventa"
+  },
+  "tags": []
+}

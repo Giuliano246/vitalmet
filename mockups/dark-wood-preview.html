@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Modo Noche — actual vs madera oscura</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans',sans-serif;background:#0a0a0a;padding:30px 20px;color:#e8e6e0}
+.mono{font-family:'IBM Plex Mono',monospace}
+h1{font-size:18px;font-weight:500;text-align:center;margin-bottom:6px;color:#e8a030;font-family:'IBM Plex Mono',monospace;letter-spacing:.05em}
+.sub{text-align:center;font-size:12px;color:#9a9890;margin-bottom:28px;font-family:'IBM Plex Mono',monospace}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px;max-width:1300px;margin:0 auto}
+@media(max-width:1000px){.grid{grid-template-columns:1fr}}
+.opt{border-radius:10px;overflow:hidden;border:2px solid #2a2a2a}
+.opt-label{padding:12px 16px;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;display:flex;justify-content:space-between;align-items:center;color:#fff}
+.opt-label .tag{font-size:10px;opacity:.85;font-weight:400}
+.app{display:flex;height:540px;font-size:13px}
+.sidebar{width:158px;flex-shrink:0;display:flex;flex-direction:column}
+.logo{padding:12px;border-bottom:1px solid var(--border)}
+.logo-t{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:var(--accent);letter-spacing:.05em}
+.logo-s{font-size:10px;margin-top:2px}
+.nav{padding:8px 0;flex:1}
+.nav-sec{font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:8px 12px 4px}
+.nav-i{display:flex;align-items:center;gap:7px;padding:7px 12px;font-size:12px;border-left:2px solid transparent}
+.nav-i.active{border-left-color:var(--accent);font-weight:500}
+.nav-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.ph{padding:14px 16px 0;border-bottom:1px solid var(--border)}
+.ph-t{font-size:15px;font-weight:500}
+.ph-s{font-size:10px;font-family:'IBM Plex Mono',monospace;margin:2px 0 10px}
+.tabs{display:flex;gap:14px}
+.tab{font-size:11px;padding:6px 0 8px;border-bottom:2px solid transparent}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.body{padding:14px 16px;flex:1;overflow:hidden}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stat{border:1px solid var(--border);border-radius:6px;padding:8px 10px}
+.stat-l{font-size:8px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.stat-v{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:500}
+.toolbar{display:flex;gap:6px;margin-bottom:10px}
+.search{flex:1;border:1px solid var(--border);border-radius:5px;padding:5px 9px;font-size:11px}
+.btn{padding:5px 11px;border-radius:5px;font-size:11px;font-weight:500;border:1px solid;display:inline-flex;align-items:center;gap:4px}
+.btn-pri{background:var(--accent);border-color:var(--accent);color:#0f0f0f}
+.btn-gh{background:transparent;border-color:var(--border2)}
+.tw{border:1px solid var(--border);border-radius:6px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{padding:6px 8px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)}
+td{padding:6px 8px;font-size:11px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+.badge{display:inline-block;padding:2px 6px;border-radius:3px;font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:500}
+.swatches{display:flex;gap:4px;padding:10px 16px;border-top:1px solid var(--border);align-items:center}
+.sw{width:22px;height:22px;border-radius:4px;border:1px solid rgba(255,255,255,.12)}
+.sw-lab{font-family:'IBM Plex Mono',monospace;font-size:9px;margin-left:6px}
+</style>
+</head>
+<body>
+<h1>MODO NOCHE — actual vs madera oscura</h1>
+<div class="sub">// para que combine con el día perla + nogal</div>
+
+<div class="grid">
+
+  <!-- N1: ACTUAL (negro neutro + ámbar) -->
+  <div class="opt" style="--bg:#0f0f0f;--surface:#1a1a1a;--surface2:#222;--border:#2e2e2e;--border2:#3a3a3a;--accent:#e8a030;--teal:#2ab4a0;--blue:#4a9edd;--green:#4caf7d;--red:#e05252;--text:#e8e6e0;--text2:#9a9890;--text3:#868480">
+    <div class="opt-label" style="background:#2e2e2e"><span>N1 · Actual</span><span class="tag">negro neutro + ámbar brillante</span></div>
+    <div class="app" style="background:var(--bg);color:var(--text)">
+      <div class="sidebar" style="background:var(--surface);border-right:1px solid var(--border)">
+        <div class="logo"><div class="logo-t">VITALSTOCK</div><div class="logo-s" style="color:var(--text2)">Vitalmet SA</div></div>
+        <div class="nav">
+          <div class="nav-sec" style="color:var(--text3)">Operación</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Dashboard</div>
+          <div class="nav-i active" style="color:var(--accent);background:rgba(232,160,48,.08)"><span class="nav-dot"></span>Compras</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Ventas</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Stock</div>
+        </div>
+      </div>
+      <div class="main">
+        <div class="ph"><div class="ph-t">Compras</div><div class="ph-s" style="color:var(--text3)">// órdenes de compra</div><div class="tabs"><div class="tab active">OCs</div><div class="tab" style="color:var(--text3)">Proveedores</div></div></div>
+        <div class="body">
+          <div class="stats">
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Total OCs</div><div class="stat-v" style="color:var(--accent)">42</div></div>
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Pendientes</div><div class="stat-v" style="color:var(--accent)">7</div></div>
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Recibidas</div><div class="stat-v" style="color:var(--green)">35</div></div>
+          </div>
+          <div class="toolbar"><div class="search" style="background:var(--surface);color:var(--text3)">⌕ Buscar...</div><div class="btn btn-gh" style="color:var(--text2)">Filtrar</div><div class="btn btn-pri">+ Nueva OC</div></div>
+          <div class="tw" style="background:var(--surface)">
+            <table>
+              <thead><tr style="background:var(--surface2)"><th style="color:var(--text3)">Nro</th><th style="color:var(--text3)">Proveedor</th><th style="color:var(--text3)">Total</th><th style="color:var(--text3)">Estado</th></tr></thead>
+              <tbody>
+                <tr><td class="mono" style="color:var(--text)">OC-0042</td><td style="color:var(--text2)">Aceros Plata</td><td class="mono" style="color:var(--green)">$1.2M</td><td><span class="badge" style="background:rgba(74,158,221,.14);color:var(--blue)">Confirmada</span></td></tr>
+                <tr><td class="mono" style="color:var(--text)">OC-0041</td><td style="color:var(--text2)">Insumos SRL</td><td class="mono" style="color:var(--green)">$348K</td><td><span class="badge" style="background:rgba(76,175,125,.16);color:var(--green)">Recibida</span></td></tr>
+                <tr><td class="mono" style="color:var(--text)">OC-0040</td><td style="color:var(--text2)">Aceros Plata</td><td class="mono" style="color:var(--green)">$2.9M</td><td><span class="badge" style="background:rgba(232,160,48,.16);color:var(--accent)">Borrador</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="swatches" style="background:var(--surface)">
+      <div class="sw" style="background:#0f0f0f"></div><div class="sw" style="background:#1a1a1a"></div><div class="sw" style="background:#222"></div><div class="sw" style="background:#e8a030"></div><div class="sw" style="background:#4caf7d"></div><div class="sw" style="background:#e8e6e0"></div>
+      <span class="sw-lab" style="color:var(--text3)">negro #0f0f0f · ámbar #e8a030</span>
+    </div>
+  </div>
+
+  <!-- N2: MADERA OSCURA (carbón cálido + ámbar miel) -->
+  <div class="opt" style="--bg:#100e0b;--surface:#1b1814;--surface2:#262019;--border:#352d23;--border2:#463c2e;--accent:#e3a142;--teal:#36b09e;--blue:#5a9ec9;--green:#5aaa78;--red:#df5a4a;--text:#ece7dd;--text2:#a39a89;--text3:#8a8073">
+    <div class="opt-label" style="background:#463c2e"><span>N2 · Madera oscura</span><span class="tag">carbón cálido + ámbar miel</span></div>
+    <div class="app" style="background:var(--bg);color:var(--text)">
+      <div class="sidebar" style="background:var(--surface);border-right:1px solid var(--border)">
+        <div class="logo"><div class="logo-t">VITALSTOCK</div><div class="logo-s" style="color:var(--text2)">Vitalmet SA</div></div>
+        <div class="nav">
+          <div class="nav-sec" style="color:var(--text3)">Operación</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Dashboard</div>
+          <div class="nav-i active" style="color:var(--accent);background:rgba(227,161,66,.10)"><span class="nav-dot"></span>Compras</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Ventas</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Stock</div>
+        </div>
+      </div>
+      <div class="main">
+        <div class="ph"><div class="ph-t">Compras</div><div class="ph-s" style="color:var(--text3)">// órdenes de compra</div><div class="tabs"><div class="tab active">OCs</div><div class="tab" style="color:var(--text3)">Proveedores</div></div></div>
+        <div class="body">
+          <div class="stats">
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Total OCs</div><div class="stat-v" style="color:var(--accent)">42</div></div>
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Pendientes</div><div class="stat-v" style="color:var(--accent)">7</div></div>
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Recibidas</div><div class="stat-v" style="color:var(--green)">35</div></div>
+          </div>
+          <div class="toolbar"><div class="search" style="background:var(--surface);color:var(--text3)">⌕ Buscar...</div><div class="btn btn-gh" style="color:var(--text2)">Filtrar</div><div class="btn btn-pri">+ Nueva OC</div></div>
+          <div class="tw" style="background:var(--surface)">
+            <table>
+              <thead><tr style="background:var(--surface2)"><th style="color:var(--text3)">Nro</th><th style="color:var(--text3)">Proveedor</th><th style="color:var(--text3)">Total</th><th style="color:var(--text3)">Estado</th></tr></thead>
+              <tbody>
+                <tr><td class="mono" style="color:var(--text)">OC-0042</td><td style="color:var(--text2)">Aceros Plata</td><td class="mono" style="color:var(--green)">$1.2M</td><td><span class="badge" style="background:rgba(90,158,201,.16);color:var(--blue)">Confirmada</span></td></tr>
+                <tr><td class="mono" style="color:var(--text)">OC-0041</td><td style="color:var(--text2)">Insumos SRL</td><td class="mono" style="color:var(--green)">$348K</td><td><span class="badge" style="background:rgba(90,170,120,.18);color:var(--green)">Recibida</span></td></tr>
+                <tr><td class="mono" style="color:var(--text)">OC-0040</td><td style="color:var(--text2)">Aceros Plata</td><td class="mono" style="color:var(--green)">$2.9M</td><td><span class="badge" style="background:rgba(227,161,66,.18);color:var(--accent)">Borrador</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="swatches" style="background:var(--surface)">
+      <div class="sw" style="background:#100e0b"></div><div class="sw" style="background:#1b1814"></div><div class="sw" style="background:#262019"></div><div class="sw" style="background:#e3a142"></div><div class="sw" style="background:#5aaa78"></div><div class="sw" style="background:#ece7dd"></div>
+      <span class="sw-lab" style="color:var(--text3)">carbón #100e0b · ámbar miel #e3a142</span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

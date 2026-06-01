@@ -17,7 +17,7 @@ VitalStock es un ERP single-file (HTML + Supabase) para Vitalmet SA, empresa met
 ## Supabase
 - **URL:** `https://dqvlqhaxgvtilhiuatpv.supabase.co`
 - **Anon Key:** está en el HTML (línea ~845)
-- **RLS:** DESACTIVADO en todas las tablas (hubo problemas de recursión, pendiente de resolver)
+- **RLS:** ACTIVADO vía `migrations/006_rls_setup.sql` + `008_rls_mailings.sql`. Aislamiento por `empresa_id` usando `public.current_empresa_id()` (lee `auth.jwt() -> 'user_metadata' -> 'empresa_id'`). Tablas con policies especiales: `empresas`, `usuarios`, `venta_items`, `oc_items`, `presupuesto_items`. Rollback: `006_rls_rollback.sql`.
 
 ## Tablas en Supabase
 | Tabla | Descripción |
@@ -106,7 +106,7 @@ Si se agrega una página, actualizar TAMBIÉN `aplicarPermisos()` que tiene el m
 ## Pendientes / Roadmap
 
 ### Corto plazo (mejoras al ERP actual)
-- [ ] RLS en Supabase (falló por recursión infinita en policy de usuarios, está desactivado)
+- [x] RLS en Supabase (resuelto en migrations 006 + 008)
 - [ ] Responsive/mobile (sidebar hamburguesa, tablas scroll horizontal)
 - [ ] Protección doble clic en todos los saves (solo saveMP la tiene)
 - [ ] Filtros por estado en OPs (tabs: Todos | En proceso | Completadas)

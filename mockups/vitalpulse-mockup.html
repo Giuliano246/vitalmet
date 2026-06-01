@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VitalStock Dueño — Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    color: #0f172a;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    min-height: 100vh;
+  }
+  .title {
+    color: #e2e8f0;
+    font-size: 14px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+    opacity: 0.7;
+  }
+  .nav-screens {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .nav-btn {
+    background: rgba(255,255,255,0.08);
+    color: #e2e8f0;
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,0.15); }
+  .nav-btn.active {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: white;
+  }
+
+  /* Phone frame */
+  .phone {
+    width: 390px;
+    height: 844px;
+    background: #000;
+    border-radius: 48px;
+    padding: 10px;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.4), 0 0 0 2px #27272a;
+    position: relative;
+  }
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 110px;
+    height: 30px;
+    background: #000;
+    border-radius: 20px;
+    z-index: 10;
+  }
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    background: #f4f4f5;
+    border-radius: 38px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Status bar */
+  .status-bar {
+    height: 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 32px;
+    padding-top: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #000;
+    flex-shrink: 0;
+  }
+  .status-right { display: flex; gap: 5px; align-items: center; font-size: 14px; }
+
+  /* Header */
+  .header {
+    padding: 8px 20px 16px;
+    background: #f4f4f5;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .header-title { font-size: 22px; font-weight: 700; color: #0f172a; }
+  .header-sub { font-size: 13px; color: #64748b; }
+  .header-icon {
+    width: 40px; height: 40px;
+    background: white;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    cursor: pointer;
+    position: relative;
+    font-size: 18px;
+  }
+  .notif-dot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 10px;
+    height: 10px;
+    background: #ef4444;
+    border-radius: 50%;
+    border: 2px solid white;
+  }
+
+  /* Content */
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 20px 100px;
+  }
+  .content::-webkit-scrollbar { display: none; }
+
+  /* Cards */
+  .card {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .kpi-big {
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 12px rgba(37,99,235,0.25);
+  }
+  .kpi-big-label { font-size: 12px; opacity: 0.8; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-big-value { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; line-height: 1; margin-bottom: 8px; }
+  .kpi-big-trend { font-size: 13px; opacity: 0.95; }
+
+  .kpi-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .kpi-small { background: white; padding: 14px 10px; border-radius: 14px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .kpi-small-value { font-size: 24px; font-weight: 700; color: #0f172a; line-height: 1; }
+  .kpi-small-label { font-size: 11px; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Section title */
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin: 18px 0 8px;
+    padding: 0 4px;
+  }
+  .section-title.danger { color: #dc2626; }
+
+  /* Alert */
+  .alert-card {
+    background: white;
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    border-left: 4px solid #ef4444;
+  }
+  .alert-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    font-size: 14px;
+    color: #334155;
+  }
+  .alert-row:not(:last-child) { border-bottom: 1px solid #f1f5f9; }
+  .alert-badge {
+    font-size: 11px;
+    background: #fee2e2;
+    color: #b91c1c;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    margin-left: auto;
+  }
+
+  /* Timeline */
+  .timeline-item {
+    display: flex;
+    gap: 12px;
+    padding: 10px 16px;
+    font-size: 14px;
+    color: #334155;
+  }
+  .timeline-time { font-size: 11px; color: #94a3b8; min-width: 40px; }
+  .timeline-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #cbd5e1;
+    margin-top: 8px;
+    flex-shrink: 0;
+  }
+
+  /* Venta item */
+  .venta-item {
+    background: white;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    cursor: pointer;
+  }
+  .venta-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .venta-time { font-size: 11px; color: #94a3b8; font-weight: 500; }
+  .venta-estado {
+    font-size: 11px; font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 10px;
+  }
+  .e-entregado { background: #dcfce7; color: #166534; }
+  .e-preparacion { background: #fef3c7; color: #92400e; }
+  .e-ingresado { background: #e0e7ff; color: #3730a3; }
+  .e-facturado { background: #f3e8ff; color: #6b21a8; }
+  .venta-cliente { font-weight: 600; color: #0f172a; font-size: 15px; margin-bottom: 2px; }
+  .venta-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+  .venta-monto { font-size: 15px; font-weight: 700; color: #0f172a; }
+  .venta-remito { font-size: 12px; color: #64748b; }
+
+  /* Filter tabs */
+  .filters {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 0 2px;
+  }
+  .filter {
+    padding: 7px 14px;
+    background: white;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .filter.active { background: #0f172a; color: white; }
+
+  /* OP card */
+  .op-card {
+    background: white;
+    padding: 14px 16px;
+    border-radius: 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  .op-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .op-id { font-size: 11px; color: #94a3b8; font-weight: 600; letter-spacing: 0.5px; }
+  .op-title { font-weight: 600; font-size: 15px; color: #0f172a; margin-bottom: 2px; }
+  .op-cliente { font-size: 12px; color: #64748b; margin-bottom: 10px; }
+  .op-progress { background: #f1f5f9; height: 6px; border-radius: 10px; overflow: hidden; margin-bottom: 6px; }
+  .op-progress-fill { height: 100%; background: #2563eb; border-radius: 10px; }
+  .op-progress-text { font-size: 11px; color: #64748b; font-weight: 500; }
+
+  /* Stock row */
+  .stock-row {
+    background: white;
+    padding: 14px 16px;
+    border-radius: 14px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  .stock-row.warn { border-left: 4px solid #ef4444; }
+  .stock-name { font-weight: 600; font-size: 14px; color: #0f172a; margin-bottom: 2px; }
+  .stock-qty { font-size: 12px; color: #64748b; }
+  .stock-bar {
+    width: 80px;
+    height: 5px;
+    background: #f1f5f9;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .stock-bar-fill { height: 100%; background: #22c55e; }
+  .stock-bar-fill.warn { background: #ef4444; }
+
+  /* Cliente rank */
+  .cliente-rank {
+    background: white;
+    padding: 14px 16px;
+    border-radius: 14px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  }
+  .rank-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .rank-pos {
+    background: #0f172a;
+    color: white;
+    width: 26px; height: 26px;
+    border-radius: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 10px;
+  }
+  .rank-top:first-child .rank-pos { background: linear-gradient(135deg, #eab308, #facc15); }
+  .rank-name { font-weight: 600; font-size: 14px; color: #0f172a; }
+  .rank-amount { font-weight: 700; color: #0f172a; font-size: 14px; }
+  .rank-bar {
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .rank-bar-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #8b5cf6); border-radius: 10px; }
+
+  /* Venta detalle */
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 16px;
+    color: #2563eb;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .detalle-section {
+    background: white;
+    padding: 16px;
+    border-radius: 16px;
+    margin-bottom: 12px;
+  }
+  .detalle-label { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .detalle-value { font-size: 16px; color: #0f172a; font-weight: 500; margin-bottom: 12px; }
+  .detalle-value:last-child { margin-bottom: 0; }
+  .item-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .item-row:last-child { border: none; }
+  .item-desc { font-size: 14px; color: #334155; }
+  .item-qty { font-size: 13px; color: #64748b; }
+  .item-total { font-weight: 600; color: #0f172a; font-size: 14px; }
+  .total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-top: 14px;
+    margin-top: 6px;
+    border-top: 1px solid #e2e8f0;
+  }
+  .total-label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+  .total-value { font-size: 22px; font-weight: 800; color: #0f172a; }
+  .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+  .action-btn {
+    background: white;
+    padding: 14px;
+    border-radius: 14px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 14px;
+    color: #2563eb;
+    cursor: pointer;
+    border: 1px solid #dbeafe;
+  }
+
+  /* Notificaciones */
+  .notif-item {
+    background: white;
+    padding: 14px 16px;
+    border-radius: 14px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .notif-icon {
+    width: 36px; height: 36px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .notif-icon.i-new { background: #dcfce7; }
+  .notif-icon.i-warn { background: #fef3c7; }
+  .notif-icon.i-info { background: #dbeafe; }
+  .notif-body { flex: 1; }
+  .notif-title { font-weight: 600; font-size: 14px; color: #0f172a; margin-bottom: 2px; }
+  .notif-desc { font-size: 13px; color: #64748b; line-height: 1.4; }
+  .notif-time { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+  .notif-day { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 4px 8px; font-weight: 600; }
+
+  /* Tab bar */
+  .tab-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 82px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(0,0,0,0.06);
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    padding-top: 12px;
+    border-radius: 0 0 38px 38px;
+    flex-shrink: 0;
+  }
+  .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    color: #94a3b8;
+    transition: color 0.15s;
+  }
+  .tab.active { color: #2563eb; }
+  .tab-icon { font-size: 22px; line-height: 1; }
+  .tab-label { font-size: 10px; font-weight: 500; }
+
+  /* Screen visibility */
+  .screen { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  .footer-note {
+    margin-top: 28px;
+    color: #94a3b8;
+    font-size: 12px;
+    text-align: center;
+    max-width: 400px;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <div class="title">VitalStock · Dashboard Dueño · Mockup</div>
+
+  <div class="nav-screens">
+    <button class="nav-btn active" data-screen="home">🏠 Home</button>
+    <button class="nav-btn" data-screen="ventas">💰 Ventas</button>
+    <button class="nav-btn" data-screen="detalle">📄 Detalle venta</button>
+    <button class="nav-btn" data-screen="produccion">🏭 Producción</button>
+    <button class="nav-btn" data-screen="stock">📦 Stock</button>
+    <button class="nav-btn" data-screen="clientes">👥 Top clientes</button>
+    <button class="nav-btn" data-screen="notif">🔔 Notificaciones</button>
+  </div>
+
+  <div class="phone">
+    <div class="phone-screen">
+      <!-- Status bar -->
+      <div class="status-bar">
+        <span>11:42</span>
+        <span class="status-right">
+          <svg width="17" height="10" viewBox="0 0 17 11" fill="none"><path d="M1 10h2V7H1v3zm4 0h2V5H5v5zm4 0h2V2H9v8zm4 0h2V0h-2v10z" fill="currentColor"/></svg>
+          <svg width="16" height="11" viewBox="0 0 16 11" fill="none"><path d="M8 0C5.5 0 3 .7 1 2l1.5 1.5C4 2.5 6 2 8 2s4 .5 5.5 1.5L15 2C13 .7 10.5 0 8 0zm0 4C6.5 4 5 4.5 4 5.5L5.5 7c.7-.5 1.5-1 2.5-1s1.8.5 2.5 1L12 5.5C11 4.5 9.5 4 8 4zm0 4c-.8 0-1.5.3-2 .8L8 11l2-2.2c-.5-.5-1.2-.8-2-.8z" fill="currentColor"/></svg>
+          <span style="font-size:12px;">82%</span>
+          <div style="width:22px;height:11px;border:1.5px solid #000;border-radius:3px;position:relative;"><div style="width:80%;height:100%;background:#000;border-radius:1px;"></div></div>
+        </span>
+      </div>
+
+      <!-- ─── HOME ─── -->
+      <div class="screen active" data-screen="home">
+        <div class="header">
+          <div>
+            <div class="header-title">Hola Giuliano</div>
+            <div class="header-sub">martes 22 de abril</div>
+          </div>
+          <div class="header-icon">
+            🔔
+            <span class="notif-dot"></span>
+          </div>
+        </div>
+        <div class="content">
+          <div class="kpi-big">
+            <div class="kpi-big-label">Facturación abril</div>
+            <div class="kpi-big-value">USD 142.500</div>
+            <div class="kpi-big-trend">▲ 12% vs mes anterior · faltan 8 días</div>
+          </div>
+
+          <div class="kpi-row">
+            <div class="kpi-small">
+              <div class="kpi-small-value">23</div>
+              <div class="kpi-small-label">Ventas mes</div>
+            </div>
+            <div class="kpi-small">
+              <div class="kpi-small-value">18</div>
+              <div class="kpi-small-label">Entregas</div>
+            </div>
+            <div class="kpi-small">
+              <div class="kpi-small-value">7</div>
+              <div class="kpi-small-label">OPs activas</div>
+            </div>
+          </div>
+
+          <div class="section-title danger">⚠️ Atención</div>
+          <div class="alert-card">
+            <div class="alert-row">
+              <span>3 entregas vencidas</span>
+              <span class="alert-badge">URGENTE</span>
+            </div>
+            <div class="alert-row">
+              <span>2 barras bajo mínimo</span>
+              <span class="alert-badge">STOCK</span>
+            </div>
+            <div class="alert-row">
+              <span>1 pedido sin aprobar</span>
+              <span class="alert-badge">REVISAR</span>
+            </div>
+          </div>
+
+          <div class="section-title">Últimas movidas</div>
+          <div class="card" style="padding:4px 0;">
+            <div class="timeline-item">
+              <div class="timeline-time">10:32</div>
+              <div class="timeline-dot" style="background:#22c55e;"></div>
+              <div>R-251 despachada — <b>Agro Austral SA</b></div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-time">09:45</div>
+              <div class="timeline-dot" style="background:#3b82f6;"></div>
+              <div>OP-447 completada (50 uniones 3/4")</div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-time">08:15</div>
+              <div class="timeline-dot" style="background:#f59e0b;"></div>
+              <div>Nuevo cliente: <b>Pan American Energy</b></div>
+            </div>
+            <div class="timeline-item">
+              <div class="timeline-time">ayer</div>
+              <div class="timeline-dot"></div>
+              <div>Factura F-189 cobrada (USD 42.300)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── VENTAS ─── -->
+      <div class="screen" data-screen="ventas">
+        <div class="header">
+          <div>
+            <div class="header-title">Ventas</div>
+            <div class="header-sub">23 este mes · USD 142.500</div>
+          </div>
+          <div class="header-icon">🔍</div>
+        </div>
+        <div class="content">
+          <div class="filters">
+            <div class="filter active">Hoy</div>
+            <div class="filter">Semana</div>
+            <div class="filter">Mes</div>
+            <div class="filter">Año</div>
+          </div>
+
+          <div class="venta-item">
+            <div class="venta-top">
+              <span class="venta-time">10:32</span>
+              <span class="venta-estado e-entregado">Entregado</span>
+            </div>
+            <div class="venta-cliente">Agro Austral SA</div>
+            <div class="venta-bottom">
+              <span class="venta-remito">R-251 · P-7821</span>
+              <span class="venta-monto">USD 12.500</span>
+            </div>
+          </div>
+
+          <div class="venta-item">
+            <div class="venta-top">
+              <span class="venta-time">09:15</span>
+              <span class="venta-estado e-preparacion">En preparación</span>
+            </div>
+            <div class="venta-cliente">Petrolera del Norte</div>
+            <div class="venta-bottom">
+              <span class="venta-remito">R-250 · P-7820</span>
+              <span class="venta-monto">USD 28.300</span>
+            </div>
+          </div>
+
+          <div class="venta-item">
+            <div class="venta-top">
+              <span class="venta-time">08:45</span>
+              <span class="venta-estado e-ingresado">Ingresado</span>
+            </div>
+            <div class="venta-cliente">Villa Martelli Industrial</div>
+            <div class="venta-bottom">
+              <span class="venta-remito">R-249 · P-7819</span>
+              <span class="venta-monto">USD 4.800</span>
+            </div>
+          </div>
+
+          <div class="venta-item">
+            <div class="venta-top">
+              <span class="venta-time">ayer 17:30</span>
+              <span class="venta-estado e-facturado">Facturado</span>
+            </div>
+            <div class="venta-cliente">YPF — Neuquén</div>
+            <div class="venta-bottom">
+              <span class="venta-remito">R-248 · P-7818</span>
+              <span class="venta-monto">USD 42.300</span>
+            </div>
+          </div>
+
+          <div class="venta-item">
+            <div class="venta-top">
+              <span class="venta-time">ayer 14:20</span>
+              <span class="venta-estado e-entregado">Entregado</span>
+            </div>
+            <div class="venta-cliente">TGS — Compresora Loma</div>
+            <div class="venta-bottom">
+              <span class="venta-remito">R-247 · P-7817</span>
+              <span class="venta-monto">USD 18.700</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── DETALLE VENTA ─── -->
+      <div class="screen" data-screen="detalle">
+        <div class="header">
+          <div class="back-btn">← Volver</div>
+          <div class="header-icon">⋯</div>
+        </div>
+        <div class="content">
+          <div style="margin-bottom:20px; padding:0 4px;">
+            <div style="font-size:12px;color:#94a3b8;font-weight:600;letter-spacing:0.5px;">REMITO R-251</div>
+            <div style="font-size:24px;font-weight:700;color:#0f172a;margin-top:2px;">Agro Austral SA</div>
+            <span class="venta-estado e-entregado" style="margin-top:6px;display:inline-block;">Entregado · 22 abr 10:32</span>
+          </div>
+
+          <div class="detalle-section">
+            <div class="detalle-label">Cliente</div>
+            <div class="detalle-value">Agro Austral SA<br><span style="font-size:13px;color:#64748b;">CUIT 30-71234567-8</span></div>
+            <div class="detalle-label">Pedido</div>
+            <div class="detalle-value">P-7821 · ingresado 20 abr</div>
+            <div class="detalle-label">Entrega</div>
+            <div class="detalle-value">22 abril 2026 ✅</div>
+            <div class="detalle-label">Condición de pago</div>
+            <div class="detalle-value">Cuenta corriente 30 días</div>
+          </div>
+
+          <div class="section-title" style="margin-top:8px;">Items (3)</div>
+          <div class="detalle-section">
+            <div class="item-row">
+              <div>
+                <div class="item-desc">Uniones 3/4"</div>
+                <div class="item-qty">50 unid · USD 250 c/u</div>
+              </div>
+              <div class="item-total">USD 12.500</div>
+            </div>
+            <div class="item-row">
+              <div>
+                <div class="item-desc">Válvulas 2"</div>
+                <div class="item-qty">4 unid · USD 875 c/u</div>
+              </div>
+              <div class="item-total">USD 3.500</div>
+            </div>
+            <div class="item-row">
+              <div>
+                <div class="item-desc">Anillo BX-155</div>
+                <div class="item-qty">20 unid · USD 35 c/u</div>
+              </div>
+              <div class="item-total">USD 700</div>
+            </div>
+            <div class="total-row">
+              <span class="total-label">Total</span>
+              <span class="total-value">USD 16.700</span>
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <div class="action-btn">📞 Llamar</div>
+            <div class="action-btn">📧 Reenviar mail</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── PRODUCCIÓN ─── -->
+      <div class="screen" data-screen="produccion">
+        <div class="header">
+          <div>
+            <div class="header-title">Producción</div>
+            <div class="header-sub">7 OPs activas · 312 horas este mes</div>
+          </div>
+          <div class="header-icon">🔍</div>
+        </div>
+        <div class="content">
+          <div class="filters">
+            <div class="filter active">En curso</div>
+            <div class="filter">Todas</div>
+            <div class="filter">Completadas</div>
+          </div>
+
+          <div class="op-card">
+            <div class="op-top">
+              <span class="op-id">OP-447</span>
+              <span class="venta-time">empezó ayer</span>
+            </div>
+            <div class="op-title">50 uniones 3/4"</div>
+            <div class="op-cliente">Para: Agro Austral SA · R-252</div>
+            <div class="op-progress">
+              <div class="op-progress-fill" style="width:80%;"></div>
+            </div>
+            <div class="op-progress-text">80% · estimado: 3 días más</div>
+          </div>
+
+          <div class="op-card">
+            <div class="op-top">
+              <span class="op-id">OP-446</span>
+              <span class="venta-time">empezó hoy</span>
+            </div>
+            <div class="op-title">12 válvulas 2"</div>
+            <div class="op-cliente">Para: Petrolera del Norte · R-253</div>
+            <div class="op-progress">
+              <div class="op-progress-fill" style="width:20%;"></div>
+            </div>
+            <div class="op-progress-text">20% · estimado: 6 días más</div>
+          </div>
+
+          <div class="op-card">
+            <div class="op-top">
+              <span class="op-id">OP-445</span>
+              <span class="venta-time" style="color:#f59e0b;">⏸ Suspendida</span>
+            </div>
+            <div class="op-title">Anillos BX-155 × 20</div>
+            <div class="op-cliente">Para: YPF Neuquén · esperando MTC</div>
+          </div>
+
+          <div class="op-card">
+            <div class="op-top">
+              <span class="op-id">OP-444</span>
+              <span class="venta-time">empezó lunes</span>
+            </div>
+            <div class="op-title">4 codos 4" 90°</div>
+            <div class="op-cliente">Para: TGS Compresora Loma</div>
+            <div class="op-progress">
+              <div class="op-progress-fill" style="width:55%;"></div>
+            </div>
+            <div class="op-progress-text">55% · estimado: 2 días más</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── STOCK ─── -->
+      <div class="screen" data-screen="stock">
+        <div class="header">
+          <div>
+            <div class="header-title">Stock</div>
+            <div class="header-sub">34 barras · 2 bajo mínimo</div>
+          </div>
+          <div class="header-icon">🔍</div>
+        </div>
+        <div class="content">
+          <div class="section-title danger">⚠️ Bajo mínimo (2)</div>
+          <div class="stock-row warn">
+            <div>
+              <div class="stock-name">Acero 4140 ø 50mm</div>
+              <div class="stock-qty">12 m · mínimo 30 m</div>
+            </div>
+            <div class="stock-bar">
+              <div class="stock-bar-fill warn" style="width:40%;"></div>
+            </div>
+          </div>
+          <div class="stock-row warn">
+            <div>
+              <div class="stock-name">Inoxidable 304 ø 25mm</div>
+              <div class="stock-qty">5 m · mínimo 20 m</div>
+            </div>
+            <div class="stock-bar">
+              <div class="stock-bar-fill warn" style="width:25%;"></div>
+            </div>
+          </div>
+
+          <div class="section-title">OK (32 items)</div>
+          <div class="stock-row">
+            <div>
+              <div class="stock-name">Acero 1045 ø 40mm</div>
+              <div class="stock-qty">480 m · óptimo</div>
+            </div>
+            <div class="stock-bar">
+              <div class="stock-bar-fill" style="width:95%;"></div>
+            </div>
+          </div>
+          <div class="stock-row">
+            <div>
+              <div class="stock-name">Acero 4140 ø 80mm</div>
+              <div class="stock-qty">220 m · óptimo</div>
+            </div>
+            <div class="stock-bar">
+              <div class="stock-bar-fill" style="width:75%;"></div>
+            </div>
+          </div>
+          <div class="stock-row">
+            <div>
+              <div class="stock-name">Acero 4140 ø 60mm</div>
+              <div class="stock-qty">180 m · óptimo</div>
+            </div>
+            <div class="stock-bar">
+              <div class="stock-bar-fill" style="width:65%;"></div>
+            </div>
+          </div>
+          <div class="stock-row">
+            <div>
+              <div class="stock-name">Inoxidable 316 ø 40mm</div>
+              <div class="stock-qty">95 m · óptimo</div>
+            </div>
+            <div class="stock-bar">
+              <div class="stock-bar-fill" style="width:55%;"></div>
+            </div>
+          </div>
+          <div class="stock-row">
+            <div>
+              <div class="stock-name">Acero 1045 ø 60mm</div>
+              <div class="stock-qty">140 m · óptimo</div>
+            </div>
+            <div class="stock-bar">
+              <div class="stock-bar-fill" style="width:60%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── CLIENTES ─── -->
+      <div class="screen" data-screen="clientes">
+        <div class="header">
+          <div>
+            <div class="header-title">Top Clientes</div>
+            <div class="header-sub">Año 2026 · USD 1.2M total</div>
+          </div>
+          <div class="header-icon">🔍</div>
+        </div>
+        <div class="content">
+          <div class="filters">
+            <div class="filter">Mes</div>
+            <div class="filter active">Año</div>
+            <div class="filter">Histórico</div>
+          </div>
+
+          <div class="cliente-rank">
+            <div class="rank-top">
+              <div style="display:flex;align-items:center;">
+                <span class="rank-pos">1</span>
+                <span class="rank-name">Agro Austral SA</span>
+              </div>
+              <span class="rank-amount">USD 425K</span>
+            </div>
+            <div class="rank-bar"><div class="rank-bar-fill" style="width:100%;"></div></div>
+          </div>
+
+          <div class="cliente-rank">
+            <div class="rank-top">
+              <div style="display:flex;align-items:center;">
+                <span class="rank-pos">2</span>
+                <span class="rank-name">Petrolera del Norte</span>
+              </div>
+              <span class="rank-amount">USD 312K</span>
+            </div>
+            <div class="rank-bar"><div class="rank-bar-fill" style="width:73%;"></div></div>
+          </div>
+
+          <div class="cliente-rank">
+            <div class="rank-top">
+              <div style="display:flex;align-items:center;">
+                <span class="rank-pos">3</span>
+                <span class="rank-name">YPF — Neuquén</span>
+              </div>
+              <span class="rank-amount">USD 178K</span>
+            </div>
+            <div class="rank-bar"><div class="rank-bar-fill" style="width:42%;"></div></div>
+          </div>
+
+          <div class="cliente-rank">
+            <div class="rank-top">
+              <div style="display:flex;align-items:center;">
+                <span class="rank-pos">4</span>
+                <span class="rank-name">TGS Compresora Loma</span>
+              </div>
+              <span class="rank-amount">USD 124K</span>
+            </div>
+            <div class="rank-bar"><div class="rank-bar-fill" style="width:29%;"></div></div>
+          </div>
+
+          <div class="cliente-rank">
+            <div class="rank-top">
+              <div style="display:flex;align-items:center;">
+                <span class="rank-pos">5</span>
+                <span class="rank-name">Villa Martelli Industrial</span>
+              </div>
+              <span class="rank-amount">USD 87K</span>
+            </div>
+            <div class="rank-bar"><div class="rank-bar-fill" style="width:20%;"></div></div>
+          </div>
+
+          <div class="cliente-rank">
+            <div class="rank-top">
+              <div style="display:flex;align-items:center;">
+                <span class="rank-pos">6</span>
+                <span class="rank-name">Pan American Energy</span>
+              </div>
+              <span class="rank-amount">USD 62K</span>
+            </div>
+            <div class="rank-bar"><div class="rank-bar-fill" style="width:15%;"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── NOTIFICACIONES ─── -->
+      <div class="screen" data-screen="notif">
+        <div class="header">
+          <div>
+            <div class="header-title">Notificaciones</div>
+            <div class="header-sub">3 nuevas</div>
+          </div>
+          <div class="header-icon">⋯</div>
+        </div>
+        <div class="content">
+          <div class="notif-day">Hoy</div>
+
+          <div class="notif-item">
+            <div class="notif-icon i-new">🆕</div>
+            <div class="notif-body">
+              <div class="notif-title">Nueva venta</div>
+              <div class="notif-desc">R-252 · Petrolera del Norte · USD 15.200</div>
+              <div class="notif-time">11:30</div>
+            </div>
+          </div>
+
+          <div class="notif-item">
+            <div class="notif-icon i-warn">⚠️</div>
+            <div class="notif-body">
+              <div class="notif-title">Stock bajo mínimo</div>
+              <div class="notif-desc">Acero 4140 ø 50mm — 12 m restantes (mín 30 m)</div>
+              <div class="notif-time">09:45</div>
+            </div>
+          </div>
+
+          <div class="notif-item">
+            <div class="notif-icon i-info">📅</div>
+            <div class="notif-body">
+              <div class="notif-title">Recordatorio entregas</div>
+              <div class="notif-desc">3 entregas programadas para hoy</div>
+              <div class="notif-time">08:00</div>
+            </div>
+          </div>
+
+          <div class="notif-day">Ayer</div>
+
+          <div class="notif-item">
+            <div class="notif-icon i-new">✅</div>
+            <div class="notif-body">
+              <div class="notif-title">OP completada</div>
+              <div class="notif-desc">OP-444 — 4 codos 4" 90° listos para despacho</div>
+              <div class="notif-time">17:22</div>
+            </div>
+          </div>
+
+          <div class="notif-item">
+            <div class="notif-icon i-info">💰</div>
+            <div class="notif-body">
+              <div class="notif-title">Cobranza acreditada</div>
+              <div class="notif-desc">Factura F-189 cobrada · USD 42.300 · TGS</div>
+              <div class="notif-time">14:15</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── TAB BAR ─── -->
+      <div class="tab-bar">
+        <div class="tab active" data-tab="home">
+          <div class="tab-icon">🏠</div>
+          <div class="tab-label">Home</div>
+        </div>
+        <div class="tab" data-tab="ventas">
+          <div class="tab-icon">💰</div>
+          <div class="tab-label">Ventas</div>
+        </div>
+        <div class="tab" data-tab="produccion">
+          <div class="tab-icon">🏭</div>
+          <div class="tab-label">Producción</div>
+        </div>
+        <div class="tab" data-tab="stock">
+          <div class="tab-icon">📦</div>
+          <div class="tab-label">Stock</div>
+        </div>
+        <div class="tab" data-tab="clientes">
+          <div class="tab-icon">👥</div>
+          <div class="tab-label">Clientes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    Mockup interactivo · click en los botones de arriba para ver cada pantalla, o en el tab bar del celular.<br>
+    Datos ficticios con productos/clientes típicos de Vitalmet para dar contexto visual.
+  </div>
+</div>
+
+<script>
+  function show(screenId) {
+    // Oculta todos los screens
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    // Muestra el pedido
+    const target = document.querySelector(`.screen[data-screen="${screenId}"]`);
+    if (target) target.classList.add('active');
+    // Sincroniza nav superior
+    document.querySelectorAll('.nav-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.screen === screenId);
+    });
+    // Sincroniza tab bar inferior (solo los 5 tabs principales)
+    const mainTabs = ['home','ventas','produccion','stock','clientes'];
+    document.querySelectorAll('.tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.tab === screenId);
+    });
+  }
+
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => show(btn.dataset.screen));
+  });
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => show(tab.dataset.tab));
+  });
+  // Click en venta → detalle
+  document.querySelectorAll('.venta-item').forEach(v => {
+    v.addEventListener('click', () => show('detalle'));
+  });
+</script>
+
+</body>
+</html>

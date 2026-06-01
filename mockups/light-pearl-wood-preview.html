@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Modo Día — Perla + Madera</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans',sans-serif;background:#1a1a1a;padding:30px 20px;color:#e8e6e0}
+.mono{font-family:'IBM Plex Mono',monospace}
+h1{font-size:18px;font-weight:500;text-align:center;margin-bottom:6px;color:#e8a030;font-family:'IBM Plex Mono',monospace;letter-spacing:.05em}
+.sub{text-align:center;font-size:12px;color:#9a9890;margin-bottom:28px;font-family:'IBM Plex Mono',monospace}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px;max-width:1300px;margin:0 auto}
+@media(max-width:1000px){.grid{grid-template-columns:1fr}}
+.opt{border-radius:10px;overflow:hidden;border:2px solid #333}
+.opt-label{padding:12px 16px;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;display:flex;justify-content:space-between;align-items:center;color:#fff}
+.opt-label .tag{font-size:10px;opacity:.85;font-weight:400}
+.app{display:flex;height:540px;font-size:13px}
+.sidebar{width:158px;flex-shrink:0;display:flex;flex-direction:column}
+.logo{padding:12px;border-bottom:1px solid var(--border)}
+.logo-t{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:var(--accent);letter-spacing:.05em}
+.logo-s{font-size:10px;margin-top:2px}
+.nav{padding:8px 0;flex:1}
+.nav-sec{font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:8px 12px 4px}
+.nav-i{display:flex;align-items:center;gap:7px;padding:7px 12px;font-size:12px;border-left:2px solid transparent}
+.nav-i.active{border-left-color:var(--accent);font-weight:500}
+.nav-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.ph{padding:14px 16px 0;border-bottom:1px solid var(--border)}
+.ph-t{font-size:15px;font-weight:500}
+.ph-s{font-size:10px;font-family:'IBM Plex Mono',monospace;margin:2px 0 10px}
+.tabs{display:flex;gap:14px}
+.tab{font-size:11px;padding:6px 0 8px;border-bottom:2px solid transparent}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.body{padding:14px 16px;flex:1;overflow:hidden}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stat{border:1px solid var(--border);border-radius:6px;padding:8px 10px}
+.stat-l{font-size:8px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.stat-v{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:500}
+.toolbar{display:flex;gap:6px;margin-bottom:10px}
+.search{flex:1;border:1px solid var(--border);border-radius:5px;padding:5px 9px;font-size:11px}
+.btn{padding:5px 11px;border-radius:5px;font-size:11px;font-weight:500;border:1px solid;display:inline-flex;align-items:center;gap:4px}
+.btn-pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-gh{background:transparent;border-color:var(--border2)}
+.tw{border:1px solid var(--border);border-radius:6px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{padding:6px 8px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)}
+td{padding:6px 8px;font-size:11px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+.badge{display:inline-block;padding:2px 6px;border-radius:3px;font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:500}
+.swatches{display:flex;gap:4px;padding:10px 16px;border-top:1px solid var(--border);align-items:center}
+.sw{width:22px;height:22px;border-radius:4px;border:1px solid rgba(0,0,0,.12)}
+.sw-lab{font-family:'IBM Plex Mono',monospace;font-size:9px;margin-left:6px}
+</style>
+</head>
+<body>
+<h1>MODO DÍA — Perla + Madera</h1>
+<div class="sub">// base hueso/perla · acento madera · 2 tonos de madera para elegir</div>
+
+<div class="grid">
+
+  <!-- D1: Perla + Nogal (madera oscura) -->
+  <div class="opt" style="--bg:#f6f1e8;--surface:#fffefb;--surface2:#ede5d6;--border:#e0d7c4;--border2:#cabb9e;--accent:#8b5e34;--accent2:#6f4a28;--teal:#2a7d70;--blue:#36678f;--green:#2f7d57;--red:#b23b2e;--coral:#b75a36;--text:#2a241c;--text2:#5c5141;--text3:#6f6552">
+    <div class="opt-label" style="background:#8b5e34"><span>D1 · Perla + Nogal</span><span class="tag">madera oscura, elegante/sobrio</span></div>
+    <div class="app" style="background:var(--bg);color:var(--text)">
+      <div class="sidebar" style="background:var(--surface);border-right:1px solid var(--border)">
+        <div class="logo"><div class="logo-t">VITALSTOCK</div><div class="logo-s" style="color:var(--text2)">Vitalmet SA</div></div>
+        <div class="nav">
+          <div class="nav-sec" style="color:var(--text3)">Operación</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Dashboard</div>
+          <div class="nav-i active" style="color:var(--accent);background:rgba(139,94,52,.10)"><span class="nav-dot"></span>Compras</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Ventas</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Stock</div>
+        </div>
+      </div>
+      <div class="main">
+        <div class="ph"><div class="ph-t">Compras</div><div class="ph-s" style="color:var(--text3)">// órdenes de compra</div><div class="tabs"><div class="tab active">OCs</div><div class="tab" style="color:var(--text3)">Proveedores</div></div></div>
+        <div class="body">
+          <div class="stats">
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Total OCs</div><div class="stat-v" style="color:var(--accent)">42</div></div>
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Pendientes</div><div class="stat-v" style="color:var(--accent)">7</div></div>
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Recibidas</div><div class="stat-v" style="color:var(--green)">35</div></div>
+          </div>
+          <div class="toolbar"><div class="search" style="background:var(--surface);color:var(--text3)">⌕ Buscar...</div><div class="btn btn-gh" style="color:var(--text2)">Filtrar</div><div class="btn btn-pri">+ Nueva OC</div></div>
+          <div class="tw" style="background:var(--surface)">
+            <table>
+              <thead><tr style="background:var(--surface2)"><th style="color:var(--text3)">Nro</th><th style="color:var(--text3)">Proveedor</th><th style="color:var(--text3)">Total</th><th style="color:var(--text3)">Estado</th></tr></thead>
+              <tbody>
+                <tr><td class="mono" style="color:var(--text)">OC-0042</td><td style="color:var(--text2)">Aceros Plata</td><td class="mono" style="color:var(--green)">$1.2M</td><td><span class="badge" style="background:rgba(54,103,143,.14);color:var(--blue)">Confirmada</span></td></tr>
+                <tr><td class="mono" style="color:var(--text)">OC-0041</td><td style="color:var(--text2)">Insumos SRL</td><td class="mono" style="color:var(--green)">$348K</td><td><span class="badge" style="background:rgba(47,125,87,.16);color:var(--green)">Recibida</span></td></tr>
+                <tr><td class="mono" style="color:var(--text)">OC-0040</td><td style="color:var(--text2)">Aceros Plata</td><td class="mono" style="color:var(--green)">$2.9M</td><td><span class="badge" style="background:rgba(139,94,52,.16);color:var(--accent)">Borrador</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="swatches" style="background:var(--surface)">
+      <div class="sw" style="background:#f6f1e8"></div><div class="sw" style="background:#fffefb"></div><div class="sw" style="background:#ede5d6"></div><div class="sw" style="background:#8b5e34"></div><div class="sw" style="background:#2f7d57"></div><div class="sw" style="background:#2a241c"></div>
+      <span class="sw-lab" style="color:var(--text3)">perla · nogal #8b5e34</span>
+    </div>
+  </div>
+
+  <!-- D2: Perla + Roble miel (madera clara) -->
+  <div class="opt" style="--bg:#f7f3ea;--surface:#fffdf8;--surface2:#efe8d9;--border:#e3dac7;--border2:#ccbfa3;--accent:#9c6a2c;--accent2:#7d5320;--teal:#28837a;--blue:#37709c;--green:#2f8a5d;--red:#bb3b2c;--coral:#bf5e34;--text:#29231a;--text2:#5e5340;--text3:#6f6452">
+    <div class="opt-label" style="background:#9c6a2c"><span>D2 · Perla + Roble miel</span><span class="tag">madera clara, cálida (cerca del ámbar)</span></div>
+    <div class="app" style="background:var(--bg);color:var(--text)">
+      <div class="sidebar" style="background:var(--surface);border-right:1px solid var(--border)">
+        <div class="logo"><div class="logo-t">VITALSTOCK</div><div class="logo-s" style="color:var(--text2)">Vitalmet SA</div></div>
+        <div class="nav">
+          <div class="nav-sec" style="color:var(--text3)">Operación</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Dashboard</div>
+          <div class="nav-i active" style="color:var(--accent);background:rgba(156,106,44,.12)"><span class="nav-dot"></span>Compras</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Ventas</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Stock</div>
+        </div>
+      </div>
+      <div class="main">
+        <div class="ph"><div class="ph-t">Compras</div><div class="ph-s" style="color:var(--text3)">// órdenes de compra</div><div class="tabs"><div class="tab active">OCs</div><div class="tab" style="color:var(--text3)">Proveedores</div></div></div>
+        <div class="body">
+          <div class="stats">
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Total OCs</div><div class="stat-v" style="color:var(--accent)">42</div></div>
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Pendientes</div><div class="stat-v" style="color:var(--accent)">7</div></div>
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Recibidas</div><div class="stat-v" style="color:var(--green)">35</div></div>
+          </div>
+          <div class="toolbar"><div class="search" style="background:var(--surface);color:var(--text3)">⌕ Buscar...</div><div class="btn btn-gh" style="color:var(--text2)">Filtrar</div><div class="btn btn-pri">+ Nueva OC</div></div>
+          <div class="tw" style="background:var(--surface)">
+            <table>
+              <thead><tr style="background:var(--surface2)"><th style="color:var(--text3)">Nro</th><th style="color:var(--text3)">Proveedor</th><th style="color:var(--text3)">Total</th><th style="color:var(--text3)">Estado</th></tr></thead>
+              <tbody>
+                <tr><td class="mono" style="color:var(--text)">OC-0042</td><td style="color:var(--text2)">Aceros Plata</td><td class="mono" style="color:var(--green)">$1.2M</td><td><span class="badge" style="background:rgba(55,112,156,.14);color:var(--blue)">Confirmada</span></td></tr>
+                <tr><td class="mono" style="color:var(--text)">OC-0041</td><td style="color:var(--text2)">Insumos SRL</td><td class="mono" style="color:var(--green)">$348K</td><td><span class="badge" style="background:rgba(47,138,93,.16);color:var(--green)">Recibida</span></td></tr>
+                <tr><td class="mono" style="color:var(--text)">OC-0040</td><td style="color:var(--text2)">Aceros Plata</td><td class="mono" style="color:var(--green)">$2.9M</td><td><span class="badge" style="background:rgba(156,106,44,.16);color:var(--accent)">Borrador</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="swatches" style="background:var(--surface)">
+      <div class="sw" style="background:#f7f3ea"></div><div class="sw" style="background:#fffdf8"></div><div class="sw" style="background:#efe8d9"></div><div class="sw" style="background:#9c6a2c"></div><div class="sw" style="background:#2f8a5d"></div><div class="sw" style="background:#29231a"></div>
+      <span class="sw-lab" style="color:var(--text3)">perla · roble #9c6a2c</span>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Modo Día — Comparación de paletas</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans',sans-serif;background:#1a1a1a;padding:30px 20px;color:#e8e6e0}
+.mono{font-family:'IBM Plex Mono',monospace}
+h1{font-size:18px;font-weight:500;text-align:center;margin-bottom:6px;color:#e8a030;font-family:'IBM Plex Mono',monospace;letter-spacing:.05em}
+.sub{text-align:center;font-size:12px;color:#9a9890;margin-bottom:28px;font-family:'IBM Plex Mono',monospace}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1500px;margin:0 auto}
+@media(max-width:1100px){.grid{grid-template-columns:1fr}}
+
+/* Each palette card */
+.opt{border-radius:10px;overflow:hidden;border:2px solid #333}
+.opt-label{padding:12px 16px;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;display:flex;justify-content:space-between;align-items:center;color:#fff}
+.opt-label .tag{font-size:10px;opacity:.8;font-weight:400}
+
+/* App mock using palette vars */
+.app{display:flex;height:520px;font-size:13px}
+.sidebar{width:150px;flex-shrink:0;display:flex;flex-direction:column;padding:0}
+.logo{padding:12px;border-bottom:1px solid var(--border)}
+.logo-t{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:var(--accent);letter-spacing:.05em}
+.logo-s{font-size:10px;margin-top:2px}
+.nav{padding:8px 0;flex:1}
+.nav-sec{font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:8px 12px 4px}
+.nav-i{display:flex;align-items:center;gap:7px;padding:7px 12px;font-size:12px;border-left:2px solid transparent}
+.nav-i.active{border-left-color:var(--accent);font-weight:500}
+.nav-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.ph{padding:14px 16px 0;border-bottom:1px solid var(--border)}
+.ph-t{font-size:15px;font-weight:500}
+.ph-s{font-size:10px;font-family:'IBM Plex Mono',monospace;margin:2px 0 10px}
+.tabs{display:flex;gap:14px}
+.tab{font-size:11px;padding:6px 0 8px;border-bottom:2px solid transparent}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.body{padding:14px 16px;flex:1;overflow:hidden}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stat{border:1px solid var(--border);border-radius:6px;padding:8px 10px}
+.stat-l{font-size:8px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.stat-v{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:500}
+.toolbar{display:flex;gap:6px;margin-bottom:10px}
+.search{flex:1;border:1px solid var(--border);border-radius:5px;padding:5px 9px;font-size:11px}
+.btn{padding:5px 11px;border-radius:5px;font-size:11px;font-weight:500;border:1px solid;display:inline-flex;align-items:center;gap:4px}
+.btn-pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn-gh{background:transparent;border-color:var(--border2)}
+.btn-dn{background:transparent;border-color:var(--red);color:var(--red)}
+.tw{border:1px solid var(--border);border-radius:6px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{padding:6px 8px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)}
+td{padding:6px 8px;font-size:11px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+.badge{display:inline-block;padding:2px 6px;border-radius:3px;font-size:9px;font-family:'IBM Plex Mono',monospace;font-weight:500}
+.swatches{display:flex;gap:4px;padding:10px 16px;border-top:1px solid var(--border)}
+.sw{width:22px;height:22px;border-radius:4px;border:1px solid rgba(0,0,0,.12)}
+</style>
+</head>
+<body>
+<h1>MODO DÍA — 3 paletas</h1>
+<div class="sub">// todas mantienen el acento ámbar del modo noche · elegí una</div>
+
+<div class="grid">
+
+  <!-- OPCIÓN A: Slate frío (SaaS moderno) -->
+  <div class="opt" style="--bg:#f6f7f9;--surface:#ffffff;--surface2:#eef1f5;--border:#dfe3e9;--border2:#c5ccd6;--accent:#c47f18;--on-accent:#ffffff;--teal:#0f8f7e;--blue:#2f6fd0;--green:#1f9d63;--red:#d33b30;--coral:#d4663c;--text:#1a1d23;--text2:#4a5260;--text3:#6b7280">
+    <div class="opt-label" style="background:#2f6fd0"><span>A · Slate frío</span><span class="tag">blancos limpios + grises fríos</span></div>
+    <div class="app" style="background:var(--bg);color:var(--text)">
+      <div class="sidebar" style="background:var(--surface);border-right:1px solid var(--border)">
+        <div class="logo"><div class="logo-t">VITALSTOCK</div><div class="logo-s" style="color:var(--text2)">Vitalmet SA</div></div>
+        <div class="nav">
+          <div class="nav-sec" style="color:var(--text3)">Operación</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Dashboard</div>
+          <div class="nav-i active" style="color:var(--accent);background:rgba(196,127,24,.08)"><span class="nav-dot"></span>Compras</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Ventas</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Stock</div>
+        </div>
+      </div>
+      <div class="main">
+        <div class="ph"><div class="ph-t">Compras</div><div class="ph-s" style="color:var(--text3)">// órdenes de compra</div><div class="tabs"><div class="tab active">OCs</div><div class="tab" style="color:var(--text3)">Proveedores</div></div></div>
+        <div class="body">
+          <div class="stats">
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Total OCs</div><div class="stat-v" style="color:var(--accent)">42</div></div>
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Pendientes</div><div class="stat-v" style="color:var(--accent)">7</div></div>
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Recibidas</div><div class="stat-v" style="color:var(--green)">35</div></div>
+          </div>
+          <div class="toolbar"><div class="search" style="background:var(--surface);color:var(--text3)">⌕ Buscar...</div><div class="btn btn-gh" style="color:var(--text2)">Filtrar</div><div class="btn btn-pri">+ Nueva OC</div></div>
+          <div class="tw" style="background:var(--surface)">
+            <table>
+              <thead><tr style="background:var(--surface2)"><th style="color:var(--text3)">Nro</th><th style="color:var(--text3)">Proveedor</th><th style="color:var(--text3)">Total</th><th style="color:var(--text3)">Estado</th></tr></thead>
+              <tbody>
+                <tr><td class="mono" style="color:var(--text)">OC-0042</td><td style="color:var(--text2)">Aceros Plata</td><td class="mono" style="color:var(--green)">$1.2M</td><td><span class="badge" style="background:rgba(47,111,208,.12);color:var(--blue)">Confirmada</span></td></tr>
+                <tr><td class="mono" style="color:var(--text)">OC-0041</td><td style="color:var(--text2)">Insumos SRL</td><td class="mono" style="color:var(--green)">$348K</td><td><span class="badge" style="background:rgba(31,157,99,.14);color:var(--green)">Recibida</span></td></tr>
+                <tr><td class="mono" style="color:var(--text)">OC-0040</td><td style="color:var(--text2)">Aceros Plata</td><td class="mono" style="color:var(--green)">$2.9M</td><td><span class="badge" style="background:rgba(196,127,24,.14);color:var(--accent)">Borrador</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="swatches" style="background:var(--surface)">
+      <div class="sw" style="background:#f6f7f9" title="bg"></div><div class="sw" style="background:#ffffff" title="surface"></div><div class="sw" style="background:#eef1f5" title="surface2"></div><div class="sw" style="background:#c47f18" title="accent"></div><div class="sw" style="background:#2f6fd0" title="blue"></div><div class="sw" style="background:#1f9d63" title="green"></div><div class="sw" style="background:#1a1d23" title="text"></div>
+    </div>
+  </div>
+
+  <!-- OPCIÓN B: Cálido refinado -->
+  <div class="opt" style="--bg:#faf8f4;--surface:#ffffff;--surface2:#f1ede5;--border:#e3ddd0;--border2:#cabfa9;--accent:#c47f18;--on-accent:#ffffff;--teal:#1f8f7e;--blue:#2f7ab8;--green:#2f9764;--red:#c0392b;--coral:#c25a36;--text:#211e18;--text2:#57513f;--text3:#6f6a5c">
+    <div class="opt-label" style="background:#c47f18"><span>B · Cálido refinado</span><span class="tag">tu estilo actual, más limpio</span></div>
+    <div class="app" style="background:var(--bg);color:var(--text)">
+      <div class="sidebar" style="background:var(--surface);border-right:1px solid var(--border)">
+        <div class="logo"><div class="logo-t">VITALSTOCK</div><div class="logo-s" style="color:var(--text2)">Vitalmet SA</div></div>
+        <div class="nav">
+          <div class="nav-sec" style="color:var(--text3)">Operación</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Dashboard</div>
+          <div class="nav-i active" style="color:var(--accent);background:rgba(196,127,24,.08)"><span class="nav-dot"></span>Compras</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Ventas</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Stock</div>
+        </div>
+      </div>
+      <div class="main">
+        <div class="ph"><div class="ph-t">Compras</div><div class="ph-s" style="color:var(--text3)">// órdenes de compra</div><div class="tabs"><div class="tab active">OCs</div><div class="tab" style="color:var(--text3)">Proveedores</div></div></div>
+        <div class="body">
+          <div class="stats">
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Total OCs</div><div class="stat-v" style="color:var(--accent)">42</div></div>
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Pendientes</div><div class="stat-v" style="color:var(--accent)">7</div></div>
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Recibidas</div><div class="stat-v" style="color:var(--green)">35</div></div>
+          </div>
+          <div class="toolbar"><div class="search" style="background:var(--surface);color:var(--text3)">⌕ Buscar...</div><div class="btn btn-gh" style="color:var(--text2)">Filtrar</div><div class="btn btn-pri">+ Nueva OC</div></div>
+          <div class="tw" style="background:var(--surface)">
+            <table>
+              <thead><tr style="background:var(--surface2)"><th style="color:var(--text3)">Nro</th><th style="color:var(--text3)">Proveedor</th><th style="color:var(--text3)">Total</th><th style="color:var(--text3)">Estado</th></tr></thead>
+              <tbody>
+                <tr><td class="mono" style="color:var(--text)">OC-0042</td><td style="color:var(--text2)">Aceros Plata</td><td class="mono" style="color:var(--green)">$1.2M</td><td><span class="badge" style="background:rgba(47,122,184,.12);color:var(--blue)">Confirmada</span></td></tr>
+                <tr><td class="mono" style="color:var(--text)">OC-0041</td><td style="color:var(--text2)">Insumos SRL</td><td class="mono" style="color:var(--green)">$348K</td><td><span class="badge" style="background:rgba(47,151,100,.14);color:var(--green)">Recibida</span></td></tr>
+                <tr><td class="mono" style="color:var(--text)">OC-0040</td><td style="color:var(--text2)">Aceros Plata</td><td class="mono" style="color:var(--green)">$2.9M</td><td><span class="badge" style="background:rgba(196,127,24,.14);color:var(--accent)">Borrador</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="swatches" style="background:var(--surface)">
+      <div class="sw" style="background:#faf8f4"></div><div class="sw" style="background:#ffffff"></div><div class="sw" style="background:#f1ede5"></div><div class="sw" style="background:#c47f18"></div><div class="sw" style="background:#2f7ab8"></div><div class="sw" style="background:#2f9764"></div><div class="sw" style="background:#211e18"></div>
+    </div>
+  </div>
+
+  <!-- OPCIÓN C: Neutro puro (gris zinc) -->
+  <div class="opt" style="--bg:#f4f4f5;--surface:#ffffff;--surface2:#ececee;--border:#e0e0e3;--border2:#c8c8cd;--accent:#c47f18;--on-accent:#ffffff;--teal:#0e8f7c;--blue:#2563c9;--green:#199a5e;--red:#d23b30;--coral:#d2643a;--text:#1c1c1e;--text2:#52525b;--text3:#71717a">
+    <div class="opt-label" style="background:#52525b"><span>C · Neutro puro</span><span class="tag">gris zinc, sin tinte cálido/frío</span></div>
+    <div class="app" style="background:var(--bg);color:var(--text)">
+      <div class="sidebar" style="background:var(--surface);border-right:1px solid var(--border)">
+        <div class="logo"><div class="logo-t">VITALSTOCK</div><div class="logo-s" style="color:var(--text2)">Vitalmet SA</div></div>
+        <div class="nav">
+          <div class="nav-sec" style="color:var(--text3)">Operación</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Dashboard</div>
+          <div class="nav-i active" style="color:var(--accent);background:rgba(196,127,24,.08)"><span class="nav-dot"></span>Compras</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Ventas</div>
+          <div class="nav-i" style="color:var(--text2)"><span class="nav-dot"></span>Stock</div>
+        </div>
+      </div>
+      <div class="main">
+        <div class="ph"><div class="ph-t">Compras</div><div class="ph-s" style="color:var(--text3)">// órdenes de compra</div><div class="tabs"><div class="tab active">OCs</div><div class="tab" style="color:var(--text3)">Proveedores</div></div></div>
+        <div class="body">
+          <div class="stats">
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Total OCs</div><div class="stat-v" style="color:var(--accent)">42</div></div>
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Pendientes</div><div class="stat-v" style="color:var(--accent)">7</div></div>
+            <div class="stat" style="background:var(--surface)"><div class="stat-l" style="color:var(--text3)">Recibidas</div><div class="stat-v" style="color:var(--green)">35</div></div>
+          </div>
+          <div class="toolbar"><div class="search" style="background:var(--surface);color:var(--text3)">⌕ Buscar...</div><div class="btn btn-gh" style="color:var(--text2)">Filtrar</div><div class="btn btn-pri">+ Nueva OC</div></div>
+          <div class="tw" style="background:var(--surface)">
+            <table>
+              <thead><tr style="background:var(--surface2)"><th style="color:var(--text3)">Nro</th><th style="color:var(--text3)">Proveedor</th><th style="color:var(--text3)">Total</th><th style="color:var(--text3)">Estado</th></tr></thead>
+              <tbody>
+                <tr><td class="mono" style="color:var(--text)">OC-0042</td><td style="color:var(--text2)">Aceros Plata</td><td class="mono" style="color:var(--green)">$1.2M</td><td><span class="badge" style="background:rgba(37,99,201,.12);color:var(--blue)">Confirmada</span></td></tr>
+                <tr><td class="mono" style="color:var(--text)">OC-0041</td><td style="color:var(--text2)">Insumos SRL</td><td class="mono" style="color:var(--green)">$348K</td><td><span class="badge" style="background:rgba(25,154,94,.14);color:var(--green)">Recibida</span></td></tr>
+                <tr><td class="mono" style="color:var(--text)">OC-0040</td><td style="color:var(--text2)">Aceros Plata</td><td class="mono" style="color:var(--green)">$2.9M</td><td><span class="badge" style="background:rgba(196,127,24,.14);color:var(--accent)">Borrador</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="swatches" style="background:var(--surface)">
+      <div class="sw" style="background:#f4f4f5"></div><div class="sw" style="background:#ffffff"></div><div class="sw" style="background:#ececee"></div><div class="sw" style="background:#c47f18"></div><div class="sw" style="background:#2563c9"></div><div class="sw" style="background:#199a5e"></div><div class="sw" style="background:#1c1c1e"></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
