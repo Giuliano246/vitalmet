@@ -363,6 +363,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
           <button class="btn btn-ghost" onclick="openModal('modal-mp')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva barra</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Lote</th><th>Material</th><th>Perfil / Ø</th><th>Nro OC</th><th>Certificado</th><th>Mts disp.</th><th>Unid.</th><th>Estado</th><th></th></tr></thead><tbody id="mp-tbody"></tbody></table></div>
+        <div id="mp-reposicion"></div>
       </div>
     </div>
     <!-- PRODUCTOS TERMINADOS -->
@@ -1426,6 +1427,11 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="form-group"><label>Orden en lista</label><input type="number" id="mat-orden" placeholder="0" min="0"></div>
         <div class="form-group"><label>Estado</label><select id="mat-activo"><option value="true">Activo</option><option value="false">Inactivo</option></select></div>
       </div>
+      <div class="form-row">
+        <div class="form-group"><label>Lead time compra (días)</label><input type="number" id="mat-leadtime" placeholder="ej: 30" min="0"></div>
+        <div class="form-group"><label>Nivel de servicio</label><select id="mat-nivel"><option value="0.90">90% (C / no crítico)</option><option value="0.95" selected>95% (estándar)</option><option value="0.99">99% (crítico)</option></select></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:-2px">Usados para el cálculo de reposición. El lead time se deriva de compras si hay datos; si no, se usa este valor.</div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-material')">Cancelar</button>
@@ -2625,6 +2631,94 @@ async function cambiarEstado(table,id,nuevoEstado){
 }
 
 // ─── RENDER ───────────────────────────────────────────────────────
+// ─── REPOSICIÓN / SAFETY STOCK POR MATERIAL ───────────────────────
+// Z según nivel de servicio (inversa normal, por tabla con match más cercano).
+function zNivelServicio(p){
+  const tabla=[[0.80,0.84],[0.85,1.04],[0.90,1.28],[0.95,1.65],[0.975,1.96],[0.99,2.33],[0.995,2.58]];
+  const x=parseFloat(p)||0.95; let best=tabla[3];
+  for(const t of tabla){if(Math.abs(t[0]-x)<Math.abs(best[0]-x))best=t;}
+  return best[1];
+}
+// Material de una OP: por la barra vinculada (confiable), si no por el texto de la OP.
+function materialDeOP(o){
+  if(o.barra_id){const b=barras.find(x=>x.id===o.barra_id);if(b&&b.material)return b.material;}
+  return o.oc_material||o.origen_material||null;
+}
+function _media(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0;}
+function _desvio(a){if(a.length<2)return 0;const m=_media(a);return Math.sqrt(a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1));}
+// Lead times (días) derivados de compras: OC.fecha → 1ra recepción del ítem.
+function leadTimesMaterial(nombre){
+  const muestras=[];
+  (ocItems||[]).filter(it=>it.material===nombre).forEach(it=>{
+    const oc=(ordenesCompra||[]).find(o=>o.id===it.oc_id); if(!oc||!oc.fecha)return;
+    const recs=(recepciones||[]).filter(r=>r.oc_item_id===it.id&&r.fecha); if(!recs.length)return;
+    const primera=recs.reduce((a,r)=>r.fecha<a.fecha?r:a);
+    const dias=Math.round((new Date(primera.fecha)-new Date(oc.fecha))/86400000);
+    if(dias>=0&&dias<400)muestras.push(dias);
+  });
+  return muestras;
+}
+// Cálculo de reposición para un material (todo en metros/mes).
+function calcReordenMaterial(nombre){
+  const mat=(materiales||[]).find(m=>m.nombre===nombre);
+  const porMes={};
+  (ops||[]).forEach(o=>{
+    if(materialDeOP(o)!==nombre)return;
+    const f=o.fecha||o.created_at; if(!f)return;
+    const ym=String(f).slice(0,7);
+    porMes[ym]=(porMes[ym]||0)+(parseFloat(o.kg_usados)||0);
+  });
+  const valores=Object.keys(porMes).sort().map(m=>porMes[m]);
+  const nMeses=valores.length, dProm=_media(valores), sigmaD=_desvio(valores);
+  const lts=leadTimesMaterial(nombre);
+  let ltDias,sigmaLtDias,fuenteLT;
+  if(lts.length>=4){ltDias=_media(lts);sigmaLtDias=_desvio(lts);fuenteLT='compras';}
+  else if(mat&&mat.lead_time_dias){ltDias=parseFloat(mat.lead_time_dias);sigmaLtDias=0;fuenteLT='manual';}
+  else{ltDias=30;sigmaLtDias=0;fuenteLT='default';}
+  const ltM=ltDias/30, sLtM=sigmaLtDias/30;
+  const z=zNivelServicio(mat?.nivel_servicio??0.95);
+  const ss=z*Math.sqrt(ltM*sigmaD*sigmaD + dProm*dProm*sLtM*sLtM);
+  const rop=dProm*ltM+ss;
+  const disponible=(barras||[]).filter(b=>b.material===nombre).reduce((a,b)=>a+(parseFloat(b.kg_disponibles)||0),0);
+  const sinDatos=nMeses===0||dProm===0;
+  return {nombre,nMeses,dProm,sigmaD,ltDias,sigmaLtDias,fuenteLT,z,ss,rop,disponible,aPedir:Math.max(0,rop-disponible),sinDatos,bajo:!sinDatos&&disponible<=rop};
+}
+function calcReordenTodos(){
+  const nombres=new Set();
+  (barras||[]).forEach(b=>b.material&&nombres.add(b.material));
+  (ops||[]).forEach(o=>{const m=materialDeOP(o);if(m)nombres.add(m);});
+  return [...nombres].map(calcReordenMaterial).sort((a,b)=>{
+    if(a.sinDatos!==b.sinDatos)return a.sinDatos?1:-1;
+    if(a.bajo!==b.bajo)return a.bajo?-1:1;
+    return b.aPedir-a.aPedir;
+  });
+}
+function renderReposicion(){
+  const cont=document.getElementById('mp-reposicion'); if(!cont)return;
+  const rows=calcReordenTodos().filter(r=>!r.sinDatos);
+  if(!rows.length){cont.innerHTML='';return;}
+  const fuente={compras:'derivado de compras',manual:'lead time manual',default:'30 días por defecto'};
+  cont.innerHTML=`
+  <div class="dash-card" style="margin-top:14px">
+    <div class="dash-card-title">Reposición sugerida — safety stock por material</div>
+    <div class="table-wrap"><table style="font-size:12px"><thead><tr>
+      <th>Material</th><th style="text-align:right">Consumo/mes</th><th style="text-align:right">Lead time</th>
+      <th style="text-align:right">Punto reorden</th><th style="text-align:right">Disponible</th>
+      <th style="text-align:right">A pedir</th><th>Estado</th></tr></thead><tbody>`+
+    rows.map(r=>`<tr>
+      <td class="td-primary">${esc(r.nombre)}</td>
+      <td class="mono" style="text-align:right">${r.dProm.toFixed(0)} mts${r.nMeses<3?' <span style="color:var(--text3)" title="pocos meses de historial, baja confianza">⚠</span>':''}</td>
+      <td class="mono" style="text-align:right" title="fuente: ${fuente[r.fuenteLT]}">${r.ltDias.toFixed(0)} d${r.fuenteLT==='default'?' *':''}</td>
+      <td class="mono" style="text-align:right">${r.rop.toFixed(0)} mts</td>
+      <td class="mono" style="text-align:right;color:${r.bajo?'var(--red)':'var(--text)'}">${r.disponible.toFixed(0)} mts</td>
+      <td class="mono" style="text-align:right;font-weight:700;color:${r.aPedir>0?'var(--accent)':'var(--text3)'}">${r.aPedir>0?r.aPedir.toFixed(0)+' mts':'—'}</td>
+      <td>${r.bajo?'<span class="badge badge-warn">REPONER</span>':'<span class="badge badge-ok">OK</span>'}</td>
+    </tr>`).join('')+
+    `</tbody></table></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:8px">Punto de reorden = consumo durante el lead time + safety stock <span class="mono">Z·√(LT·σ²consumo + consumo²·σ²LT)</span>. Configurá lead time y nivel de servicio en Configuración → Materiales. <b>*</b> = lead time por defecto (30 d), conviene cargarlo. <b>⚠</b> = poco historial.</div>
+  </div>`;
+}
+
 function renderMP(filter=''){
   const f=filter.toLowerCase();
   const list=barras.filter(b=>!f||b.lote.toLowerCase().includes(f)||b.material.toLowerCase().includes(f)||b.nro_colada?.toLowerCase().includes(f));
@@ -2834,14 +2928,15 @@ function renderDash(){
   const totalMerma=ops.reduce((a,o)=>a+parseFloat(o.merma_kg||0),0);
   const totalKgUsados=ops.reduce((a,o)=>a+parseFloat(o.kg_usados||0),0);
   const pctMerma=totalKgUsados>0?((totalMerma/totalKgUsados)*100).toFixed(1):0;
-  const low=barras.filter(b=>b.kg_minimo>0&&b.kg_disponibles<=b.kg_minimo).length;
+  const _reorden=calcReordenTodos();
+  const low=_reorden.filter(r=>r.bajo).length;
   const produccion={};ops.forEach(o=>{produccion[o.pieza]=(produccion[o.pieza]||0)+parseInt(o.cantidad||0);});
   const topProd=Object.entries(produccion).sort((a,b)=>b[1]-a[1]).slice(0,5);const maxProd=topProd[0]?.[1]||1;
   const vendidas={};ventas.forEach(v=>(v.venta_items||[]).forEach(i=>{const p=i.pieza||'';vendidas[p]=(vendidas[p]||0)+i.cantidad;}));
   const topVend=Object.entries(vendidas).sort((a,b)=>b[1]-a[1]).slice(0,5);const maxVend=topVend[0]?.[1]||1;
   const porCliente={};ventas.forEach(v=>{const imp=(v.venta_items||[]).reduce((a,i)=>a+(i.cantidad*(i.precio_unitario||0)),0);porCliente[v.cliente]=(porCliente[v.cliente]||0)+imp;});
   const topClientes=Object.entries(porCliente).sort((a,b)=>b[1]-a[1]).slice(0,5);const maxCliente=topClientes[0]?.[1]||1;
-  const lowBarras=barras.filter(b=>b.kg_minimo>0&&b.kg_disponibles<=b.kg_minimo);
+  const matReponer=_reorden.filter(r=>r.bajo);
   // Calcular métricas de margen (robusto ante datos faltantes)
   let costoVendido=0,ingresoVentas=0;
   try{
@@ -2894,7 +2989,7 @@ function renderDash(){
           rows.map(([pieza,d])=>{const gan=d.ingresos-d.costos;const mrg=d.ingresos>0?((gan/d.ingresos)*100).toFixed(1):0;return`<tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 10px;color:var(--text);font-weight:500">${pieza}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--text2)">${d.unidades}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--coral)">${fmtUSD(d.ingresos)}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--text3)">${fmtUSD(d.costos)}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:${gan>=0?'var(--green)':'var(--red)'}">${fmtUSD(gan)}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:${mrg>30?'var(--green)':mrg>15?'var(--accent)':'var(--red)'}">${mrg}%</td></tr>`}).join('')+'</tbody></table>';
       })()}
     </div>
-    <div class="dash-card"><div class="dash-card-title">Stock MP bajo mínimo</div>${lowBarras.length?`<div class="chart-bar-wrap">${lowBarras.map(b=>`<div class="chart-bar-row"><div class="chart-bar-label">${b.lote}</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.min(100,Math.round((b.kg_disponibles/b.kg_minimo)*100))}%;background:var(--red)"></div></div><div class="chart-bar-val">${parseFloat(b.kg_disponibles).toFixed(0)}mts</div></div>`).join('')}</div>`:'<div style="color:var(--green);font-size:12px">✓ Todo sobre mínimos</div>'}</div>
+    <div class="dash-card"><div class="dash-card-title">Materiales a reponer</div>${matReponer.length?`<div class="chart-bar-wrap">${matReponer.map(r=>`<div class="chart-bar-row"><div class="chart-bar-label">${esc(r.nombre)}</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.min(100,Math.round((r.disponible/(r.rop||1))*100))}%;background:var(--red)"></div></div><div class="chart-bar-val">${r.disponible.toFixed(0)}/${r.rop.toFixed(0)}mts</div></div>`).join('')}</div>`:'<div style="color:var(--green);font-size:12px">✓ Todo sobre el punto de reorden</div>'}</div>
   </div>`;
   setTimeout(()=>initDashCharts(topProd,topVend,topClientes),0);
 }
@@ -3038,7 +3133,7 @@ function notify(msg,type){
   el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);
 }
 
-function renderAll(){renderDash();renderMP();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();populateLibroMayorSel();renderLibroMayor();renderBalance();renderEstadoResultados();renderBalanceGeneral();renderRatios();renderIndicesIPC();renderAjuste();renderCierre();renderComparativoHA();renderComparativoEjercicios();renderBimonetario();renderCobPag();renderConfig();updateClientesDatalist();animateNumbers();applyIconButtonLabels();}
+function renderAll(){renderDash();renderMP();renderReposicion();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();populateLibroMayorSel();renderLibroMayor();renderBalance();renderEstadoResultados();renderBalanceGeneral();renderRatios();renderIndicesIPC();renderAjuste();renderCierre();renderComparativoHA();renderComparativoEjercicios();renderBimonetario();renderCobPag();renderConfig();updateClientesDatalist();animateNumbers();applyIconButtonLabels();}
 // A11y: nombre accesible para botones solo-ícono (sin texto visible) generados por render
 function applyIconButtonLabels(){
   document.querySelectorAll('button:not([aria-label])').forEach(b=>{
@@ -5060,6 +5155,8 @@ function openModalMaterial(){
   document.getElementById('mat-desc').value='';
   document.getElementById('mat-orden').value='0';
   document.getElementById('mat-activo').value='true';
+  document.getElementById('mat-leadtime').value='';
+  document.getElementById('mat-nivel').value='0.95';
   document.getElementById('modal-material').classList.add('open');
 }
 
@@ -5071,6 +5168,8 @@ function editMaterial(id){
   document.getElementById('mat-desc').value=m.descripcion||'';
   document.getElementById('mat-orden').value=m.orden||0;
   document.getElementById('mat-activo').value=String(m.activo);
+  document.getElementById('mat-leadtime').value=m.lead_time_dias||'';
+  document.getElementById('mat-nivel').value=(parseFloat(m.nivel_servicio)||0.95).toFixed(2);
   document.getElementById('modal-material').classList.add('open');
 }
 
@@ -5085,6 +5184,8 @@ async function saveMaterial(){
       descripcion:document.getElementById('mat-desc').value.trim()||null,
       orden:parseInt(document.getElementById('mat-orden').value)||0,
       activo:document.getElementById('mat-activo').value==='true',
+      lead_time_dias:parseInt(document.getElementById('mat-leadtime').value)||null,
+      nivel_servicio:parseFloat(document.getElementById('mat-nivel').value)||0.95,
     };
     if(editId){
       await PATCH('materiales',payload,`?id=eq.${editId}`);
