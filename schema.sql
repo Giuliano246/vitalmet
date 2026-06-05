@@ -10,16 +10,16 @@
 -- id uuid PK (= auth.uid()), empresa_id uuid, nombre text, email text, rol text, es_admin bool, created_at timestamptz
 
 -- certificados
--- id uuid PK, empresa_id uuid, nro text, proveedor text, material text, colada text, fecha date, metros float8, file_data text, file_name text, created_at timestamptz
+-- id uuid PK, empresa_id uuid, nro text, proveedor text, material text, colada text, fecha date, metros numeric(14,3), file_data text, file_name text, created_at timestamptz
 
 -- barras
--- id uuid PK, empresa_id uuid, lote text UNIQUE, material text, perfil text, diametro text, kg_disponibles float8, unidades int, nro_colada text, certificado_id uuid FK, kg_minimo float8, observaciones text, created_at timestamptz
+-- id uuid PK, empresa_id uuid, lote text UNIQUE, material text, perfil text, diametro text, kg_disponibles numeric(14,3), unidades int, nro_colada text, certificado_id uuid FK, kg_minimo numeric(14,3), observaciones text, created_at timestamptz
 
 -- ordenes_produccion
--- id uuid PK, empresa_id uuid, nro text, pieza text, descripcion text, cantidad int, precio_unitario float8, lote_pt text, barra_id uuid FK, kg_usados float8, merma_kg float8, operario text, estado text, fecha date, fecha_fin date, horas_total text, codigo_plano text, oc_material text, origen_material text, created_at timestamptz
+-- id uuid PK, empresa_id uuid, nro text, pieza text, descripcion text, cantidad int, precio_unitario numeric(14,2), lote_pt text, barra_id uuid FK, kg_usados numeric(14,3), merma_kg numeric(14,3), operario text, estado text, fecha date, fecha_fin date, horas_total text, codigo_plano text, oc_material text, origen_material text, created_at timestamptz
 
 -- productos_terminados
--- id uuid PK, empresa_id uuid, lote text, pieza text, descripcion text, cantidad int, precio_unitario float8, costo_unitario float8, barra_id uuid FK, orden_id uuid FK, created_at timestamptz
+-- id uuid PK, empresa_id uuid, lote text, pieza text, descripcion text, cantidad int, precio_unitario numeric(14,2), costo_unitario numeric(14,2), barra_id uuid FK, orden_id uuid FK, created_at timestamptz
 
 -- ventas (expandida estilo Tango)
 -- id uuid PK, empresa_id uuid, nro_remito text, nro_pedido text, cliente text, fecha date, condicion_pago text, estado text, observaciones text,
@@ -34,7 +34,7 @@
 -- created_at timestamptz
 
 -- venta_items (expandida)
--- id uuid PK, venta_id uuid FK, producto_id uuid FK, pieza text, cantidad int, precio_unitario float8,
+-- id uuid PK, venta_id uuid FK, producto_id uuid FK, pieza text, cantidad int, precio_unitario numeric(14,2),
 -- tipo_cambio numeric, total numeric,
 -- cantidad_bonificada numeric, bonif_1 numeric, bonif_2 numeric, bonif_3 numeric, tot_pct_bonif numeric,
 -- created_at timestamptz
