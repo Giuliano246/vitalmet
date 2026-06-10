@@ -494,6 +494,19 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Contacto</th><th>Teléfono</th><th>Email</th><th>CUIT</th><th>Compras</th><th>Total facturado</th><th></th></tr></thead><tbody id="clientes-tbody"></tbody></table></div>
       </div>
     </div>
+    <!-- VENTAS: Cuenta corriente -->
+    <div class="page" id="page-ctacte">
+      <div class="page-header"><div class="page-title">Cuenta corriente</div><div class="page-sub">// saldos por cliente · antigüedad de deuda (aging) · imputación FIFO</div><div class="tabs"><div class="tab active">Clientes</div></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="ctacte-stats"></div>
+        <div class="toolbar">
+          <div class="search-box"><input type="text" placeholder="Buscar cliente..." oninput="renderCtaCte(this.value)"></div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Cliente</th><th style="text-align:right">Cargos</th><th style="text-align:right">Cobrado</th><th style="text-align:right">Saldo</th><th style="text-align:right">Al día</th><th style="text-align:right">1-30</th><th style="text-align:right">31-60</th><th style="text-align:right">61-90</th><th style="text-align:right">+90 días</th><th></th></tr></thead><tbody id="ctacte-tbody"></tbody></table></div>
+        <div id="ctacte-detalle" style="margin-top:18px"></div>
+        <div style="margin-top:18px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text3);line-height:1.6"><b style="color:var(--text2)">Cómo se calcula:</b> los cargos son las ventas <b>entregadas o facturadas</b> (los pedidos pendientes no son deuda exigible). El vencimiento se toma de la condición de pago (ej. "30 días" → fecha + 30; sin número = contado). Los cobros registrados en <b>Cobros y Pagos</b> se imputan a las facturas más viejas primero (FIFO). Todo expresado en USD; los cobros en ARS se convierten por el TC del asiento.</div>
+      </div>
+    </div>
     <!-- COSTOS Y RENTABILIDAD -->
     <div class="page" id="page-costos">
       <div class="page-header"><div class="page-title">Costos y rentabilidad</div><div class="page-sub">// costo real MP + tiempo + overhead · margen por pieza</div><div class="tabs"><div class="tab active">Por producto</div></div></div>
@@ -2055,7 +2068,7 @@ async function loadAll(){
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
   contabilidad:[
@@ -2067,7 +2080,7 @@ const GROUP_TABS={
     {k:'analisis',l:'Análisis',sub:[{k:'ratios',l:'Ratios'},{k:'bimon',l:'Bimonetario'},{k:'compha',l:'Hist. vs Ajust.'},{k:'compej',l:'Compar. ejerc.'}]},
     {k:'cierreinf',l:'Cierre e inflación',sub:[{k:'ipc',l:'Índices IPC'},{k:'ajuste',l:'Ajuste inflación'},{k:'cierre',l:'Cierre y apertura'}]}
   ],
-  ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'}],
+  ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'},{k:'ctacte',l:'Cta. corriente'}],
   analisis:[{k:'costos',l:'Costos y rentabilidad'},{k:'trace',l:'Trazabilidad'}],
 };
 // Mapa sub-página → tab-padre (para resaltar la tab principal cuando se está en una sub-página)
@@ -3094,7 +3107,7 @@ function notify(msg,type){
   el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);
 }
 
-function renderAll(){renderDash();renderMP();renderReposicion();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();populateLibroMayorSel();renderLibroMayor();renderBalance();renderEstadoResultados();renderBalanceGeneral();renderRatios();renderIndicesIPC();renderAjuste();renderCierre();renderComparativoHA();renderComparativoEjercicios();renderBimonetario();renderCobPag();renderConfig();updateClientesDatalist();animateNumbers();applyIconButtonLabels();}
+function renderAll(){renderDash();renderMP();renderReposicion();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();populateLibroMayorSel();renderLibroMayor();renderBalance();renderEstadoResultados();renderBalanceGeneral();renderRatios();renderIndicesIPC();renderAjuste();renderCierre();renderComparativoHA();renderComparativoEjercicios();renderBimonetario();renderCobPag();renderCtaCte();renderConfig();updateClientesDatalist();animateNumbers();applyIconButtonLabels();}
 // A11y: nombre accesible para botones solo-ícono (sin texto visible) generados por render
 function applyIconButtonLabels(){
   document.querySelectorAll('button:not([aria-label])').forEach(b=>{
@@ -4132,7 +4145,7 @@ function renderCobPag(){
       const cuentaCajaBanco=esCobro?cuentasContables.find(c=>c.id===lns[0].cuenta_id):cuentasContables.find(c=>c.id===lns[lns.length-1].cuenta_id);
       if(cuentaCajaBanco){metodo=cuentaCajaBanco.nombre||'—';}
     }
-    return`<tr><td class="mono">${a.fecha||'—'}</td><td><span class="badge ${esCobro?'badge-blue':'badge-coral'}">${esCobro?'COBRO':'PAGO'}</span></td><td>${esc(tercero)}</td><td style="font-size:11px;color:var(--text2)">${esc(metodo)}</td><td class="mono" style="font-size:11px">${esc(a.comprobante_nro)||'—'}</td><td class="mono" style="text-align:right;color:${esCobro?'var(--green)':'var(--coral)'}">${a.moneda==='USD'?fmtUSD(totDebe/(parseFloat(a.tipo_cambio)||1)):fmtARS(totDebe)}<div style="font-size:9px;color:var(--text3)">${a.moneda||'ARS'}</div></td><td class="mono" style="font-size:11px;color:var(--accent)">#${a.numero||'—'}</td><td><button class="btn btn-danger btn-sm" onclick="anularCobPag('${a.id}')" title="Anular asiento"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span></button></td></tr>`;
+    return`<tr><td class="mono">${a.fecha||'—'}</td><td><span class="badge ${esCobro?'badge-blue':'badge-coral'}">${esCobro?'COBRO':'PAGO'}</span></td><td>${esc(tercero)}</td><td style="font-size:11px;color:var(--text2)">${esc(metodo)}</td><td class="mono" style="font-size:11px">${esc(a.comprobante_nro)||'—'}</td><td class="mono" style="text-align:right;color:${esCobro?'var(--green)':'var(--coral)'}">${a.moneda==='USD'?fmtUSD(totDebe):fmtARS(totDebe)}<div style="font-size:9px;color:var(--text3)">${a.moneda||'ARS'}</div></td><td class="mono" style="font-size:11px;color:var(--accent)">#${a.numero||'—'}</td><td><button class="btn btn-danger btn-sm" onclick="anularCobPag('${a.id}')" title="Anular asiento"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span></button></td></tr>`;
   }).join('');
 }
 
@@ -4167,6 +4180,11 @@ async function registrarCobroOPago(){
   setBusy('btn-save-cobpag',true);
   try{
     const desc=cobPagModo==='cobro'?`Cobro de ${tercero}`:`Pago a ${tercero}`;
+    // Vincular al cliente/proveedor real (para la cuenta corriente).
+    // Si el nombre no matchea exactamente, el movimiento igual se registra
+    // pero no aparece en la cta. cte. de nadie — el datalist ayuda a elegir.
+    const clienteMatch=cobPagModo==='cobro'?clientes.find(c=>(c.nombre||'').toLowerCase()===tercero.toLowerCase()):null;
+    const proveedorMatch=cobPagModo==='pago'?proveedores.find(p=>(p.nombre||'').toLowerCase()===tercero.toLowerCase()):null;
     const cabecera={
       fecha,
       descripcion:desc+(obs?` — ${obs}`:''),
@@ -4178,6 +4196,8 @@ async function registrarCobroOPago(){
       moneda,
       tipo_cambio:moneda==='USD'?tc:null,
       tc_tipo:moneda==='USD'?'venta':null,
+      cliente_id:clienteMatch?.id||null,
+      proveedor_id:proveedorMatch?.id||null,
     };
     // Para cobro: Medio (Caja/Banco) debe / Deudores haber
     // Para pago: Proveedores debe / Medio (Caja/Banco) haber
@@ -4199,6 +4219,107 @@ async function registrarCobroOPago(){
     renderCobPag();
   }catch(e){notify(e.message||'Error','err');}
   setBusy('btn-save-cobpag',false,'Registrar');
+}
+
+// ─── CUENTA CORRIENTE DE CLIENTES ─────────────────────────────
+// Cargos: ventas entregadas/facturadas (un pedido pendiente no es deuda
+// exigible). Pagos: asientos auto-cobranza confirmados, vinculados por
+// cliente_id (fallback para movimientos previos a la migración 024:
+// matchear "Cobro de <nombre>" contra la cartera). Imputación FIFO:
+// cada cobro cancela primero las facturas más viejas; el remanente
+// se clasifica por días de atraso contra el vencimiento (condición de
+// pago). Todo en USD; los cobros en ARS se convierten por el TC del asiento.
+function _diasCondicionPago(cond){const m=(cond||'').match(/(\d+)/);return m?parseInt(m[1]):0;}
+function _cobroEnUSD(a){
+  const tot=asientoLineas.filter(l=>l.asiento_id===a.id).reduce((s,l)=>s+(parseFloat(l.debe)||0),0);
+  if((a.moneda||'ARS')==='USD')return tot;
+  const tc=parseFloat(a.tipo_cambio)||0;
+  return tc?tot/tc:0;
+}
+let _ctacteData=[];
+function computeCtaCte(){
+  const hoyMs=Date.now();
+  const byName={};clientes.forEach(c=>{const k=(c.nombre||'').toLowerCase();if(!byName[k])byName[k]=c;});
+  const byId={};clientes.forEach(c=>{byId[c.id]=c;});
+  const cuentas={};
+  const cuentaDe=(cid,nombre)=>{
+    const c=(cid&&byId[cid])||byName[(nombre||'').toLowerCase()]||null;
+    const key=c?c.id:'sin:'+(nombre||'¿?').toLowerCase();
+    if(!cuentas[key])cuentas[key]={cliente:c,nombre:c?c.nombre:(nombre||'¿?'),cargos:[],pagos:[]};
+    return cuentas[key];
+  };
+  ventas.filter(v=>v.estado==='entregado'||v.estado==='facturado').forEach(v=>{
+    const monto=parseFloat(v.total)||0;if(monto<=0)return;
+    const fecha=v.fecha||(v.created_at||'').slice(0,10);
+    const dias=_diasCondicionPago(v.condicion_pago);
+    const venc=fecha?new Date(new Date(fecha+'T00:00:00').getTime()+dias*86400000).toISOString().slice(0,10):null;
+    cuentaDe(v.cliente_id,v.cliente).cargos.push({fecha,venc,monto,ref:v.nro_remito,tipo:'Venta'});
+  });
+  asientos.filter(a=>a.tipo==='auto-cobranza'&&a.estado==='confirmado').forEach(a=>{
+    const monto=_cobroEnUSD(a);if(monto<=0)return;
+    let nombre=null;
+    if(!a.cliente_id){
+      const m=(a.descripcion||'').match(/^Cobro de (.+?)(?:\s+—|$)/);
+      nombre=m?m[1].trim():null;
+      if(!nombre||!byName[nombre.toLowerCase()])return; // sin vínculo posible
+    }
+    cuentaDe(a.cliente_id,nombre).pagos.push({fecha:a.fecha,monto,ref:a.comprobante_nro||('#'+(a.numero||'')),tipo:'Cobro'});
+  });
+  const res=Object.values(cuentas).map(c=>{
+    c.cargos.sort((a,b)=>(a.venc||a.fecha||'').localeCompare(b.venc||b.fecha||''));
+    const totCargos=c.cargos.reduce((s,x)=>s+x.monto,0);
+    const totPagos=c.pagos.reduce((s,x)=>s+x.monto,0);
+    let disponible=totPagos;
+    const buckets={alDia:0,d30:0,d60:0,d90:0,mas90:0};
+    c.cargos.forEach(x=>{
+      const aplicado=Math.min(x.monto,disponible);
+      disponible-=aplicado;
+      const resto=x.monto-aplicado;
+      if(resto<0.005)return;
+      const diasVenc=x.venc?Math.floor((hoyMs-new Date(x.venc+'T00:00:00').getTime())/86400000):0;
+      if(diasVenc<=0)buckets.alDia+=resto;
+      else if(diasVenc<=30)buckets.d30+=resto;
+      else if(diasVenc<=60)buckets.d60+=resto;
+      else if(diasVenc<=90)buckets.d90+=resto;
+      else buckets.mas90+=resto;
+    });
+    return{...c,totCargos,totPagos,saldo:totCargos-totPagos,buckets,aFavor:Math.max(0,totPagos-totCargos)};
+  }).filter(c=>c.cargos.length||c.pagos.length);
+  res.sort((a,b)=>b.saldo-a.saldo);
+  return res;
+}
+function renderCtaCte(filter=''){
+  const tbody=document.getElementById('ctacte-tbody');if(!tbody)return;
+  const f=(filter||'').toLowerCase();
+  _ctacteData=computeCtaCte();
+  const list=_ctacteData.filter(c=>!f||c.nombre.toLowerCase().includes(f));
+  const totSaldo=_ctacteData.reduce((s,c)=>s+Math.max(0,c.saldo),0);
+  const totVencido=_ctacteData.reduce((s,c)=>s+c.buckets.d30+c.buckets.d60+c.buckets.d90+c.buckets.mas90,0);
+  const conDeuda=_ctacteData.filter(c=>c.saldo>0.005).length;
+  const ahora=new Date();const mes0=new Date(ahora.getFullYear(),ahora.getMonth(),1).toISOString().slice(0,10);
+  const cobradoMes=_ctacteData.reduce((s,c)=>s+c.pagos.filter(p=>(p.fecha||'')>=mes0).reduce((x,p)=>x+p.monto,0),0);
+  const statsEl=document.getElementById('ctacte-stats');
+  if(statsEl)statsEl.innerHTML=`
+    <div class="stat-card"><div class="stat-label">Por cobrar</div><div class="stat-value" style="color:var(--blue)">${fmtUSD(totSaldo)}</div></div>
+    <div class="stat-card"><div class="stat-label">Vencido</div><div class="stat-value" style="color:${totVencido>0.005?'var(--red)':'var(--green)'}">${fmtUSD(totVencido)}</div></div>
+    <div class="stat-card"><div class="stat-label">Clientes con saldo</div><div class="stat-value" style="color:var(--accent)">${conDeuda}</div></div>
+    <div class="stat-card"><div class="stat-label">Cobrado este mes</div><div class="stat-value" style="color:var(--green)">${fmtUSD(cobradoMes)}</div></div>`;
+  const cell=(v,color)=>`<td class="mono" style="text-align:right;${v>0.005?('color:'+color):'color:var(--text3)'}">${v>0.005?fmtUSD(v):'—'}</td>`;
+  tbody.innerHTML=list.length?list.map(c=>{
+    const idx=_ctacteData.indexOf(c);
+    return`<tr><td style="font-weight:500">${esc(c.nombre)}${c.aFavor>0.005?` <span class="badge badge-teal" title="Pagos por encima de los cargos">A FAVOR ${fmtUSD(c.aFavor)}</span>`:''}</td><td class="mono" style="text-align:right">${fmtUSD(c.totCargos)}</td><td class="mono" style="text-align:right;color:var(--green)">${fmtUSD(c.totPagos)}</td><td class="mono" style="text-align:right;font-weight:600;color:${c.saldo>0.005?'var(--coral)':'var(--green)'}">${fmtUSD(c.saldo)}</td>${cell(c.buckets.alDia,'var(--text)')}${cell(c.buckets.d30,'var(--accent)')}${cell(c.buckets.d60,'var(--accent)')}${cell(c.buckets.d90,'var(--red)')}${cell(c.buckets.mas90,'var(--red)')}<td><button class="btn btn-ghost btn-sm" onclick="showCtaCteDetalle(${idx})"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>Detalle</button></td></tr>`;
+  }).join(''):`<tr><td colspan="10" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg></div><div class="empty-title">Sin movimientos de cuenta corriente</div><div class="empty-msg">Los cargos aparecen cuando una venta pasa a <b>entregado</b> o <b>facturado</b>. Los cobros se cargan en <b>Contabilidad → Cobros y Pagos</b> eligiendo el cliente de la lista.</div></div></td></tr>`;
+}
+function showCtaCteDetalle(idx){
+  const c=_ctacteData[idx];if(!c)return;
+  const movs=[
+    ...c.cargos.map(x=>({fecha:x.fecha,venc:x.venc,tipo:x.tipo,ref:x.ref,cargo:x.monto,pago:0})),
+    ...c.pagos.map(x=>({fecha:x.fecha,venc:null,tipo:x.tipo,ref:x.ref,cargo:0,pago:x.monto})),
+  ].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+  let saldo=0;
+  const rows=movs.map(m=>{saldo+=m.cargo-m.pago;return`<tr><td class="mono">${m.fecha||'—'}</td><td><span class="badge ${m.cargo?'badge-warn':'badge-ok'}">${m.tipo.toUpperCase()}</span></td><td class="mono" style="font-size:11px">${esc(m.ref)||'—'}</td><td class="mono">${m.venc||'—'}</td><td class="mono" style="text-align:right">${m.cargo?fmtUSD(m.cargo):'—'}</td><td class="mono" style="text-align:right;color:var(--green)">${m.pago?fmtUSD(m.pago):'—'}</td><td class="mono" style="text-align:right;font-weight:600;color:${saldo>0.005?'var(--coral)':'var(--green)'}">${fmtUSD(saldo)}</td></tr>`;}).join('');
+  const det=document.getElementById('ctacte-detalle');
+  if(det){det.innerHTML=`<div style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:6px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-weight:600">${esc(c.nombre)} — movimientos (saldo ${fmtUSD(c.saldo)})</div><button class="btn btn-ghost btn-sm" onclick="document.getElementById('ctacte-detalle').innerHTML=''">Cerrar</button></div><div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Comprobante</th><th>Vence</th><th style="text-align:right">Cargo</th><th style="text-align:right">Pago</th><th style="text-align:right">Saldo</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;det.scrollIntoView({behavior:'smooth',block:'nearest'});}
 }
 
 // ─── BIMONETARIO (balance consolidado ARS / USD) ──────────────
@@ -6164,7 +6285,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes'],analisis:['costos','trace'],contabilidad:['cuentas','asientosp','cobpag','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte'],analisis:['costos','trace'],contabilidad:['cuentas','asientosp','cobpag','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
