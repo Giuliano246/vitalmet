@@ -1795,6 +1795,8 @@ const GET  =(t,p)=>db('GET',t,null,p);
 const POST =(t,b)=>db('POST',t,b);
 const PATCH=(t,b,p)=>db('PATCH',t,b,p);
 const DEL  =(t,p)=>db('DELETE',t,null,p);
+// RPCs transaccionales (migración 023): una operación = una transacción en la DB
+const RPC  =(fn,args)=>db('POST','rpc/'+fn,args||{});
 
 // ─── AUTH UI ──────────────────────────────────────────────────────
 function switchAuthTab(tab){
@@ -2300,9 +2302,12 @@ async function saveOP(){
     const costo=parseFloat(g('op-precio'))||0;
     const descFull=esBarra?g('op-desc'):[g('op-desc'),g('op-matriz-desc')].filter(Boolean).join(' — ')||origen;
     const op=await POST('ordenes_produccion',{empresa_id:currentEmpresa.id,nro:g('op-nro'),pieza:g('op-pieza'),descripcion:descFull,cantidad:cant,precio_unitario:costo,lote_pt:lotePT,barra_id:barraId,kg_usados:esBarra?kgU:0,merma_kg:parseFloat(g('op-merma'))||0,operario:g('op-operario'),estado,fecha:g('op-fecha')||new Date().toISOString().split('T')[0],fecha_fin:g('op-fecha-fin')||null,horas_total:g('op-horas')||null,codigo_plano:g('op-codigo')||null,oc_material:g('op-oc-material')||null,origen_material:origen});
-    // Descontar MP solo si es barra y hay metros consumidos
+    // Descontar MP solo si es barra y hay metros consumidos.
+    // Atómico en la DB: falla si el stock no alcanza AHORA (no según lo
+    // leído al abrir el modal). Si falla, se revierte la OP recién creada.
     if(esBarra&&barra&&kgU>0){
-      await PATCH('barras',{kg_disponibles:Math.max(0,barra.kg_disponibles-kgU)},`?id=eq.${barra.id}`);
+      try{await RPC('consumir_barra',{p_barra_id:barra.id,p_kg:kgU});}
+      catch(eS){await DEL('ordenes_produccion',`?id=eq.${op[0].id}`).catch(()=>{});throw eS;}
     }
     // Solo sumar al stock PT si la OP está completada
     if(estado==='completada'){
@@ -2335,72 +2340,32 @@ async function saveVenta(){
   }
   _savingVenta=true;setBusy('btn-save-venta',true);
   try{
-    const clienteNombre=g('v-cliente');
-    const clienteExiste=clientes.find(c=>c.nombre.toLowerCase()===clienteNombre.toLowerCase());
-    if(!clienteExiste){
-      await POST('clientes',{empresa_id:currentEmpresa.id,nombre:clienteNombre,cuit:g('v-cuit')||null});
-    }
     // Total con bonificacion: subtotal item × (1 - bonif_item%) → suma → × (1 - bonif_cabecera%)
     const bonifCab=parseFloat(g('v-bonif1'))||0;
     const totalBruto=ventaItemsList.reduce((a,i)=>{const sub=i.cant*(i.precio||0);const bi=parseFloat(i.bonif||0);return a+sub*(1-bi/100);},0);
     const totalVenta=totalBruto*(1-bonifCab/100);
-    const ventaPayload={
-      nro_remito:g('v-remito'),
-      nro_pedido:g('v-remito'),
-      cliente:clienteNombre,
-      fecha:g('v-fecha'),
-      condicion_pago:g('v-condicion'),
-      estado:g('v-estado'),
-      estado_pedido:g('v-estado'),
-      coef_registracion_moneda:'USD',
-      coef_emision_moneda:'USD',
-      coef_deuda_moneda:'USD',
-      fecha_entrega_desde:g('v-fecha-desde')||null,
-      fecha_entrega_hasta:g('v-fecha-hasta')||null,
-      total:totalVenta,
-      bonif_pct_1:parseFloat(g('v-bonif1'))||0,
-      lista_precios_id:g('v-lista-precios')||null,
-      grupo_bonificacion:g('v-grupo-bonif')||null,
-      vendedor_id:g('v-vendedor')||null,
-      observaciones:g('v-obs')
-    };
-    let ventaId;
-    if(isEdit){
-      ventaId=window.editingVentaId;
-      // Devolver stock de items viejos
-      for(const oi of itemsViejos){
-        const pt=pts.find(p=>p.id===oi.producto_id);
-        if(pt)await PATCH('productos_terminados',{cantidad:pt.cantidad+oi.cantidad},`?id=eq.${pt.id}`);
-      }
-      // Borrar items viejos
-      await DEL('venta_items',`?venta_id=eq.${ventaId}`);
-      // Actualizar cabecera
-      await PATCH('ventas',ventaPayload,`?id=eq.${ventaId}`);
-    }else{
-      ventaPayload.empresa_id=currentEmpresa.id;
-      const venta=await POST('ventas',ventaPayload);
-      ventaId=venta[0].id;
-    }
-    // Recargar pts para tener stock actualizado tras devolución
-    if(isEdit)pts=await GET('productos_terminados','?order=created_at.desc');
-    // Crear items nuevos y descontar stock — total del item ya con bonif item aplicada
-    for(const item of ventaItemsList){
-      const subItem=item.cant*(item.precio||0);
-      const bi=parseFloat(item.bonif||0);
-      const totalItem=subItem*(1-bi/100);
-      await POST('venta_items',{
-        venta_id:ventaId,
-        producto_id:item.ptId,
-        pieza:pts.find(p=>p.id===item.ptId)?.pieza||'',
-        cantidad:item.cant,
-        precio_unitario:item.precio,
-        tipo_cambio:1,
-        total:totalItem,
-        bonif_1:bi,
-      });
-      const pt=pts.find(p=>p.id===item.ptId);
-      if(pt)await PATCH('productos_terminados',{cantidad:Math.max(0,pt.cantidad-item.cant)},`?id=eq.${item.ptId}`);
-    }
+    // Cliente + cabecera + items + descuento de stock en UNA transacción (RPC).
+    // Si el stock no alcanza al momento de guardar, no queda nada a medias.
+    await RPC('guardar_venta',{
+      p_venta:{
+        nro_remito:g('v-remito'),
+        cliente:g('v-cliente'),
+        cuit:g('v-cuit')||null,
+        fecha:g('v-fecha'),
+        condicion_pago:g('v-condicion'),
+        estado:g('v-estado'),
+        fecha_entrega_desde:g('v-fecha-desde')||null,
+        fecha_entrega_hasta:g('v-fecha-hasta')||null,
+        total:totalVenta,
+        bonif_pct_1:bonifCab,
+        lista_precios_id:g('v-lista-precios')||null,
+        grupo_bonificacion:g('v-grupo-bonif')||null,
+        vendedor_id:g('v-vendedor')||null,
+        observaciones:g('v-obs')
+      },
+      p_items:ventaItemsList.map(i=>{const sub=i.cant*(i.precio||0);const bi=parseFloat(i.bonif||0);return{producto_id:i.ptId,cantidad:i.cant,precio_unitario:i.precio,bonif_1:bi,total:sub*(1-bi/100)};}),
+      p_venta_id:isEdit?window.editingVentaId:null
+    });
     // ANTES: se generaba asiento contable acá. Ahora el asiento se genera
     // recién al emitir la factura electrónica (ver emitirFactura → generarAsientoFactura).
     // Razón: hasta que no hay CAE, no hay hecho imponible documentado.
@@ -2536,7 +2501,6 @@ async function generarAsientoFactura(facturaEmitidaId,factura,venta){
     moneda='ARS';tipoCambio=1;
   }
   const cabecera={
-    empresa_id:currentEmpresa.id,
     fecha:factura.fecha||new Date().toISOString().slice(0,10),
     descripcion:`Factura ${comprobanteFmt} a ${cliente}`+(aplicaIVA?` (IVA $${iva.toFixed(2)})`:''),
     comprobante_nro:comprobanteFmt,
@@ -2548,25 +2512,15 @@ async function generarAsientoFactura(facturaEmitidaId,factura,venta){
     tipo_cambio:tipoCambio,
     tc_tipo:tcTipo,
   };
-  let asientoId;
-  if(existing){
-    asientoId=existing.id;
-    await PATCH('asientos',cabecera,`?id=eq.${asientoId}`);
-    await DEL('asiento_lineas',`?asiento_id=eq.${asientoId}`);
-  } else {
-    const maxN=asientos.reduce((m,a)=>Math.max(m,parseInt(a.numero||0)||0),0);
-    const r=await POST('asientos',{...cabecera,numero:maxN+1});
-    asientoId=Array.isArray(r)?r[0]?.id:r?.id;
-  }
-  if(!asientoId){console.warn('Asiento de factura: no se obtuvo asientoId');return;}
   const lineas=[
-    {asiento_id:asientoId,cuenta_id:ctaDeudores.id,debe:total,haber:0,descripcion:`Deuda cliente ${cliente}`,orden:0},
-    {asiento_id:asientoId,cuenta_id:ctaVentas.id,debe:0,haber:neto,descripcion:`Venta s/Factura ${comprobanteFmt}`,orden:1},
+    {cuenta_id:ctaDeudores.id,debe:total,haber:0,descripcion:`Deuda cliente ${cliente}`,orden:0},
+    {cuenta_id:ctaVentas.id,debe:0,haber:neto,descripcion:`Venta s/Factura ${comprobanteFmt}`,orden:1},
   ];
   if(aplicaIVA){
-    lineas.push({asiento_id:asientoId,cuenta_id:ctaIvaDeb.id,debe:0,haber:iva,descripcion:`IVA Débito s/Factura ${comprobanteFmt}`,orden:2});
+    lineas.push({cuenta_id:ctaIvaDeb.id,debe:0,haber:iva,descripcion:`IVA Débito s/Factura ${comprobanteFmt}`,orden:2});
   }
-  await POST('asiento_lineas',lineas);
+  // Atómico (RPC): cabecera + líneas juntas, numeración en la DB.
+  await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas,p_asiento_id:existing?existing.id:null});
   console.log(`✓ Asiento contable generado para factura ${comprobanteFmt} (CAE ${factura.cae})`);
 }
 
@@ -3125,14 +3079,10 @@ async function deleteCert(id){
 async function anularVenta(id){
   if(!confirm('¿Anular esta venta? El stock de PT será repuesto y el asiento contable se anulará.'))return;
   try{
-    const v=ventas.find(x=>x.id===id);
-    for(const item of v.venta_items||[]){
-      if(item.producto_id){const pt=pts.find(p=>p.id===item.producto_id);if(pt)await PATCH('productos_terminados',{cantidad:pt.cantidad+item.cantidad},`?id=eq.${item.producto_id}`);}
-    }
-    // Anular asiento contable auto-generado (no-op si no existe)
-    try{await PATCH('asientos',{estado:'anulado'},`?origen_tipo=eq.venta&origen_id=eq.${id}`);}
-    catch(eA){console.warn('No se pudo anular el asiento de la venta:',eA.message);}
-    await DEL('ventas',`?id=eq.${id}`);await loadAll();renderAll();notify('Venta anulada — stock PT repuesto + asiento anulado');
+    // Atómico en la DB: repone stock + anula asientos + desengancha el
+    // presupuesto + borra la venta. Bloquea si tiene factura emitida (CAE).
+    await RPC('anular_venta',{p_venta_id:id});
+    await loadAll();renderAll();notify('Venta anulada — stock PT repuesto + asiento anulado');
   }catch(e){notify(e.message,'err');}
 }
 
@@ -3662,84 +3612,81 @@ async function generarAsientosCierre(){
   if(!confirm(lines.join('\n')))return;
 
   setBusy('btn-gen-cierre',true);
-  let maxN=asientos.reduce((m,a)=>Math.max(m,parseInt(a.numero||0)||0),0);
-  const base={empresa_id:currentEmpresa.id,estado:'borrador',moneda:'ARS',tipo_cambio:null,tc_tipo:null,comprobante_nro:null,origen_tipo:'cierre_ejercicio',origen_id:null};
+  // Cada asiento se crea atómico vía RPC; la numeración la asigna la DB
+  // en orden de creación (refundición → pasaje → cierre → apertura).
+  const base={estado:'borrador',moneda:'ARS',tipo_cambio:null,tc_tipo:null,comprobante_nro:null,origen_tipo:'cierre_ejercicio',origen_id:null};
   const refs={};
   try{
     // ─ Paso 1: Refundición ─
     if(cfg.p1){
-      const cab={...base,numero:++maxN,fecha:cfg.fechaReg,descripcion:`Refundición de resultados — ejercicio N° ${cfg.numero} (${cfg.desde} → ${cfg.hasta})`,tipo:'auto-cierre-resultados'};
-      const r=await POST('asientos',cab);const aid=r[0].id;
+      const cab={...base,fecha:cfg.fechaReg,descripcion:`Refundición de resultados — ejercicio N° ${cfg.numero} (${cfg.desde} → ${cfg.hasta})`,tipo:'auto-cierre-resultados'};
       const lineas=[];let ord=0;
-      p.ingresos.forEach(x=>lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:x.saldo,haber:0,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++}));
-      p.egresos.forEach(x=>lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:0,haber:x.saldo,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++}));
-      if(p.resultadoEjercicio>0)lineas.push({asiento_id:aid,cuenta_id:p.ctaRE.id,debe:0,haber:p.resultadoEjercicio,descripcion:'Resultado del ejercicio (ganancia)',orden:ord++});
-      else if(p.resultadoEjercicio<0)lineas.push({asiento_id:aid,cuenta_id:p.ctaRE.id,debe:-p.resultadoEjercicio,haber:0,descripcion:'Resultado del ejercicio (pérdida)',orden:ord++});
+      p.ingresos.forEach(x=>lineas.push({cuenta_id:x.cuenta.id,debe:x.saldo,haber:0,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++}));
+      p.egresos.forEach(x=>lineas.push({cuenta_id:x.cuenta.id,debe:0,haber:x.saldo,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++}));
+      if(p.resultadoEjercicio>0)lineas.push({cuenta_id:p.ctaRE.id,debe:0,haber:p.resultadoEjercicio,descripcion:'Resultado del ejercicio (ganancia)',orden:ord++});
+      else if(p.resultadoEjercicio<0)lineas.push({cuenta_id:p.ctaRE.id,debe:-p.resultadoEjercicio,haber:0,descripcion:'Resultado del ejercicio (pérdida)',orden:ord++});
       _validarPartidaDoble(lineas,'Refundición');
-      if(lineas.length)await POST('asiento_lineas',lineas);
-      refs.asiento_refundicion_id=aid;
+      const r=await RPC('crear_asiento',{p_cabecera:cab,p_lineas:lineas});
+      refs.asiento_refundicion_id=r.id;
     }
     // ─ Paso 2: Pasaje a RNA ─
     if(cfg.p2 && Math.abs(p.resultadoEjercicio)>=0.01){
-      const cab={...base,numero:++maxN,fecha:cfg.fechaReg,descripcion:`Pasaje a Resultados No Asignados — ejercicio N° ${cfg.numero}`,tipo:'auto-pasaje-resultados'};
-      const r=await POST('asientos',cab);const aid=r[0].id;
+      const cab={...base,fecha:cfg.fechaReg,descripcion:`Pasaje a Resultados No Asignados — ejercicio N° ${cfg.numero}`,tipo:'auto-pasaje-resultados'};
       const lineas=[];
       if(p.resultadoEjercicio>0){
-        lineas.push({asiento_id:aid,cuenta_id:p.ctaRE.id,debe:p.resultadoEjercicio,haber:0,descripcion:'Cierre Resultado del Ejercicio',orden:0});
-        lineas.push({asiento_id:aid,cuenta_id:p.ctaRNA.id,debe:0,haber:p.resultadoEjercicio,descripcion:'Ganancia del ejercicio',orden:1});
+        lineas.push({cuenta_id:p.ctaRE.id,debe:p.resultadoEjercicio,haber:0,descripcion:'Cierre Resultado del Ejercicio',orden:0});
+        lineas.push({cuenta_id:p.ctaRNA.id,debe:0,haber:p.resultadoEjercicio,descripcion:'Ganancia del ejercicio',orden:1});
       }else{
-        lineas.push({asiento_id:aid,cuenta_id:p.ctaRNA.id,debe:-p.resultadoEjercicio,haber:0,descripcion:'Pérdida del ejercicio',orden:0});
-        lineas.push({asiento_id:aid,cuenta_id:p.ctaRE.id,debe:0,haber:-p.resultadoEjercicio,descripcion:'Cierre Resultado del Ejercicio',orden:1});
+        lineas.push({cuenta_id:p.ctaRNA.id,debe:-p.resultadoEjercicio,haber:0,descripcion:'Pérdida del ejercicio',orden:0});
+        lineas.push({cuenta_id:p.ctaRE.id,debe:0,haber:-p.resultadoEjercicio,descripcion:'Cierre Resultado del Ejercicio',orden:1});
       }
       _validarPartidaDoble(lineas,'Pasaje');
-      await POST('asiento_lineas',lineas);
-      refs.asiento_pasaje_id=aid;
+      const r=await RPC('crear_asiento',{p_cabecera:cab,p_lineas:lineas});
+      refs.asiento_pasaje_id=r.id;
     }
     // ─ Paso 3: Cierre cuentas patrimoniales ─
     if(cfg.p3 && p.patrim.length){
-      const cab={...base,numero:++maxN,fecha:cfg.fechaReg,descripcion:`Cierre de cuentas patrimoniales — ejercicio N° ${cfg.numero}`,tipo:'auto-cierre-patrimoniales'};
-      const r=await POST('asientos',cab);const aid=r[0].id;
+      const cab={...base,fecha:cfg.fechaReg,descripcion:`Cierre de cuentas patrimoniales — ejercicio N° ${cfg.numero}`,tipo:'auto-cierre-patrimoniales'};
       const lineas=[];let ord=0,totDebe=0,totHaber=0;
       p.patrim.forEach(x=>{
         if(x.tipo==='activo'){
-          if(x.saldo>0){lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:0,haber:x.saldo,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++});totHaber+=x.saldo;}
-          else if(x.saldo<0){lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:-x.saldo,haber:0,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++});totDebe+=-x.saldo;}
+          if(x.saldo>0){lineas.push({cuenta_id:x.cuenta.id,debe:0,haber:x.saldo,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++});totHaber+=x.saldo;}
+          else if(x.saldo<0){lineas.push({cuenta_id:x.cuenta.id,debe:-x.saldo,haber:0,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++});totDebe+=-x.saldo;}
         }else{
-          if(x.saldo>0){lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:x.saldo,haber:0,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++});totDebe+=x.saldo;}
-          else if(x.saldo<0){lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:0,haber:-x.saldo,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++});totHaber+=-x.saldo;}
+          if(x.saldo>0){lineas.push({cuenta_id:x.cuenta.id,debe:x.saldo,haber:0,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++});totDebe+=x.saldo;}
+          else if(x.saldo<0){lineas.push({cuenta_id:x.cuenta.id,debe:0,haber:-x.saldo,descripcion:`Cierre ${x.cuenta.codigo}`,orden:ord++});totHaber+=-x.saldo;}
         }
       });
       const dif=totDebe-totHaber;
       if(Math.abs(dif)>=0.01){
-        if(dif>0)lineas.push({asiento_id:aid,cuenta_id:p.ctaCierre.id,debe:0,haber:dif,descripcion:'Saldo de cierre',orden:ord++});
-        else lineas.push({asiento_id:aid,cuenta_id:p.ctaCierre.id,debe:-dif,haber:0,descripcion:'Saldo de cierre',orden:ord++});
+        if(dif>0)lineas.push({cuenta_id:p.ctaCierre.id,debe:0,haber:dif,descripcion:'Saldo de cierre',orden:ord++});
+        else lineas.push({cuenta_id:p.ctaCierre.id,debe:-dif,haber:0,descripcion:'Saldo de cierre',orden:ord++});
       }
       _validarPartidaDoble(lineas,'Cierre patrimoniales');
-      await POST('asiento_lineas',lineas);
-      refs.asiento_cierre_patrimonial_id=aid;
+      const r=await RPC('crear_asiento',{p_cabecera:cab,p_lineas:lineas});
+      refs.asiento_cierre_patrimonial_id=r.id;
     }
     // ─ Paso 4: Apertura (inverso al cierre patrimonial) ─
     if(cfg.p4 && p.patrim.length){
-      const cab={...base,numero:++maxN,fecha:cfg.fechaApert,descripcion:`Apertura de cuentas patrimoniales — siguiente al ejercicio N° ${cfg.numero}`,tipo:'auto-apertura'};
-      const r=await POST('asientos',cab);const aid=r[0].id;
+      const cab={...base,fecha:cfg.fechaApert,descripcion:`Apertura de cuentas patrimoniales — siguiente al ejercicio N° ${cfg.numero}`,tipo:'auto-apertura'};
       const lineas=[];let ord=0,totDebe=0,totHaber=0;
       p.patrim.forEach(x=>{
         if(x.tipo==='activo'){
-          if(x.saldo>0){lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:x.saldo,haber:0,descripcion:`Apertura ${x.cuenta.codigo}`,orden:ord++});totDebe+=x.saldo;}
-          else if(x.saldo<0){lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:0,haber:-x.saldo,descripcion:`Apertura ${x.cuenta.codigo}`,orden:ord++});totHaber+=-x.saldo;}
+          if(x.saldo>0){lineas.push({cuenta_id:x.cuenta.id,debe:x.saldo,haber:0,descripcion:`Apertura ${x.cuenta.codigo}`,orden:ord++});totDebe+=x.saldo;}
+          else if(x.saldo<0){lineas.push({cuenta_id:x.cuenta.id,debe:0,haber:-x.saldo,descripcion:`Apertura ${x.cuenta.codigo}`,orden:ord++});totHaber+=-x.saldo;}
         }else{
-          if(x.saldo>0){lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:0,haber:x.saldo,descripcion:`Apertura ${x.cuenta.codigo}`,orden:ord++});totHaber+=x.saldo;}
-          else if(x.saldo<0){lineas.push({asiento_id:aid,cuenta_id:x.cuenta.id,debe:-x.saldo,haber:0,descripcion:`Apertura ${x.cuenta.codigo}`,orden:ord++});totDebe+=-x.saldo;}
+          if(x.saldo>0){lineas.push({cuenta_id:x.cuenta.id,debe:0,haber:x.saldo,descripcion:`Apertura ${x.cuenta.codigo}`,orden:ord++});totHaber+=x.saldo;}
+          else if(x.saldo<0){lineas.push({cuenta_id:x.cuenta.id,debe:-x.saldo,haber:0,descripcion:`Apertura ${x.cuenta.codigo}`,orden:ord++});totDebe+=-x.saldo;}
         }
       });
       const dif=totDebe-totHaber;
       if(Math.abs(dif)>=0.01){
-        if(dif>0)lineas.push({asiento_id:aid,cuenta_id:p.ctaCierre.id,debe:0,haber:dif,descripcion:'Saldo de apertura',orden:ord++});
-        else lineas.push({asiento_id:aid,cuenta_id:p.ctaCierre.id,debe:-dif,haber:0,descripcion:'Saldo de apertura',orden:ord++});
+        if(dif>0)lineas.push({cuenta_id:p.ctaCierre.id,debe:0,haber:dif,descripcion:'Saldo de apertura',orden:ord++});
+        else lineas.push({cuenta_id:p.ctaCierre.id,debe:-dif,haber:0,descripcion:'Saldo de apertura',orden:ord++});
       }
       _validarPartidaDoble(lineas,'Apertura');
-      await POST('asiento_lineas',lineas);
-      refs.asiento_apertura_id=aid;
+      const r=await RPC('crear_asiento',{p_cabecera:cab,p_lineas:lineas});
+      refs.asiento_apertura_id=r.id;
     }
 
     // ─ Crear o actualizar ejercicio (estado='cerrado') ─
@@ -3904,10 +3851,7 @@ async function generarAsientoAjusteInflacion(){
   if(!confirm(msg))return;
   setBusy('btn-gen-ajuste',true);
   try{
-    const maxN=asientos.reduce((m,a)=>Math.max(m,parseInt(a.numero||0)||0),0);
     const cabecera={
-      empresa_id:currentEmpresa.id,
-      numero:maxN+1,
       fecha:p.fechaAsiento,
       descripcion:`Ajuste por inflación ${MES_NOMBRE[p.mesDesde]} ${p.anioDesde} → ${MES_NOMBRE[p.mesHasta]} ${p.anioHasta} (coef ${p.coef.toFixed(4)})`,
       comprobante_nro:null,
@@ -3919,20 +3863,19 @@ async function generarAsientoAjusteInflacion(){
       tipo_cambio:null,
       tc_tipo:null,
     };
-    const r=await POST('asientos',cabecera);
-    const asientoId=r[0].id;
     const lineas=[];
     let orden=0;
     p.ajustes.forEach(a=>{
-      lineas.push({asiento_id:asientoId,cuenta_id:a.cuenta.id,debe:a.debe||0,haber:a.haber||0,descripcion:`Reexpresión coef ${p.coef.toFixed(4)}`,orden:orden++});
+      lineas.push({cuenta_id:a.cuenta.id,debe:a.debe||0,haber:a.haber||0,descripcion:`Reexpresión coef ${p.coef.toFixed(4)}`,orden:orden++});
     });
     // RECPAM (siempre la última línea)
     if(p.recpamDebe>0||p.recpamHaber>0){
-      lineas.push({asiento_id:asientoId,cuenta_id:p.ctaRecpam.id,debe:p.recpamDebe||0,haber:p.recpamHaber||0,descripcion:`RECPAM período ${MES_NOMBRE[p.mesDesde]} ${p.anioDesde} → ${MES_NOMBRE[p.mesHasta]} ${p.anioHasta}`,orden:orden++});
+      lineas.push({cuenta_id:p.ctaRecpam.id,debe:p.recpamDebe||0,haber:p.recpamHaber||0,descripcion:`RECPAM período ${MES_NOMBRE[p.mesDesde]} ${p.anioDesde} → ${MES_NOMBRE[p.mesHasta]} ${p.anioHasta}`,orden:orden++});
     }
-    await POST('asiento_lineas',lineas);
+    // Atómico (RPC): cabecera + líneas juntas, numeración en la DB.
+    const r=await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas});
     await loadAll();renderAll();
-    notify(`Asiento N° ${maxN+1} creado en borrador. Revisalo en "Asientos" y confirmalo cuando esté ok.`);
+    notify(`Asiento N° ${r.numero} creado en borrador. Revisalo en "Asientos" y confirmalo cuando esté ok.`);
     ajustePreview=null;
     document.getElementById('btn-gen-ajuste').disabled=true;
     document.getElementById('btn-gen-ajuste').style.opacity='.4';
@@ -4223,11 +4166,8 @@ async function registrarCobroOPago(){
   if(!ctaCtraparte)return notify(`Falta cuenta de ${cobPagModo==='cobro'?'Deudores':'Proveedores'} en Imputación contable`,'err');
   setBusy('btn-save-cobpag',true);
   try{
-    const maxN=asientos.reduce((m,a)=>Math.max(m,parseInt(a.numero||0)||0),0);
     const desc=cobPagModo==='cobro'?`Cobro de ${tercero}`:`Pago a ${tercero}`;
     const cabecera={
-      empresa_id:currentEmpresa.id,
-      numero:maxN+1,
       fecha,
       descripcion:desc+(obs?` — ${obs}`:''),
       comprobante_nro:comprobante,
@@ -4239,20 +4179,19 @@ async function registrarCobroOPago(){
       tipo_cambio:moneda==='USD'?tc:null,
       tc_tipo:moneda==='USD'?'venta':null,
     };
-    const r=await POST('asientos',cabecera);
-    const asientoId=r[0].id;
     // Para cobro: Medio (Caja/Banco) debe / Deudores haber
     // Para pago: Proveedores debe / Medio (Caja/Banco) haber
     const lineas=cobPagModo==='cobro'?[
-      {asiento_id:asientoId,cuenta_id:ctaMedio.id,debe:monto,haber:0,descripcion:`${ctaMedio.nombre} ${tercero}`,orden:0},
-      {asiento_id:asientoId,cuenta_id:ctaCtraparte.id,debe:0,haber:monto,descripcion:`Cancelación deuda ${tercero}`,orden:1},
+      {cuenta_id:ctaMedio.id,debe:monto,haber:0,descripcion:`${ctaMedio.nombre} ${tercero}`,orden:0},
+      {cuenta_id:ctaCtraparte.id,debe:0,haber:monto,descripcion:`Cancelación deuda ${tercero}`,orden:1},
     ]:[
-      {asiento_id:asientoId,cuenta_id:ctaCtraparte.id,debe:monto,haber:0,descripcion:`Cancelación deuda ${tercero}`,orden:0},
-      {asiento_id:asientoId,cuenta_id:ctaMedio.id,debe:0,haber:monto,descripcion:`${ctaMedio.nombre} ${tercero}`,orden:1},
+      {cuenta_id:ctaCtraparte.id,debe:monto,haber:0,descripcion:`Cancelación deuda ${tercero}`,orden:0},
+      {cuenta_id:ctaMedio.id,debe:0,haber:monto,descripcion:`${ctaMedio.nombre} ${tercero}`,orden:1},
     ];
-    await POST('asiento_lineas',lineas);
+    // Atómico (RPC): cabecera + líneas juntas, numeración en la DB.
+    const r=await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas});
     await loadAll();
-    notify(`✓ ${cobPagModo==='cobro'?'Cobro':'Pago'} registrado · Asiento N° ${maxN+1}`);
+    notify(`✓ ${cobPagModo==='cobro'?'Cobro':'Pago'} registrado · Asiento N° ${r.numero}`);
     // limpiar form (mantener fecha/método/tercero por si hay varios)
     document.getElementById('cp-monto').value='';
     document.getElementById('cp-comprobante').value='';
@@ -4538,18 +4477,10 @@ async function saveAsiento(){
     const tc=parseFloat(g('asiento-tc'))||0;
     const tcTipo=g('asiento-tc-tipo')||'venta';
     if(!tc||tc<=0){notify('Ingresá un tipo de cambio válido','err');_savingAsiento=false;setBusy('btn-save-asiento',false,'Guardar asiento');return;}
-    const cabecera={empresa_id:currentEmpresa.id,numero:parseInt(g('asiento-numero'))||1,fecha:g('asiento-fecha'),descripcion:g('asiento-descripcion'),comprobante_nro:g('asiento-comprobante')||null,estado:g('asiento-estado'),tipo:'manual',moneda,tipo_cambio:tc,tc_tipo:tcTipo};
-    let asientoId;
-    if(id){
-      asientoId=id;
-      await PATCH('asientos',cabecera,`?id=eq.${id}`);
-      await DEL('asiento_lineas',`?asiento_id=eq.${id}`);
-    }else{
-      const r=await POST('asientos',cabecera);
-      asientoId=r[0].id;
-    }
-    const lns=lineasDraft.map((l,idx)=>({asiento_id:asientoId,cuenta_id:l.cuenta_id,debe:parseFloat(l.debe||0),haber:parseFloat(l.haber||0),descripcion:l.descripcion||null,orden:idx}));
-    if(lns.length)await POST('asiento_lineas',lns);
+    // Cabecera + líneas en UNA transacción (RPC). Sin numero → numera la DB.
+    const cabecera={numero:parseInt(g('asiento-numero'))||null,fecha:g('asiento-fecha'),descripcion:g('asiento-descripcion'),comprobante_nro:g('asiento-comprobante')||null,estado:g('asiento-estado'),tipo:'manual',moneda,tipo_cambio:tc,tc_tipo:tcTipo};
+    const lns=lineasDraft.map((l,idx)=>({cuenta_id:l.cuenta_id,debe:parseFloat(l.debe||0),haber:parseFloat(l.haber||0),descripcion:l.descripcion||null,orden:idx}));
+    await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lns,p_asiento_id:id||null});
     await loadAll();closeModal('modal-asiento');renderAll();notify(id?'Asiento actualizado':'Asiento registrado');
   }catch(e){notify(e.message,'err');}
   finally{_savingAsiento=false;setBusy('btn-save-asiento',false,'Guardar asiento');}
@@ -5000,23 +4931,14 @@ async function generarAsientoVenta(ventaId,total,cliente,fecha,nroRemito){
     // Auto-asiento desde venta: la venta está en USD (cobranza→TC comprador del banco)
     await fetchCotizacion();
     const tcAuto=cotizacion.compra||cotizacion.venta||1;
-    const cabecera={empresa_id:currentEmpresa.id,fecha:fecha||new Date().toISOString().slice(0,10),descripcion:`Venta a ${cliente||'cliente'}`+(aplicaIVA?` (IVA ${(ivaPct*100).toFixed(0)}%)`:''),comprobante_nro:nroRemito||null,tipo:'auto-venta',origen_tipo:'venta',origen_id:ventaId,estado:'confirmado',moneda:'USD',tipo_cambio:tcAuto,tc_tipo:'compra'};
-    let asientoId;
-    if(existing){
-      asientoId=existing.id;
-      await PATCH('asientos',cabecera,`?id=eq.${asientoId}`);
-      await DEL('asiento_lineas',`?asiento_id=eq.${asientoId}`);
-    }else{
-      const maxN=asientos.reduce((m,a)=>Math.max(m,parseInt(a.numero||0)||0),0);
-      const r=await POST('asientos',{...cabecera,numero:maxN+1});
-      asientoId=r[0].id;
-    }
+    const cabecera={fecha:fecha||new Date().toISOString().slice(0,10),descripcion:`Venta a ${cliente||'cliente'}`+(aplicaIVA?` (IVA ${(ivaPct*100).toFixed(0)}%)`:''),comprobante_nro:nroRemito||null,tipo:'auto-venta',origen_tipo:'venta',origen_id:ventaId,estado:'confirmado',moneda:'USD',tipo_cambio:tcAuto,tc_tipo:'compra'};
     const lineas=[
-      {asiento_id:asientoId,cuenta_id:ctaDeudores.id,debe:bruto,haber:0,descripcion:`Deuda cliente ${cliente||''}`,orden:0},
-      {asiento_id:asientoId,cuenta_id:ctaVentas.id,debe:0,haber:neto,descripcion:`Venta ${nroRemito||''}`,orden:1},
+      {cuenta_id:ctaDeudores.id,debe:bruto,haber:0,descripcion:`Deuda cliente ${cliente||''}`,orden:0},
+      {cuenta_id:ctaVentas.id,debe:0,haber:neto,descripcion:`Venta ${nroRemito||''}`,orden:1},
     ];
-    if(aplicaIVA)lineas.push({asiento_id:asientoId,cuenta_id:ctaIvaDeb.id,debe:0,haber:iva,descripcion:`IVA Débito ${(ivaPct*100).toFixed(0)}% s/ ${nroRemito||''}`,orden:2});
-    await POST('asiento_lineas',lineas);
+    if(aplicaIVA)lineas.push({cuenta_id:ctaIvaDeb.id,debe:0,haber:iva,descripcion:`IVA Débito ${(ivaPct*100).toFixed(0)}% s/ ${nroRemito||''}`,orden:2});
+    // Atómico (RPC): cabecera + líneas juntas, numeración en la DB.
+    await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas,p_asiento_id:existing?existing.id:null});
   }catch(e){console.warn('Error generando asiento automático de venta:',e);}
 }
 
@@ -5055,10 +4977,7 @@ async function generarAsientoCompra(recepcionItems,oc,fecha){
     if(totalNeto<=0){console.warn('Asiento de compra no generado: monto total = 0');return;}
     const iva=aplicaIVA?totalNeto*ivaPct:0;
     const bruto=totalNeto+iva;
-    const maxN=asientos.reduce((m,a)=>Math.max(m,parseInt(a.numero||0)||0),0);
     const cabecera={
-      empresa_id:currentEmpresa.id,
-      numero:maxN+1,
       fecha,
       descripcion:`Compra OC ${oc.nro} — ${oc.proveedores?.nombre||'proveedor'}`+(aplicaIVA?` (IVA ${(ivaPct*100).toFixed(0)}%)`:''),
       comprobante_nro:oc.factura_nro||oc.nro,
@@ -5070,15 +4989,14 @@ async function generarAsientoCompra(recepcionItems,oc,fecha){
       tipo_cambio:oc.tipo_cambio||null,
       tc_tipo:oc.tc_tipo||null,
     };
-    const r=await POST('asientos',cabecera);
-    const asientoId=r[0].id;
     const lineas=[];let ord=0;
     Object.entries(porCuenta).forEach(([ctaId,neto])=>{
-      lineas.push({asiento_id:asientoId,cuenta_id:ctaId,debe:neto,haber:0,descripcion:`Compra ${oc.nro}`,orden:ord++});
+      lineas.push({cuenta_id:ctaId,debe:neto,haber:0,descripcion:`Compra ${oc.nro}`,orden:ord++});
     });
-    if(aplicaIVA)lineas.push({asiento_id:asientoId,cuenta_id:ctaIva.id,debe:iva,haber:0,descripcion:`IVA CF ${(ivaPct*100).toFixed(0)}%`,orden:ord++});
-    lineas.push({asiento_id:asientoId,cuenta_id:ctaProv.id,debe:0,haber:bruto,descripcion:`Proveedor ${oc.proveedores?.nombre||''}`,orden:ord++});
-    await POST('asiento_lineas',lineas);
+    if(aplicaIVA)lineas.push({cuenta_id:ctaIva.id,debe:iva,haber:0,descripcion:`IVA CF ${(ivaPct*100).toFixed(0)}%`,orden:ord++});
+    lineas.push({cuenta_id:ctaProv.id,debe:0,haber:bruto,descripcion:`Proveedor ${oc.proveedores?.nombre||''}`,orden:ord++});
+    // Atómico (RPC): cabecera + líneas juntas, numeración en la DB.
+    await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas});
   }catch(e){console.warn('Error generando asiento automático de compra:',e);}
 }
 
@@ -5368,15 +5286,15 @@ async function savePT(){
       notify('Producto actualizado');
     } else {
       if(!lote)return notify('Completá el lote PT','err');
-      await POST('productos_terminados',{...payload,empresa_id:currentEmpresa.id,lote,costo_unitario:parseFloat(document.getElementById('pt-precio').value)||0});
-      // Descontar kg de la barra si se especificaron
+      const nuevoPT=await POST('productos_terminados',{...payload,empresa_id:currentEmpresa.id,lote,costo_unitario:parseFloat(document.getElementById('pt-precio').value)||0});
+      // Descontar kg de la barra si se especificaron.
+      // Atómico en la DB: falla si el stock no alcanza AHORA. Si falla,
+      // se revierte el PT recién creado.
       if(barraId&&kgUsados>0){
         const b=barras.find(x=>x.id===barraId);
-        if(b){
-          const nuevoKg=Math.max(0,parseFloat(b.kg_disponibles)-kgUsados);
-          await PATCH('barras',{kg_disponibles:nuevoKg},`?id=eq.${barraId}`);
-          notify(`Producto creado — descontados ${kgUsados} mts de ${b.lote}`);
-        }
+        try{await RPC('consumir_barra',{p_barra_id:barraId,p_kg:kgUsados});}
+        catch(eS){await DEL('productos_terminados',`?id=eq.${nuevoPT[0].id}`).catch(()=>{});throw eS;}
+        notify(`Producto creado — descontados ${kgUsados} mts de ${b?b.lote:'la barra'}`);
       } else {
         notify('Producto creado');
       }
@@ -6924,34 +6842,10 @@ async function convertirPresupuesto(id){
   const p=presupuestos.find(x=>x.id===id);if(!p)return;
   if(!confirm(`¿Convertir presupuesto "${p.nro}" en venta?\nCliente: ${p.cliente}\nTotal: ${fmtUSD(p.total)}`))return;
   try{
-    const items=p.presupuesto_items||[];
-    const ventaNro='V-'+String(ventas.length+1).padStart(5,'0');
-    const clienteExiste=clientes.find(c=>c.nombre.toLowerCase()===(p.cliente||'').toLowerCase());
-    if(!clienteExiste && p.cliente){
-      await POST('clientes',{empresa_id:currentEmpresa.id,nombre:p.cliente,cuit:p.cuit||null});
-    }else if(clienteExiste && p.cuit && !clienteExiste.cuit){
-      await PATCH('clientes',{cuit:p.cuit},`?id=eq.${clienteExiste.id}`);
-    }
-    const vres=await POST('ventas',{
-      empresa_id:currentEmpresa.id,
-      nro_remito:ventaNro,
-      nro_pedido:ventaNro,
-      cliente:p.cliente,
-      fecha:new Date().toISOString().slice(0,10),
-      estado:'pendiente',
-      estado_pedido:'pendiente',
-      condicion_pago:p.condicion_pago||null,
-      fecha_entrega_hasta:p.fecha_vencimiento||null,
-      coef_registracion_moneda:'USD',
-      coef_emision_moneda:'USD',
-      coef_deuda_moneda:'USD',
-      observaciones:`Generada desde presupuesto ${p.nro}${p.observaciones?' — '+p.observaciones:''}`,
-      total:parseFloat(p.total)||0
-    });
-    const vid=vres[0].id;
-    if(items.length){const viData=items.map(i=>({venta_id:vid,producto_id:i.producto_id||null,pieza:i.pieza,cantidad:parseFloat(i.cantidad)||0,precio_unitario:parseFloat(i.precio_unitario)||0,total:parseFloat(i.subtotal)||0}));await POST('venta_items',viData);}
-    await PATCH('presupuestos',{estado:'convertido',venta_id:vid},`?id=eq.${id}`);
-    await loadAll();renderAll();notify(`✓ Venta ${ventaNro} creada desde presupuesto`);
+    // Atómico en la DB: numera V-xxxxx bajo lock (sin duplicados), upsertea
+    // el cliente, crea venta + items y marca el presupuesto como convertido.
+    const r=await RPC('convertir_presupuesto',{p_presupuesto_id:id});
+    await loadAll();renderAll();notify(`✓ Venta ${r.nro} creada desde presupuesto`);
   }catch(e){console.error('convertirPresupuesto error',e);notify('Error al convertir: '+(e.message||'ver consola'),'err');}
 }
 
