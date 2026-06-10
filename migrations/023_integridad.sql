@@ -537,6 +537,19 @@ BEGIN
   END LOOP;
 END $$;
 
+-- ─── 13. Cerrar EXECUTE a anon ───────────────────────────────────────
+-- Supabase otorga EXECUTE a anon/authenticated/service_role por DEFAULT
+-- PRIVILEGES al crear cada función; el REVOKE ... FROM public de arriba
+-- no alcanza esos grants explícitos. Sin esto anon puede ejecutar las
+-- RPCs (cortan en 'Sin empresa asignada' y la RLS es TO authenticated,
+-- así que no expone datos — pero defensa en profundidad).
+REVOKE EXECUTE ON FUNCTION public.crear_asiento(jsonb, jsonb, uuid) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.guardar_venta(jsonb, jsonb, uuid) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.anular_venta(uuid) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.convertir_presupuesto(uuid) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.consumir_barra(uuid, numeric) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.upsert_cliente(text, text) FROM anon;
+
 COMMIT;
 
 -- ═══════════════════════════════════════════════════════════════════
