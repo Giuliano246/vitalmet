@@ -2886,7 +2886,7 @@ function renderVentas(filter=''){
     <div class="stat-card"><div class="stat-label">Importe total</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtUSD(totalImp)}</div></div>
     <div class="stat-card"><div class="stat-label">Clientes distintos</div><div class="stat-value">${[...new Set(ventas.map(v=>v.cliente))].length}</div></div>`;
   const bE={entregado:'badge-ok',facturado:'badge-teal',pendiente:'badge-warn'};
-  document.getElementById('ventas-tbody').innerHTML=list.length?list.map(v=>{const items=v.venta_items||[];const importe=items.reduce((a,i)=>a+(i.cantidad*(i.precio_unitario||0)),0);const totalU=items.reduce((a,i)=>a+i.cantidad,0);const piezas=[...new Set(items.map(i=>i.pieza||''))].join(', ');return`<tr><td class="mono td-primary">${esc(v.nro_remito)}</td><td style="font-weight:500">${esc(v.cliente)}</td><td>${esc(v.fecha)||'—'}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(piezas)}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td>${estadoSelect('ventas',v.id,v.estado,['pendiente','entregado','facturado'],bE)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button>${v.factura_emitida_id?`<button class="btn btn-ghost btn-sm" id="ver-factura-${v.id}" onclick="verFactura('${v.factura_emitida_id}')" title="CAE emitido — ver/descargar"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h3"/></svg></span>CAE</button>`:`<button class="btn btn-ghost btn-sm" id="emitir-factura-${v.id}" onclick="emitirFactura('${v.id}')" title="Solicitar CAE a AFIP" style="color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m13 2-3 7h8l-9 13 3-9H4z"/></svg></span>Facturar</button>`}<button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>Anular</button></td></tr>`;}):(`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></div><div class="empty-title">Sin ventas registradas</div><div class="empty-msg">Las ventas se generan al convertir un presupuesto aprobado. Andá a <b>Presupuestos</b> y aprobalo.</div></div></td></tr>`);
+  document.getElementById('ventas-tbody').innerHTML=list.length?list.map(v=>{const items=v.venta_items||[];const importe=items.reduce((a,i)=>a+(i.cantidad*(i.precio_unitario||0)),0);const totalU=items.reduce((a,i)=>a+i.cantidad,0);const piezas=[...new Set(items.map(i=>i.pieza||''))].join(', ');return`<tr><td class="mono td-primary">${esc(v.nro_remito)}</td><td style="font-weight:500">${esc(v.cliente)}</td><td>${esc(v.fecha)||'—'}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(piezas)}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td>${estadoSelect('ventas',v.id,v.estado,['pendiente','entregado','facturado'],bE)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button>${v.factura_emitida_id?`<button class="btn btn-ghost btn-sm" id="ver-factura-${v.id}" onclick="verFactura('${v.factura_emitida_id}')" title="CAE emitido — ver/descargar"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h3"/></svg></span>CAE</button>`:`<button class="btn btn-ghost btn-sm" id="emitir-factura-${v.id}" onclick="emitirFactura('${v.id}')" title="Solicitar CAE a AFIP" style="color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m13 2-3 7h8l-9 13 3-9H4z"/></svg></span>Facturar</button>`}<button class="btn btn-ghost btn-sm" onclick="generateRemitoPDF('${v.id}')" title="Remito de entrega (PDF)" aria-label="Remito PDF"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18h-5"/><path d="M20 18h2v-7l-3-5h-5v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span></button><button class="btn btn-ghost btn-sm" onclick="generateCertConformidadPDF('${v.id}')" title="Certificado de conformidad (PDF)" aria-label="Certificado de conformidad"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg></span></button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>Anular</button></td></tr>`;}):(`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></div><div class="empty-title">Sin ventas registradas</div><div class="empty-msg">Las ventas se generan al convertir un presupuesto aprobado. Andá a <b>Presupuestos</b> y aprobalo.</div></div></td></tr>`);
 }
 
 function renderDash(){
@@ -7118,6 +7118,184 @@ function generatePresupuestoPDF(id){
   const safeCli=(p.cliente||'cliente').replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
   doc.save(`Presupuesto_${p.nro||'sin-nro'}_${safeCli}.pdf`);
   notify('PDF generado');
+}
+
+// ─── PDF DE REMITO DE ENTREGA (desde venta, sin precios) ───────────
+// Encabezado compartido de los documentos de venta: logo + datos de la
+// empresa + título a la derecha. Devuelve la Y donde sigue el contenido.
+function _pdfHeaderVitalmet(doc,titulo,nro,nroColor){
+  if(VITALMET_LOGO_DATAURL){
+    try{doc.addImage(VITALMET_LOGO_DATAURL,'JPEG',14,10,42,25);}catch(e){console.error('Logo error:',e);}
+  }
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100,100,100);
+  const xEmp=60;
+  doc.text('Perú 246, Villa Martelli, Buenos Aires',xEmp,18);
+  doc.text('CUIT: 34-59751980-1',xEmp,22);
+  doc.text('Tel: 11-5998-3767  ·  ventas@vitalmetsa.com',xEmp,26);
+  doc.text('vitalmetsa.com',xEmp,30);
+  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(40,40,40);
+  doc.text(titulo,196,22,{align:'right'});
+  doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(...(nroColor||[60,130,90]));
+  doc.text(nro,196,30,{align:'right'});
+  doc.setDrawColor(220,220,220);doc.line(14,48,196,48);
+  return 56;
+}
+// Trazabilidad de un item de venta: PT → OP → barra → certificado MTC.
+function _trazaItemVenta(it){
+  const pt=it.producto_id?pts.find(x=>x.id===it.producto_id):null;
+  const op=pt?ops.find(o=>o.id===pt.orden_id):null;
+  const barra=(pt?.barra_id||op?.barra_id)?barras.find(b=>b.id===(pt?.barra_id||op?.barra_id)):null;
+  const cert=barra?.certificado_id?certs.find(c=>c.id===barra.certificado_id):null;
+  const trats=op?tratamientos.filter(t=>t.orden_id===op.id):[];
+  return{pt,op,barra,cert,trats};
+}
+function generateRemitoPDF(ventaId){
+  const v=ventas.find(x=>x.id===ventaId);
+  if(!v){notify('Venta no encontrada','err');return;}
+  if(!window.jspdf){notify('Librería PDF no cargada. Recargá la página.','err');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const items=v.venta_items||[];
+  const cli=clientes.find(c=>c.id===v.cliente_id)||clientes.find(c=>(c.nombre||'').toLowerCase()===(v.cliente||'').toLowerCase());
+  let y=_pdfHeaderVitalmet(doc,'REMITO',`Nº ${v.nro_remito||'—'}`);
+  doc.setFontSize(8);doc.setTextColor(130,130,130);
+  doc.text('Documento no válido como factura',196,36,{align:'right'});
+
+  doc.setFontSize(10);doc.setTextColor(60,60,60);
+  doc.setFont('helvetica','bold');doc.text('Fecha:',14,y);doc.setFont('helvetica','normal');
+  doc.text(v.fecha||new Date().toISOString().slice(0,10),30,y);
+  if(v.nro_pedido&&v.nro_pedido!==v.nro_remito){doc.setFont('helvetica','bold');doc.text('Pedido:',80,y);doc.setFont('helvetica','normal');doc.text(v.nro_pedido,98,y);}
+  y+=8;
+  doc.setFont('helvetica','bold');doc.text('Cliente:',14,y);doc.setFont('helvetica','normal');
+  doc.text(v.cliente||'—',32,y);
+  if(cli?.cuit){doc.setFont('helvetica','bold');doc.text('CUIT:',130,y);doc.setFont('helvetica','normal');doc.text(cli.cuit,144,y);}
+  y+=6;
+  if(cli?.direccion){doc.setFont('helvetica','bold');doc.text('Domicilio:',14,y);doc.setFont('helvetica','normal');doc.text(doc.splitTextToSize(cli.direccion,140),36,y);y+=6;}
+  doc.setFont('helvetica','bold');doc.text('Condición de pago:',14,y);doc.setFont('helvetica','normal');
+  doc.text(v.condicion_pago||'A convenir',50,y);
+
+  y+=8;
+  const rows=items.map((it,idx)=>{
+    const t=_trazaItemVenta(it);
+    return[String(idx+1),t.op?.codigo_plano||'',it.pieza||'',t.pt?.lote||'',String(it.cantidad||0)];
+  });
+  doc.autoTable({
+    startY:y,
+    head:[['#','Código plano','Pieza','Lote','Cantidad']],
+    body:rows.length?rows:[['—','','Sin ítems','','']],
+    theme:'striped',
+    headStyles:{fillColor:[60,90,130],textColor:255,fontStyle:'bold',fontSize:9},
+    styles:{fontSize:9,cellPadding:2.5,overflow:'linebreak'},
+    columnStyles:{0:{cellWidth:10,halign:'center'},1:{cellWidth:35},2:{cellWidth:77},3:{cellWidth:40},4:{cellWidth:20,halign:'center'}},
+    margin:{left:14,right:14}
+  });
+  let finalY=doc.lastAutoTable.finalY+6;
+  const totalU=items.reduce((a,i)=>a+(parseInt(i.cantidad)||0),0);
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(40,40,40);
+  doc.text(`Total de unidades: ${totalU}`,196,finalY,{align:'right'});
+  finalY+=8;
+  if(v.observaciones){
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(60,60,60);
+    doc.text('Observaciones:',14,finalY);
+    doc.setFont('helvetica','normal');doc.setTextColor(80,80,80);
+    const obsLines=doc.splitTextToSize(v.observaciones,180);
+    doc.text(obsLines,14,finalY+5);
+    finalY+=5+obsLines.length*4;
+  }
+  // Recuadros de firma (entrega / recepción)
+  const fy=Math.max(finalY+12,225);
+  doc.setDrawColor(180,180,180);
+  doc.rect(14,fy,86,30);doc.rect(110,fy,86,30);
+  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(80,80,80);
+  doc.text('ENTREGÓ — por VITALMET SA',16,fy+5);
+  doc.text('RECIBÍ CONFORME',112,fy+5);
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(130,130,130);
+  doc.text('Firma y aclaración',16,fy+27);
+  doc.text('Firma, aclaración y DNI  ·  Fecha: ____ / ____ / ______',112,fy+27);
+  doc.setFontSize(7);doc.setTextColor(150,150,150);
+  doc.text('VITALMET SA  ·  Perú 246, Villa Martelli, Bs. As.  ·  vitalmetsa.com',105,290,{align:'center'});
+  const safeCli=(v.cliente||'cliente').replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
+  doc.save(`Remito_${v.nro_remito||'sin-nro'}_${safeCli}.pdf`);
+  notify('Remito PDF generado');
+}
+
+// ─── PDF DE CERTIFICADO DE CONFORMIDAD (trazabilidad completa) ─────
+function generateCertConformidadPDF(ventaId){
+  const v=ventas.find(x=>x.id===ventaId);
+  if(!v){notify('Venta no encontrada','err');return;}
+  if(!window.jspdf){notify('Librería PDF no cargada. Recargá la página.','err');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4',orientation:'landscape'});
+  const items=v.venta_items||[];
+  const cli=clientes.find(c=>c.id===v.cliente_id)||clientes.find(c=>(c.nombre||'').toLowerCase()===(v.cliente||'').toLowerCase());
+  // Header (ancho apaisado: 297mm → margen derecho 283)
+  if(VITALMET_LOGO_DATAURL){try{doc.addImage(VITALMET_LOGO_DATAURL,'JPEG',14,10,42,25);}catch(e){}}
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100,100,100);
+  doc.text('Perú 246, Villa Martelli, Buenos Aires',60,18);
+  doc.text('CUIT: 34-59751980-1',60,22);
+  doc.text('Tel: 11-5998-3767  ·  ventas@vitalmetsa.com',60,26);
+  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(40,40,40);
+  doc.text('CERTIFICADO DE CONFORMIDAD',283,20,{align:'right'});
+  doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(60,130,90);
+  doc.text(`Nº CC-${v.nro_remito||'—'}`,283,28,{align:'right'});
+  doc.setDrawColor(220,220,220);doc.line(14,40,283,40);
+
+  let y=48;
+  doc.setFontSize(10);doc.setTextColor(60,60,60);
+  doc.setFont('helvetica','bold');doc.text('Cliente:',14,y);doc.setFont('helvetica','normal');
+  doc.text(v.cliente||'—',32,y);
+  if(cli?.cuit){doc.setFont('helvetica','bold');doc.text('CUIT:',120,y);doc.setFont('helvetica','normal');doc.text(cli.cuit,134,y);}
+  doc.setFont('helvetica','bold');doc.text('Remito:',190,y);doc.setFont('helvetica','normal');
+  doc.text(v.nro_remito||'—',208,y);
+  doc.setFont('helvetica','bold');doc.text('Fecha:',245,y);doc.setFont('helvetica','normal');
+  doc.text(v.fecha||new Date().toISOString().slice(0,10),260,y);
+  y+=8;
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(80,80,80);
+  const decl='VITALMET SA certifica que los productos detallados a continuación fueron fabricados e inspeccionados conforme a los planos y especificaciones aplicables, con materiales respaldados por los certificados de calidad (MTC) que se indican, y cumplen con los requisitos acordados con el cliente.';
+  const declLines=doc.splitTextToSize(decl,269);
+  doc.text(declLines,14,y);
+  y+=declLines.length*4+4;
+
+  const rows=items.map((it,idx)=>{
+    const t=_trazaItemVenta(it);
+    const tratStr=t.trats.map(x=>x.tipo+(x.certificado_nro?` (${x.certificado_nro})`:'')).join(', ');
+    return[
+      String(idx+1),
+      it.pieza||'',
+      t.op?.codigo_plano||'—',
+      String(it.cantidad||0),
+      t.pt?.lote||'—',
+      t.op?.nro||'—',
+      t.barra?(t.barra.material+(t.barra.diametro?' '+t.barra.diametro:'')):'—',
+      t.barra?.nro_colada||'—',
+      t.cert?`${t.cert.nro}${t.cert.proveedor?' · '+t.cert.proveedor:''}`:'—',
+      tratStr||'—'
+    ];
+  });
+  doc.autoTable({
+    startY:y,
+    head:[['#','Pieza','Cód. plano','Cant.','Lote PT','OP','Material','Colada','Cert. MTC','Trat. térmicos']],
+    body:rows.length?rows:[['—','Sin ítems','','','','','','','','']],
+    theme:'striped',
+    headStyles:{fillColor:[60,90,130],textColor:255,fontStyle:'bold',fontSize:8},
+    styles:{fontSize:8,cellPadding:2,overflow:'linebreak'},
+    columnStyles:{0:{cellWidth:8,halign:'center'},1:{cellWidth:42},2:{cellWidth:26},3:{cellWidth:13,halign:'center'},4:{cellWidth:30},5:{cellWidth:18},6:{cellWidth:32},7:{cellWidth:20},8:{cellWidth:46},9:{cellWidth:34}},
+    margin:{left:14,right:14}
+  });
+  let finalY=doc.lastAutoTable.finalY+10;
+  if(finalY>175)finalY=175;
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(110,110,110);
+  doc.text('La trazabilidad completa (certificado de materia prima → colada → orden de producción → lote) se encuentra disponible ante requerimiento.',14,finalY);
+  // Firma
+  const fy=185;
+  doc.setDrawColor(120,120,120);doc.line(200,fy,275,fy);
+  doc.setFontSize(8);doc.setTextColor(80,80,80);
+  doc.text('Control de Calidad — VITALMET SA',237.5,fy+5,{align:'center'});
+  doc.setFontSize(7);doc.setTextColor(150,150,150);
+  doc.text('VITALMET SA  ·  Perú 246, Villa Martelli, Bs. As.  ·  vitalmetsa.com',148.5,202,{align:'center'});
+  const safeCli=(v.cliente||'cliente').replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
+  doc.save(`CertConformidad_${v.nro_remito||'sin-nro'}_${safeCli}.pdf`);
+  notify('Certificado de conformidad generado');
 }
 
 // ─── PDF DE NOTA DE PEDIDO (formato Vitalmet para enviar a proveedor) ───
