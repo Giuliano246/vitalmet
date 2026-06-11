@@ -2216,6 +2216,8 @@ function showPage(p){
   const pageEl=document.getElementById('page-'+p);
   if(!pageEl)return;
   pageEl.classList.add('active');
+  _currentPage=p;
+  if(_dirtyPages.has(p))renderPage(p);
   const group=PAGE_TO_GROUP[p]||p;
   document.querySelectorAll(`.nav-item[data-group="${group}"]`).forEach(e=>e.classList.add('active'));
   // Inyectar tabs si el grupo tiene sub-páginas
@@ -3376,7 +3378,56 @@ function notify(msg,type){
   el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);
 }
 
-function renderAll(){renderDash();renderMP();renderReposicion();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();populateLibroMayorSel();renderLibroMayor();renderBalance();renderEstadoResultados();renderBalanceGeneral();renderRatios();renderIndicesIPC();renderAjuste();renderCierre();renderComparativoHA();renderComparativoEjercicios();renderBimonetario();renderCobPag();renderCtaCte();renderCheques();renderConfig();updateClientesDatalist();animateNumbers();applyIconButtonLabels();}
+// Render por página: renderAll() marca TODAS las páginas como sucias pero
+// renderiza solo la activa; showPage() renderiza una página sucia recién
+// al entrar. Página nueva → agregar sus renders acá (regla 7 del CLAUDE.md).
+const PAGE_RENDERS={
+  dash:[renderDash],
+  mp:[renderMP,renderReposicion],
+  pt:[renderPT],
+  cert:[renderCert],
+  insumos:[renderInsumos],
+  herramientas:[renderHerramientas],
+  op:[renderOP],
+  compras:[renderCompras,renderProveedores],
+  presupuestos:[renderPresupuestos],
+  ventas:[renderVentas],
+  clientes:[renderClientes],
+  ctacte:[renderCtaCte],
+  costos:[renderCostos],
+  cuentas:[renderCuentas],
+  asientosp:[renderAsientos],
+  cobpag:[renderCobPag],
+  cheques:[renderCheques],
+  librodiario:[renderLibroDiario],
+  libromayor:[populateLibroMayorSel,renderLibroMayor],
+  balance:[renderBalance],
+  estado:[renderEstadoResultados],
+  balgral:[renderBalanceGeneral],
+  ratios:[renderRatios],
+  ipc:[renderIndicesIPC],
+  ajuste:[renderAjuste],
+  cierre:[renderCierre],
+  compha:[renderComparativoHA],
+  compej:[renderComparativoEjercicios],
+  bimon:[renderBimonetario],
+  config:[renderConfig],
+};
+let _currentPage='dash';
+const _dirtyPages=new Set();
+function renderPage(p){
+  (PAGE_RENDERS[p]||[]).forEach(f=>f());
+  _dirtyPages.delete(p);
+  animateNumbers();applyIconButtonLabels();
+}
+function renderAll(){
+  Object.keys(PAGE_RENDERS).forEach(p=>_dirtyPages.add(p));
+  updateClientesDatalist();
+  // El badge de alertas del nav tiene que reflejar datos nuevos aunque no
+  // estemos en el dashboard (renderDash lo recalcula al pasar por ahí)
+  if(_currentPage!=='dash')_updateNavAlert(computeAlertas());
+  renderPage(_currentPage);
+}
 // A11y: nombre accesible para botones solo-ícono (sin texto visible) generados por render
 function applyIconButtonLabels(){
   document.querySelectorAll('button:not([aria-label])').forEach(b=>{
