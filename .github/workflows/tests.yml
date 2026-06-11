@@ -1,0 +1,36 @@
+# Validación en cada push: sintaxis del <script> inline + tests de
+# cálculos de plata (cta cte, costeo PT, reposición).
+# No bloquea el deploy de Netlify (corre en paralelo), pero deja la
+# cruz roja en el commit si algo se rompió.
+
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Sintaxis del script inline
+        run: |
+          python3 -c "
+          import re
+          html = open('index.html').read()
+          scripts = re.findall(r'<script>(.*?)</script>', html, re.S)
+          open('/tmp/erp.js', 'w').write(max(scripts, key=len))
+          "
+          node --check /tmp/erp.js
+
+      - name: Tests de cálculos
+        run: node --test tests/calculos.test.js
