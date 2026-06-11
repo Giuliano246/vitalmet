@@ -52,7 +52,7 @@ El core opera en **USD** (`fmtUSD()`). Excepciones: contabilidad bimonetaria y c
 6. Página nueva → `PAGE_TO_GROUP` + `GROUP_TABS` + `groupMods` en `aplicarPermisos` + `<div class="tabs">`.
 7. Tabla nueva → global + `loadAll` (al final, con `_loadFail`) + `renderAll`.
 8. Mutaciones críticas (ventas, asientos, stock) → usar las RPCs atómicas, no POST/PATCH directo.
-9. Validar JS antes de commitear: extraer el `<script>` grande y `node --check`.
+9. Validar antes de commitear: extraer el `<script>` grande y `node --check`, y correr `node --test tests/calculos.test.js`. Si se toca un cálculo de plata (cta cte, costeo, reposición), agregar/ajustar su test.
 10. Texto de UI en español argentino (voseo).
 
 ## Estructura del archivo
@@ -72,7 +72,7 @@ index.html (~8.050 líneas)
 ## Pendientes (deuda técnica de la auditoría 2026-06)
 - [x] Errores de carga visibles (banner + Reintentar)
 - [x] Headers CSP (netlify.toml)
-- [ ] Tests de cálculos de plata con `node --test` (costos, asientos, reposición, cta cte)
+- [x] Tests de cálculos de plata (`tests/calculos.test.js` — cta cte FIFO/aging, costeo PT, reposición; harness vm en `tests/_harness.js`)
 - [ ] Pase de `esc()` sobre renders viejos
 - [ ] Partir index.html en módulos (script files clásicos) — solo cuando haya dolor real
 - [ ] Render solo de la página activa (hoy renderAll re-renderiza todo)
