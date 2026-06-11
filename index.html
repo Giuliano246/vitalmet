@@ -466,7 +466,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
           <div class="search-box"><input type="text" placeholder="Buscar por nro, cliente..." oninput="renderPresupuestos(this.value)"></div>
           <button class="btn btn-ghost" onclick="openPresupuestoModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo presupuesto</button>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Nro</th><th>Cliente</th><th>Fecha</th><th>Vence</th><th>Ítems</th><th>Total USD</th><th>Estado</th><th></th></tr></thead><tbody id="presup-tbody"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Nro</th><th>Cliente</th><th>Fecha</th><th>Vence</th><th>Ítems</th><th>Total USD</th><th>Margen est.</th><th>Estado</th><th></th></tr></thead><tbody id="presup-tbody"></tbody></table></div>
       </div>
     </div>
 
@@ -1479,6 +1479,8 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div style="color:var(--text3)">Descuento %:</div><input type="number" id="presup-desc-pct" step="0.1" min="0" max="100" value="0" oninput="calcPresupTotal()" style="width:70px;background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-family:var(--mono);text-align:right">
         <div style="color:var(--text3)">Total USD:</div><div class="mono" id="presup-total" style="font-weight:700;color:var(--green);font-size:16px;min-width:100px;text-align:right">$0.00</div>
       </div>
+
+      <div id="presup-costeo" style="margin-top:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;font-size:12px;text-align:right"></div>
 
       <div class="form-row single" style="margin-top:10px"><div class="form-group"><label>Observaciones</label><input type="text" id="presup-obs" placeholder="Validez, condiciones, notas"></div></div>
     </div>
@@ -6855,8 +6857,17 @@ function renderPresupuestos(filter=''){
   document.getElementById('presup-tbody').innerHTML=list.length?list.map(p=>{
     const items=p.presupuesto_items||[];
     const puedeConvertir=['enviado','aprobado'].includes(p.estado);
-    return `<tr><td class="mono td-primary">${p.nro}</td><td style="font-weight:500">${p.cliente}</td><td>${p.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${p.fecha_vencimiento||'—'}</td><td class="mono">${items.length}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(p.total||0))}</td><td>${estadoSelect('presupuestos',p.id,p.estado,['borrador','enviado','aprobado','rechazado','vencido'],badges)}</td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="generatePresupuestoPDF('${p.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>PDF</button>${puedeConvertir?`<button class="btn btn-ghost btn-sm" onclick="convertirPresupuesto('${p.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>Venta</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editPresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deletePresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
-  }).join(''):'<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">Sin presupuestos</div><div class="empty-msg">Generá uno con <b>+ Nuevo presupuesto</b>. Cuando el cliente lo apruebe, lo convertís en venta.</div></div></td></tr>';
+    // Margen estimado de la cotización: total (con descuento) vs Σ costo×cant
+    const costos=items.reduce((a,i)=>a+((parseFloat(i.costo_estimado)||0)*(parseFloat(i.cantidad)||0)),0);
+    const totP=parseFloat(p.total||0);
+    let margenCell='<span style="color:var(--text3)">—</span>';
+    if(costos>0&&totP>0){
+      const pct=(totP-costos)/totP*100;
+      const col=pct>=30?'var(--green)':pct>=15?'var(--accent)':'var(--red)';
+      margenCell=`<span class="mono" style="color:${col};font-weight:600">${pct.toFixed(0)}%</span>`;
+    }
+    return `<tr><td class="mono td-primary">${p.nro}</td><td style="font-weight:500">${p.cliente}</td><td>${p.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${p.fecha_vencimiento||'—'}</td><td class="mono">${items.length}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(p.total||0))}</td><td>${margenCell}</td><td>${estadoSelect('presupuestos',p.id,p.estado,['borrador','enviado','aprobado','rechazado','vencido'],badges)}</td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="generatePresupuestoPDF('${p.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>PDF</button>${puedeConvertir?`<button class="btn btn-ghost btn-sm" onclick="convertirPresupuesto('${p.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>Venta</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editPresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deletePresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+  }).join(''):'<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">Sin presupuestos</div><div class="empty-msg">Generá uno con <b>+ Nuevo presupuesto</b>. Cuando el cliente lo apruebe, lo convertís en venta.</div></div></td></tr>';
 }
 
 function openPresupuestoModal(id){
@@ -6873,24 +6884,46 @@ function openPresupuestoModal(id){
   document.getElementById('presup-estado').value=p?.estado||'borrador';
   document.getElementById('presup-obs').value=p?.observaciones||'';
   document.getElementById('presup-desc-pct').value=p?.descuento_pct||0;
-  if(id){const items=p?.presupuesto_items||[];presupItemsDraft=items.map(i=>({id:i.id,producto_id:i.producto_id,pieza:i.pieza,descripcion:i.descripcion||'',cantidad:i.cantidad,precio_unitario:i.precio_unitario,subtotal:i.subtotal}));}
+  if(id){const items=p?.presupuesto_items||[];presupItemsDraft=items.map(i=>({id:i.id,producto_id:i.producto_id,pieza:i.pieza,descripcion:i.descripcion||'',cantidad:i.cantidad,precio_unitario:i.precio_unitario,subtotal:i.subtotal,costo_estimado:parseFloat(i.costo_estimado)||0}));}
   else{presupItemsDraft=[];}
   renderPresupItems();calcPresupTotal();openModal('modal-presupuesto');
 }
 function editPresupuesto(id){openPresupuestoModal(id);}
-function addPresupItem(){presupItemsDraft.push({producto_id:'',pieza:'',descripcion:'',cantidad:1,precio_unitario:0,subtotal:0});renderPresupItems();}
+function addPresupItem(){presupItemsDraft.push({producto_id:'',pieza:'',descripcion:'',cantidad:1,precio_unitario:0,subtotal:0,costo_estimado:0});renderPresupItems();}
 function removePresupItem(idx){presupItemsDraft.splice(idx,1);renderPresupItems();calcPresupTotal();}
 function onPresupItemChange(idx,field,val){
   const it=presupItemsDraft[idx];if(!it)return;
-  if(['cantidad','precio_unitario'].includes(field))val=parseFloat(val)||0;
+  if(['cantidad','precio_unitario','costo_estimado'].includes(field))val=parseFloat(val)||0;
   it[field]=val;
-  // Cambio de producto: actualiza pieza+desc+precio → re-render completo necesario
-  if(field==='producto_id'&&val){const pt=pts.find(x=>x.id===val);if(pt){it.pieza=pt.pieza;it.descripcion=pt.descripcion||'';it.precio_unitario=parseFloat(pt.precio_unitario||0);}renderPresupItems();calcPresupTotal();return;}
-  // Cantidad/precio/pieza: solo actualiza subtotal en celda + total, sin re-render (preserva foco)
+  // Cambio de producto: actualiza pieza+desc+precio+costo estimado → re-render completo necesario
+  if(field==='producto_id'&&val){
+    const pt=pts.find(x=>x.id===val);
+    if(pt){
+      it.pieza=pt.pieza;it.descripcion=pt.descripcion||'';it.precio_unitario=parseFloat(pt.precio_unitario||0);
+      // Costo real histórico del producto (MP + tiempos + overhead)
+      const c=computeCostoPT(pt);
+      it.costo_estimado=Math.round((c.total||0)*100)/100;
+    }
+    renderPresupItems();calcPresupTotal();return;
+  }
+  // Cantidad/precio/pieza/costo: solo actualiza celdas + total, sin re-render (preserva foco)
   it.subtotal=(parseFloat(it.cantidad)||0)*(parseFloat(it.precio_unitario)||0);
   const subEl=document.getElementById(`presup-item-sub-${idx}`);
   if(subEl)subEl.textContent=fmtUSD(it.subtotal);
+  _updatePresupItemMargen(idx);
   calcPresupTotal();
+}
+function _margenColor(pct){return pct>=30?'var(--green)':pct>=15?'var(--accent)':'var(--red)';}
+function _updatePresupItemMargen(idx){
+  const it=presupItemsDraft[idx];
+  const el=document.getElementById(`presup-item-margen-${idx}`);
+  if(!it||!el)return;
+  const precio=parseFloat(it.precio_unitario)||0,costo=parseFloat(it.costo_estimado)||0;
+  if(precio>0&&costo>0){
+    const pct=(precio-costo)/precio*100;
+    el.style.color=_margenColor(pct);
+    el.textContent=`mg ${pct.toFixed(0)}%`;
+  }else{el.style.color='var(--text3)';el.textContent='';}
 }
 function calcPresupTotal(){
   const sub=presupItemsDraft.reduce((a,i)=>a+(parseFloat(i.subtotal)||0),0);
@@ -6898,30 +6931,46 @@ function calcPresupTotal(){
   const total=sub*(1-desc/100);
   document.getElementById('presup-subtotal').textContent=fmtUSD(sub);
   document.getElementById('presup-total').textContent=fmtUSD(total);
+  // Panel de rentabilidad estimada de la cotización completa
+  const el=document.getElementById('presup-costeo');
+  if(el){
+    const costos=presupItemsDraft.reduce((a,i)=>a+((parseFloat(i.costo_estimado)||0)*(parseFloat(i.cantidad)||0)),0);
+    if(costos>0&&total>0){
+      const margen=total-costos;
+      const pct=margen/total*100;
+      const col=_margenColor(pct);
+      el.innerHTML=`<span style="color:var(--text3)">Costo estimado total:</span> <span class="mono">${fmtUSD(costos)}</span>&nbsp;·&nbsp;<span style="color:var(--text3)">Margen estimado:</span> <span class="mono" style="color:${col};font-weight:700">${fmtUSD(margen)} (${pct.toFixed(1)}%)</span>${desc>0?`<span style="color:var(--text3);font-size:10px">&nbsp;(ya descontado el ${desc}%)</span>`:''}`;
+    }else{
+      el.innerHTML='<span style="color:var(--text3)">Elegí un producto (autocompleta su costo real) o cargá el costo estimado por ítem para ver el margen de la cotización.</span>';
+    }
+  }
 }
 function renderPresupItems(){
   const cont=document.getElementById('presup-items-list');
   if(!presupItemsDraft.length){cont.innerHTML='<div style="padding:18px;text-align:center;color:var(--text3);font-size:12px;border:1px dashed var(--border);border-radius:4px">Sin ítems. Click en "<span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Ítem"</div>';return;}
   // Header row con labels claros
-  const header=`<div style="display:grid;grid-template-columns:180px 2fr 80px 100px 100px auto;gap:6px;padding:0 6px;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);font-weight:500">
+  const header=`<div style="display:grid;grid-template-columns:170px 2fr 65px 90px 90px 95px auto;gap:6px;padding:0 6px;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);font-weight:500">
     <div>Producto</div>
     <div>Pieza / descripción</div>
     <div style="text-align:right">Unidades</div>
     <div style="text-align:right">Precio USD</div>
+    <div style="text-align:right" title="Costo unitario estimado — se autocompleta con el costo real del producto, editable para piezas nuevas">Costo est.</div>
     <div style="text-align:right">Subtotal</div>
     <div></div>
   </div>`;
   cont.innerHTML=header+presupItemsDraft.map((it,idx)=>{
     const ptOptions='<option value="">— manual —</option>'+pts.map(p=>`<option value="${p.id}" ${it.producto_id===p.id?'selected':''}>${esc(p.pieza)} (${esc(p.lote)})</option>`).join('');
-    return `<div style="display:grid;grid-template-columns:180px 2fr 80px 100px 100px auto;gap:6px;align-items:center;padding:6px;background:var(--surface2);border-radius:4px">
+    return `<div style="display:grid;grid-template-columns:170px 2fr 65px 90px 90px 95px auto;gap:6px;align-items:center;padding:6px;background:var(--surface2);border-radius:4px">
       <select onchange="onPresupItemChange(${idx},'producto_id',this.value)" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:11px">${ptOptions}</select>
       <input type="text" value="${(it.pieza||'').replace(/"/g,'&quot;')}" onchange="onPresupItemChange(${idx},'pieza',this.value)" placeholder="Pieza / descripción" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px">
       <input type="number" value="${it.cantidad}" min="0" step="1" onchange="onPresupItemChange(${idx},'cantidad',this.value)" placeholder="Unid." style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px;font-family:var(--mono);text-align:right">
       <input type="number" value="${it.precio_unitario}" min="0" step="0.01" onchange="onPresupItemChange(${idx},'precio_unitario',this.value)" placeholder="USD" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--coral);font-size:12px;font-family:var(--mono);text-align:right">
-      <span id="presup-item-sub-${idx}" class="mono" style="font-size:12px;color:var(--green);text-align:right">${fmtUSD(it.subtotal)}</span>
+      <input type="number" value="${it.costo_estimado||''}" min="0" step="0.01" onchange="onPresupItemChange(${idx},'costo_estimado',this.value)" placeholder="costo" title="Costo unitario estimado" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text2);font-size:12px;font-family:var(--mono);text-align:right">
+      <span style="text-align:right"><span id="presup-item-sub-${idx}" class="mono" style="font-size:12px;color:var(--green)">${fmtUSD(it.subtotal)}</span><br><span id="presup-item-margen-${idx}" class="mono" style="font-size:9px"></span></span>
       <button class="btn btn-danger btn-sm" onclick="removePresupItem(${idx})" style="padding:4px 8px"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button>
     </div>`;
   }).join('');
+  presupItemsDraft.forEach((_,idx)=>_updatePresupItemMargen(idx));
 }
 function onPresupClienteChange(){
   const nombre=document.getElementById('presup-cliente').value.trim();
@@ -6947,7 +6996,7 @@ async function savePresupuesto(){
     let pid;
     if(id){await PATCH('presupuestos',data,`?id=eq.${id}`);pid=id;await DEL('presupuesto_items',`?presupuesto_id=eq.${id}`);}
     else{const r=await POST('presupuestos',[{...data,empresa_id:currentEmpresa.id}]);pid=r[0].id;}
-    const items=presupItemsDraft.map(i=>({presupuesto_id:pid,producto_id:i.producto_id||null,pieza:i.pieza,descripcion:i.descripcion||null,cantidad:parseFloat(i.cantidad)||0,precio_unitario:parseFloat(i.precio_unitario)||0,subtotal:parseFloat(i.subtotal)||0}));
+    const items=presupItemsDraft.map(i=>({presupuesto_id:pid,producto_id:i.producto_id||null,pieza:i.pieza,descripcion:i.descripcion||null,cantidad:parseFloat(i.cantidad)||0,precio_unitario:parseFloat(i.precio_unitario)||0,subtotal:parseFloat(i.subtotal)||0,costo_estimado:parseFloat(i.costo_estimado)||null}));
     if(items.length)await POST('presupuesto_items',items);
     await loadAll();closeModal('modal-presupuesto');renderAll();notify(id?'Presupuesto actualizado':'Presupuesto creado');
   }catch(e){notify('Error: '+e.message,'err');}
