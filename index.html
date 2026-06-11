@@ -514,6 +514,21 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div style="margin-top:18px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text3);line-height:1.6"><b style="color:var(--text2)">Cómo se calcula:</b> los cargos son las ventas <b>entregadas o facturadas</b> (los pedidos pendientes no son deuda exigible). El vencimiento se toma de la condición de pago (ej. "30 días" → fecha + 30; sin número = contado). Los cobros registrados en <b>Cobros y Pagos</b> se imputan a las facturas más viejas primero (FIFO). Todo expresado en USD; los cobros en ARS se convierten por el TC del asiento.</div>
       </div>
     </div>
+    <!-- CHEQUES DIFERIDOS -->
+    <div class="page" id="page-cheques">
+      <div class="page-header"><div class="page-title">Cheques diferidos</div><div class="page-sub">// cartera de valores · recibidos y emitidos · vencimientos</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="cheques-stats"></div>
+        <div class="toolbar">
+          <div class="search-box"><input type="text" id="cheques-search" placeholder="Buscar por número, banco, tercero..." oninput="renderCheques(this.value)"></div>
+          <select id="cheques-filtro-tipo" onchange="renderCheques()" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 10px;color:var(--text);font-size:12px"><option value="">Todos</option><option value="recibido">Recibidos</option><option value="emitido">Emitidos</option></select>
+          <button class="btn btn-ghost" onclick="exportChequesCSV()" title="Exportar a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
+          <button class="btn btn-primary" onclick="openChequeModal()">+ Nuevo cheque</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Tipo</th><th>Número</th><th>Banco</th><th>Tercero</th><th>Recepción</th><th>Fecha de pago</th><th style="text-align:right">Monto</th><th>Estado</th><th></th></tr></thead><tbody id="cheques-tbody"></tbody></table></div>
+        <div style="margin-top:18px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text3);line-height:1.6"><b style="color:var(--text2)">Circuito:</b> los cheques <b>recibidos</b> de clientes van de EN CARTERA → DEPOSITADO → ACREDITADO (o RECHAZADO, o ENDOSADO si se entregan a un proveedor). Los <b>emitidos</b> a proveedores van de ENTREGADO → DEBITADO (o RECHAZADO / ANULADO). La fecha de pago alimenta las alertas del panel <b>Para hoy</b>: cheques para depositar y cheques emitidos a cubrir con fondos.</div>
+      </div>
+    </div>
     <!-- COSTOS Y RENTABILIDAD -->
     <div class="page" id="page-costos">
       <div class="page-header"><div class="page-title">Costos y rentabilidad</div><div class="page-sub">// costo real MP + tiempo + overhead · margen por pieza</div><div class="tabs"><div class="tab active">Por producto</div></div></div>
@@ -1005,6 +1020,22 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <div class="form-row single"><div class="form-group"><label>Observaciones</label><input type="text" id="herr-observaciones" placeholder="Notas"></div></div>
     </div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-herramienta')">Cancelar</button><button class="btn btn-primary" id="btn-save-herramienta" onclick="saveHerramienta()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Cheque -->
+<div class="modal-overlay" id="modal-cheque">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="modal-cheque-title">Nuevo cheque</div><button class="modal-close" onclick="closeModal('modal-cheque')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="cheque-edit-id">
+      <div class="form-row" style="grid-template-columns:140px 1fr 110px"><div class="form-group"><label>Tipo *</label><select id="cheque-tipo" onchange="onChequeTipoChange()"><option value="recibido">Recibido</option><option value="emitido">Emitido</option></select></div><div class="form-group"><label id="cheque-tercero-label">Cliente (librador)</label><input type="text" id="cheque-tercero" placeholder="Razón social..." list="cheque-tercero-list"><datalist id="cheque-tercero-list"></datalist></div><div class="form-group"><label style="display:flex;align-items:center;gap:6px;margin-top:22px;cursor:pointer;text-transform:none;font-size:12px;color:var(--text2)"><input type="checkbox" id="cheque-echeq" style="width:auto">Echeq</label></div></div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr"><div class="form-group"><label>Número *</label><input type="text" id="cheque-numero" placeholder="00012345"></div><div class="form-group"><label>Banco</label><input type="text" id="cheque-banco" placeholder="Galicia / Nación / ..."></div></div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr"><div class="form-group"><label id="cheque-recepcion-label">Fecha de recepción</label><input type="date" id="cheque-recepcion"></div><div class="form-group"><label>Fecha de pago (diferida) *</label><input type="date" id="cheque-fecha-pago"></div></div>
+      <div class="form-row" style="grid-template-columns:1fr 110px 130px"><div class="form-group"><label>Monto *</label><input type="number" id="cheque-monto" step="0.01" min="0" placeholder="0.00"></div><div class="form-group"><label>Moneda</label><select id="cheque-moneda"><option value="ARS">ARS</option><option value="USD">USD</option></select></div><div class="form-group"><label>TC (si ARS)</label><input type="number" id="cheque-tc" step="0.01" min="0" placeholder="opcional"></div></div>
+      <div class="form-row"><div class="form-group"><label>Estado</label><select id="cheque-estado"></select></div><div class="form-group"><label>Observaciones</label><input type="text" id="cheque-obs" placeholder="Notas"></div></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-cheque')">Cancelar</button><button class="btn btn-primary" id="btn-save-cheque" onclick="saveCheque()">Guardar</button></div>
   </div>
 </div>
 
@@ -1787,7 +1818,7 @@ let currentSession=null, currentUser=null, currentEmpresa=null;
 let certs=[],barras=[],ops=[],pts=[],ventas=[],ventaItemsList=[],materiales=[],tratamientos=[],usuariosEmpresa=[],permisosUsuario=[],clientes=[],vendedores=[],listasPrecios=[],currentUserData=null;
 let proveedores=[],ordenesCompra=[],ocItems=[],recepciones=[],ocItemsDraft=[],currentOCId=null;
 let insumos=[],herramientas=[];
-let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[];
+let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[],cheques=[];
 let presupuestos=[],presupItemsList=[],presupItemsDraft=[];
 let certFileData=null,certFileName=null;
 
@@ -2038,7 +2069,7 @@ async function loadEmpresaAndStart(){
 // ─── DATA ─────────────────────────────────────────────────────────
 async function loadAll(){
   try{
-    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos,insumos,herramientas,cuentasContables,asientos,asientoLineas,indicesIpc,configContable,ejercicios]=await Promise.all([
+    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos,insumos,herramientas,cuentasContables,asientos,asientoLineas,indicesIpc,configContable,ejercicios,cheques]=await Promise.all([
       // Sin file_data: el base64 de los PDFs se descarga on-demand en openPDF() — si no, cada loadAll baja TODOS los PDFs
       GET('certificados','?order=created_at.desc&select=id,empresa_id,nro,proveedor,material,colada,fecha,metros,file_name,created_at'),
       GET('barras','?order=created_at.desc&select=*,certificados(nro,colada,proveedor)'),
@@ -2065,6 +2096,7 @@ async function loadAll(){
       GET('indices_ipc','?order=anio.desc,mes.desc').catch(()=>[]),
       GET('config_contable','?limit=1').then(r=>r&&r[0]||null).catch(()=>null),
       GET('ejercicios','?order=numero.asc').catch(()=>[]),
+      GET('cheques','?order=fecha_pago.asc').catch(()=>[]),
     ]);
   }catch(e){
     console.error('Error cargando datos:',e);
@@ -2072,18 +2104,19 @@ async function loadAll(){
     materiales=materiales||[];tratamientos=tratamientos||[];usuariosEmpresa=usuariosEmpresa||[];permisosUsuario=permisosUsuario||[];clientes=clientes||[];vendedores=vendedores||[];listasPrecios=listasPrecios||[];
     proveedores=proveedores||[];ordenesCompra=ordenesCompra||[];ocItems=ocItems||[];recepciones=recepciones||[];presupuestos=presupuestos||[];
     insumos=insumos||[];herramientas=herramientas||[];
-    cuentasContables=cuentasContables||[];asientos=asientos||[];asientoLineas=asientoLineas||[];indicesIpc=indicesIpc||[];configContable=configContable||null;ejercicios=ejercicios||[];
+    cuentasContables=cuentasContables||[];asientos=asientos||[];asientoLineas=asientoLineas||[];indicesIpc=indicesIpc||[];configContable=configContable||null;ejercicios=ejercicios||[];cheques=cheques||[];
   }
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
   contabilidad:[
     {k:'cuentas',l:'Plan de cuentas'},
     {k:'asientosp',l:'Asientos'},
     {k:'cobpag',l:'Cobros y Pagos'},
+    {k:'cheques',l:'Cheques'},
     {k:'libros',l:'Libros',sub:[{k:'librodiario',l:'Diario'},{k:'libromayor',l:'Mayor'}]},
     {k:'estados',l:'Estados contables',sub:[{k:'balance',l:'Balance comprob.'},{k:'estado',l:'Estado de Rdos.'},{k:'balgral',l:'Balance general'}]},
     {k:'analisis',l:'Análisis',sub:[{k:'ratios',l:'Ratios'},{k:'bimon',l:'Bimonetario'},{k:'compha',l:'Hist. vs Ajust.'},{k:'compej',l:'Compar. ejerc.'}]},
@@ -3010,6 +3043,23 @@ function computeAlertas(){
     titulo:uno(insBajo.length,'Insumo bajo stock mínimo','Insumos bajo stock mínimo'),
     detalle:insBajo.slice(0,3).map(i=>esc(i.nombre||'')).join('  —  ')+masDe(insBajo)});
 
+  if(typeof cheques!=='undefined'&&cheques.length){
+    const en7d=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+    const chTercero=c=>esc((c.numero||'')+' · '+_chequeTercero(c))+` (${c.fecha_pago})`;
+    const aDep=cheques.filter(c=>c.tipo==='recibido'&&c.estado==='en_cartera'&&c.fecha_pago<=en7d);
+    if(aDep.length)out.push({sev:'crit',page:'cheques',count:aDep.length,
+      titulo:uno(aDep.length,'Cheque para depositar (próximos 7 días)','Cheques para depositar (próximos 7 días)'),
+      detalle:aDep.slice(0,3).map(chTercero).join('  —  ')+masDe(aDep)});
+    const aCub=cheques.filter(c=>c.tipo==='emitido'&&c.estado==='entregado'&&c.fecha_pago<=en7d);
+    if(aCub.length)out.push({sev:'crit',page:'cheques',count:aCub.length,
+      titulo:uno(aCub.length,'Cheque emitido a cubrir — verificar fondos','Cheques emitidos a cubrir — verificar fondos'),
+      detalle:aCub.slice(0,3).map(chTercero).join('  —  ')+masDe(aCub)});
+    const rech=cheques.filter(c=>c.estado==='rechazado');
+    if(rech.length)out.push({sev:'crit',page:'cheques',count:rech.length,
+      titulo:uno(rech.length,'Cheque rechazado sin resolver','Cheques rechazados sin resolver'),
+      detalle:rech.slice(0,3).map(c=>esc((c.numero||'')+' · '+_chequeTercero(c))).join('  —  ')+masDe(rech)});
+  }
+
   return out;
 }
 function _digestHtml(alertas){
@@ -3254,7 +3304,7 @@ function notify(msg,type){
   el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);
 }
 
-function renderAll(){renderDash();renderMP();renderReposicion();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();populateLibroMayorSel();renderLibroMayor();renderBalance();renderEstadoResultados();renderBalanceGeneral();renderRatios();renderIndicesIPC();renderAjuste();renderCierre();renderComparativoHA();renderComparativoEjercicios();renderBimonetario();renderCobPag();renderCtaCte();renderConfig();updateClientesDatalist();animateNumbers();applyIconButtonLabels();}
+function renderAll(){renderDash();renderMP();renderReposicion();renderPT();renderCert();renderInsumos();renderHerramientas();renderOP();renderCompras();renderProveedores();renderPresupuestos();renderVentas();renderClientes();renderCostos();renderCuentas();renderAsientos();renderLibroDiario();populateLibroMayorSel();renderLibroMayor();renderBalance();renderEstadoResultados();renderBalanceGeneral();renderRatios();renderIndicesIPC();renderAjuste();renderCierre();renderComparativoHA();renderComparativoEjercicios();renderBimonetario();renderCobPag();renderCtaCte();renderCheques();renderConfig();updateClientesDatalist();animateNumbers();applyIconButtonLabels();}
 // A11y: nombre accesible para botones solo-ícono (sin texto visible) generados por render
 function applyIconButtonLabels(){
   document.querySelectorAll('button:not([aria-label])').forEach(b=>{
@@ -4467,6 +4517,159 @@ function showCtaCteDetalle(idx){
   const rows=movs.map(m=>{saldo+=m.cargo-m.pago;return`<tr><td class="mono">${m.fecha||'—'}</td><td><span class="badge ${m.cargo?'badge-warn':'badge-ok'}">${m.tipo.toUpperCase()}</span></td><td class="mono" style="font-size:11px">${esc(m.ref)||'—'}</td><td class="mono">${m.venc||'—'}</td><td class="mono" style="text-align:right">${m.cargo?fmtUSD(m.cargo):'—'}</td><td class="mono" style="text-align:right;color:var(--green)">${m.pago?fmtUSD(m.pago):'—'}</td><td class="mono" style="text-align:right;font-weight:600;color:${saldo>0.005?'var(--coral)':'var(--green)'}">${fmtUSD(saldo)}</td></tr>`;}).join('');
   const det=document.getElementById('ctacte-detalle');
   if(det){det.innerHTML=`<div style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:6px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-weight:600">${esc(c.nombre)} — movimientos (saldo ${fmtUSD(c.saldo)})</div><button class="btn btn-ghost btn-sm" onclick="document.getElementById('ctacte-detalle').innerHTML=''">Cerrar</button></div><div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Comprobante</th><th>Vence</th><th style="text-align:right">Cargo</th><th style="text-align:right">Pago</th><th style="text-align:right">Saldo</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;det.scrollIntoView({behavior:'smooth',block:'nearest'});}
+}
+
+// ─── CHEQUES DIFERIDOS ────────────────────────────────────────────
+// Cartera de valores: recibidos (clientes) y emitidos (proveedores).
+// El estado se cambia inline con estadoSelect → PATCH genérico.
+const CHEQUE_ESTADOS={
+  recibido:['en_cartera','depositado','acreditado','rechazado','endosado'],
+  emitido:['entregado','debitado','rechazado','anulado']
+};
+const CHEQUE_BADGES={en_cartera:'badge-warn',depositado:'badge-teal',acreditado:'badge-ok',rechazado:'badge-coral',endosado:'badge-teal',entregado:'badge-warn',debitado:'badge-ok',anulado:'badge-coral'};
+const CHEQUE_VIVO=['en_cartera','entregado','depositado'];
+function _fmtMontoCheque(c){
+  const m=parseFloat(c.monto)||0;
+  return c.moneda==='USD'?fmtUSD(m):'$ '+m.toLocaleString('es-AR',{maximumFractionDigits:0});
+}
+function _chequeTercero(c){
+  if(c.cliente_id){const x=clientes.find(k=>k.id===c.cliente_id);if(x)return x.nombre;}
+  if(c.proveedor_id){const x=proveedores.find(k=>k.id===c.proveedor_id);if(x)return x.nombre;}
+  return c.librador||'—';
+}
+function _chequesTotalStr(list){
+  const ars=list.filter(c=>c.moneda!=='USD').reduce((s,c)=>s+(parseFloat(c.monto)||0),0);
+  const usd=list.filter(c=>c.moneda==='USD').reduce((s,c)=>s+(parseFloat(c.monto)||0),0);
+  const parts=[];
+  if(ars>0)parts.push('$ '+ars.toLocaleString('es-AR',{maximumFractionDigits:0}));
+  if(usd>0)parts.push(fmtUSD(usd));
+  return parts.join(' + ')||'—';
+}
+function renderCheques(filter){
+  const tbody=document.getElementById('cheques-tbody');if(!tbody)return;
+  const f=(filter!==undefined?filter:(document.getElementById('cheques-search')?.value||'')).toLowerCase();
+  const tipoF=document.getElementById('cheques-filtro-tipo')?.value||'';
+  const hoy=new Date().toISOString().slice(0,10);
+  const en7d=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+
+  const enCartera=cheques.filter(c=>c.tipo==='recibido'&&c.estado==='en_cartera');
+  const aDepositar=enCartera.filter(c=>c.fecha_pago<=en7d);
+  const aCubrir=cheques.filter(c=>c.tipo==='emitido'&&c.estado==='entregado'&&c.fecha_pago<=en7d);
+  const rechazados=cheques.filter(c=>c.estado==='rechazado');
+  const statsEl=document.getElementById('cheques-stats');
+  if(statsEl)statsEl.innerHTML=`
+    <div class="stat-card"><div class="stat-label">En cartera</div><div class="stat-value" style="color:var(--blue);font-size:15px">${_chequesTotalStr(enCartera)}</div><div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${enCartera.length} cheque${enCartera.length===1?'':'s'}</div></div>
+    <div class="stat-card"><div class="stat-label">A depositar ≤ 7 días</div><div class="stat-value" style="color:${aDepositar.length?'var(--accent)':'var(--green)'}">${aDepositar.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Emitidos a cubrir ≤ 7 días</div><div class="stat-value" style="color:${aCubrir.length?'var(--coral)':'var(--green)'}">${aCubrir.length}</div><div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${aCubrir.length?_chequesTotalStr(aCubrir):''}</div></div>
+    <div class="stat-card"><div class="stat-label">Rechazados</div><div class="stat-value" style="color:${rechazados.length?'var(--red)':'var(--green)'}">${rechazados.length}</div></div>`;
+
+  let list=cheques.filter(c=>{
+    if(tipoF&&c.tipo!==tipoF)return false;
+    if(!f)return true;
+    return [c.numero,c.banco,_chequeTercero(c),c.observaciones].some(x=>(x||'').toLowerCase().includes(f));
+  });
+  list=[...list].sort((a,b)=>{
+    const va=CHEQUE_VIVO.includes(a.estado)?0:1, vb=CHEQUE_VIVO.includes(b.estado)?0:1;
+    if(va!==vb)return va-vb;
+    return va===0?(a.fecha_pago||'').localeCompare(b.fecha_pago||''):(b.fecha_pago||'').localeCompare(a.fecha_pago||'');
+  });
+  tbody.innerHTML=list.length?list.map(c=>{
+    let fpBadge='';
+    if(CHEQUE_VIVO.includes(c.estado)&&c.fecha_pago){
+      const d=Math.ceil((new Date(c.fecha_pago+'T00:00:00')-new Date(hoy+'T00:00:00'))/86400000);
+      if(d<=0)fpBadge=` <span class="badge badge-coral" style="font-size:9px">${c.tipo==='recibido'?'DEPOSITAR':'SE DEBITA'}</span>`;
+      else if(d<=7)fpBadge=` <span class="badge badge-warn" style="font-size:9px">EN ${d}D</span>`;
+    }
+    return`<tr>
+      <td><span class="badge ${c.tipo==='recibido'?'badge-teal':'badge-warn'}">${c.tipo.toUpperCase()}</span>${c.echeq?' <span class="badge badge-blue" style="font-size:9px" title="Cheque electrónico">E</span>':''}</td>
+      <td class="mono td-primary">${esc(c.numero)}</td>
+      <td style="font-size:12px">${esc(c.banco)||'—'}</td>
+      <td style="font-weight:500">${esc(_chequeTercero(c))}</td>
+      <td class="mono" style="font-size:11px;color:var(--text3)">${c.fecha_recepcion||'—'}</td>
+      <td class="mono">${c.fecha_pago||'—'}${fpBadge}</td>
+      <td class="mono" style="text-align:right;color:var(--green)">${_fmtMontoCheque(c)}</td>
+      <td>${estadoSelect('cheques',c.id,c.estado,CHEQUE_ESTADOS[c.tipo]||CHEQUE_ESTADOS.recibido,CHEQUE_BADGES)}</td>
+      <td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editCheque('${c.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteCheque('${c.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg></div><div class="empty-title">Sin cheques en cartera</div><div class="empty-msg">Registrá los cheques diferidos que recibís de clientes y los que emitís a proveedores. Las fechas de pago alimentan las alertas del panel <b>Para hoy</b>.</div></div></td></tr>`;
+}
+function onChequeTipoChange(){
+  const tipo=document.getElementById('cheque-tipo').value;
+  document.getElementById('cheque-tercero-label').textContent=tipo==='recibido'?'Cliente (librador)':'Proveedor (beneficiario)';
+  document.getElementById('cheque-recepcion-label').textContent=tipo==='recibido'?'Fecha de recepción':'Fecha de emisión';
+  const dl=document.getElementById('cheque-tercero-list');
+  dl.innerHTML=(tipo==='recibido'?clientes:proveedores).map(x=>`<option value="${esc(x.nombre)}">`).join('');
+  const sel=document.getElementById('cheque-estado');
+  const cur=sel.value;
+  sel.innerHTML=CHEQUE_ESTADOS[tipo].map(e=>`<option value="${e}">${e.replace('_',' ').toUpperCase()}</option>`).join('');
+  if(CHEQUE_ESTADOS[tipo].includes(cur))sel.value=cur;
+}
+function openChequeModal(){
+  document.getElementById('cheque-edit-id').value='';
+  document.getElementById('modal-cheque-title').textContent='Nuevo cheque';
+  resetF(['cheque-tercero','cheque-numero','cheque-banco','cheque-monto','cheque-tc','cheque-obs']);
+  document.getElementById('cheque-tipo').value='recibido';
+  document.getElementById('cheque-echeq').checked=false;
+  document.getElementById('cheque-moneda').value='ARS';
+  document.getElementById('cheque-recepcion').value=new Date().toISOString().slice(0,10);
+  document.getElementById('cheque-fecha-pago').value='';
+  onChequeTipoChange();
+  openModal('modal-cheque');
+}
+function editCheque(id){
+  const c=cheques.find(x=>x.id===id);if(!c)return;
+  document.getElementById('cheque-edit-id').value=id;
+  document.getElementById('modal-cheque-title').textContent='Editar cheque';
+  document.getElementById('cheque-tipo').value=c.tipo;
+  onChequeTipoChange();
+  document.getElementById('cheque-tercero').value=_chequeTercero(c)==='—'?'':_chequeTercero(c);
+  document.getElementById('cheque-echeq').checked=!!c.echeq;
+  document.getElementById('cheque-numero').value=c.numero||'';
+  document.getElementById('cheque-banco').value=c.banco||'';
+  document.getElementById('cheque-recepcion').value=c.fecha_recepcion||'';
+  document.getElementById('cheque-fecha-pago').value=c.fecha_pago||'';
+  document.getElementById('cheque-monto').value=c.monto||'';
+  document.getElementById('cheque-moneda').value=c.moneda||'ARS';
+  document.getElementById('cheque-tc').value=c.tipo_cambio||'';
+  document.getElementById('cheque-estado').value=c.estado;
+  document.getElementById('cheque-obs').value=c.observaciones||'';
+  openModal('modal-cheque');
+}
+async function saveCheque(){
+  if(!g('cheque-numero')||!g('cheque-fecha-pago')||!(parseFloat(g('cheque-monto'))>0))return notify('Completá número, fecha de pago y monto','err');
+  const id=g('cheque-edit-id');
+  const tipo=document.getElementById('cheque-tipo').value;
+  const tercero=g('cheque-tercero').trim();
+  const tl=tercero.toLowerCase();
+  const clienteMatch=tipo==='recibido'?clientes.find(c=>(c.nombre||'').toLowerCase()===tl):null;
+  const proveedorMatch=tipo==='emitido'?proveedores.find(p=>(p.nombre||'').toLowerCase()===tl):null;
+  setBusy('btn-save-cheque',true);
+  try{
+    const data={
+      tipo,numero:g('cheque-numero').trim(),banco:g('cheque-banco').trim()||null,
+      echeq:document.getElementById('cheque-echeq').checked,
+      cliente_id:clienteMatch?.id||null,proveedor_id:proveedorMatch?.id||null,
+      librador:tercero||null,
+      fecha_recepcion:g('cheque-recepcion')||null,fecha_pago:g('cheque-fecha-pago'),
+      monto:parseFloat(g('cheque-monto')),moneda:document.getElementById('cheque-moneda').value,
+      tipo_cambio:parseFloat(g('cheque-tc'))||null,
+      estado:document.getElementById('cheque-estado').value,
+      observaciones:g('cheque-obs').trim()||null
+    };
+    if(id){data.updated_at=new Date().toISOString();await PATCH('cheques',data,`?id=eq.${id}`);}
+    else{data.empresa_id=currentEmpresa.id;await POST('cheques',data);}
+    await loadAll();closeModal('modal-cheque');renderAll();notify(id?'Cheque actualizado':'Cheque registrado');
+  }catch(e){notify(e.message,'err');}
+  setBusy('btn-save-cheque',false);
+}
+async function deleteCheque(id){
+  if(!confirm('¿Eliminar este cheque del registro?'))return;
+  try{await DEL('cheques',`?id=eq.${id}`);await loadAll();renderAll();notify('Cheque eliminado');}
+  catch(e){notify(e.message,'err');}
+}
+function exportChequesCSV(){
+  const rows=cheques.map(c=>[c.tipo,c.numero,c.banco||'',_chequeTercero(c),c.fecha_recepcion||'',c.fecha_pago||'',_numAR(parseFloat(c.monto)||0),c.moneda,c.estado,c.echeq?'sí':'no',c.observaciones||'']);
+  exportCSV('cheques.csv',['Tipo','Número','Banco','Tercero','Recepción','Fecha de pago','Monto','Moneda','Estado','Echeq','Observaciones'],rows);
 }
 
 // ─── BIMONETARIO (balance consolidado ARS / USD) ──────────────
@@ -6432,7 +6635,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte'],analisis:['costos','trace'],contabilidad:['cuentas','asientosp','cobpag','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte'],analisis:['costos','trace'],contabilidad:['cuentas','asientosp','cobpag','cheques','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
