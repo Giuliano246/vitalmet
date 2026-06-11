@@ -54,6 +54,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .nav{padding:10px 0;flex:1;overflow-y:auto}
 .nav-section{font-size:10px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;padding:8px 16px 4px}
 .nav-item{display:flex;align-items:center;gap:9px;padding:8px 16px;cursor:pointer;color:var(--text2);font-size:13px;transition:all .15s;border-left:2px solid transparent}
+.nav-alert{margin-left:auto;background:var(--red);color:#fff;font-size:9px;font-family:var(--mono);font-weight:600;border-radius:9px;padding:1px 6px;min-width:14px;text-align:center;line-height:1.5}
+.digest-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)}
+.digest-row:last-child{border-bottom:none;padding-bottom:0}
 .nav-item:hover{background:var(--surface2);color:var(--text)}
 .nav-item.active{background:rgba(232,160,48,.08);color:var(--accent);border-left-color:var(--accent)}
 .nav-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
@@ -330,7 +333,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
     </div>
     <div id="cotizacion-badge" style="padding:8px 14px;border-bottom:1px solid var(--border);background:var(--surface2)"><span style="color:var(--text3);font-size:10px">USD: —</span></div>
     <nav class="nav">
-      <div class="nav-item active" data-group="dash" onclick="showPage('dash')"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></span>Métricas</div>
+      <div class="nav-item active" data-group="dash" onclick="showPage('dash')"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></span>Métricas<span class="nav-alert" id="nav-alert-dash" style="display:none"></span></div>
       <div class="nav-item" data-group="inventario" onclick="showPage('mp')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></span>Inventario</div>
       <div class="nav-item" data-group="produccion" onclick="showPage('op')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></svg></span>Producción</div>
       <div class="nav-item" data-group="compras" onclick="showPage('compras')"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></span>Compras</div>
@@ -2950,6 +2953,86 @@ function renderVentas(filter=''){
     return`<tr><td class="mono td-primary">${esc(v.nro_remito)}</td><td style="font-weight:500">${esc(v.cliente)}</td><td>${esc(v.fecha)||'—'}${otdBadge}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(piezas)}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td>${estadoSelect('ventas',v.id,v.estado,['pendiente','entregado','facturado'],bE)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button>${v.factura_emitida_id?`<button class="btn btn-ghost btn-sm" id="ver-factura-${v.id}" onclick="verFactura('${v.factura_emitida_id}')" title="CAE emitido — ver/descargar"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h3"/></svg></span>CAE</button>`:`<button class="btn btn-ghost btn-sm" id="emitir-factura-${v.id}" onclick="emitirFactura('${v.id}')" title="Solicitar CAE a AFIP" style="color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m13 2-3 7h8l-9 13 3-9H4z"/></svg></span>Facturar</button>`}<button class="btn btn-ghost btn-sm" onclick="generateRemitoPDF('${v.id}')" title="Remito de entrega (PDF)" aria-label="Remito PDF"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18h-5"/><path d="M20 18h2v-7l-3-5h-5v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span></button><button class="btn btn-ghost btn-sm" onclick="generateCertConformidadPDF('${v.id}')" title="Certificado de conformidad (PDF)" aria-label="Certificado de conformidad"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg></span></button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>Anular</button></td></tr>`;}):(`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></div><div class="empty-title">Sin ventas registradas</div><div class="empty-msg">Las ventas se generan al convertir un presupuesto aprobado. Andá a <b>Presupuestos</b> y aprobalo.</div></div></td></tr>`);
 }
 
+// ─── DIGEST DE ALERTAS — "Para hoy" ───────────────────────────────
+// Consolida todo lo accionable en un panel arriba del dashboard y un
+// contador en el sidebar. Severidad: crit (rojo) = plata o entregas
+// comprometidas; warn (ámbar) = conviene mirarlo esta semana.
+function computeAlertas(){
+  const hoy=new Date().toISOString().slice(0,10);
+  const en3d=new Date(Date.now()+3*86400000).toISOString().slice(0,10);
+  const out=[];
+  const uno=(n,sing,plur)=>n===1?sing:plur;
+  const masDe=(arr)=>arr.length>3?'  …':'';
+
+  const atras=ventas.filter(v=>v.estado==='pendiente'&&v.fecha_entrega_hasta&&v.fecha_entrega_hasta<hoy);
+  if(atras.length)out.push({sev:'crit',page:'ventas',count:atras.length,
+    titulo:uno(atras.length,'Entrega atrasada','Entregas atrasadas'),
+    detalle:atras.slice(0,3).map(v=>esc((v.nro_remito||'')+' · '+(v.cliente||''))).join('  —  ')+masDe(atras)});
+
+  const cc=computeCtaCte();
+  const conVencido=cc.filter(c=>(c.buckets.d30+c.buckets.d60+c.buckets.d90+c.buckets.mas90)>0.005);
+  const totVencido=conVencido.reduce((s,c)=>s+c.buckets.d30+c.buckets.d60+c.buckets.d90+c.buckets.mas90,0);
+  if(conVencido.length)out.push({sev:'crit',page:'ctacte',count:conVencido.length,
+    titulo:`Cobranzas vencidas — ${fmtUSD(totVencido)}`,
+    detalle:conVencido.slice(0,3).map(c=>esc(c.nombre)).join('  —  ')+masDe(conVencido)});
+
+  const rep=calcReordenTodos().filter(r=>r.bajo);
+  if(rep.length)out.push({sev:'crit',page:'mp',count:rep.length,
+    titulo:uno(rep.length,'Material bajo punto de reorden','Materiales bajo punto de reorden'),
+    detalle:rep.slice(0,3).map(r=>esc(r.nombre)+` (${r.disponible.toFixed(0)}/${r.rop.toFixed(0)} mts)`).join('  —  ')+masDe(rep)});
+
+  const prox=ventas.filter(v=>v.estado==='pendiente'&&v.fecha_entrega_hasta&&v.fecha_entrega_hasta>=hoy&&v.fecha_entrega_hasta<=en3d);
+  if(prox.length)out.push({sev:'warn',page:'ventas',count:prox.length,
+    titulo:uno(prox.length,'Entrega comprometida en los próximos 3 días','Entregas comprometidas en los próximos 3 días'),
+    detalle:prox.slice(0,3).map(v=>esc((v.nro_remito||'')+' · '+(v.cliente||''))+` (${v.fecha_entrega_hasta})`).join('  —  ')+masDe(prox)});
+
+  const sinResp=presupuestos.filter(p=>{
+    if(p.estado!=='enviado'||!p.fecha)return false;
+    const d=Math.floor((Date.now()-new Date(p.fecha+'T00:00:00').getTime())/86400000);
+    return d>=7&&(!p.fecha_vencimiento||p.fecha_vencimiento>=hoy);
+  });
+  if(sinResp.length)out.push({sev:'warn',page:'presupuestos',count:sinResp.length,
+    titulo:uno(sinResp.length,'Presupuesto sin respuesta hace 7+ días — momento de llamar','Presupuestos sin respuesta hace 7+ días — momento de llamar'),
+    detalle:sinResp.slice(0,3).map(p=>esc((p.nro||'')+' · '+(p.cliente||''))).join('  —  ')+masDe(sinResp)});
+
+  const porVencer=presupuestos.filter(p=>p.estado==='enviado'&&p.fecha_vencimiento&&p.fecha_vencimiento>=hoy&&p.fecha_vencimiento<=en3d);
+  if(porVencer.length)out.push({sev:'warn',page:'presupuestos',count:porVencer.length,
+    titulo:uno(porVencer.length,'Presupuesto vence en menos de 3 días','Presupuestos vencen en menos de 3 días'),
+    detalle:porVencer.slice(0,3).map(p=>esc((p.nro||'')+' · '+(p.cliente||''))+` (vence ${p.fecha_vencimiento})`).join('  —  ')+masDe(porVencer)});
+
+  const presVenc=presupuestos.filter(p=>p.estado==='enviado'&&p.fecha_vencimiento&&p.fecha_vencimiento<hoy);
+  if(presVenc.length)out.push({sev:'warn',page:'presupuestos',count:presVenc.length,
+    titulo:uno(presVenc.length,'Presupuesto enviado ya vencido — renegociar o cerrar','Presupuestos enviados ya vencidos — renegociar o cerrar'),
+    detalle:presVenc.slice(0,3).map(p=>esc((p.nro||'')+' · '+(p.cliente||''))).join('  —  ')+masDe(presVenc)});
+
+  const insBajo=insumos.filter(i=>parseFloat(i.stock_minimo||0)>0&&parseFloat(i.cantidad||0)<=parseFloat(i.stock_minimo||0));
+  if(insBajo.length)out.push({sev:'warn',page:'insumos',count:insBajo.length,
+    titulo:uno(insBajo.length,'Insumo bajo stock mínimo','Insumos bajo stock mínimo'),
+    detalle:insBajo.slice(0,3).map(i=>esc(i.nombre||'')).join('  —  ')+masDe(insBajo)});
+
+  return out;
+}
+function _digestHtml(alertas){
+  const borde=alertas.some(a=>a.sev==='crit')?'var(--red)':alertas.length?'var(--accent)':'var(--green)';
+  const fecha=new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
+  return`<div class="dash-card" style="margin-bottom:14px;border-left:3px solid ${borde}">
+    <div class="dash-card-title" style="display:flex;justify-content:space-between;align-items:baseline">Para hoy<span style="font-family:var(--mono);font-size:10px;color:var(--text3);font-weight:400;text-transform:none">${fecha}</span></div>
+    ${alertas.length?alertas.map(a=>`<div class="digest-row">
+      <span class="badge ${a.sev==='crit'?'badge-coral':'badge-warn'}" style="min-width:24px;justify-content:center">${a.count}</span>
+      <div style="flex:1;min-width:0"><div style="font-size:12px;color:var(--text);font-weight:500">${a.titulo}</div>${a.detalle?`<div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.detalle}</div>`:''}</div>
+      <button class="btn btn-ghost btn-sm" onclick="showPage('${a.page}')">Ver</button>
+    </div>`).join(''):`<div style="color:var(--green);font-size:12px;padding:4px 0">✓ Nada urgente — sin entregas atrasadas, cobranzas vencidas ni stock bajo mínimo</div>`}
+  </div>`;
+}
+function _updateNavAlert(alertas){
+  const el=document.getElementById('nav-alert-dash');if(!el)return;
+  const crit=alertas.filter(a=>a.sev==='crit').reduce((s,a)=>s+a.count,0);
+  const warn=alertas.reduce((s,a)=>s+a.count,0)-crit;
+  if(crit){el.style.display='';el.style.background='var(--red)';el.textContent=crit;}
+  else if(warn){el.style.display='';el.style.background='var(--accent)';el.textContent=warn;}
+  else el.style.display='none';
+}
+
 function renderDash(){
   const totalKgMP=barras.reduce((a,b)=>a+parseFloat(b.kg_disponibles||0),0);
   const totalPT=pts.reduce((a,b)=>a+parseInt(b.cantidad||0),0);
@@ -2980,8 +3063,11 @@ function renderDash(){
   }catch(err){console.warn('Error calculando margen:',err);}
   const ganancia=ingresoVentas-costoVendido;
   const margen=ingresoVentas>0?((ganancia/ingresoVentas)*100).toFixed(1):0;
+  const alertas=computeAlertas();
+  _updateNavAlert(alertas);
 
   document.getElementById('dash-content').innerHTML=`
+  ${_digestHtml(alertas)}
   <div class="kpi-grid">
     <div class="kpi"><div class="kpi-label">Mts MP en stock</div><div class="kpi-val" style="color:var(--blue)">${totalKgMP.toFixed(0)}</div></div>
     <div class="kpi"><div class="kpi-label">Piezas PT disp.</div><div class="kpi-val" style="color:var(--teal)">${totalPT}</div></div>
