@@ -1,0 +1,30 @@
+# Headers de seguridad — Netlify los aplica en el edge.
+#
+# El CSP va solo en la app ("/" e "/index.html"): los mockups y docs
+# que también se publican pueden usar otros CDNs y no hace falta
+# endurecerlos. script-src necesita 'unsafe-inline' porque toda la
+# lógica vive en un <script> inline + handlers onclick; aun así el CSP
+# bloquea scripts de cualquier origen que no sea cdnjs y todo fetch
+# fuera de Supabase / billing / cotización.
+#
+# Si se agrega un CDN, API externa o fuente nueva al index.html,
+# AGREGAR el origen acá o el recurso se bloquea en producción.
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; object-src data:; connect-src 'self' https://dqvlqhaxgvtilhiuatpv.supabase.co https://billing.vitalmetsa.com https://api.argentinadatos.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; object-src data:; connect-src 'self' https://dqvlqhaxgvtilhiuatpv.supabase.co https://billing.vitalmetsa.com https://api.argentinadatos.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
