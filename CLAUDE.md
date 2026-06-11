@@ -6,144 +6,79 @@ VitalStock es un ERP single-file (HTML + Supabase) para Vitalmet SA, empresa met
 **Owner:** Giuliano
 **Empresa:** Vitalmet SA — Perú 246, Villa Martelli, Buenos Aires
 **Web:** vitalmetsa.com
-**ERP URL:** vitalmetstock.netlify.app (futuro: stock.vitalmetsa.com)
+**ERP URL:** https://erp.vitalmetsa.com (CNAME → Netlify, site `vitalmetstock`)
 
 ## Stack
-- **Frontend:** HTML único (index.html), vanilla JS, CSS embebido
-- **Backend/DB:** Supabase (auth + PostgreSQL)
-- **Hosting:** Netlify (deploy vía GitHub)
-- **Dominio:** Donweb (vitalmetsa.com / vitalmetsa.online)
+- **Frontend:** HTML único (`index.html`, ~8.000 líneas), vanilla JS, CSS embebido. Libs por CDN (cdnjs): jsPDF + autotable, SheetJS (xlsx), Chart.js.
+- **Backend/DB:** Supabase (auth + PostgreSQL 17, REST vía PostgREST)
+- **Hosting:** Netlify (deploy automático al pushear a `main` de github.com/Giuliano246/vitalmet)
+- **Headers:** `netlify.toml` define CSP + security headers. **Si se agrega un CDN, API externa o fuente nueva, agregar el origen al CSP o se bloquea en producción.**
+- **Facturación AFIP:** microservicio aparte `~/vitalmet-billing` en Railway (https://billing.vitalmetsa.com). Falta solo el cert X.509.
 
 ## Supabase
-- **URL:** `https://dqvlqhaxgvtilhiuatpv.supabase.co`
-- **Anon Key:** está en el HTML (línea ~845)
-- **RLS:** ACTIVADO vía `migrations/006_rls_setup.sql` + `008_rls_mailings.sql`. Aislamiento por `empresa_id` usando `public.current_empresa_id()` (lee `auth.jwt() -> 'user_metadata' -> 'empresa_id'`). Tablas con policies especiales: `empresas`, `usuarios`, `venta_items`, `oc_items`, `presupuesto_items`. Rollback: `006_rls_rollback.sql`.
+- **URL:** `https://dqvlqhaxgvtilhiuatpv.supabase.co` (anon key en el HTML, ~línea 1843)
+- **RLS:** activado en TODAS las tablas. Patrón: policy `tenant_isolation FOR ALL TO authenticated USING (empresa_id = public.current_empresa_id())` + `WITH CHECK` igual. `current_empresa_id()` lee el JWT.
+- **empresa_id del usuario:** `a0a19507-2a50-4e80-a716-e9459f51d653` — hardcodear directo en migrations y scripts (single-tenant en la práctica).
+- **Migraciones:** `migrations/001` a `027`. Convención: BEGIN/COMMIT, idempotentes (IF NOT EXISTS / DROP IF EXISTS), retrocompatibles, query de verificación comentada al pie. **El SQL se corre en el SQL Editor ANTES de deployar el frontend.** Para dry-run contra prod: Management API con COMMIT→ROLLBACK.
+- **Integridad (migración 023):** RPCs atómicas `guardar_venta` / `anular_venta` / `convertir_presupuesto` / `crear_asiento` / `consumir_barra` / `upsert_cliente` (SECURITY INVOKER), trigger de partida doble diferido, numeración de asientos por DB, guard anti-edición de ventas con CAE, `audit_log` + trigger `trg_audit` (fn_audit) en tablas con plata.
+- **Gotchas aprendidos:**
+  - Las RPCs SIEMPRE devuelven `jsonb` (nunca `void`: el `db()` del frontend explota parseando la respuesta vacía).
+  - Supabase otorga EXECUTE a `anon` por default privileges → toda función nueva lleva `REVOKE ... FROM anon` explícito.
+  - Funciones con `SET search_path = public`.
 
-## Tablas en Supabase
-| Tabla | Descripción |
-|-------|-------------|
-| empresas | Multi-tenancy, código invitación |
-| usuarios | Auth, empresa_id, es_admin, permisos |
-| certificados | MTC con PDF adjunto, metros |
-| barras | Materia prima (acero), stock en metros |
-| ordenes_produccion | OPs, consumo de barras, horas (campo text) |
-| productos_terminados | PT generado desde OPs |
-| ventas | Pedidos/remitos expandido estilo Tango |
-| venta_items | Ítems de venta con bonificación y moneda |
-| materiales | Config de tipos de acero |
-| tratamientos | Tratamientos térmicos vinculados a OPs |
-| permisos_usuario | Permisos por módulo por usuario |
-| clientes | Base de clientes auto-generada desde ventas |
-| vendedores | Vendedores (tabla nueva, puede estar vacía) |
-| listas_precios | Listas de precios (tabla nueva, puede estar vacía) |
-| asientos_contables | Asientos contables vinculados a ventas (tabla nueva) |
+## Arquitectura del frontend
+- **Navegación:** sidebar de grupos + tabs por grupo. Página nueva = tocar TRES estructuras: `PAGE_TO_GROUP` (página→grupo), `GROUP_TABS` (tabs del grupo, soporta `sub:[]` para dropdowns), y `groupMods` dentro de `aplicarPermisos()`. El HTML de la página necesita `<div class="tabs"></div>` en su `.page-header` (showPage inyecta las tabs ahí). Sub-páginas además van en `PAGE_TO_PARENT`.
+- **Datos:** `loadAll()` baja todo en un `Promise.all` con asignación por destructuring. Tabla nueva = agregar variable global, entrada AL FINAL del destructure y del array de GETs con `.catch(e=>_loadFail('Nombre',e))`, y fallback `||[]` en el catch de seguridad. Los errores de carga se muestran en el banner `#load-error-banner` (con botón Reintentar) — NO usar `.catch(()=>[])` silencioso.
+- **Render:** `renderAll()` llama todos los `renderX()`. Cada módulo: `renderModulo(filter='')` → stats en `#modulo-stats`, filtro por texto, tabla en `#modulo-tbody`.
+- **Estados:** `estadoSelect(tabla,id,actual,valores,badgeMap)` genera el select que PATCHea vía `cambiarEstado` genérico.
+- **Save pattern:** validar → `setBusy(btnId,true)` → try { POST/PATCH o RPC + loadAll + closeModal + renderAll + notify } catch { notify err } finally setBusy false.
+- **Escapado:** TODO dato de usuario interpolado en HTML pasa por `esc()`.
+- **PDFs:** certificados se guardan base64 en la DB; `loadAll` NO baja `file_data` (se descarga on-demand en `openPDF`). Adjuntos ≤5MB. PDFs generados (presupuesto/remito/cert conformidad/NDP) usan jsPDF + doc.save().
+- **Mobile (≤768px):** sidebar off-canvas con hamburguesa (`toggleMobileNav`), grids colapsan. Los overrides de estilos inline necesitan `!important` en la media query.
+- **Digest:** `computeAlertas()` + panel "Para hoy" en el dashboard + badge en nav Métricas. Si un módulo nuevo tiene vencimientos/urgencias, sumarlos ahí.
 
-## Módulos implementados
-1. **Dashboard** — KPIs, gráficos de producción/ventas/clientes, rentabilidad por pieza
-2. **Materia Prima** — CRUD barras de acero, stock en metros, alertas mínimo
-3. **Productos Terminados** — CRUD PT, vinculado a barras y OPs
-4. **Certificados MTC** — CRUD con PDF adjunto, campo metros
-5. **Órdenes de Producción** — CRUD con consumo de barras, tratamientos, horas (texto libre), stats
-6. **Ventas** — Modal expandido estilo Tango (razón social + CUIT autocomplete, coeficientes USD, fechas entrega, condiciones comerciales, vendedor, lista precios, bonificación, items con bonif)
-7. **Clientes** — Auto-creados desde ventas, ficha con historial de compras, CRUD
-8. **Trazabilidad** — Cadena certificado → barra → OP → PT → venta
-9. **Configuración** — Materiales, usuarios, permisos por módulo, código invitación
+## Módulos
+Dashboard (KPIs + digest de alertas) · Materia prima (barras + reposición) · Productos terminados · Certificados MTC · Insumos · Herramientas · Órdenes de producción (tiempos por operación) · Compras (OCs, proveedores, recepciones, NDP) · Presupuestos (cotizador con costeo y margen, seguimiento, conversión) · Ventas (estilo Tango, remito PDF, cert de conformidad, OTD, botón Facturar→billing) · Clientes · Cta. corriente (aging FIFO) · Costos y rentabilidad · Trazabilidad (cert→barra→OP→PT→venta) · Contabilidad completa (plan de cuentas jerárquico, asientos, cobros y pagos, **cheques diferidos**, libro diario/mayor, balance comprobación, estado de resultados, balance general, ratios, bimonetario, ajuste por inflación RT 6, cierre/apertura, comparativos) · Configuración.
 
 ## Moneda
-Todo el sistema opera en **USD**. No hay pesos. La función de formato es `fmtUSD()`.
-
-## Patrones de código
-
-### CRUD helpers
-```javascript
-const GET   = (t,p) => db('GET',t,null,p);
-const POST  = (t,b) => db('POST',t,b);
-const PATCH = (t,b,p) => db('PATCH',t,b,p);
-const DEL   = (t,p) => db('DELETE',t,null,p);
-```
-
-### Render pattern
-Cada módulo tiene `renderModulo(filter='')` que:
-1. Calcula stats y llena `#modulo-stats`
-2. Filtra datos por texto
-3. Genera HTML de la tabla en `#modulo-tbody`
-
-### Save pattern
-```javascript
-async function saveModulo() {
-  // Validar campos obligatorios
-  // setBusy(btnId, true)
-  // try { POST/PATCH + loadAll + closeModal + renderAll + notify }
-  // catch { notify error }
-  // setBusy(btnId, false)
-}
-```
-
-### Autocomplete cliente en ventas
-`onVentaClienteChange()` — al escribir razón social, autocompleta CUIT y lista de precios del cliente existente. Si es nuevo, se crea automáticamente al guardar la venta.
-
-### Navegación
-`showPage(p)` con map: `{dash:0, mp:1, pt:2, cert:3, op:4, ventas:5, clientes:6, trace:7, config:8}`
-Si se agrega una página, actualizar TAMBIÉN `aplicarPermisos()` que tiene el mismo map.
-
-### Session management
-- Token refresh automático en `checkExistingSession()` y en `db()` (retry on 401)
-- Loading screen mientras verifica sesión
-- Sesión persistida en localStorage como `sb_session`
+El core opera en **USD** (`fmtUSD()`). Excepciones: contabilidad bimonetaria y cheques (ARS o USD con tipo_cambio).
 
 ## Reglas de desarrollo
-
-1. **Siempre preguntar antes de cambios grandes** — confirmar con Giuliano antes de modificar
-2. **Un cambio a la vez** — deploy y testear entre cambios
-3. **empresa_id obligatorio** en todo POST
-4. **Columnas nuevas en Supabase ANTES del código** — proveer SQL para SQL Editor
-5. **No usar parseFloat en campos de texto** (ej: horas_total es text)
-6. **Verificar columnas thead vs tbody** — deben coincidir
-7. **Actualizar renderAll()** al agregar nuevos renders
-8. **Actualizar loadAll()** al agregar nuevas tablas
-9. **Actualizar showPage map Y aplicarPermisos map** al agregar páginas
-
-## Pendientes / Roadmap
-
-### Corto plazo (mejoras al ERP actual)
-- [x] RLS en Supabase (resuelto en migrations 006 + 008)
-- [ ] Responsive/mobile (sidebar hamburguesa, tablas scroll horizontal)
-- [ ] Protección doble clic en todos los saves (solo saveMP la tiene)
-- [ ] Filtros por estado en OPs (tabs: Todos | En proceso | Completadas)
-- [ ] Duplicar OP (botón que copie datos a nueva OP)
-- [ ] Remito PDF para imprimir
-- [ ] Paginación en tablas
-- [ ] Módulo de compras (OC a proveedores)
-
-### Mediano plazo (comercialización)
-- [ ] Migración a React + Node.js (necesario para módulo contable y AFIP)
-- [ ] Módulo de costos y rentabilidad
-- [ ] Módulo contable (plan de cuentas, asientos, libro diario/mayor)
-- [ ] Facturación electrónica AFIP (requiere backend con WSFE)
-- [ ] Landing page para vender VitalStock como producto
-
-### Logo
-El logo es SVG embebido en base64 dentro del HTML (loading screen, auth, sidebar). Son los 4 paralelogramos azules/grises + texto "VITALSTOCK". Favicon también embebido como SVG.
+1. **Un cambio a la vez** — commit, deploy (push a main) y verificar entre cambios.
+2. **SQL en Supabase ANTES del código** — pasar la migración para el SQL Editor, esperar el "listo", verificar, recién ahí pushear el frontend.
+3. **empresa_id obligatorio** en todo POST (`currentEmpresa.id`).
+4. **No usar parseFloat en campos de texto** (ej: `horas_total` es text).
+5. **Columnas thead vs tbody deben coincidir.**
+6. Página nueva → `PAGE_TO_GROUP` + `GROUP_TABS` + `groupMods` en `aplicarPermisos` + `<div class="tabs">`.
+7. Tabla nueva → global + `loadAll` (al final, con `_loadFail`) + `renderAll`.
+8. Mutaciones críticas (ventas, asientos, stock) → usar las RPCs atómicas, no POST/PATCH directo.
+9. Validar JS antes de commitear: extraer el `<script>` grande y `node --check`.
+10. Texto de UI en español argentino (voseo).
 
 ## Estructura del archivo
 ```
-index.html (~2500 líneas)
-├── <style> (líneas 8-157) — CSS completo
+index.html (~8.050 líneas)
+├── <head> — fonts + libs CDN (líneas 10-14)
+├── <style> (15-249) — CSS completo (mobile al final, ~216+)
 ├── <body>
-│   ├── #loading-screen (línea ~164)
-│   ├── #auth-screen (línea ~175) — login/register/join
-│   ├── #app-screen (línea ~264)
-│   │   ├── sidebar (nav + user)
-│   │   └── main (pages)
-│   │       ├── page-dash
-│   │       ├── page-mp
-│   │       ├── page-pt
-│   │       ├── page-cert
-│   │       ├── page-op
-│   │       ├── page-ventas
-│   │       ├── page-clientes
-│   │       ├── page-trace
-│   │       └── page-config
-│   ├── Modales (líneas ~440-850)
-│   └── <script> (líneas ~845-fin) — toda la lógica JS
+│   ├── #loading-screen (~256)
+│   ├── #auth-screen (~266) — login/register/join
+│   ├── mobile-menu-btn + backdrop + #load-error-banner (~351)
+│   ├── #app-screen (~356) — sidebar + pages (page-dash ... page-config)
+│   ├── Modales
+│   └── <script> (1841-fin) — toda la lógica
 ```
+
+## Pendientes (deuda técnica de la auditoría 2026-06)
+- [x] Errores de carga visibles (banner + Reintentar)
+- [x] Headers CSP (netlify.toml)
+- [ ] Tests de cálculos de plata con `node --test` (costos, asientos, reposición, cta cte)
+- [ ] Pase de `esc()` sobre renders viejos
+- [ ] Partir index.html en módulos (script files clásicos) — solo cuando haya dolor real
+- [ ] Render solo de la página activa (hoy renderAll re-renderiza todo)
+- [ ] PDFs a Supabase Storage (hoy base64 en la DB)
+- [ ] Decisión: permisos por módulo son solo visuales (REST accesible a todo usuario autenticado)
+- [ ] Padrón AFIP (bloqueado por cert X.509; cuando esté: GET /padron/{cuit} en billing + botón "Buscar en AFIP")
+
+### Logo
+SVG embebido en base64 dentro del HTML (loading screen, auth, sidebar): 4 paralelogramos azules/grises + texto "VITALSTOCK". Favicon también SVG embebido.
