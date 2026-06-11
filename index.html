@@ -2276,7 +2276,7 @@ function openModal(id){
 }
 function closeModal(id){document.getElementById(id).classList.remove('open');if(id==='modal-venta')window.editingVentaId=null;}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);}));
-function autoDate(id){const el=document.getElementById(id);if(el&&!el.value)el.value=new Date().toISOString().split('T')[0];}
+function autoDate(id){const el=document.getElementById(id);if(el&&!el.value)el.value=hoyLocal();}
 function g(id){return document.getElementById(id)?.value?.trim()||'';}
 
 function populateCertSel(){const s=document.getElementById('mp-cert-link');if(!s)return;s.innerHTML='<option value="">Sin certificado</option>'+certs.map(c=>`<option value="${c.id}">${esc(c.nro)} — ${esc(c.material)} (${esc(c.colada)})</option>`).join('');}
@@ -2431,7 +2431,7 @@ async function saveOP(){
     const cant=parseInt(g('op-cant'));
     const costo=parseFloat(g('op-precio'))||0;
     const descFull=esBarra?g('op-desc'):[g('op-desc'),g('op-matriz-desc')].filter(Boolean).join(' — ')||origen;
-    const op=await POST('ordenes_produccion',{empresa_id:currentEmpresa.id,nro:g('op-nro'),pieza:g('op-pieza'),descripcion:descFull,cantidad:cant,precio_unitario:costo,lote_pt:lotePT,barra_id:barraId,kg_usados:esBarra?kgU:0,merma_kg:parseFloat(g('op-merma'))||0,operario:g('op-operario'),estado,fecha:g('op-fecha')||new Date().toISOString().split('T')[0],fecha_fin:g('op-fecha-fin')||null,horas_total:g('op-horas')||null,codigo_plano:g('op-codigo')||null,oc_material:g('op-oc-material')||null,origen_material:origen});
+    const op=await POST('ordenes_produccion',{empresa_id:currentEmpresa.id,nro:g('op-nro'),pieza:g('op-pieza'),descripcion:descFull,cantidad:cant,precio_unitario:costo,lote_pt:lotePT,barra_id:barraId,kg_usados:esBarra?kgU:0,merma_kg:parseFloat(g('op-merma'))||0,operario:g('op-operario'),estado,fecha:g('op-fecha')||hoyLocal(),fecha_fin:g('op-fecha-fin')||null,horas_total:g('op-horas')||null,codigo_plano:g('op-codigo')||null,oc_material:g('op-oc-material')||null,origen_material:origen});
     // Descontar MP solo si es barra y hay metros consumidos.
     // Atómico en la DB: falla si el stock no alcanza AHORA (no según lo
     // leído al abrir el modal). Si falla, se revierte la OP recién creada.
@@ -2530,7 +2530,7 @@ async function emitirFactura(ventaId){
     concepto:1,
     doc_tipo:docTipo,
     doc_nro:docNro,
-    fecha:new Date().toISOString().slice(0,10),
+    fecha:hoyLocal(),
     moneda:'PES',
     cotizacion_moneda:1,
     items,
@@ -2631,7 +2631,7 @@ async function generarAsientoFactura(facturaEmitidaId,factura,venta){
     moneda='ARS';tipoCambio=1;
   }
   const cabecera={
-    fecha:factura.fecha||new Date().toISOString().slice(0,10),
+    fecha:factura.fecha||hoyLocal(),
     descripcion:`Factura ${comprobanteFmt} a ${cliente}`+(aplicaIVA?` (IVA $${iva.toFixed(2)})`:''),
     comprobante_nro:comprobanteFmt,
     tipo:'auto-factura',
@@ -2675,7 +2675,7 @@ function exportVentasCSV(){
     const imp=items.reduce((a,i)=>a+((parseFloat(i.cantidad)||0)*(parseFloat(i.precio_unitario)||0)),0);
     return[v.nro_remito,v.cliente,v.fecha||'',v.estado||'',v.condicion_pago||'',unid,_numAR(imp),[...new Set(items.map(i=>i.pieza||''))].join(', ')];
   });
-  exportCSV(`ventas_${new Date().toISOString().slice(0,10)}.csv`,['Remito','Cliente','Fecha','Estado','Condición de pago','Unidades','Importe USD','Piezas'],rows);
+  exportCSV(`ventas_${hoyLocal()}.csv`,['Remito','Cliente','Fecha','Estado','Condición de pago','Unidades','Importe USD','Piezas'],rows);
 }
 function exportPresupuestosCSV(){
   const rows=presupuestos.map(p=>{
@@ -2685,16 +2685,16 @@ function exportPresupuestosCSV(){
     const margen=(costos>0&&tot>0)?((tot-costos)/tot*100).toFixed(1):'';
     return[p.nro,p.cliente,p.fecha||'',p.fecha_vencimiento||'',p.estado||'',items.length,_numAR(tot),margen?margen.replace('.',','):''];
   });
-  exportCSV(`presupuestos_${new Date().toISOString().slice(0,10)}.csv`,['Nro','Cliente','Fecha','Vence','Estado','Ítems','Total USD','Margen est. %'],rows);
+  exportCSV(`presupuestos_${hoyLocal()}.csv`,['Nro','Cliente','Fecha','Vence','Estado','Ítems','Total USD','Margen est. %'],rows);
 }
 function exportClientesCSV(){
   const rows=clientes.map(c=>[c.nombre,c.contacto||'',c.telefono||'',c.email||'',c.cuit||'',c.direccion||'',c.limite_credito?_numAR(c.limite_credito):'']);
-  exportCSV(`clientes_${new Date().toISOString().slice(0,10)}.csv`,['Nombre','Contacto','Teléfono','Email','CUIT','Dirección','Límite crédito USD'],rows);
+  exportCSV(`clientes_${hoyLocal()}.csv`,['Nombre','Contacto','Teléfono','Email','CUIT','Dirección','Límite crédito USD'],rows);
 }
 function exportCtaCteCSV(){
   const data=computeCtaCte();
   const rows=data.map(c=>[c.nombre,_numAR(c.totCargos),_numAR(c.totPagos),_numAR(c.saldo),_numAR(c.buckets.alDia),_numAR(c.buckets.d30),_numAR(c.buckets.d60),_numAR(c.buckets.d90),_numAR(c.buckets.mas90)]);
-  exportCSV(`cta_corriente_${new Date().toISOString().slice(0,10)}.csv`,['Cliente','Cargos USD','Cobrado USD','Saldo USD','Al día','1-30','31-60','61-90','+90 días'],rows);
+  exportCSV(`cta_corriente_${hoyLocal()}.csv`,['Cliente','Cargos USD','Cobrado USD','Saldo USD','Al día','1-30','31-60','61-90','+90 días'],rows);
 }
 // Theme: dark/light toggle persistido en localStorage
 function applyTheme(t){document.documentElement.dataset.theme=t==='light'?'light':'dark';const icon=document.getElementById('theme-icon');if(icon)icon.textContent=t==='light'?'☾':'☀';}
@@ -2703,6 +2703,9 @@ function toggleTheme(){const cur=document.documentElement.dataset.theme==='light
 // Escapa HTML para prevenir XSS al interpolar campos de DB en innerHTML.
 // Usar SIEMPRE que el valor venga de input de usuario (razon social, descripcion, etc).
 function esc(s){if(s===null||s===undefined)return'';return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+// Fecha local AAAA-MM-DD corrida offDias. OJO: toISOString() es UTC — en
+// Argentina (UTC-3) de 21:00 a 0:00 da el día SIGUIENTE. Para "hoy" usar SIEMPRE esto.
+function hoyLocal(offDias=0){const t=new Date(Date.now()+offDias*86400000);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');}
 function fmtARS(n){return'$ '+Math.round(n).toLocaleString('es-AR');}
 // Cotizacion divisa USD/ARS (BCRA mayorista ~= BNA divisa) — day-lag: el TC del dia es
 // el del dia habil anterior (convencion AFIP/contable). Cache 5min, fetch desde argentinadatos.com.
@@ -2714,7 +2717,7 @@ async function fetchCotizacion(force){
     const r=await fetch('https://api.argentinadatos.com/v1/cotizaciones/dolares/mayorista');
     if(!r.ok)throw new Error('HTTP '+r.status);
     const arr=await r.json();
-    const today=new Date().toISOString().slice(0,10);
+    const today=hoyLocal();
     // Day-lag: ultimo registro con fecha estrictamente anterior a hoy.
     const prev=arr.filter(x=>x.fecha<today).sort((a,b)=>b.fecha.localeCompare(a.fecha))[0];
     if(!prev)throw new Error('Sin datos historicos');
@@ -3034,7 +3037,7 @@ function renderOP(filter=''){
 
 function renderVentas(filter=''){
   const f=filter.toLowerCase();
-  const hoy=new Date().toISOString().slice(0,10);
+  const hoy=hoyLocal();
   const list=ventas.filter(v=>!f||v.nro_remito.toLowerCase().includes(f)||v.cliente.toLowerCase().includes(f));
   const totalImp=ventas.reduce((a,v)=>{const items=v.venta_items||[];return a+items.reduce((b,i)=>b+(i.cantidad*(i.precio_unitario||0)),0);},0);
   const totalUnid=ventas.reduce((a,v)=>{const items=v.venta_items||[];return a+items.reduce((b,i)=>b+i.cantidad,0);},0);
@@ -3066,8 +3069,8 @@ function renderVentas(filter=''){
 // contador en el sidebar. Severidad: crit (rojo) = plata o entregas
 // comprometidas; warn (ámbar) = conviene mirarlo esta semana.
 function computeAlertas(){
-  const hoy=new Date().toISOString().slice(0,10);
-  const en3d=new Date(Date.now()+3*86400000).toISOString().slice(0,10);
+  const hoy=hoyLocal();
+  const en3d=hoyLocal(3);
   const out=[];
   const uno=(n,sing,plur)=>n===1?sing:plur;
   const masDe=(arr)=>arr.length>3?'  …':'';
@@ -3119,7 +3122,7 @@ function computeAlertas(){
     detalle:insBajo.slice(0,3).map(i=>esc(i.nombre||'')).join('  —  ')+masDe(insBajo)});
 
   if(typeof cheques!=='undefined'&&cheques.length){
-    const en7d=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+    const en7d=hoyLocal(7);
     const chTercero=c=>esc((c.numero||'')+' · '+_chequeTercero(c))+` (${c.fecha_pago})`;
     const aDep=cheques.filter(c=>c.tipo==='recibido'&&c.estado==='en_cartera'&&c.fecha_pago<=en7d);
     if(aDep.length)out.push({sev:'crit',page:'cheques',count:aDep.length,
@@ -4280,7 +4283,7 @@ function renderComparativoHA(){
       const ultDia=new Date(u.anio,u.mes,0).getDate();
       fechaInput.value=`${u.anio}-${String(u.mes).padStart(2,'0')}-${String(ultDia).padStart(2,'0')}`;
     }else{
-      fechaInput.value=new Date().toISOString().slice(0,10);
+      fechaInput.value=hoyLocal();
     }
   }
   const fecha=fechaInput.value;
@@ -4443,7 +4446,7 @@ function onCobPagMonedaChange(){
 
 function renderCobPag(){
   const fecha=document.getElementById('cp-fecha');
-  if(fecha&&!fecha.value)fecha.value=new Date().toISOString().slice(0,10);
+  if(fecha&&!fecha.value)fecha.value=hoyLocal();
   renderCobPagAutocomplete();
   onCobPagMonedaChange();
   // Tabla de últimos movimientos: filtrar asientos auto-cobranza / auto-pago
@@ -4673,8 +4676,8 @@ function renderCheques(filter){
   const tbody=document.getElementById('cheques-tbody');if(!tbody)return;
   const f=(filter!==undefined?filter:(document.getElementById('cheques-search')?.value||'')).toLowerCase();
   const tipoF=document.getElementById('cheques-filtro-tipo')?.value||'';
-  const hoy=new Date().toISOString().slice(0,10);
-  const en7d=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+  const hoy=hoyLocal();
+  const en7d=hoyLocal(7);
 
   const enCartera=cheques.filter(c=>c.tipo==='recibido'&&c.estado==='en_cartera');
   const aDepositar=enCartera.filter(c=>c.fecha_pago<=en7d);
@@ -4735,7 +4738,7 @@ function openChequeModal(){
   document.getElementById('cheque-tipo').value='recibido';
   document.getElementById('cheque-echeq').checked=false;
   document.getElementById('cheque-moneda').value='ARS';
-  document.getElementById('cheque-recepcion').value=new Date().toISOString().slice(0,10);
+  document.getElementById('cheque-recepcion').value=hoyLocal();
   document.getElementById('cheque-fecha-pago').value='';
   onChequeTipoChange();
   openModal('modal-cheque');
@@ -4821,7 +4824,7 @@ async function renderBimonetario(){
   const tcTipoSel=document.getElementById('bimon-tc-tipo');
   const status=document.getElementById('bimon-balance-status');
   // default hasta = hoy
-  if(!hastaInput.value)hastaInput.value=new Date().toISOString().slice(0,10);
+  if(!hastaInput.value)hastaInput.value=hoyLocal();
   const hasta=hastaInput.value;
   // resolver TC: si bimon-tc tiene valor numérico, usarlo (modo manual); si no, usar cotización
   let tc=parseFloat(tcInput.value);
@@ -5526,7 +5529,7 @@ async function generarAsientoVenta(ventaId,total,cliente,fecha,nroRemito){
     // Auto-asiento desde venta: la venta está en USD (cobranza→TC comprador del banco)
     await fetchCotizacion();
     const tcAuto=cotizacion.compra||cotizacion.venta||1;
-    const cabecera={fecha:fecha||new Date().toISOString().slice(0,10),descripcion:`Venta a ${cliente||'cliente'}`+(aplicaIVA?` (IVA ${(ivaPct*100).toFixed(0)}%)`:''),comprobante_nro:nroRemito||null,tipo:'auto-venta',origen_tipo:'venta',origen_id:ventaId,estado:'confirmado',moneda:'USD',tipo_cambio:tcAuto,tc_tipo:'compra'};
+    const cabecera={fecha:fecha||hoyLocal(),descripcion:`Venta a ${cliente||'cliente'}`+(aplicaIVA?` (IVA ${(ivaPct*100).toFixed(0)}%)`:''),comprobante_nro:nroRemito||null,tipo:'auto-venta',origen_tipo:'venta',origen_id:ventaId,estado:'confirmado',moneda:'USD',tipo_cambio:tcAuto,tc_tipo:'compra'};
     const lineas=[
       {cuenta_id:ctaDeudores.id,debe:bruto,haber:0,descripcion:`Deuda cliente ${cliente||''}`,orden:0},
       {cuenta_id:ctaVentas.id,debe:0,haber:neto,descripcion:`Venta ${nroRemito||''}`,orden:1},
@@ -6221,7 +6224,7 @@ function openTratamientos(opId){
   document.getElementById('trat-op-titulo').textContent='Tratamientos — '+op.nro;
   document.getElementById('trat-op-sub').textContent=op.pieza+(op.descripcion?' · '+op.descripcion:'');
   ['trat-tipo','trat-proveedor','trat-desc','trat-cert-nro'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.getElementById('trat-fecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('trat-fecha').value=hoyLocal();
   document.getElementById('trat-cert-file-name').textContent='Sin archivo';
   tratFileData=null;tratFileName=null;
   renderTratLista(opId);
@@ -7115,7 +7118,7 @@ function openOCModal(id){
   // Llenar select de proveedores
   document.getElementById('oc-proveedor').innerHTML='<option value="">— seleccionar —</option>'+proveedores.map(p=>`<option value="${p.id}" ${oc?.proveedor_id===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('');
   document.getElementById('oc-nro').value=oc?.nro||('OC-'+String(ordenesCompra.length+1).padStart(4,'0'));
-  document.getElementById('oc-fecha').value=oc?.fecha||new Date().toISOString().slice(0,10);
+  document.getElementById('oc-fecha').value=oc?.fecha||hoyLocal();
   document.getElementById('oc-entrega').value=oc?.fecha_entrega_esperada||'';
   document.getElementById('oc-estado').value=oc?.estado||'borrador';
   document.getElementById('oc-cond').value=oc?.condicion_pago||'';
@@ -7225,7 +7228,7 @@ function openRecepcionModal(ocId){
   const oc=ordenesCompra.find(x=>x.id===ocId);if(!oc)return;
   currentOCId=ocId;
   document.getElementById('recep-oc-nro').textContent=`${oc.nro} · ${oc.proveedores?.nombre||''}`;
-  document.getElementById('recep-fecha').value=new Date().toISOString().slice(0,10);
+  document.getElementById('recep-fecha').value=hoyLocal();
   document.getElementById('recep-obs').value='';
   // Pre-cargar remito + cert desde la OC si ya los cargó al crearla
   document.getElementById('recep-remito-nro').value=oc.remito_nro||'';
@@ -7315,7 +7318,7 @@ async function saveRecepcion(){
 
 function renderPresupuestos(filter=''){
   const f=filter.toLowerCase();
-  const hoy=new Date().toISOString().slice(0,10);
+  const hoy=hoyLocal();
   const total=presupuestos.length;
   const aprobados=presupuestos.filter(p=>p.estado==='aprobado').length;
   const convertidos=presupuestos.filter(p=>p.estado==='convertido').length;
@@ -7370,8 +7373,8 @@ function openPresupuestoModal(id){
   document.getElementById('presup-nro').value=p?.nro||('P-'+String(presupuestos.length+1).padStart(4,'0'));
   document.getElementById('presup-cliente').value=p?.cliente||'';
   document.getElementById('presup-cuit').value=p?.cuit||'';
-  document.getElementById('presup-fecha').value=p?.fecha||new Date().toISOString().slice(0,10);
-  const fv=p?.fecha_vencimiento||new Date(Date.now()+15*86400000).toISOString().slice(0,10);
+  document.getElementById('presup-fecha').value=p?.fecha||hoyLocal();
+  const fv=p?.fecha_vencimiento||hoyLocal(15);
   document.getElementById('presup-vence').value=fv;
   document.getElementById('presup-cond').value=p?.condicion_pago||'';
   document.getElementById('presup-estado').value=p?.estado||'borrador';
@@ -7705,7 +7708,7 @@ function generateRemitoPDF(ventaId){
 
   doc.setFontSize(10);doc.setTextColor(60,60,60);
   doc.setFont('helvetica','bold');doc.text('Fecha:',14,y);doc.setFont('helvetica','normal');
-  doc.text(v.fecha||new Date().toISOString().slice(0,10),30,y);
+  doc.text(v.fecha||hoyLocal(),30,y);
   if(v.nro_pedido&&v.nro_pedido!==v.nro_remito){doc.setFont('helvetica','bold');doc.text('Pedido:',80,y);doc.setFont('helvetica','normal');doc.text(v.nro_pedido,98,y);}
   y+=8;
   doc.setFont('helvetica','bold');doc.text('Cliente:',14,y);doc.setFont('helvetica','normal');
@@ -7790,7 +7793,7 @@ function generateCertConformidadPDF(ventaId){
   doc.setFont('helvetica','bold');doc.text('Remito:',190,y);doc.setFont('helvetica','normal');
   doc.text(v.nro_remito||'—',208,y);
   doc.setFont('helvetica','bold');doc.text('Fecha:',245,y);doc.setFont('helvetica','normal');
-  doc.text(v.fecha||new Date().toISOString().slice(0,10),260,y);
+  doc.text(v.fecha||hoyLocal(),260,y);
   y+=8;
   doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(80,80,80);
   const decl='VITALMET SA certifica que los productos detallados a continuación fueron fabricados e inspeccionados conforme a los planos y especificaciones aplicables, con materiales respaldados por los certificados de calidad (MTC) que se indican, y cumplen con los requisitos acordados con el cliente.';
