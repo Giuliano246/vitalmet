@@ -29,7 +29,7 @@ VitalStock es un ERP single-file (HTML + Supabase) para Vitalmet SA, empresa met
 ## Arquitectura del frontend
 - **Navegación:** sidebar de grupos + tabs por grupo. Página nueva = tocar TRES estructuras: `PAGE_TO_GROUP` (página→grupo), `GROUP_TABS` (tabs del grupo, soporta `sub:[]` para dropdowns), y `groupMods` dentro de `aplicarPermisos()`. El HTML de la página necesita `<div class="tabs"></div>` en su `.page-header` (showPage inyecta las tabs ahí). Sub-páginas además van en `PAGE_TO_PARENT`.
 - **Datos:** `loadAll()` baja todo en un `Promise.all` con asignación por destructuring. Tabla nueva = agregar variable global, entrada AL FINAL del destructure y del array de GETs con `.catch(e=>_loadFail('Nombre',e))`, y fallback `||[]` en el catch de seguridad. Los errores de carga se muestran en el banner `#load-error-banner` (con botón Reintentar) — NO usar `.catch(()=>[])` silencioso.
-- **Render:** `renderAll()` llama todos los `renderX()`. Cada módulo: `renderModulo(filter='')` → stats en `#modulo-stats`, filtro por texto, tabla en `#modulo-tbody`.
+- **Render:** `PAGE_RENDERS` mapea página → funciones de render. `renderAll()` marca todas las páginas sucias y renderiza SOLO la activa; `showPage()` renderiza una página sucia al entrar. Cada módulo: `renderModulo(filter='')` → stats en `#modulo-stats`, filtro por texto, tabla en `#modulo-tbody`. Página nueva → registrar sus renders en `PAGE_RENDERS`.
 - **Estados:** `estadoSelect(tabla,id,actual,valores,badgeMap)` genera el select que PATCHea vía `cambiarEstado` genérico.
 - **Save pattern:** validar → `setBusy(btnId,true)` → try { POST/PATCH o RPC + loadAll + closeModal + renderAll + notify } catch { notify err } finally setBusy false.
 - **Escapado:** TODO dato de usuario interpolado en HTML pasa por `esc()`.
@@ -75,7 +75,7 @@ index.html (~8.050 líneas)
 - [x] Tests de cálculos de plata (`tests/calculos.test.js` — cta cte FIFO/aging, costeo PT, reposición; harness vm en `tests/_harness.js`)
 - [x] Pase de `esc()` sobre renders viejos (104 interpolaciones; los contextos sin HTML — notify/confirm/textContent/DB/jsPDF — no se escapan)
 - [ ] Partir index.html en módulos (script files clásicos) — solo cuando haya dolor real
-- [ ] Render solo de la página activa (hoy renderAll re-renderiza todo)
+- [x] Render solo de la página activa (PAGE_RENDERS + dirty-set en showPage)
 - [ ] PDFs a Supabase Storage (hoy base64 en la DB)
 - [ ] Decisión: permisos por módulo son solo visuales (REST accesible a todo usuario autenticado)
 - [ ] Padrón AFIP (bloqueado por cert X.509; cuando esté: GET /padron/{cuit} en billing + botón "Buscar en AFIP")
