@@ -213,6 +213,29 @@ tbody tr{transition:background .15s ease,box-shadow .15s ease}
 tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
 
 /* Reduced motion preference */
+/* ─── MOBILE — vista taller ───────────────────────────────────── */
+.mobile-menu-btn{display:none;position:fixed;top:10px;left:10px;z-index:150;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;width:38px;height:38px;align-items:center;justify-content:center;cursor:pointer;color:var(--text)}
+.mobile-menu-btn svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round}
+.mobile-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:140}
+.kpi-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media (max-width:768px){
+  .mobile-menu-btn{display:flex}
+  .mobile-backdrop.show{display:block}
+  .sidebar{position:fixed;top:0;left:-240px;height:100%;width:230px;z-index:145;transition:left .25s ease;box-shadow:4px 0 24px rgba(0,0,0,.45)}
+  .sidebar.open{left:0}
+  .page-header{padding:14px 14px 0 58px}
+  .page-content{padding:14px 12px}
+  .stats-bar{grid-template-columns:1fr 1fr}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .kpi-grid-4{grid-template-columns:1fr 1fr}
+  .dash-grid{grid-template-columns:1fr}
+  .form-row{grid-template-columns:1fr !important}
+  .toolbar{flex-wrap:wrap}
+  .toolbar .search-box{flex:1 1 100%;max-width:none}
+  .tabs{overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
+  .tabs::-webkit-scrollbar{display:none}
+  .modal{width:100vw;max-width:100vw;max-height:100vh;height:100%;border-radius:0;border-left:none;border-right:none}
+}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important}
 }
@@ -325,6 +348,8 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
      APP SCREEN
 ════════════════════════════════════════════════════════════ -->
 <div id="app-screen">
+<div class="mobile-menu-btn" onclick="toggleMobileNav()" title="Menú"><svg viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg></div>
+<div class="mobile-backdrop" id="mobile-backdrop" onclick="toggleMobileNav(false)"></div>
 <div class="app">
   <aside class="sidebar">
     <div class="logo">
@@ -2133,7 +2158,15 @@ const PAGE_TO_PARENT={
   ipc:'cierreinf',ajuste:'cierreinf',cierre:'cierreinf'
 };
 
+function toggleMobileNav(force){
+  const sb=document.querySelector('.sidebar');if(!sb)return;
+  const bd=document.getElementById('mobile-backdrop');
+  const open=force!==undefined?force:!sb.classList.contains('open');
+  sb.classList.toggle('open',open);
+  if(bd)bd.classList.toggle('show',open);
+}
 function showPage(p){
+  toggleMobileNav(false);
   // Si p es una key de tab principal con sub-tabs, redirigir a la primera sub-página
   for(const g in GROUP_TABS){
     const pt=GROUP_TABS[g].find(t=>t.k===p && t.sub);
@@ -3126,7 +3159,7 @@ function renderDash(){
     <div class="kpi"><div class="kpi-label">Ganancia bruta</div><div class="kpi-val" style="color:${ganancia>=0?'var(--green)':'var(--red)'};font-size:12px">${fmtUSD(ganancia)}</div></div>
     <div class="kpi"><div class="kpi-label">Margen bruto</div><div class="kpi-val" style="color:${margen>30?'var(--green)':margen>15?'var(--accent)':'var(--red)'}">${margen}%</div></div>
   </div>
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+  <div class="kpi-grid-4">
     <div class="kpi"><div class="kpi-label">Stock PT valor costo</div><div class="kpi-val" style="color:var(--green);font-size:12px">${fmtUSD(valorPT)}</div></div>
     <div class="kpi"><div class="kpi-label">% merma prom.</div><div class="kpi-val" style="color:${pctMerma>15?'var(--red)':pctMerma>10?'var(--accent)':'var(--green)'}">${pctMerma}%</div></div>
     <div class="kpi"><div class="kpi-label">Alertas MP</div><div class="kpi-val" style="color:${low>0?'var(--red)':'var(--text)'}">${low}</div></div>
