@@ -464,6 +464,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="stats-bar" id="presup-stats"></div>
         <div class="toolbar">
           <div class="search-box"><input type="text" placeholder="Buscar por nro, cliente..." oninput="renderPresupuestos(this.value)"></div>
+          <button class="btn btn-ghost" onclick="exportPresupuestosCSV()" title="Exportar a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
           <button class="btn btn-ghost" onclick="openPresupuestoModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo presupuesto</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Nro</th><th>Cliente</th><th>Fecha</th><th>Vence</th><th>Ítems</th><th>Total USD</th><th>Margen est.</th><th>Estado</th><th></th></tr></thead><tbody id="presup-tbody"></tbody></table></div>
@@ -477,6 +478,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="stats-bar" id="ventas-stats"></div>
         <div class="toolbar">
           <div class="search-box"><input type="text" placeholder="Buscar por cliente, remito..." oninput="renderVentas(this.value)"></div>
+          <button class="btn btn-ghost" onclick="exportVentasCSV()" title="Exportar a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Nro. remito</th><th>Cliente</th><th>Fecha</th><th>Piezas</th><th>Total unid.</th><th>Importe</th><th>Estado</th><th></th></tr></thead><tbody id="ventas-tbody"></tbody></table></div>
       </div>
@@ -488,6 +490,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="stats-bar" id="clientes-stats"></div>
         <div class="toolbar">
           <div class="search-box"><input type="text" placeholder="Buscar por nombre, CUIT..." oninput="renderClientes(this.value)"></div>
+          <button class="btn btn-ghost" onclick="exportClientesCSV()" title="Exportar a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
           <button class="btn btn-ghost" onclick="openImportClientes()" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg></span>Importar Excel</button>
           <button class="btn btn-ghost" onclick="openModalCliente()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo cliente</button>
         </div>
@@ -501,6 +504,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="stats-bar" id="ctacte-stats"></div>
         <div class="toolbar">
           <div class="search-box"><input type="text" placeholder="Buscar cliente..." oninput="renderCtaCte(this.value)"></div>
+          <button class="btn btn-ghost" onclick="exportCtaCteCSV()" title="Exportar a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Cliente</th><th style="text-align:right">Cargos</th><th style="text-align:right">Cobrado</th><th style="text-align:right">Saldo</th><th style="text-align:right">Al día</th><th style="text-align:right">1-30</th><th style="text-align:right">31-60</th><th style="text-align:right">61-90</th><th style="text-align:right">+90 días</th><th></th></tr></thead><tbody id="ctacte-tbody"></tbody></table></div>
         <div id="ctacte-detalle" style="margin-top:18px"></div>
@@ -2541,6 +2545,46 @@ async function generarAsientoFactura(facturaEmitidaId,factura,venta){
 
 function resetF(ids){ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
 function fmtUSD(n){return'US$ '+Math.round(n).toLocaleString('es-AR');}
+
+// ─── EXPORT A EXCEL (CSV con BOM UTF-8 y separador ';' — locale AR) ──
+function exportCSV(filename,headers,rows){
+  const escCell=v=>{const s=(v===null||v===undefined)?'':String(v);return/[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+  const csv='\ufeff'+[headers,...rows].map(r=>r.map(escCell).join(';')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+  notify('Exportado: '+filename);
+}
+// Números con coma decimal para que Excel AR los tome como números
+function _numAR(n){return String(Math.round((parseFloat(n)||0)*100)/100).replace('.',',');}
+function exportVentasCSV(){
+  const rows=ventas.map(v=>{
+    const items=v.venta_items||[];
+    const unid=items.reduce((a,i)=>a+(parseInt(i.cantidad)||0),0);
+    const imp=items.reduce((a,i)=>a+((parseFloat(i.cantidad)||0)*(parseFloat(i.precio_unitario)||0)),0);
+    return[v.nro_remito,v.cliente,v.fecha||'',v.estado||'',v.condicion_pago||'',unid,_numAR(imp),[...new Set(items.map(i=>i.pieza||''))].join(', ')];
+  });
+  exportCSV(`ventas_${new Date().toISOString().slice(0,10)}.csv`,['Remito','Cliente','Fecha','Estado','Condición de pago','Unidades','Importe USD','Piezas'],rows);
+}
+function exportPresupuestosCSV(){
+  const rows=presupuestos.map(p=>{
+    const items=p.presupuesto_items||[];
+    const costos=items.reduce((a,i)=>a+((parseFloat(i.costo_estimado)||0)*(parseFloat(i.cantidad)||0)),0);
+    const tot=parseFloat(p.total)||0;
+    const margen=(costos>0&&tot>0)?((tot-costos)/tot*100).toFixed(1):'';
+    return[p.nro,p.cliente,p.fecha||'',p.fecha_vencimiento||'',p.estado||'',items.length,_numAR(tot),margen?margen.replace('.',','):''];
+  });
+  exportCSV(`presupuestos_${new Date().toISOString().slice(0,10)}.csv`,['Nro','Cliente','Fecha','Vence','Estado','Ítems','Total USD','Margen est. %'],rows);
+}
+function exportClientesCSV(){
+  const rows=clientes.map(c=>[c.nombre,c.contacto||'',c.telefono||'',c.email||'',c.cuit||'',c.direccion||'',c.limite_credito?_numAR(c.limite_credito):'']);
+  exportCSV(`clientes_${new Date().toISOString().slice(0,10)}.csv`,['Nombre','Contacto','Teléfono','Email','CUIT','Dirección','Límite crédito USD'],rows);
+}
+function exportCtaCteCSV(){
+  const data=computeCtaCte();
+  const rows=data.map(c=>[c.nombre,_numAR(c.totCargos),_numAR(c.totPagos),_numAR(c.saldo),_numAR(c.buckets.alDia),_numAR(c.buckets.d30),_numAR(c.buckets.d60),_numAR(c.buckets.d90),_numAR(c.buckets.mas90)]);
+  exportCSV(`cta_corriente_${new Date().toISOString().slice(0,10)}.csv`,['Cliente','Cargos USD','Cobrado USD','Saldo USD','Al día','1-30','31-60','61-90','+90 días'],rows);
+}
 // Theme: dark/light toggle persistido en localStorage
 function applyTheme(t){document.documentElement.dataset.theme=t==='light'?'light':'dark';const icon=document.getElementById('theme-icon');if(icon)icon.textContent=t==='light'?'☾':'☀';}
 function toggleTheme(){const cur=document.documentElement.dataset.theme==='light'?'light':'dark';const next=cur==='light'?'dark':'light';localStorage.setItem('theme',next);applyTheme(next);}
@@ -6843,14 +6887,21 @@ async function saveRecepcion(){
 
 function renderPresupuestos(filter=''){
   const f=filter.toLowerCase();
+  const hoy=new Date().toISOString().slice(0,10);
   const total=presupuestos.length;
   const aprobados=presupuestos.filter(p=>p.estado==='aprobado').length;
   const convertidos=presupuestos.filter(p=>p.estado==='convertido').length;
+  const enviados=presupuestos.filter(p=>p.estado==='enviado').length;
+  // Conversión: convertidos sobre los que salieron a la cancha (excluye borradores)
+  const decididos=presupuestos.filter(p=>p.estado!=='borrador').length;
+  const conversion=decididos?Math.round(convertidos/decididos*100):0;
   const totalUSD=presupuestos.reduce((a,p)=>a+parseFloat(p.total||0),0);
   document.getElementById('presup-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value" style="color:var(--accent)">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Esperando respuesta</div><div class="stat-value" style="color:${enviados?'var(--blue)':'var(--text)'}">${enviados}</div></div>
     <div class="stat-card"><div class="stat-label">Aprobados</div><div class="stat-value" style="color:var(--green)">${aprobados}</div></div>
     <div class="stat-card"><div class="stat-label">Convertidos a venta</div><div class="stat-value" style="color:var(--teal)">${convertidos}</div></div>
+    <div class="stat-card"><div class="stat-label">Conversión</div><div class="stat-value" style="color:${conversion>=50?'var(--green)':conversion>=25?'var(--accent)':'var(--coral)'}">${decididos?conversion+'%':'—'}</div></div>
     <div class="stat-card"><div class="stat-label">Importe total</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtUSD(totalUSD)}</div></div>`;
   const badges={borrador:'badge-warn',enviado:'badge-blue',aprobado:'badge-ok',rechazado:'badge-coral',vencido:'badge-coral',convertido:'badge-teal'};
   const list=presupuestos.filter(p=>!f||p.nro.toLowerCase().includes(f)||p.cliente.toLowerCase().includes(f));
@@ -6866,7 +6917,21 @@ function renderPresupuestos(filter=''){
       const col=pct>=30?'var(--green)':pct>=15?'var(--accent)':'var(--red)';
       margenCell=`<span class="mono" style="color:${col};font-weight:600">${pct.toFixed(0)}%</span>`;
     }
-    return `<tr><td class="mono td-primary">${p.nro}</td><td style="font-weight:500">${p.cliente}</td><td>${p.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${p.fecha_vencimiento||'—'}</td><td class="mono">${items.length}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(p.total||0))}</td><td>${margenCell}</td><td>${estadoSelect('presupuestos',p.id,p.estado,['borrador','enviado','aprobado','rechazado','vencido'],badges)}</td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="generatePresupuestoPDF('${p.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>PDF</button>${puedeConvertir?`<button class="btn btn-ghost btn-sm" onclick="convertirPresupuesto('${p.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>Venta</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editPresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deletePresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+    // Seguimiento: alertas de vencimiento y de envíos sin respuesta
+    let segBadge='';
+    if(p.estado==='enviado'){
+      if(p.fecha_vencimiento&&p.fecha_vencimiento<hoy){
+        segBadge='<br><span class="badge badge-coral" style="font-size:9px">VENCIDO</span>';
+      }else if(p.fecha_vencimiento){
+        const dVence=Math.ceil((new Date(p.fecha_vencimiento+'T00:00:00')-new Date(hoy+'T00:00:00'))/86400000);
+        if(dVence<=3)segBadge=`<br><span class="badge badge-warn" style="font-size:9px">VENCE EN ${dVence}D</span>`;
+      }
+      if(!segBadge&&p.fecha){
+        const dEnv=Math.floor((new Date(hoy+'T00:00:00')-new Date(p.fecha+'T00:00:00'))/86400000);
+        if(dEnv>=7)segBadge=`<br><span class="badge badge-warn" style="font-size:9px" title="Enviado hace ${dEnv} días sin respuesta — momento de llamar al cliente">${dEnv}D SIN RESP.</span>`;
+      }
+    }
+    return `<tr><td class="mono td-primary">${p.nro}</td><td style="font-weight:500">${p.cliente}</td><td>${p.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${p.fecha_vencimiento||'—'}${segBadge}</td><td class="mono">${items.length}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(p.total||0))}</td><td>${margenCell}</td><td>${estadoSelect('presupuestos',p.id,p.estado,['borrador','enviado','aprobado','rechazado','vencido'],badges)}</td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="generatePresupuestoPDF('${p.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>PDF</button>${puedeConvertir?`<button class="btn btn-ghost btn-sm" onclick="convertirPresupuesto('${p.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>Venta</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editPresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deletePresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
   }).join(''):'<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">Sin presupuestos</div><div class="empty-msg">Generá uno con <b>+ Nuevo presupuesto</b>. Cuando el cliente lo apruebe, lo convertís en venta.</div></div></td></tr>';
 }
 
