@@ -73,7 +73,7 @@ index.html (~8.050 líneas)
 - [x] Errores de carga visibles (banner + Reintentar)
 - [x] Headers CSP (netlify.toml)
 - [x] Tests de cálculos de plata (`tests/calculos.test.js` — cta cte FIFO/aging, costeo PT, reposición; harness vm en `tests/_harness.js`)
-- [ ] Pase de `esc()` sobre renders viejos
+- [x] Pase de `esc()` sobre renders viejos (104 interpolaciones; los contextos sin HTML — notify/confirm/textContent/DB/jsPDF — no se escapan)
 - [ ] Partir index.html en módulos (script files clásicos) — solo cuando haya dolor real
 - [ ] Render solo de la página activa (hoy renderAll re-renderiza todo)
 - [ ] PDFs a Supabase Storage (hoy base64 en la DB)
