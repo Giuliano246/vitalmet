@@ -250,6 +250,56 @@ test('reposición: con 4+ compras el lead time se deriva de OC→recepción', ()
   assert.equal(r.rop, 40);                // 60 × (20/30), sin desvío
 });
 
+// ─── Margen cotizado vs. real ────────────────────────────────────────
+
+function setMargenBase() {
+  setCosteoBase(); // PT p1 con costo real total = 44 (cant 2)
+  erp.set({
+    pts: [{ id: 'p1', orden_id: 'o1', cantidad: 2 }],
+    presupuestos: [{
+      id: 'pr1', nro: 'P-001', cliente: 'ACME SA', venta_id: 'v1',
+      presupuesto_items: [{ producto_id: 'p1', cantidad: '2', precio_unitario: '100', bonif_pct: '0', costo_estimado: '40' }],
+    }],
+    ventas: [{
+      id: 'v1', nro_remito: 'R-001', estado: 'entregado',
+      venta_items: [{ producto_id: 'p1', cantidad: '2', precio_unitario: '100', total: '200' }],
+    }],
+  });
+}
+
+test('margen cot vs real: compara el costo estimado al cotizar contra computeCostoPT', () => {
+  setMargenBase();
+  const r = erp.run('computeMargenCotVsReal()');
+  assert.equal(r.length, 1);
+  assert.equal(r[0].mCot, 60);                            // (200 - 2×40) / 200
+  assert.ok(Math.abs(r[0].mReal - 56) < 1e-9);            // (200 - 2×44) / 200
+  assert.ok(Math.abs(r[0].delta - -4) < 1e-9);
+  assert.equal(r[0].parcial, false);
+});
+
+test('margen cot vs real: presupuesto cotizado sin costo_estimado no es comparable', () => {
+  setMargenBase();
+  erp.run(`presupuestos[0].presupuesto_items[0].costo_estimado=null`);
+  assert.equal(erp.run('computeMargenCotVsReal()').length, 0);
+});
+
+test('margen cot vs real: ítem de venta sin PT vinculado → margen real null y marca SIN COSTO REAL', () => {
+  setMargenBase();
+  erp.run(`ventas[0].venta_items[0].producto_id=null`);
+  const r = erp.run('computeMargenCotVsReal()');
+  assert.equal(r[0].mReal, null);
+  assert.equal(r[0].delta, null);
+});
+
+test('margen cot vs real: ventas anuladas y presupuestos no convertidos quedan afuera', () => {
+  setMargenBase();
+  erp.run(`ventas[0].estado='anulado'`);
+  assert.equal(erp.run('computeMargenCotVsReal()').length, 0);
+  setMargenBase();
+  erp.run(`presupuestos[0].venta_id=null`);
+  assert.equal(erp.run('computeMargenCotVsReal()').length, 0);
+});
+
 test('reposición: material sin OPs queda marcado sinDatos y va al final', () => {
   erp.set({
     materiales: [],

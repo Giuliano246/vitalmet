@@ -581,6 +581,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
           <button class="btn btn-ghost" onclick="renderCostos()">↻ Recalcular</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Pieza</th><th>Lote</th><th>Cant.</th><th>Costo MP/un</th><th>Costo tiempo/un</th><th>Overhead/un</th><th>Costo total/un</th><th>Precio vta. prom.</th><th>Margen USD</th><th>Margen %</th></tr></thead><tbody id="costos-tbody"></tbody></table></div>
+        <div id="costos-margen-cot"></div>
       </div>
     </div>
 
@@ -8062,6 +8063,83 @@ function renderCostos(filter=''){
     const mColor=c.margenPct>=20?'var(--green)':c.margenPct>=0?'var(--warning,#f59e0b)':'var(--coral)';
     return `<tr><td class="td-primary">${esc(pt.pieza)}</td><td class="mono" style="font-size:11px">${esc(pt.lote||'—')}</td><td class="mono">${pt.cantidad}</td><td class="mono">${fmtUSD(c.costoMP)}</td><td class="mono">${fmtUSD(c.costoTiempo)}</td><td class="mono" style="color:var(--text3);font-size:11px">${fmtUSD(c.overhead)}</td><td class="mono" style="font-weight:700">${fmtUSD(c.total)}</td><td class="mono" style="color:var(--accent)">${fmtUSD(c.precioVtaProm)}</td><td class="mono" style="color:${mColor}">${fmtUSD(c.margenUSD)}</td><td class="mono" style="color:${mColor};font-weight:700">${c.margenPct.toFixed(1)}%</td></tr>`;
   }).join(''):'<tr><td colspan="10" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div><div class="empty-title">Sin productos para analizar</div><div class="empty-msg">Cargá el costo de las barras de MP y las tarifas de máquinas en <b>Configuración</b> para ver márgenes por pieza.</div></div></td></tr>';
+  _renderMargenCotReal();
+}
+
+// ─── MARGEN COTIZADO vs. REAL ─────────────────────────────────────
+// Para cada presupuesto convertido en venta, compara el margen que se
+// cotizó (presupuesto_items.costo_estimado, cotizador mig. 025) contra
+// el margen con el costo real de producción (computeCostoPT al día de
+// hoy). Delta en puntos porcentuales: negativo = se ganó menos que lo
+// cotizado.
+function computeMargenCotVsReal(){
+  const out=[];
+  (presupuestos||[]).filter(p=>p.venta_id).forEach(p=>{
+    const v=ventas.find(x=>x.id===p.venta_id);
+    if(!v||v.estado==='anulado')return;
+    // Cotizado
+    let ingCot=0,costoCot=0,itemsCot=0;
+    (p.presupuesto_items||[]).forEach(it=>{
+      const cant=parseFloat(it.cantidad)||0;
+      const precio=(parseFloat(it.precio_unitario)||0)*(1-(parseFloat(it.bonif_pct)||0)/100);
+      ingCot+=cant*precio;
+      if(it.costo_estimado!==null&&it.costo_estimado!==undefined&&it.costo_estimado!==''){
+        costoCot+=cant*(parseFloat(it.costo_estimado)||0);itemsCot++;
+      }
+    });
+    if(!itemsCot||ingCot<=0)return; // se cotizó sin costeo → no comparable
+    // Real: solo ítems con PT vinculado tienen costo de producción
+    let ingReal=0,costoReal=0,itemsReal=0,itemsTot=0;
+    (v.venta_items||[]).forEach(it=>{
+      const cant=parseFloat(it.cantidad)||0;
+      ingReal+=parseFloat(it.total)||cant*(parseFloat(it.precio_unitario)||0)*(1-(parseFloat(it.tot_pct_bonif)||0)/100);
+      itemsTot++;
+      const pt=it.producto_id?pts.find(x=>x.id===it.producto_id):null;
+      if(pt){costoReal+=cant*computeCostoPT(pt).total;itemsReal++;}
+    });
+    const mCot=(ingCot-costoCot)/ingCot*100;
+    const mReal=(itemsReal&&ingReal>0)?(ingReal-costoReal)/ingReal*100:null;
+    out.push({p,v,mCot,mReal,delta:mReal===null?null:mReal-mCot,parcial:itemsReal>0&&itemsReal<itemsTot});
+  });
+  // Peores desvíos primero; sin dato real al final
+  out.sort((a,b)=>(a.delta===null)-(b.delta===null)||(a.delta??0)-(b.delta??0));
+  return out;
+}
+function _renderMargenCotReal(){
+  const cont=document.getElementById('costos-margen-cot');if(!cont)return;
+  const rows=computeMargenCotVsReal();
+  if(!rows.length){cont.innerHTML='';return;}
+  const badge=r=>{
+    if(r.delta===null)return'<span class="badge" title="Ningún ítem de la venta tiene PT vinculado">SIN COSTO REAL</span>';
+    if(r.delta>=-2)return'<span class="badge badge-ok">EN LÍNEA</span>';
+    if(r.delta>=-8)return'<span class="badge badge-warn">DESVÍO</span>';
+    return'<span class="badge badge-coral">GANASTE MENOS</span>';
+  };
+  const pct=x=>x===null?'—':x.toFixed(1)+'%';
+  const dpp=d=>d===null?'—':(d>0?'+':'')+d.toFixed(1)+' pp';
+  cont.innerHTML=`
+  <div class="dash-card" style="margin-top:14px">
+    <div class="dash-card-title">Margen cotizado vs. real — presupuestos convertidos en venta</div>
+    <div class="table-wrap"><table style="font-size:12px"><thead><tr>
+      <th>Presup.</th><th>Venta</th><th>Cliente</th>
+      <th style="text-align:right">Margen cotizado</th><th style="text-align:right">Margen real</th>
+      <th style="text-align:right">Δ</th><th></th>
+    </tr></thead><tbody>
+    ${rows.map(r=>{
+      const dColor=r.delta===null?'var(--text3)':r.delta>=-2?'var(--green)':r.delta>=-8?'var(--accent)':'var(--coral)';
+      return`<tr>
+        <td class="mono">${esc(r.p.nro)}</td>
+        <td class="mono">${esc(r.v.nro_remito||'—')}</td>
+        <td>${esc(r.p.cliente)}${r.parcial?' <span style="color:var(--text3);font-size:10px" title="Algunos ítems de la venta no tienen PT vinculado: el costo real es parcial">(parcial)</span>':''}</td>
+        <td class="mono" style="text-align:right">${pct(r.mCot)}</td>
+        <td class="mono" style="text-align:right">${pct(r.mReal)}</td>
+        <td class="mono" style="text-align:right;font-weight:600;color:${dColor}">${dpp(r.delta)}</td>
+        <td>${badge(r)}</td>
+      </tr>`;
+    }).join('')}
+    </tbody></table></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:8px">El margen real usa el costo de producción de hoy (MP + tiempos + overhead) sobre los ítems con PT vinculado. Δ negativo = el trabajo dejó menos margen que el cotizado.</div>
+  </div>`;
 }
 
 async function saveCfgCostos(){
