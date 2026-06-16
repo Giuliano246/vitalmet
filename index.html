@@ -858,6 +858,15 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       </div>
     </div>
 
+    <!-- CONTABILIDAD: Períodos mensuales -->
+    <div class="page" id="page-periodos">
+      <div class="page-header"><div class="page-title">Períodos mensuales</div><div class="page-sub">// cierre y reapertura de períodos contables · bloqueo de imputación</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="periodos-stats"></div>
+        <div id="periodos-grid"></div>
+      </div>
+    </div>
+
     <!-- CONTABILIDAD: Cobros y Pagos -->
     <div class="page" id="page-cobpag">
       <div class="page-header"><div class="page-title">Cobros y Pagos</div><div class="page-sub">// movimientos de caja / banco con asiento automático</div><div class="tabs"><div class="tab active">Registrar</div></div></div>
@@ -1908,6 +1917,7 @@ let proveedores=[],ordenesCompra=[],ocItems=[],recepciones=[],ocItemsDraft=[],cu
 let insumos=[],herramientas=[];
 let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[],cheques=[];
 let facturasRecibidas=[];
+let periodosContables=[];
 let presupuestos=[],presupItemsList=[],presupItemsDraft=[];
 let certFileData=null,certFileName=null;
 
@@ -2183,7 +2193,7 @@ async function retryLoad(){
 async function loadAll(){
   _loadErrors=[];
   try{
-    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos,insumos,herramientas,cuentasContables,asientos,asientoLineas,indicesIpc,configContable,ejercicios,cheques,facturasRecibidas]=await Promise.all([
+    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos,insumos,herramientas,cuentasContables,asientos,asientoLineas,indicesIpc,configContable,ejercicios,cheques,facturasRecibidas,periodosContables]=await Promise.all([
       // Sin file_data: el base64 de los PDFs se descarga on-demand en openPDF() — si no, cada loadAll baja TODOS los PDFs
       GET('certificados','?order=created_at.desc&select=id,empresa_id,nro,proveedor,material,colada,fecha,metros,file_name,created_at').catch(e=>_loadFail('Certificados',e)),
       GET('barras','?order=created_at.desc&select=*,certificados(nro,colada,proveedor)').catch(e=>_loadFail('Materia prima',e)),
@@ -2212,6 +2222,7 @@ async function loadAll(){
       GET('ejercicios','?order=numero.asc').catch(e=>_loadFail('Ejercicios',e)),
       GET('cheques','?order=fecha_pago.asc').catch(e=>_loadFail('Cheques',e)),
       GET('facturas_recibidas','?order=created_at.desc').catch(e=>_loadFail('Facturas recibidas',e)),
+      GET('periodos_contables','?order=anio.desc,mes.desc').catch(e=>_loadFail('Períodos',e)),
     ]);
   }catch(e){
     // Red de seguridad: con catch por tabla no debería entrar acá
@@ -2221,13 +2232,13 @@ async function loadAll(){
     materiales=materiales||[];tratamientos=tratamientos||[];usuariosEmpresa=usuariosEmpresa||[];permisosUsuario=permisosUsuario||[];clientes=clientes||[];vendedores=vendedores||[];listasPrecios=listasPrecios||[];
     proveedores=proveedores||[];ordenesCompra=ordenesCompra||[];ocItems=ocItems||[];recepciones=recepciones||[];presupuestos=presupuestos||[];
     insumos=insumos||[];herramientas=herramientas||[];
-    cuentasContables=cuentasContables||[];asientos=asientos||[];asientoLineas=asientoLineas||[];indicesIpc=indicesIpc||[];configContable=configContable||null;ejercicios=ejercicios||[];cheques=cheques||[];facturasRecibidas=facturasRecibidas||[];
+    cuentasContables=cuentasContables||[];asientos=asientos||[];asientoLineas=asientoLineas||[];indicesIpc=indicesIpc||[];configContable=configContable||null;ejercicios=ejercicios||[];cheques=cheques||[];facturasRecibidas=facturasRecibidas||[];periodosContables=periodosContables||[];
   }
   _showLoadErrors();
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
   contabilidad:[
@@ -2238,7 +2249,7 @@ const GROUP_TABS={
     {k:'libros',l:'Libros',sub:[{k:'librodiario',l:'Diario'},{k:'libromayor',l:'Mayor'}]},
     {k:'estados',l:'Estados contables',sub:[{k:'balance',l:'Balance comprob.'},{k:'estado',l:'Estado de Rdos.'},{k:'balgral',l:'Balance general'}]},
     {k:'analisis',l:'Análisis',sub:[{k:'ratios',l:'Ratios'},{k:'bimon',l:'Bimonetario'},{k:'compha',l:'Hist. vs Ajust.'},{k:'compej',l:'Compar. ejerc.'}]},
-    {k:'cierreinf',l:'Cierre e inflación',sub:[{k:'ipc',l:'Índices IPC'},{k:'ajuste',l:'Ajuste inflación'},{k:'cierre',l:'Cierre y apertura'}]}
+    {k:'cierreinf',l:'Cierre e inflación',sub:[{k:'periodos',l:'Períodos mensuales'},{k:'ipc',l:'Índices IPC'},{k:'ajuste',l:'Ajuste inflación'},{k:'cierre',l:'Cierre y apertura'}]}
   ],
   ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'},{k:'ctacte',l:'Cta. corriente'}],
   analisis:[{k:'costos',l:'Costos y rentabilidad'},{k:'trace',l:'Trazabilidad'}],
@@ -2248,7 +2259,7 @@ const PAGE_TO_PARENT={
   librodiario:'libros',libromayor:'libros',
   balance:'estados',estado:'estados',balgral:'estados',
   ratios:'analisis',bimon:'analisis',compha:'analisis',compej:'analisis',
-  ipc:'cierreinf',ajuste:'cierreinf',cierre:'cierreinf'
+  ipc:'cierreinf',ajuste:'cierreinf',cierre:'cierreinf',periodos:'cierreinf'
 };
 
 function toggleMobileNav(force){
@@ -3468,6 +3479,7 @@ const PAGE_RENDERS={
   compha:[renderComparativoHA],
   compej:[renderComparativoEjercicios],
   bimon:[renderBimonetario],
+  periodos:[renderPeriodos],
   config:[renderConfig],
 };
 let _currentPage='dash';
@@ -3629,8 +3641,66 @@ async function deleteCuenta(id){
   catch(e){notify(e.message,'err');}
 }
 
+// ─── PERÍODOS CONTABLES ───────────────────────────────────────
+const _MES_NOMBRES=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function renderPeriodos(){
+  const grid=document.getElementById('periodos-grid');if(!grid)return;
+  const statsEl=document.getElementById('periodos-stats');
+  const hoy=new Date();
+  const anioHoy=hoy.getFullYear();
+  const mesHoy=hoy.getMonth()+1;
+  // Generar 24 meses: año actual completo + año anterior completo, ordenados desc
+  const meses=[];
+  for(let a=anioHoy;a>=anioHoy-1;a--){
+    for(let m=12;m>=1;m--){
+      // No mostrar meses futuros
+      if(a===anioHoy&&m>mesHoy)continue;
+      meses.push({anio:a,mes:m});
+    }
+  }
+  const cerrados=periodosContables.filter(p=>p.estado==='cerrado');
+  if(statsEl)statsEl.innerHTML=`
+    <div class="stat-card"><div class="stat-label">Períodos cerrados</div><div class="stat-value" style="color:var(--coral)">${cerrados.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Períodos abiertos</div><div class="stat-value" style="color:var(--green)">${meses.length-cerrados.filter(c=>meses.some(m=>m.anio===c.anio&&m.mes===c.mes)).length}</div></div>`;
+  const esAdmin=currentUserData?.es_admin===true;
+  grid.innerHTML=`<div class="table-wrap"><table><thead><tr><th>Período</th><th>Estado</th><th>Cerrado el</th><th>Cerrado por</th><th></th></tr></thead><tbody>${
+    meses.map(({anio,mes})=>{
+      const row=periodosContables.find(p=>p.anio===anio&&p.mes===mes);
+      const cerrado=row?.estado==='cerrado';
+      const badge=cerrado?'<span class="badge badge-coral">CERRADO</span>':'<span class="badge badge-ok">ABIERTO</span>';
+      const cerradoEl=cerrado?(row.cerrado_at?new Date(row.cerrado_at).toLocaleDateString('es-AR'):'—'):'—';
+      const cerradoPor=cerrado?(esc(row.cerrado_por||'—')):'—';
+      let acciones='';
+      if(!cerrado){
+        acciones=`<button class="btn btn-danger btn-sm" onclick="cerrarPeriodo(${anio},${mes})">Cerrar</button>`;
+      }else if(esAdmin){
+        acciones=`<button class="btn btn-ghost btn-sm" onclick="reabrirPeriodo('${esc(row.id)}')">Reabrir</button>`;
+      }
+      return`<tr><td class="mono td-primary">${_MES_NOMBRES[mes]} ${anio}</td><td>${badge}</td><td class="mono" style="font-size:12px;color:var(--text3)">${cerradoEl}</td><td style="font-size:12px">${cerradoPor}</td><td>${acciones}</td></tr>`;
+    }).join('')
+  }</tbody></table></div>`;
+}
+async function cerrarPeriodo(anio,mes){
+  if(!confirm(`¿Cerrar el período ${mes}/${anio}? No se podrán imputar asientos con fecha en ese mes.`))return;
+  try{
+    const ex=periodosContables.find(p=>p.anio===anio&&p.mes===mes);
+    if(ex){ await PATCH('periodos_contables',{estado:'cerrado'},`?id=eq.${ex.id}`); }
+    else  { await POST('periodos_contables',{empresa_id:currentEmpresa.id,anio,mes,estado:'cerrado'}); }
+    await loadAll();renderAll();notify('Período cerrado');
+  }catch(e){notify(e.message||'Error cerrando período','err');}
+}
+async function reabrirPeriodo(id){
+  if(!(currentUserData?.es_admin===true)){notify('Solo un administrador puede reabrir un período','err');return;}
+  if(!confirm('¿Reabrir el período? Volverá a permitir asientos en ese mes.'))return;
+  try{
+    await PATCH('periodos_contables',{estado:'abierto'},`?id=eq.${id}`);
+    await loadAll();renderAll();notify('Período reabierto');
+  }catch(e){notify(e.message||'No se pudo reabrir','err');}
+}
+
 // ─── ÍNDICES IPC (ajuste por inflación) ──────────────────────
-const MES_NOMBRE=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const _MES_NOMBRES_IPC=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MES_NOMBRE=_MES_NOMBRES_IPC;
 function renderIndicesIPC(filter=''){
   const tbody=document.getElementById('ipc-tbody');if(!tbody)return;
   const f=(filter||'').toLowerCase();
@@ -6814,7 +6884,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte'],analisis:['costos','trace'],contabilidad:['cuentas','asientosp','cobpag','cheques','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte'],analisis:['costos','trace'],contabilidad:['cuentas','asientosp','cobpag','cheques','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre','periodos']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
