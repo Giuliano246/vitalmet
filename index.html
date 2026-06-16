@@ -8107,6 +8107,20 @@ function computeMargenCotVsReal(){
   out.sort((a,b)=>(a.delta===null)-(b.delta===null)||(a.delta??0)-(b.delta??0));
   return out;
 }
+
+// ─── 3-WAY MATCH: preview de coincidencia factura–OC–recepción ────────
+// Lógica espejo del RPC `registrar_factura_recibida` (migración 033):
+//   umbral = LEAST(valor_recibido * tolPct, tolMonto)
+//   ok     = abs(neto - valorRecibido) <= umbral
+// Esta función es PURA (sin DOM, sin red) y solo se usa para feedback
+// visual en tiempo real; la validación autoritativa ocurre en el servidor.
+function evaluarMatchFactura({ valorRecibido, neto, tolPct, tolMonto }) {
+  const dif = Math.abs(neto - valorRecibido);
+  const umbral = Math.min(valorRecibido * tolPct, tolMonto);
+  const ok = dif <= umbral;
+  return { ok, dif, umbral, estado: ok ? 'ok' : 'discrepancia' };
+}
+
 function _renderMargenCotReal(){
   const cont=document.getElementById('costos-margen-cot');if(!cont)return;
   const rows=computeMargenCotVsReal();
