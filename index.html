@@ -474,6 +474,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="tabs">
           <div class="tab active" onclick="switchComprasTab('oc')">Órdenes de compra</div>
           <div class="tab" onclick="switchComprasTab('prov')">Proveedores</div>
+          <div class="tab" onclick="switchComprasTab('facturas')">Facturas recibidas</div>
         </div>
       </div>
       <div class="page-content">
@@ -492,6 +493,13 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
             <button class="btn btn-ghost" onclick="openProveedorModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo proveedor</button>
           </div>
           <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>CUIT</th><th>Contacto</th><th>Teléfono</th><th>Email</th><th>OCs</th><th>Deuda USD</th><th></th></tr></thead><tbody id="prov-tbody"></tbody></table></div>
+        </div>
+        <div id="compras-tab-facturas" style="display:none">
+          <div class="stats-bar" id="fr-stats"></div>
+          <div class="toolbar">
+            <div class="search-box"><input type="text" placeholder="Buscar por nro, proveedor..." oninput="renderFacturasRecibidas(this.value)"></div>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>OC</th><th>Proveedor</th><th>Nro factura</th><th>Fecha</th><th>Vto.</th><th>Mon.</th><th>Neto</th><th>IVA</th><th>Total</th><th>Match</th><th>Asiento</th></tr></thead><tbody id="fr-tbody"></tbody></table></div>
         </div>
       </div>
     </div>
@@ -1649,6 +1657,49 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
   </div>
 </div>
 
+<!-- MODAL: Registrar factura recibida (3-way match) -->
+<div class="modal-overlay" id="modal-factura-recibida">
+  <div class="modal" style="width:660px">
+    <div class="modal-header"><div class="modal-title">Registrar factura de proveedor</div><button class="modal-close" onclick="closeModal('modal-factura-recibida')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row" style="grid-template-columns:1fr 1fr">
+        <div class="form-group"><label>Proveedor</label><input type="text" id="fr-proveedor-nombre" readonly style="background:var(--bg);color:var(--text3)"></div>
+        <div class="form-group"><label>OC</label><input type="text" id="fr-oc-nro" readonly style="background:var(--bg);color:var(--text3)"></div>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 140px 140px">
+        <div class="form-group"><label>Nro de factura</label><input type="text" id="fr-nro" placeholder="A-0001-00012345"></div>
+        <div class="form-group"><label>Fecha</label><input type="date" id="fr-fecha"></div>
+        <div class="form-group"><label>Vencimiento</label><input type="date" id="fr-fecha-vto"></div>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 100px 120px">
+        <div class="form-group"><label>Neto</label><input type="number" id="fr-neto" step="0.01" min="0" placeholder="0.00" oninput="actualizarMatchPreview()"></div>
+        <div class="form-group"><label>IVA</label><input type="number" id="fr-iva" step="0.01" min="0" placeholder="0.00"></div>
+        <div class="form-group"><label>Total</label><input type="number" id="fr-total" step="0.01" min="0" placeholder="0.00"></div>
+        <div class="form-group"><label>Moneda</label><select id="fr-moneda"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
+        <div class="form-group"><label>Tipo de cambio</label><input type="number" id="fr-tc" step="0.01" min="0" placeholder="1.00"></div>
+      </div>
+      <hr class="form-divider">
+      <div id="fr-match-preview" style="display:none;padding:10px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface);margin-bottom:8px">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);font-weight:600;margin-bottom:8px">Verificación 3-way match</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;font-size:12px">
+          <div><div style="color:var(--text3);margin-bottom:2px">Valor recibido (OC)</div><div class="mono" id="fr-match-recibido">—</div></div>
+          <div><div style="color:var(--text3);margin-bottom:2px">Neto factura</div><div class="mono" id="fr-match-neto">—</div></div>
+          <div><div style="color:var(--text3);margin-bottom:2px">Diferencia</div><div class="mono" id="fr-match-dif">—</div></div>
+          <div><div style="color:var(--text3);margin-bottom:2px">Umbral</div><div class="mono" id="fr-match-umbral">—</div></div>
+        </div>
+        <div style="margin-top:10px" id="fr-match-badge"></div>
+      </div>
+      <div id="fr-override-section" style="display:none">
+        <div class="form-group"><label style="color:var(--coral)">Motivo de override (admin requerido)</label><textarea id="fr-motivo" rows="2" placeholder="Justificá la discrepancia para registrar de todas formas..." style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--coral);color:var(--text);border-radius:5px;padding:8px;font-size:12px;font-family:var(--mono);resize:vertical"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-factura-recibida')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-fr" onclick="registrarFacturaRecibida('btn-save-fr')">Registrar factura</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Captura de tiempos de producción -->
 <div class="modal-overlay" id="modal-tiempos">
   <div class="modal" style="width:980px;max-width:95vw">
@@ -1856,6 +1907,7 @@ let certs=[],barras=[],ops=[],pts=[],ventas=[],ventaItemsList=[],materiales=[],t
 let proveedores=[],ordenesCompra=[],ocItems=[],recepciones=[],ocItemsDraft=[],currentOCId=null;
 let insumos=[],herramientas=[];
 let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[],cheques=[];
+let facturasRecibidas=[];
 let presupuestos=[],presupItemsList=[],presupItemsDraft=[];
 let certFileData=null,certFileName=null;
 
@@ -2131,7 +2183,7 @@ async function retryLoad(){
 async function loadAll(){
   _loadErrors=[];
   try{
-    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos,insumos,herramientas,cuentasContables,asientos,asientoLineas,indicesIpc,configContable,ejercicios,cheques]=await Promise.all([
+    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos,insumos,herramientas,cuentasContables,asientos,asientoLineas,indicesIpc,configContable,ejercicios,cheques,facturasRecibidas]=await Promise.all([
       // Sin file_data: el base64 de los PDFs se descarga on-demand en openPDF() — si no, cada loadAll baja TODOS los PDFs
       GET('certificados','?order=created_at.desc&select=id,empresa_id,nro,proveedor,material,colada,fecha,metros,file_name,created_at').catch(e=>_loadFail('Certificados',e)),
       GET('barras','?order=created_at.desc&select=*,certificados(nro,colada,proveedor)').catch(e=>_loadFail('Materia prima',e)),
@@ -2159,6 +2211,7 @@ async function loadAll(){
       GET('config_contable','?limit=1').then(r=>r&&r[0]||null).catch(e=>_loadFail('Config. contable',e,null)),
       GET('ejercicios','?order=numero.asc').catch(e=>_loadFail('Ejercicios',e)),
       GET('cheques','?order=fecha_pago.asc').catch(e=>_loadFail('Cheques',e)),
+      GET('facturas_recibidas','?order=created_at.desc').catch(e=>_loadFail('Facturas recibidas',e)),
     ]);
   }catch(e){
     // Red de seguridad: con catch por tabla no debería entrar acá
@@ -2168,7 +2221,7 @@ async function loadAll(){
     materiales=materiales||[];tratamientos=tratamientos||[];usuariosEmpresa=usuariosEmpresa||[];permisosUsuario=permisosUsuario||[];clientes=clientes||[];vendedores=vendedores||[];listasPrecios=listasPrecios||[];
     proveedores=proveedores||[];ordenesCompra=ordenesCompra||[];ocItems=ocItems||[];recepciones=recepciones||[];presupuestos=presupuestos||[];
     insumos=insumos||[];herramientas=herramientas||[];
-    cuentasContables=cuentasContables||[];asientos=asientos||[];asientoLineas=asientoLineas||[];indicesIpc=indicesIpc||[];configContable=configContable||null;ejercicios=ejercicios||[];cheques=cheques||[];
+    cuentasContables=cuentasContables||[];asientos=asientos||[];asientoLineas=asientoLineas||[];indicesIpc=indicesIpc||[];configContable=configContable||null;ejercicios=ejercicios||[];cheques=cheques||[];facturasRecibidas=facturasRecibidas||[];
   }
   _showLoadErrors();
 }
@@ -3393,7 +3446,7 @@ const PAGE_RENDERS={
   insumos:[renderInsumos],
   herramientas:[renderHerramientas],
   op:[renderOP],
-  compras:[renderCompras,renderProveedores],
+  compras:[renderCompras,renderProveedores,renderFacturasRecibidas],
   presupuestos:[renderPresupuestos],
   ventas:[renderVentas],
   clientes:[renderClientes],
@@ -7006,9 +7059,10 @@ function openAddOperacion(){document.getElementById('paso-nombre').value='';docu
 // ═══════════════════════════════════════════════════════════
 
 function switchComprasTab(tab){
-  document.querySelectorAll('#page-compras .tab').forEach((t,i)=>{t.classList.toggle('active',(i===0&&tab==='oc')||(i===1&&tab==='prov'));});
+  document.querySelectorAll('#page-compras .tab').forEach((t,i)=>{t.classList.toggle('active',(i===0&&tab==='oc')||(i===1&&tab==='prov')||(i===2&&tab==='facturas'));});
   document.getElementById('compras-tab-oc').style.display=tab==='oc'?'':'none';
   document.getElementById('compras-tab-prov').style.display=tab==='prov'?'':'none';
+  document.getElementById('compras-tab-facturas').style.display=tab==='facturas'?'':'none';
 }
 
 // Convierte total de OC a ARS y a USD usando moneda + tipo_cambio del OC
@@ -7033,12 +7087,13 @@ function renderCompras(filter=''){
     const items=o.oc_items||ocItems.filter(i=>i.oc_id===o.id);
     const cantItems=items.length;
     const puedeRecibir=['enviada','confirmada','recibida_parcial'].includes(o.estado);
+    const puedeFacturar=['recibida','recibida_parcial','facturada'].includes(o.estado);
     const mon=o.moneda||'USD';const tc=parseFloat(o.tipo_cambio)||0;const tt=o.tc_tipo;
     const tARS=ocToARS(o);const tUSD=ocToUSD(o);
     const monBadge=mon==='ARS'?'<span class="badge badge-teal">ARS</span>':'<span class="badge badge-blue">USD</span>';
     const ttLabel=tt==='compra'?'C':tt==='venta'?'V':'';
     const certNro=o.certificados?.nro;
-    return `<tr><td class="mono td-primary">${esc(o.nro)}</td><td style="font-weight:500">${esc(o.proveedores?.nombre)||'—'}</td><td>${o.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${o.fecha_entrega_esperada||'—'}</td><td class="mono">${cantItems}</td><td>${monBadge}${tc?`<div style="font-size:9px;color:var(--text3);font-family:var(--mono)">TC ${tc.toFixed(2)}${ttLabel?' '+ttLabel:''}</div>`:''}</td><td class="mono" style="color:var(--green)">${tARS!==null?fmtARS(tARS):'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:var(--blue);font-size:11px">${tUSD!==null?fmtUSD(tUSD):'<span style="color:var(--text3)">—</span>'}</td><td>${estadoSelect('ordenes_compra',o.id,o.estado||'borrador',['borrador','enviada','confirmada','recibida_parcial','recibida','facturada','anulada'],badges)}</td><td class="mono" style="font-size:11px">${esc(o.remito_nro)||'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="font-size:11px">${certNro?`<span style="color:var(--teal)">${esc(certNro)}</span>`:'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="font-size:11px">${esc(o.factura_nro)||'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="generateOCPDF('${o.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>NDP</button>${puedeRecibir?`<button class="btn btn-ghost btn-sm" onclick="openRecepcionModal('${o.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>Recibir</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editOC('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteOC('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+    return `<tr><td class="mono td-primary">${esc(o.nro)}</td><td style="font-weight:500">${esc(o.proveedores?.nombre)||'—'}</td><td>${o.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${o.fecha_entrega_esperada||'—'}</td><td class="mono">${cantItems}</td><td>${monBadge}${tc?`<div style="font-size:9px;color:var(--text3);font-family:var(--mono)">TC ${tc.toFixed(2)}${ttLabel?' '+ttLabel:''}</div>`:''}</td><td class="mono" style="color:var(--green)">${tARS!==null?fmtARS(tARS):'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:var(--blue);font-size:11px">${tUSD!==null?fmtUSD(tUSD):'<span style="color:var(--text3)">—</span>'}</td><td>${estadoSelect('ordenes_compra',o.id,o.estado||'borrador',['borrador','enviada','confirmada','recibida_parcial','recibida','facturada','anulada'],badges)}</td><td class="mono" style="font-size:11px">${esc(o.remito_nro)||'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="font-size:11px">${certNro?`<span style="color:var(--teal)">${esc(certNro)}</span>`:'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="font-size:11px">${esc(o.factura_nro)||'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="generateOCPDF('${o.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>NDP</button>${puedeRecibir?`<button class="btn btn-ghost btn-sm" onclick="openRecepcionModal('${o.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>Recibir</button>`:''}${puedeFacturar?`<button class="btn btn-ghost btn-sm" onclick="openFacturaRecibidaModal('${o.id}')" style="border-color:var(--teal);color:var(--teal)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>Factura</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editOC('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteOC('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
   }).join(''):'<tr><td colspan="13" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></div><div class="empty-title">Sin órdenes de compra</div><div class="empty-msg">Generá la primera OC con <b>+ Nueva OC</b> seleccionando el proveedor y los ítems a comprar.</div></div></td></tr>';
 }
 
@@ -7309,6 +7364,171 @@ async function saveRecepcion(){
     notify(allComplete?'✓ Recepción completa registrada':'Recepción parcial registrada');
   }catch(e){notify('Error: '+e.message,'err');console.error(e);}
   finally{setBusy('btn-save-recep',false);}
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🧾 FACTURAS RECIBIDAS — 3-way match
+// Tabla: facturas_recibidas  RPC: registrar_factura_recibida
+// ═══════════════════════════════════════════════════════════
+
+let _currentFacturaOcId=null;
+
+function openFacturaRecibidaModal(ocId){
+  _currentFacturaOcId=ocId;
+  const oc=ordenesCompra.find(o=>o.id===ocId);
+  if(!oc){notify('OC no encontrada','err');return;}
+  const prov=proveedores.find(p=>p.id===oc.proveedor_id)||oc.proveedores||null;
+  document.getElementById('fr-proveedor-nombre').value=prov?.nombre||'—';
+  document.getElementById('fr-oc-nro').value=esc(oc.nro);
+  document.getElementById('fr-nro').value='';
+  document.getElementById('fr-fecha').value=hoyLocal();
+  document.getElementById('fr-fecha-vto').value='';
+  document.getElementById('fr-neto').value='';
+  document.getElementById('fr-iva').value='';
+  document.getElementById('fr-total').value='';
+  document.getElementById('fr-moneda').value=oc.moneda||'ARS';
+  document.getElementById('fr-tc').value=oc.tipo_cambio||'';
+  document.getElementById('fr-match-preview').style.display='none';
+  document.getElementById('fr-override-section').style.display='none';
+  openModal('modal-factura-recibida');
+}
+
+function _calcValorRecibidoOC(ocId){
+  const items=ocItems.filter(i=>i.oc_id===ocId);
+  return items.reduce((a,i)=>{
+    const pu=parseFloat(i.precio_unitario)||0;
+    const qr=parseFloat(i.cantidad_recibida)||0;
+    return a+pu*qr;
+  },0);
+}
+
+function actualizarMatchPreview(){
+  const neto=parseFloat(document.getElementById('fr-neto').value)||0;
+  const preview=document.getElementById('fr-match-preview');
+  const overrideSection=document.getElementById('fr-override-section');
+  if(!neto||!_currentFacturaOcId){preview.style.display='none';overrideSection.style.display='none';return;}
+  const valorRecibido=_calcValorRecibidoOC(_currentFacturaOcId);
+  const tolPct=(parseFloat(configContable?.match_tolerancia_pct)||0)/100;
+  const tolMonto=parseFloat(configContable?.match_tolerancia_monto)||0;
+  const match=evaluarMatchFactura({valorRecibido,neto,tolPct,tolMonto});
+  const fmt=n=>n.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('fr-match-recibido').textContent=fmt(valorRecibido);
+  document.getElementById('fr-match-neto').textContent=fmt(neto);
+  document.getElementById('fr-match-dif').textContent=fmt(match.dif);
+  document.getElementById('fr-match-umbral').textContent=fmt(match.umbral);
+  const badge=document.getElementById('fr-match-badge');
+  if(match.ok){
+    badge.innerHTML='<span class="badge badge-ok" style="font-size:12px">✓ MATCH OK</span>';
+    preview.style.background='var(--surface)';
+    preview.style.borderColor='var(--green)';
+    overrideSection.style.display='none';
+  }else{
+    badge.innerHTML='<span class="badge badge-coral" style="font-size:12px">✗ DISCREPANCIA</span>';
+    preview.style.background='var(--surface)';
+    preview.style.borderColor='var(--coral)';
+    const esAdmin=currentUserData?.es_admin===true;
+    overrideSection.style.display=esAdmin?'':'none';
+    if(!esAdmin){
+      badge.innerHTML+=' <span style="font-size:11px;color:var(--text3);margin-left:8px">Se requiere un administrador para registrar con discrepancia.</span>';
+    }
+  }
+  preview.style.display='';
+}
+
+async function registrarFacturaRecibida(btnId){
+  const ocId=_currentFacturaOcId;
+  if(!ocId){notify('No hay OC seleccionada','err');return;}
+  const oc=ordenesCompra.find(o=>o.id===ocId);
+  if(!oc){notify('OC no encontrada','err');return;}
+  const nro=document.getElementById('fr-nro').value.trim();
+  const fecha=document.getElementById('fr-fecha').value;
+  const fechaVto=document.getElementById('fr-fecha-vto').value||null;
+  const neto=parseFloat(document.getElementById('fr-neto').value)||0;
+  const iva=parseFloat(document.getElementById('fr-iva').value)||0;
+  const total=parseFloat(document.getElementById('fr-total').value)||0;
+  const moneda=document.getElementById('fr-moneda').value;
+  const tipoCambio=parseFloat(document.getElementById('fr-tc').value)||null;
+  if(!nro){notify('El número de factura es obligatorio','err');return;}
+  if(!fecha){notify('La fecha es obligatoria','err');return;}
+  if(neto<=0){notify('El neto debe ser mayor a cero','err');return;}
+  if(total<=0){notify('El total debe ser mayor a cero','err');return;}
+  // Compute match
+  const valorRecibido=_calcValorRecibidoOC(ocId);
+  const tolPct=(parseFloat(configContable?.match_tolerancia_pct)||0)/100;
+  const tolMonto=parseFloat(configContable?.match_tolerancia_monto)||0;
+  const match=evaluarMatchFactura({valorRecibido,neto,tolPct,tolMonto});
+  let override=false;
+  let motivo=null;
+  if(!match.ok){
+    const esAdmin=currentUserData?.es_admin===true;
+    if(!esAdmin){notify('Hay una discrepancia en el match. Solo un administrador puede registrar con override.','err');return;}
+    motivo=(document.getElementById('fr-motivo').value||'').trim();
+    if(!motivo){notify('Ingresá el motivo del override para continuar','err');return;}
+    override=true;
+  }
+  const f={
+    oc_id:ocId,
+    proveedor_id:oc.proveedor_id,
+    empresa_id:currentEmpresa.id,
+    nro_factura:nro,
+    fecha,
+    fecha_vto:fechaVto,
+    neto,
+    iva,
+    total,
+    moneda,
+    tipo_cambio:tipoCambio
+  };
+  try{
+    setBusy(btnId,true);
+    await RPC('registrar_factura_recibida',{p_factura:f,p_override:override,p_motivo:motivo});
+    await loadAll();closeModal('modal-factura-recibida');renderAll();
+    notify('Factura registrada');
+  }catch(e){notify(e.message||'Error registrando factura','err');}
+  finally{setBusy(btnId,false);}
+}
+
+function renderFacturasRecibidas(filter=''){
+  const f=(filter||'').toLowerCase();
+  const total=facturasRecibidas.length;
+  const matchOk=facturasRecibidas.filter(r=>r.estado_match==='ok').length;
+  const matchOverride=facturasRecibidas.filter(r=>r.estado_match==='override').length;
+  const matchPend=facturasRecibidas.filter(r=>!r.estado_match||r.estado_match==='pendiente').length;
+  document.getElementById('fr-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total facturas</div><div class="stat-value" style="color:var(--accent)">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Match OK</div><div class="stat-value" style="color:var(--green)">${matchOk}</div></div>
+    <div class="stat-card"><div class="stat-label">Con override</div><div class="stat-value" style="color:var(--accent)">${matchOverride}</div></div>
+    <div class="stat-card"><div class="stat-label">Pendientes</div><div class="stat-value" style="color:var(--text3)">${matchPend}</div></div>`;
+  const matchBadges={ok:'badge-ok',override:'badge-warn',pendiente:'',discrepancia:'badge-coral'};
+  const list=facturasRecibidas.filter(r=>{
+    if(!f)return true;
+    const oc=ordenesCompra.find(o=>o.id===r.oc_id);
+    const prov=proveedores.find(p=>p.id===r.proveedor_id);
+    return (oc?.nro||'').toLowerCase().includes(f)||(prov?.nombre||'').toLowerCase().includes(f)||(r.nro_factura||'').toLowerCase().includes(f);
+  });
+  document.getElementById('fr-tbody').innerHTML=list.length?list.map(r=>{
+    const oc=ordenesCompra.find(o=>o.id===r.oc_id);
+    const prov=proveedores.find(p=>p.id===r.proveedor_id);
+    const mon=r.moneda||'ARS';
+    const fmt=mon==='USD'?fmtUSD:fmtARS;
+    const estado=r.estado_match||'pendiente';
+    const badgeCls=matchBadges[estado]||'';
+    const badgeLabel={ok:'MATCH OK',override:'OVERRIDE',pendiente:'PENDIENTE',discrepancia:'DISCREPANCIA'}[estado]||esc(estado);
+    const asientoId=r.asiento_id;
+    return `<tr>
+      <td class="mono">${esc(oc?.nro||r.oc_id)}</td>
+      <td style="font-weight:500">${esc(prov?.nombre||'—')}</td>
+      <td class="mono">${esc(r.nro_factura||'—')}</td>
+      <td>${r.fecha||'—'}</td>
+      <td style="color:var(--text3)">${r.fecha_vto||'—'}</td>
+      <td><span class="badge ${mon==='USD'?'badge-blue':'badge-teal'}">${esc(mon)}</span></td>
+      <td class="mono" style="text-align:right">${fmt(parseFloat(r.neto||0))}</td>
+      <td class="mono" style="text-align:right">${fmt(parseFloat(r.iva||0))}</td>
+      <td class="mono" style="text-align:right;font-weight:600">${fmt(parseFloat(r.total||0))}</td>
+      <td><span class="badge ${badgeCls}">${badgeLabel}</span></td>
+      <td class="mono" style="font-size:11px;color:var(--text3)">${asientoId?esc(asientoId):'—'}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="11" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">Sin facturas recibidas</div><div class="empty-msg">Registrá la primera factura usando el botón <b>Factura</b> en una OC recibida.</div></div></td></tr>';
 }
 
 // ═══════════════════════════════════════════════════════════
