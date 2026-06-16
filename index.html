@@ -7408,7 +7408,7 @@ function actualizarMatchPreview(){
   const overrideSection=document.getElementById('fr-override-section');
   if(!neto||!_currentFacturaOcId){preview.style.display='none';overrideSection.style.display='none';return;}
   const valorRecibido=_calcValorRecibidoOC(_currentFacturaOcId);
-  const tolPct=(parseFloat(configContable?.match_tolerancia_pct)||0)/100;
+  const tolPct=parseFloat(configContable?.match_tolerancia_pct)||0; // ratio (ej. 0.02 = 2%), igual que el SQL
   const tolMonto=parseFloat(configContable?.match_tolerancia_monto)||0;
   const match=evaluarMatchFactura({valorRecibido,neto,tolPct,tolMonto});
   const fmt=n=>n.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -7454,7 +7454,7 @@ async function registrarFacturaRecibida(btnId){
   if(total<=0){notify('El total debe ser mayor a cero','err');return;}
   // Compute match
   const valorRecibido=_calcValorRecibidoOC(ocId);
-  const tolPct=(parseFloat(configContable?.match_tolerancia_pct)||0)/100;
+  const tolPct=parseFloat(configContable?.match_tolerancia_pct)||0; // ratio (ej. 0.02 = 2%), igual que el SQL
   const tolMonto=parseFloat(configContable?.match_tolerancia_monto)||0;
   const match=evaluarMatchFactura({valorRecibido,neto,tolPct,tolMonto});
   let override=false;
