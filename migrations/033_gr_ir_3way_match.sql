@@ -179,6 +179,11 @@ BEGIN
   IF v_total IS NULL OR v_total <= 0 THEN
     RAISE EXCEPTION 'El total debe ser mayor a cero';
   END IF;
+  -- El 3-way match requiere una OC vinculada (oc_id es nullable en la tabla
+  -- para flexibilidad futura, pero esta RPC siempre matchea contra una OC).
+  IF v_oc_id IS NULL THEN
+    RAISE EXCEPTION 'La factura debe estar vinculada a una OC para el 3-way match';
+  END IF;
 
   -- Cargar config contable de la empresa
   SELECT * INTO v_cfg

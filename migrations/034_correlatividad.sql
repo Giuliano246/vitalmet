@@ -73,11 +73,17 @@ FROM (
   FROM asientos_num
   GROUP BY empresa_id
 ) a
-CROSS JOIN LATERAL generate_series(a.lo, a.hi) AS g(n)
+-- Bound de seguridad: si el rango fuera anómalo (ej. un numero manual
+-- gigante), no expandir millones de filas en generate_series.
+CROSS JOIN LATERAL generate_series(a.lo, LEAST(a.hi, a.lo + 100000)) AS g(n)
 WHERE NOT EXISTS (
   SELECT 1 FROM asientos_num x
   WHERE x.empresa_id = a.empresa_id AND x.n = g.n
 );
+
+-- PostgREST expone las vistas públicas a anon por default; revocar.
+-- security_invoker=true ya aplica la RLS de asientos al consultante.
+REVOKE SELECT ON public.v_correlatividad FROM anon;
 
 COMMIT;
 

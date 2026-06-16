@@ -86,8 +86,11 @@ BEGIN
     RAISE EXCEPTION 'Sólo un administrador puede reabrir un período cerrado';
   END IF;
 
-  -- Cierre (cualquier → cerrado): registrar quién y cuándo cerró.
-  IF NEW.estado = 'cerrado' AND (OLD.estado IS DISTINCT FROM 'cerrado') THEN
+  -- Cierre (INSERT directo en 'cerrado' o UPDATE → 'cerrado'): registrar
+  -- quién y cuándo cerró. El INSERT es el camino común (cerrarPeriodo hace
+  -- POST cuando el período aún no existe), por eso el trigger cubre INSERT.
+  IF NEW.estado = 'cerrado'
+     AND (TG_OP = 'INSERT' OR OLD.estado IS DISTINCT FROM 'cerrado') THEN
     NEW.cerrado_por := auth.uid();
     NEW.cerrado_at  := now();
   END IF;
@@ -97,8 +100,10 @@ END $$;
 
 DROP TRIGGER IF EXISTS trg_periodo_guard ON public.periodos_contables;
 CREATE TRIGGER trg_periodo_guard
-  BEFORE UPDATE ON public.periodos_contables
+  BEFORE INSERT OR UPDATE ON public.periodos_contables
   FOR EACH ROW EXECUTE FUNCTION public.fn_periodo_guard();
+-- Función de trigger de uso interno: no exponer a anon (convención del proyecto).
+REVOKE EXECUTE ON FUNCTION public.fn_periodo_guard() FROM anon;
 
 -- ─── 4. Bloqueo de asientos en período cerrado ───────────────────
 -- SECURITY DEFINER: necesita leer periodos_contables sin que el RLS
