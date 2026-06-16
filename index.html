@@ -7469,8 +7469,7 @@ async function registrarFacturaRecibida(btnId){
   const f={
     oc_id:ocId,
     proveedor_id:oc.proveedor_id,
-    empresa_id:currentEmpresa.id,
-    nro_factura:nro,
+    nro,
     fecha,
     fecha_vto:fechaVto,
     neto,
@@ -7504,7 +7503,7 @@ function renderFacturasRecibidas(filter=''){
     if(!f)return true;
     const oc=ordenesCompra.find(o=>o.id===r.oc_id);
     const prov=proveedores.find(p=>p.id===r.proveedor_id);
-    return (oc?.nro||'').toLowerCase().includes(f)||(prov?.nombre||'').toLowerCase().includes(f)||(r.nro_factura||'').toLowerCase().includes(f);
+    return (oc?.nro||'').toLowerCase().includes(f)||(prov?.nombre||'').toLowerCase().includes(f)||(r.nro||'').toLowerCase().includes(f);
   });
   document.getElementById('fr-tbody').innerHTML=list.length?list.map(r=>{
     const oc=ordenesCompra.find(o=>o.id===r.oc_id);
@@ -7518,7 +7517,7 @@ function renderFacturasRecibidas(filter=''){
     return `<tr>
       <td class="mono">${esc(oc?.nro||r.oc_id)}</td>
       <td style="font-weight:500">${esc(prov?.nombre||'—')}</td>
-      <td class="mono">${esc(r.nro_factura||'—')}</td>
+      <td class="mono">${esc(r.nro||'—')}</td>
       <td>${r.fecha||'—'}</td>
       <td style="color:var(--text3)">${r.fecha_vto||'—'}</td>
       <td><span class="badge ${mon==='USD'?'badge-blue':'badge-teal'}">${esc(mon)}</span></td>
