@@ -196,12 +196,17 @@ BEGIN
   END IF;
 
   -- ── 3-way match ──────────────────────────────────────────────────
-  -- Valor recibido = Σ precio_unitario * cantidad_recibida en los
-  -- ítems de la OC (refleja lo que el remito GR ya acreditó en GR/IR).
+  -- Valor recibido NETO (sin IVA), en la MISMA base que el crédito GR/IR
+  -- del asiento de recepción (frontend generarAsientoCompra): si los
+  -- precios de la OC incluyen IVA, se descuenta para comparar contra el
+  -- neto de la factura. Así GR/IR netea a cero cuando recepción = factura.
   SELECT COALESCE(SUM(precio_unitario * cantidad_recibida), 0)
     INTO v_valor_recibido
     FROM public.oc_items
    WHERE oc_id = v_oc_id;
+  IF COALESCE(v_cfg.precios_incluyen_iva, false) THEN
+    v_valor_recibido := v_valor_recibido / (1 + COALESCE(v_cfg.iva_alicuota, 0));
+  END IF;
 
   v_dif    := abs(v_neto - v_valor_recibido);
   v_umbral := LEAST(

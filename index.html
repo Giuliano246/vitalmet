@@ -7495,11 +7495,17 @@ function openFacturaRecibidaModal(ocId){
 }
 
 function _calcValorRecibidoOC(ocId){
+  // Valor recibido NETO (sin IVA), en la misma base que el crédito GR/IR
+  // del asiento de recepción (generarAsientoCompra): si los precios de la
+  // OC incluyen IVA, se descuenta para comparar contra el neto de la factura.
+  const ivaPct=Number(configContable?.iva_alicuota)||0;
+  const incluyeIva=!!configContable?.precios_incluyen_iva;
   const items=ocItems.filter(i=>i.oc_id===ocId);
   return items.reduce((a,i)=>{
     const pu=parseFloat(i.precio_unitario)||0;
     const qr=parseFloat(i.cantidad_recibida)||0;
-    return a+pu*qr;
+    const bruto=pu*qr;
+    return a+(incluyeIva?bruto/(1+ivaPct):bruto);
   },0);
 }
 
