@@ -867,6 +867,14 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       </div>
     </div>
 
+    <!-- CONTABILIDAD: Correlatividad -->
+    <div class="page" id="page-correlatividad">
+      <div class="page-header"><div class="page-title">Correlatividad</div><div class="page-sub">// huecos y duplicados en la numeración de asientos</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div id="correlatividad-body"></div>
+      </div>
+    </div>
+
     <!-- CONTABILIDAD: Cobros y Pagos -->
     <div class="page" id="page-cobpag">
       <div class="page-header"><div class="page-title">Cobros y Pagos</div><div class="page-sub">// movimientos de caja / banco con asiento automático</div><div class="tabs"><div class="tab active">Registrar</div></div></div>
@@ -1918,6 +1926,7 @@ let insumos=[],herramientas=[];
 let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[],cheques=[];
 let facturasRecibidas=[];
 let periodosContables=[];
+let correlatividad=[];
 let presupuestos=[],presupItemsList=[],presupItemsDraft=[];
 let certFileData=null,certFileName=null;
 
@@ -2193,7 +2202,7 @@ async function retryLoad(){
 async function loadAll(){
   _loadErrors=[];
   try{
-    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos,insumos,herramientas,cuentasContables,asientos,asientoLineas,indicesIpc,configContable,ejercicios,cheques,facturasRecibidas,periodosContables]=await Promise.all([
+    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos,insumos,herramientas,cuentasContables,asientos,asientoLineas,indicesIpc,configContable,ejercicios,cheques,facturasRecibidas,periodosContables,correlatividad]=await Promise.all([
       // Sin file_data: el base64 de los PDFs se descarga on-demand en openPDF() — si no, cada loadAll baja TODOS los PDFs
       GET('certificados','?order=created_at.desc&select=id,empresa_id,nro,proveedor,material,colada,fecha,metros,file_name,created_at').catch(e=>_loadFail('Certificados',e)),
       GET('barras','?order=created_at.desc&select=*,certificados(nro,colada,proveedor)').catch(e=>_loadFail('Materia prima',e)),
@@ -2223,6 +2232,7 @@ async function loadAll(){
       GET('cheques','?order=fecha_pago.asc').catch(e=>_loadFail('Cheques',e)),
       GET('facturas_recibidas','?order=created_at.desc').catch(e=>_loadFail('Facturas recibidas',e)),
       GET('periodos_contables','?order=anio.desc,mes.desc').catch(e=>_loadFail('Períodos',e)),
+      GET('v_correlatividad','?select=*').catch(e=>_loadFail('Correlatividad',e)),
     ]);
   }catch(e){
     // Red de seguridad: con catch por tabla no debería entrar acá
@@ -2232,13 +2242,13 @@ async function loadAll(){
     materiales=materiales||[];tratamientos=tratamientos||[];usuariosEmpresa=usuariosEmpresa||[];permisosUsuario=permisosUsuario||[];clientes=clientes||[];vendedores=vendedores||[];listasPrecios=listasPrecios||[];
     proveedores=proveedores||[];ordenesCompra=ordenesCompra||[];ocItems=ocItems||[];recepciones=recepciones||[];presupuestos=presupuestos||[];
     insumos=insumos||[];herramientas=herramientas||[];
-    cuentasContables=cuentasContables||[];asientos=asientos||[];asientoLineas=asientoLineas||[];indicesIpc=indicesIpc||[];configContable=configContable||null;ejercicios=ejercicios||[];cheques=cheques||[];facturasRecibidas=facturasRecibidas||[];periodosContables=periodosContables||[];
+    cuentasContables=cuentasContables||[];asientos=asientos||[];asientoLineas=asientoLineas||[];indicesIpc=indicesIpc||[];configContable=configContable||null;ejercicios=ejercicios||[];cheques=cheques||[];facturasRecibidas=facturasRecibidas||[];periodosContables=periodosContables||[];correlatividad=correlatividad||[];
   }
   _showLoadErrors();
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
   contabilidad:[
@@ -2246,6 +2256,7 @@ const GROUP_TABS={
     {k:'asientosp',l:'Asientos'},
     {k:'cobpag',l:'Cobros y Pagos'},
     {k:'cheques',l:'Cheques'},
+    {k:'correlatividad',l:'Correlatividad'},
     {k:'libros',l:'Libros',sub:[{k:'librodiario',l:'Diario'},{k:'libromayor',l:'Mayor'}]},
     {k:'estados',l:'Estados contables',sub:[{k:'balance',l:'Balance comprob.'},{k:'estado',l:'Estado de Rdos.'},{k:'balgral',l:'Balance general'}]},
     {k:'analisis',l:'Análisis',sub:[{k:'ratios',l:'Ratios'},{k:'bimon',l:'Bimonetario'},{k:'compha',l:'Hist. vs Ajust.'},{k:'compej',l:'Compar. ejerc.'}]},
@@ -3480,6 +3491,7 @@ const PAGE_RENDERS={
   compej:[renderComparativoEjercicios],
   bimon:[renderBimonetario],
   periodos:[renderPeriodos],
+  correlatividad:[renderCorrelatividad],
   config:[renderConfig],
 };
 let _currentPage='dash';
@@ -3680,6 +3692,25 @@ function renderPeriodos(){
     }).join('')
   }</tbody></table></div>`;
 }
+function renderCorrelatividad(){
+  const el=document.getElementById('correlatividad-body');if(!el)return;
+  if(!correlatividad||correlatividad.length===0){
+    el.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:20px 0;color:var(--green)"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg><span style="font-size:15px;font-weight:600">Sin anomalías de correlatividad</span></div>`;
+    return;
+  }
+  const tipoBadge={hueco:'badge-warn',duplicado:'badge-coral'};
+  el.innerHTML=`<div class="table-wrap"><table><thead><tr><th>Comprobante (doc)</th><th>Tipo</th><th>Valor / Nro</th></tr></thead><tbody>${
+    correlatividad.map(r=>`<tr><td class="mono td-primary">${esc(r.doc||'—')}</td><td><span class="badge ${tipoBadge[r.tipo]||'badge-warn'}">${esc(r.tipo||'—').toUpperCase()}</span></td><td class="mono">${esc(String(r.valor??'—'))}</td></tr>`).join('')
+  }</tbody></table></div>`;
+}
+
+function sugerirNroOC(){
+  const nums=ordenesCompra.map(o=>(o.nro||'').match(/(\d+)\s*$/)?.[1]).filter(Boolean).map(Number);
+  const next=(nums.length?Math.max(...nums):0)+1;
+  const anio=hoyLocal().slice(0,4);
+  return `OC-${anio}-${String(next).padStart(3,'0')}`;
+}
+
 async function cerrarPeriodo(anio,mes){
   if(!confirm(`¿Cerrar el período ${mes}/${anio}? No se podrán imputar asientos con fecha en ese mes.`))return;
   try{
@@ -6884,7 +6915,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte'],analisis:['costos','trace'],contabilidad:['cuentas','asientosp','cobpag','cheques','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre','periodos']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte'],analisis:['costos','trace'],contabilidad:['cuentas','asientosp','cobpag','cheques','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre','periodos','correlatividad']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
@@ -7241,7 +7272,7 @@ function openOCModal(id){
   const oc=id?ordenesCompra.find(x=>x.id===id):null;
   // Llenar select de proveedores
   document.getElementById('oc-proveedor').innerHTML='<option value="">— seleccionar —</option>'+proveedores.map(p=>`<option value="${p.id}" ${oc?.proveedor_id===p.id?'selected':''}>${esc(p.nombre)}</option>`).join('');
-  document.getElementById('oc-nro').value=oc?.nro||('OC-'+String(ordenesCompra.length+1).padStart(4,'0'));
+  document.getElementById('oc-nro').value=oc?.nro||sugerirNroOC();
   document.getElementById('oc-fecha').value=oc?.fecha||hoyLocal();
   document.getElementById('oc-entrega').value=oc?.fecha_entrega_esperada||'';
   document.getElementById('oc-estado').value=oc?.estado||'borrador';
