@@ -5548,9 +5548,10 @@ async function generarAsientoCompra(recepcionItems,oc,fecha){
     if(!configContable){console.warn('Asiento de compra no generado: falta configuración contable');return;}
     if(!recepcionItems||!recepcionItems.length)return;
     const cfg=configContable;
-    const ctaProv=cuentasContables.find(c=>c.id===cfg.cta_proveedores);
-    const ctaIva=cuentasContables.find(c=>c.id===cfg.cta_iva_credito);
-    if(!ctaProv){console.warn('Asiento de compra no generado: falta cuenta Proveedores en Imputación contable');return;}
+    // Cuenta puente GR/IR (obligatoria para la recepción)
+    if(!cfg.cta_gr_ir){notify('Asiento de recepción no generado: falta cuenta puente GR/IR en Imputación contable','err');return;}
+    const ctaGRIR=cuentasContables.find(c=>c.id===cfg.cta_gr_ir);
+    if(!ctaGRIR){notify('Asiento de recepción no generado: cuenta GR/IR no encontrada en el plan de cuentas','err');return;}
     // Mapeo tipo de ítem → cuenta de compra
     const ctasPorTipo={
       'materia_prima':cfg.cta_compra_mp,
@@ -5559,8 +5560,7 @@ async function generarAsientoCompra(recepcionItems,oc,fecha){
       'servicio':cfg.cta_compra_servicios,
     };
     const ivaPct=Number(cfg.iva_alicuota)||0;
-    const aplicaIVA=ctaIva&&ivaPct>0;
-    // Agrupar netos por cuenta de débito
+    // Agrupar netos por cuenta de débito (sin IVA — IVA va en el asiento de factura)
     const porCuenta={};
     let totalNeto=0;
     for(const r of recepcionItems){
@@ -5573,11 +5573,9 @@ async function generarAsientoCompra(recepcionItems,oc,fecha){
       totalNeto+=neto;
     }
     if(totalNeto<=0){console.warn('Asiento de compra no generado: monto total = 0');return;}
-    const iva=aplicaIVA?totalNeto*ivaPct:0;
-    const bruto=totalNeto+iva;
     const cabecera={
       fecha,
-      descripcion:`Compra OC ${oc.nro} — ${oc.proveedores?.nombre||'proveedor'}`+(aplicaIVA?` (IVA ${(ivaPct*100).toFixed(0)}%)`:''),
+      descripcion:`Recepción OC ${oc.nro} — ${oc.proveedores?.nombre||'proveedor'}`,
       comprobante_nro:oc.factura_nro||oc.nro,
       tipo:'auto-compra',
       origen_tipo:'recepcion',
@@ -5587,12 +5585,13 @@ async function generarAsientoCompra(recepcionItems,oc,fecha){
       tipo_cambio:oc.tipo_cambio||null,
       tc_tipo:oc.tc_tipo||null,
     };
+    // Débitos: stock/gasto neto por tipo de ítem
+    // Crédito: cuenta puente GR/IR por el total neto (IVA y Proveedores van en el asiento de factura)
     const lineas=[];let ord=0;
     Object.entries(porCuenta).forEach(([ctaId,neto])=>{
-      lineas.push({cuenta_id:ctaId,debe:neto,haber:0,descripcion:`Compra ${oc.nro}`,orden:ord++});
+      lineas.push({cuenta_id:ctaId,debe:neto,haber:0,descripcion:`Recepción OC ${oc.nro}`,orden:ord++});
     });
-    if(aplicaIVA)lineas.push({cuenta_id:ctaIva.id,debe:iva,haber:0,descripcion:`IVA CF ${(ivaPct*100).toFixed(0)}%`,orden:ord++});
-    lineas.push({cuenta_id:ctaProv.id,debe:0,haber:bruto,descripcion:`Proveedor ${oc.proveedores?.nombre||''}`,orden:ord++});
+    lineas.push({cuenta_id:ctaGRIR.id,debe:0,haber:totalNeto,descripcion:`GR/IR OC ${oc.nro}`,orden:ord++});
     // Atómico (RPC): cabecera + líneas juntas, numeración en la DB.
     await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas});
   }catch(e){console.warn('Error generando asiento automático de compra:',e);}
