@@ -3681,7 +3681,7 @@ function renderPeriodos(){
       const cerrado=row?.estado==='cerrado';
       const badge=cerrado?'<span class="badge badge-coral">CERRADO</span>':'<span class="badge badge-ok">ABIERTO</span>';
       const cerradoEl=cerrado?(row.cerrado_at?new Date(row.cerrado_at).toLocaleDateString('es-AR'):'—'):'—';
-      const cerradoPorNombre=row.cerrado_por?(usuariosEmpresa.find(u=>u.id===row.cerrado_por)?.nombre||usuariosEmpresa.find(u=>u.id===row.cerrado_por)?.email||row.cerrado_por):null;
+      const cerradoPorNombre=row?.cerrado_por?(usuariosEmpresa.find(u=>u.id===row.cerrado_por)?.nombre||usuariosEmpresa.find(u=>u.id===row.cerrado_por)?.email||row.cerrado_por):null;
       const cerradoPor=cerrado?(esc(cerradoPorNombre||'—')):'—';
       let acciones='';
       if(!cerrado){
