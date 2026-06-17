@@ -973,6 +973,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
             <div class="form-row"><div class="form-group"><label>IVA Crédito Fiscal</label><select id="cfg-cta-iva-credito"></select></div><div class="form-group"><label>Proveedores</label><select id="cfg-cta-proveedores"></select></div></div>
             <div class="form-row"><div class="form-group"><label>Compra de Materia Prima</label><select id="cfg-cta-compra-mp"></select></div><div class="form-group"><label>Compra de Insumos / Mercaderías</label><select id="cfg-cta-compra-insumos"></select></div></div>
             <div class="form-row"><div class="form-group"><label>Compra de Herramientas</label><select id="cfg-cta-compra-herramientas"></select></div><div class="form-group"><label>Servicios de Terceros</label><select id="cfg-cta-compra-servicios"></select></div></div>
+            <div class="form-row"><div class="form-group"><label>Facturas a recibir (GR/IR)</label><select id="cfg-cta-gr-ir"></select><div style="font-size:10px;color:var(--text3);margin-top:2px">Cuenta puente del 3-way match: la recepción la acredita, la factura la cancela. Normalmente 211009.</div></div></div>
           </div>
 
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px;margin-bottom:14px">
@@ -6255,6 +6256,7 @@ function renderImputacionContable(){
   _llenarSelectCuentas('cfg-cta-compra-insumos',['activo','egreso'],c.cta_compra_insumos);
   _llenarSelectCuentas('cfg-cta-compra-herramientas',['activo'],c.cta_compra_herramientas);
   _llenarSelectCuentas('cfg-cta-compra-servicios',['egreso'],c.cta_compra_servicios);
+  _llenarSelectCuentas('cfg-cta-gr-ir',['pasivo'],c.cta_gr_ir);
   _llenarSelectCuentas('cfg-cta-caja',['activo'],c.cta_caja_default);
   _llenarSelectCuentas('cfg-cta-banco',['activo'],c.cta_banco_default);
   document.getElementById('cfg-iva-alicuota').value=c.iva_alicuota!=null?(Number(c.iva_alicuota)*100).toFixed(2).replace(/\.?0+$/,''):'21';
@@ -6279,6 +6281,7 @@ async function saveConfigContable(){
     cta_compra_mp:v('cfg-cta-compra-mp'),
     cta_compra_herramientas:v('cfg-cta-compra-herramientas'),
     cta_compra_servicios:v('cfg-cta-compra-servicios'),
+    cta_gr_ir:v('cfg-cta-gr-ir'),
     cta_caja_default:v('cfg-cta-caja'),
     cta_banco_default:v('cfg-cta-banco'),
     updated_at:new Date().toISOString(),
