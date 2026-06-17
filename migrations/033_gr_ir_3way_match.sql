@@ -329,7 +329,7 @@ BEGIN
 END $$;
 
 -- Revocar a anon (Supabase otorga EXECUTE a anon por DEFAULT PRIVILEGES).
-REVOKE EXECUTE ON FUNCTION public.registrar_factura_recibida(jsonb, boolean, text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.registrar_factura_recibida(jsonb, boolean, text) FROM PUBLIC, anon;
 GRANT  EXECUTE ON FUNCTION public.registrar_factura_recibida(jsonb, boolean, text) TO authenticated;
 
 COMMIT;

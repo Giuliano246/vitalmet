@@ -38,7 +38,7 @@ AS $$
   );
 $$;
 -- Supabase otorga EXECUTE a anon por default: revocar explícitamente.
-REVOKE EXECUTE ON FUNCTION public.current_usuario_es_admin() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.current_usuario_es_admin() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.current_usuario_es_admin() TO authenticated;
 
 -- ─── 2. Tabla de períodos contables mensuales ────────────────────
@@ -103,7 +103,7 @@ CREATE TRIGGER trg_periodo_guard
   BEFORE INSERT OR UPDATE ON public.periodos_contables
   FOR EACH ROW EXECUTE FUNCTION public.fn_periodo_guard();
 -- Función de trigger de uso interno: no exponer a anon (convención del proyecto).
-REVOKE EXECUTE ON FUNCTION public.fn_periodo_guard() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.fn_periodo_guard() FROM PUBLIC, anon;
 
 -- ─── 4. Bloqueo de asientos en período cerrado ───────────────────
 -- SECURITY DEFINER: necesita leer periodos_contables sin que el RLS
@@ -132,7 +132,7 @@ BEGIN
   RETURN NEW;
 END $$;
 -- Esta función es de uso interno (trigger), no la exponer a anon.
-REVOKE EXECUTE ON FUNCTION public.fn_periodo_cerrado() FROM anon;
+REVOKE EXECUTE ON FUNCTION public.fn_periodo_cerrado() FROM PUBLIC, anon;
 
 DROP TRIGGER IF EXISTS trg_periodo_cerrado ON public.asientos;
 CREATE TRIGGER trg_periodo_cerrado
