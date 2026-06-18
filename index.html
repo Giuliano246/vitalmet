@@ -8549,6 +8549,47 @@ function evaluarMatchFactura({ valorRecibido, neto, tolPct, tolMonto }) {
   return { ok, dif, umbral, estado: ok ? 'ok' : 'discrepancia' };
 }
 
+// Parseo del extracto pegado (tab / ; como separador). Devuelve
+// [{fecha:'YYYY-MM-DD', descripcion, importe:Number}]. Puro.
+function parsearExtractoPegado(texto){
+  const norm=n=>{
+    let s=String(n).trim().replace(/\s/g,'');
+    if(s.includes(',')){ s=s.replace(/\./g,'').replace(',','.'); }
+    const v=parseFloat(s); return isFinite(v)?v:null;
+  };
+  const fechaISO=f=>{
+    const m=String(f).trim().match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+    if(m){ let[,d,mo,y]=m; if(y.length===2)y='20'+y; return `${y}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}`; }
+    const iso=String(f).trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return iso?iso[0]:null;
+  };
+  return String(texto||'').split(/\r?\n/).map(l=>{
+    if(!l.trim())return null;
+    const cols=l.split(/\t|;/).map(c=>c.trim()).filter(c=>c!=='');
+    if(cols.length<2)return null;
+    const fecha=fechaISO(cols[0]);
+    const importe=norm(cols[cols.length-1]);
+    if(fecha===null||importe===null)return null;
+    const descripcion=cols.slice(1,-1).join(' ').trim();
+    return {fecha,descripcion,importe};
+  }).filter(Boolean);
+}
+
+// Sugerencia de match: movimiento del libro (banco) cuyo neto (debe-haber)
+// == importe y fecha dentro de ±ventanaDias. Devuelve el más cercano o null. Puro.
+function sugerirMatchExtracto(linea, movsBanco, ventanaDias){
+  const diasEntre=(a,b)=>Math.abs((Date.parse(a)-Date.parse(b))/86400000);
+  let mejor=null, mejorDelta=Infinity;
+  for(const m of movsBanco||[]){
+    const neto=(parseFloat(m.debe)||0)-(parseFloat(m.haber)||0);
+    if(Math.abs(neto-linea.importe)>=0.01)continue;
+    const d=diasEntre(linea.fecha,m.fecha);
+    if(d>ventanaDias)continue;
+    if(d<mejorDelta){mejor=m;mejorDelta=d;}
+  }
+  return mejor;
+}
+
 function _renderMargenCotReal(){
   const cont=document.getElementById('costos-margen-cot');if(!cont)return;
   const rows=computeMargenCotVsReal();
