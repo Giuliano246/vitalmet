@@ -3911,6 +3911,7 @@ function renderConciliacionTablero(){
     return;
   }
 
+  const sugeridas=new Set();  // evita sugerir el mismo mov del libro a dos líneas en el mismo render
   const filas=lineas.map(linea=>{
     const imp=parseFloat(linea.importe)||0;
     const colorImp=imp<0?'var(--red)':'var(--green)';
@@ -3923,7 +3924,8 @@ function renderConciliacionTablero(){
         <td><button class="btn btn-ghost btn-sm" onclick="desconciliarLinea('${esc(linea.id)}')">Deshacer</button></td>
       </tr>`;
     }
-    const sug=sugerirMatchExtracto(linea,movsBanco,ventana);
+    const sug=sugerirMatchExtracto(linea,movsBanco.filter(m=>!sugeridas.has(m.id)),ventana);
+    if(sug)sugeridas.add(sug.id);
     let accion='';
     if(sug){
       const sugFecha=esc(sug.fecha||'');
@@ -3950,9 +3952,9 @@ function renderConciliacionTablero(){
       </table>
     </div>
     <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:13px">
-      <div><span style="color:var(--text3)">Saldo extracto:</span> <span class="mono" style="font-weight:600">${fmtARS(saldoExtracto)}</span></div>
-      <div><span style="color:var(--text3)">Saldo libro (neto):</span> <span class="mono" style="font-weight:600">${fmtARS(saldoLibro)}</span></div>
-      <div><span style="color:var(--text3)">Diferencia:</span> <span class="mono" style="font-weight:600;color:${Math.abs(diferencia)<0.01?'var(--green)':'var(--red)'}">${fmtARS(diferencia)}</span></div>
+      <div><span style="color:var(--text3)">Σ importes del extracto importado:</span> <span class="mono" style="font-weight:600">${fmtARS(saldoExtracto)}</span></div>
+      <div><span style="color:var(--text3)">Σ movimientos del libro (histórico):</span> <span class="mono" style="font-weight:600">${fmtARS(saldoLibro)}</span></div>
+      <div style="color:var(--text3);font-size:11px;align-self:center">Son escalas distintas (el extracto es del período importado; el libro es histórico) — no tienen por qué coincidir.</div>
     </div>`;
 }
 
@@ -8871,20 +8873,27 @@ async function crearAsientoDesdeExtracto(btnId){
   const ctaContra=document.getElementById('ce-contracuenta').value;
   if(!ctaBanco){notify('La cuenta bancaria no tiene cuenta contable asociada','err');return;}
   if(!ctaContra){notify('Elegí la contracuenta','err');return;}
+  if(ctaContra===ctaBanco){notify('La contracuenta no puede ser la misma cuenta bancaria','err');return;}
   const monto=Math.abs(parseFloat(ex.importe)||0),ingreso=(parseFloat(ex.importe)||0)>0;
+  if(monto<0.01){notify('El importe es cero: no se puede crear un asiento','err');return;}
   const lineas=ingreso
     ?[{cuenta_id:ctaBanco,debe:monto,haber:0,descripcion:ex.descripcion||'Mov. banco',orden:0},
       {cuenta_id:ctaContra,debe:0,haber:monto,descripcion:ex.descripcion||'',orden:1}]
     :[{cuenta_id:ctaContra,debe:monto,haber:0,descripcion:ex.descripcion||'',orden:0},
       {cuenta_id:ctaBanco,debe:0,haber:monto,descripcion:ex.descripcion||'Mov. banco',orden:1}];
-  const cabecera={fecha:ex.fecha,descripcion:`Banco: ${ex.descripcion||''}`.trim(),comprobante_nro:ex.referencia||null,tipo:'auto-banco',origen_tipo:'extracto_bancario',origen_id:ex.id,estado:'confirmado',moneda:cb?.moneda||'ARS'};
+  const cabecera={fecha:ex.fecha,descripcion:ex.descripcion?`Banco: ${ex.descripcion}`:'Movimiento bancario',comprobante_nro:ex.referencia||null,tipo:'auto-banco',origen_tipo:'extracto_bancario',origen_id:ex.id,estado:'confirmado',moneda:cb?.moneda||'ARS'};
   setBusy(btnId,true);
   try{
     const as=await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas});
     await loadAll();
     const lineaBanco=asientoLineas.find(l=>l.asiento_id===as.id&&l.cuenta_id===ctaBanco);
-    if(lineaBanco){await PATCH('extracto_bancario',{conciliado:true,asiento_linea_id:lineaBanco.id},`?id=eq.${ex.id}`);}
-    await loadAll();closeModal('modal-asiento-extracto');renderAll();notify('Asiento creado y línea conciliada');
+    if(lineaBanco){
+      await PATCH('extracto_bancario',{conciliado:true,asiento_linea_id:lineaBanco.id},`?id=eq.${ex.id}`);
+      await loadAll();closeModal('modal-asiento-extracto');renderAll();notify('Asiento creado y línea conciliada');
+    }else{
+      await loadAll();closeModal('modal-asiento-extracto');renderAll();
+      notify('Asiento creado, pero no se pudo vincular la línea: recargá y conciliala manualmente','err');
+    }
   }catch(e){notify(e.message||'Error creando asiento','err');}
   finally{setBusy(btnId,false);}
 }

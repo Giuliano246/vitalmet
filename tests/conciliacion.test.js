@@ -18,6 +18,11 @@ test('parsearExtractoPegado: ignora líneas vacías y sin importe', () => {
   const r = run(`parsearExtractoPegado(${JSON.stringify(txt)})`);
   assert.strictEqual(r.length, 1);
 });
+test('parsearExtractoPegado: importe cero se parsea (el guard vive en crearAsientoDesdeExtracto)', () => {
+  const r = run(`parsearExtractoPegado("01/06/2026\\tReverso\\t0,00")`);
+  assert.strictEqual(r.length, 1);
+  assert.strictEqual(r[0].importe, 0);
+});
 test('sugerirMatchExtracto: matchea por importe (debe-haber) y fecha dentro de ventana', () => {
   const linea = { fecha:'2026-06-03', importe:1000 };
   const movs = [
