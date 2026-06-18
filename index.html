@@ -1936,6 +1936,23 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-asiento-extracto">
+  <div class="modal" style="width:520px">
+    <div class="modal-header"><div class="modal-title">Crear asiento desde extracto</div><button class="modal-close" onclick="closeModal('modal-asiento-extracto')">×</button></div>
+    <div class="modal-body">
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:10px 12px;font-size:13px;color:var(--text2);margin-bottom:14px;font-family:var(--mono)" id="ce-resumen"></div>
+      <div class="form-group">
+        <label>Contracuenta *</label>
+        <select id="ce-contracuenta"></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-asiento-extracto')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-asiento-extracto" onclick="crearAsientoDesdeExtracto('btn-asiento-extracto')">Crear asiento</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SUPA_URL='https://dqvlqhaxgvtilhiuatpv.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxdmxxaGF4Z3Z0aWxoaXVhdHB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MDU4MzcsImV4cCI6MjA5MTA4MTgzN30.-3sLblqE1qbEBTVfxT_88AtzLc_XfyvIBBLnm7nHGc8';
@@ -3769,6 +3786,7 @@ function renderConciliacion(){
       }).join(''):'<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-title">Sin cuentas bancarias registradas</div><div class="empty-msg">Agregá tu primera cuenta con <b>+ Nueva cuenta</b>.</div></div></td></tr>'}</tbody>
     </table></div>`;
   renderConciliacionImport();
+  renderConciliacionTablero();
 }
 
 function renderConciliacionImport(){
@@ -3825,6 +3843,117 @@ async function importarExtracto(btnId){
     await loadAll();renderAll();notify(`${rows.length} líneas importadas`);
   }catch(e){notify(e.message||'Error importando','err');}
   finally{setBusy(btnId,false);}
+}
+
+function renderConciliacionTablero(){
+  const el=document.getElementById('concil-tablero');if(!el)return;
+  const activas=cuentasBancarias.filter(c=>c.activa!==false);
+  // Build account select HTML
+  const cbSelId='concil-cuenta-tablero';
+  const prevCb=document.getElementById(cbSelId)?.value||'';
+  // Ventana days
+  const prevVentana=document.getElementById('concil-ventana')?.value||'3';
+
+  // Render controls first
+  el.innerHTML=`
+    <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:18px">
+      <h3 style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Tablero de conciliación</h3>
+      <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px">
+        <div class="form-group" style="margin:0;min-width:220px">
+          <label>Cuenta bancaria</label>
+          <select id="${cbSelId}" onchange="renderConciliacion()">
+            <option value="">— Elegí la cuenta —</option>
+            ${activas.map(c=>`<option value="${esc(c.id)}" ${prevCb===c.id?'selected':''}>${esc(c.nombre)} · ${esc(c.banco||'sin banco')}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;width:120px">
+          <label>Ventana de días</label>
+          <input type="number" id="concil-ventana" min="0" value="${esc(prevVentana)}" onchange="renderConciliacion()" style="width:100%">
+        </div>
+      </div>
+      <div id="concil-tablero-body"></div>
+    </div>`;
+
+  const cbId=document.getElementById(cbSelId).value;
+  if(!cbId){
+    document.getElementById('concil-tablero-body').innerHTML='<p style="color:var(--text3);font-size:13px">Elegí una cuenta bancaria para ver el tablero de conciliación.</p>';
+    return;
+  }
+  const cb=cuentasBancarias.find(c=>c.id===cbId);
+  if(!cb){return;}
+  const ventana=Math.max(0,parseInt(document.getElementById('concil-ventana').value)||3);
+
+  // Compute ledger movs for this account (not yet linked to any extract line)
+  const linkedLineaIds=new Set(extractoBancario.filter(e=>e.asiento_linea_id).map(e=>e.asiento_linea_id));
+  const asConfMap={};asientos.forEach(a=>{asConfMap[a.id]=a;});
+  const movsBanco=asientoLineas
+    .filter(l=>l.cuenta_id===cb.cuenta_contable_id&&!linkedLineaIds.has(l.id))
+    .map(l=>{
+      const a=asConfMap[l.asiento_id];
+      return{id:l.id,fecha:a?.fecha,debe:parseFloat(l.debe)||0,haber:parseFloat(l.haber)||0,descripcion:l.descripcion};
+    })
+    .filter(m=>m.fecha);
+
+  // Statement lines for this account ordered by fecha
+  const lineas=extractoBancario
+    .filter(e=>e.cuenta_bancaria_id===cbId)
+    .slice().sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+
+  // Totals
+  const saldoExtracto=lineas.reduce((s,e)=>s+(parseFloat(e.importe)||0),0);
+  const todasLineasLibro=asientoLineas.filter(l=>l.cuenta_id===cb.cuenta_contable_id);
+  const saldoLibro=todasLineasLibro.reduce((s,l)=>s+(parseFloat(l.debe)||0)-(parseFloat(l.haber)||0),0);
+  const diferencia=saldoLibro-saldoExtracto;
+
+  const tbodySel=document.getElementById('concil-tablero-body');
+  if(!lineas.length){
+    tbodySel.innerHTML='<p style="color:var(--text3);font-size:13px">No hay líneas de extracto para esta cuenta. Importá un extracto en la sección de arriba.</p>';
+    return;
+  }
+
+  const filas=lineas.map(linea=>{
+    const imp=parseFloat(linea.importe)||0;
+    const colorImp=imp<0?'var(--red)':'var(--green)';
+    if(linea.conciliado){
+      return `<tr>
+        <td class="mono">${esc(linea.fecha)}</td>
+        <td>${esc(linea.descripcion||'—')}</td>
+        <td class="mono" style="text-align:right;color:${colorImp}">${fmtARS(imp)}</td>
+        <td><span class="badge badge-ok">✓ Conciliado</span></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="desconciliarLinea('${esc(linea.id)}')">Deshacer</button></td>
+      </tr>`;
+    }
+    const sug=sugerirMatchExtracto(linea,movsBanco,ventana);
+    let accion='';
+    if(sug){
+      const sugFecha=esc(sug.fecha||'');
+      const sugDesc=esc(sug.descripcion||'');
+      accion=`<td style="font-size:11px;color:var(--text2)">Sugerido: ${sugFecha} · ${sugDesc}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="conciliarLinea('${esc(linea.id)}','${esc(sug.id)}')">Conciliar</button></td>`;
+    }else{
+      accion=`<td style="color:var(--text3);font-size:11px">Sin match en el libro</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="abrirAsientoExtracto('${esc(linea.id)}')">Crear asiento</button></td>`;
+    }
+    return `<tr>
+      <td class="mono">${esc(linea.fecha)}</td>
+      <td>${esc(linea.descripcion||'—')}</td>
+      <td class="mono" style="text-align:right;color:${colorImp}">${fmtARS(imp)}</td>
+      ${accion}
+    </tr>`;
+  }).join('');
+
+  tbodySel.innerHTML=`
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Fecha</th><th>Descripción</th><th style="text-align:right">Importe</th><th>Match libro</th><th></th></tr></thead>
+        <tbody>${filas}</tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:13px">
+      <div><span style="color:var(--text3)">Saldo extracto:</span> <span class="mono" style="font-weight:600">${fmtARS(saldoExtracto)}</span></div>
+      <div><span style="color:var(--text3)">Saldo libro (neto):</span> <span class="mono" style="font-weight:600">${fmtARS(saldoLibro)}</span></div>
+      <div><span style="color:var(--text3)">Diferencia:</span> <span class="mono" style="font-weight:600;color:${Math.abs(diferencia)<0.01?'var(--green)':'var(--red)'}">${fmtARS(diferencia)}</span></div>
+    </div>`;
 }
 
 function openCuentaBancariaModal(id){
@@ -8710,6 +8839,54 @@ async function saveOperacionPaso(){
     closeModal('modal-add-op-paso');notify('Paso agregado');renderTiempos();
   }catch(e){notify('Error: '+e.message,'err');}
   finally{setBusy('btn-save-paso',false);}
+}
+
+// ─── CONCILIACIÓN: ACCIONES ───────────────────────────────────────────────────
+async function conciliarLinea(extractoId,asientoLineaId){
+  try{
+    await PATCH('extracto_bancario',{conciliado:true,asiento_linea_id:asientoLineaId},`?id=eq.${extractoId}`);
+    await loadAll();renderAll();notify('Línea conciliada');
+  }catch(e){notify(e.message||'Error al conciliar','err');}
+}
+async function desconciliarLinea(extractoId){
+  try{
+    await PATCH('extracto_bancario',{conciliado:false,asiento_linea_id:null},`?id=eq.${extractoId}`);
+    await loadAll();renderAll();notify('Conciliación deshecha');
+  }catch(e){notify(e.message||'Error','err');}
+}
+
+let _extractoActual=null;
+function abrirAsientoExtracto(extractoId){
+  _extractoActual=extractoBancario.find(e=>e.id===extractoId);
+  if(!_extractoActual){notify('Línea no encontrada','err');return;}
+  const ex=_extractoActual;
+  document.getElementById('ce-resumen').textContent=`${ex.fecha} · ${ex.descripcion||''} · ${fmtARS(ex.importe)}`;
+  _llenarSelectCuentas('ce-contracuenta',null,'');
+  openModal('modal-asiento-extracto');
+}
+async function crearAsientoDesdeExtracto(btnId){
+  const ex=_extractoActual;if(!ex){notify('Sin línea seleccionada','err');return;}
+  const cb=cuentasBancarias.find(c=>c.id===ex.cuenta_bancaria_id);
+  const ctaBanco=cb?.cuenta_contable_id;
+  const ctaContra=document.getElementById('ce-contracuenta').value;
+  if(!ctaBanco){notify('La cuenta bancaria no tiene cuenta contable asociada','err');return;}
+  if(!ctaContra){notify('Elegí la contracuenta','err');return;}
+  const monto=Math.abs(parseFloat(ex.importe)||0),ingreso=(parseFloat(ex.importe)||0)>0;
+  const lineas=ingreso
+    ?[{cuenta_id:ctaBanco,debe:monto,haber:0,descripcion:ex.descripcion||'Mov. banco',orden:0},
+      {cuenta_id:ctaContra,debe:0,haber:monto,descripcion:ex.descripcion||'',orden:1}]
+    :[{cuenta_id:ctaContra,debe:monto,haber:0,descripcion:ex.descripcion||'',orden:0},
+      {cuenta_id:ctaBanco,debe:0,haber:monto,descripcion:ex.descripcion||'Mov. banco',orden:1}];
+  const cabecera={fecha:ex.fecha,descripcion:`Banco: ${ex.descripcion||''}`.trim(),comprobante_nro:ex.referencia||null,tipo:'auto-banco',origen_tipo:'extracto_bancario',origen_id:ex.id,estado:'confirmado',moneda:cb?.moneda||'ARS'};
+  setBusy(btnId,true);
+  try{
+    const as=await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas});
+    await loadAll();
+    const lineaBanco=asientoLineas.find(l=>l.asiento_id===as.id&&l.cuenta_id===ctaBanco);
+    if(lineaBanco){await PATCH('extracto_bancario',{conciliado:true,asiento_linea_id:lineaBanco.id},`?id=eq.${ex.id}`);}
+    await loadAll();closeModal('modal-asiento-extracto');renderAll();notify('Asiento creado y línea conciliada');
+  }catch(e){notify(e.message||'Error creando asiento','err');}
+  finally{setBusy(btnId,false);}
 }
 
 </script>
