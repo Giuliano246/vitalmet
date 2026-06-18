@@ -3768,6 +3768,63 @@ function renderConciliacion(){
         </tr>`;
       }).join(''):'<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-title">Sin cuentas bancarias registradas</div><div class="empty-msg">Agregá tu primera cuenta con <b>+ Nueva cuenta</b>.</div></div></td></tr>'}</tbody>
     </table></div>`;
+  renderConciliacionImport();
+}
+
+function renderConciliacionImport(){
+  const el=document.getElementById('concil-import');if(!el)return;
+  const activas=cuentasBancarias.filter(c=>c.activa!==false);
+  el.innerHTML=`
+    <div style="margin-bottom:16px">
+      <h3 style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em">Importar extracto bancario</h3>
+      <div class="form-row" style="margin-bottom:12px">
+        <div class="form-group">
+          <label>Cuenta bancaria</label>
+          <select id="concil-cuenta-import">
+            <option value="">— Elegí la cuenta —</option>
+            ${activas.map(c=>`<option value="${esc(c.id)}">${esc(c.nombre)} · ${esc(c.banco||'sin banco')}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Pegá el extracto desde Excel / homebanking</label>
+        <textarea id="concil-paste" rows="7" style="width:100%;font-family:var(--mono);font-size:12px;resize:vertical;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:8px;color:var(--text);box-sizing:border-box" placeholder="Pegá desde Excel/homebanking: una línea por movimiento, columnas separadas por TAB → Fecha [TAB] Descripción [TAB] Importe. Importe negativo = débito/egreso."></textarea>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <button class="btn btn-ghost" onclick="previewExtracto()">Previsualizar</button>
+        <button class="btn btn-primary" id="btn-import-extracto" onclick="importarExtracto('btn-import-extracto')">Importar</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Fecha</th><th>Descripción</th><th style="text-align:right">Importe</th></tr></thead>
+          <tbody id="concil-preview-tbody"><tr><td colspan="3" style="color:var(--text3);padding:10px;text-align:center;font-size:12px">Pegá el extracto y hacé clic en <b>Previsualizar</b> para revisar antes de importar.</td></tr></tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+let _extractoPreview=[];
+function previewExtracto(){
+  const txt=document.getElementById('concil-paste').value;
+  _extractoPreview=parsearExtractoPegado(txt);
+  const tb=document.getElementById('concil-preview-tbody');
+  if(!tb)return;
+  if(!_extractoPreview.length){tb.innerHTML='<tr><td colspan="3" style="color:var(--text3);padding:10px">Nada para importar (revisá el formato: Fecha TAB Descripción TAB Importe)</td></tr>';return;}
+  tb.innerHTML=_extractoPreview.map(r=>`<tr><td class="mono">${esc(r.fecha)}</td><td>${esc(r.descripcion)}</td><td class="mono" style="text-align:right;color:${r.importe<0?'var(--red)':'var(--green)'}">${fmtARS(r.importe)}</td></tr>`).join('');
+}
+async function importarExtracto(btnId){
+  const ctaId=document.getElementById('concil-cuenta-import').value;
+  if(!ctaId){notify('Elegí la cuenta bancaria','err');return;}
+  if(!_extractoPreview.length){notify('Previsualizá primero las líneas a importar','err');return;}
+  const batch='imp-'+_extractoPreview[0].fecha+'-'+_extractoPreview.length;
+  const rows=_extractoPreview.map(r=>({empresa_id:currentEmpresa.id,cuenta_bancaria_id:ctaId,fecha:r.fecha,descripcion:r.descripcion,importe:r.importe,conciliado:false,import_batch:batch}));
+  setBusy(btnId,true);
+  try{
+    await POST('extracto_bancario',rows);
+    _extractoPreview=[];const ta=document.getElementById('concil-paste');if(ta)ta.value='';
+    await loadAll();renderAll();notify(`${rows.length} líneas importadas`);
+  }catch(e){notify(e.message||'Error importando','err');}
+  finally{setBusy(btnId,false);}
 }
 
 function openCuentaBancariaModal(id){
