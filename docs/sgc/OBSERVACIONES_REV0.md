@@ -7,24 +7,27 @@ Calidad o a corrección documental en la próxima revisión de MC-01/PG-01.
 
 ## Mejoras candidatas del ERP
 
-| # | Tema | Detalle | PG que lo cubre |
-|---|------|---------|-----------------|
-| 1 | NC mayor/menor | `no_conformidades` no clasifica mayor/menor ni registra aprobación de disposición por Dirección (MC-01 §5 la exige). | PG-09 §6.3.11 |
-| 2 | Concesión sin justificación | La justificación de concesión solo se valida en frontend (`saveNC()`); no hay guard en DB. | PG-09 |
-| 3 | Notificación al cliente | `fn_nc_cierre_guard` no exige `cliente_notificado` para cerrar NC de origen 'cliente'. | PG-09 §6.4.15 |
-| 4 | Estados CAPA | El select permite saltar de 'abierta' a 'cerrada'; único gate duro es la verificación de eficacia. | PG-10 §6.5.15 |
-| 5 | Certificado de conformidad no archivado | `generateCertConformidadPDF` genera on-demand y no persiste el PDF emitido (MTRs/calibraciones sí guardan `file_data`). | PG-07 §7 |
-| 6 | Tipo 'plano' inexistente | El CHECK de `documentos_controlados.tipo` no incluye 'plano'; se cargan como 'otro'. | PG-15 |
-| 7 | `codigo_plano` texto libre | Sin FK a `documentos_controlados`: la OP no garantiza referenciar la revisión vigente del plano. | PG-15 §6.6 |
-| 8 | WPS obsoleto con OP abierta | El gate valida vigencia solo al asignar; no re-bloquea referencias existentes si el WPS pasa a 'obsoleto'. | PG-16 §6.3.11 |
-| 9 | Selector de documento sin filtro por tipo | En operaciones se puede asociar cualquier documento vigente (p. ej. un formulario a una soldadura). | PG-16 |
-| 10 | Conversión de presupuesto 'enviado' | El frontend permite convertir sin estado 'aprobado'; la RPC solo valida no-convertido. | PG-03 |
-| 11 | OTD: `fecha_entrega_hasta` | `convertir_presupuesto` copia la validez comercial de la oferta como compromiso de entrega. | PG-03 §6.5.13 |
-| 12 | Alta manual de barras | Elude la cuarentena (default 'aceptado' por diseño de mig. 039). | PG-05 §6.1.5 |
-| 13 | Independencia de Calidad | Aceptar/rechazar recepciones es PATCH sin restricción de rol en DB (permisos por módulo solo visuales — deuda conocida). | PG-05 §6.3.11 |
-| 14 | Alerta de NC ≥30 días | El digest alerta NC abiertas sin umbral de antigüedad; la meta de cierre ≤30 días de MC-01 no tiene aviso. | PG-09 |
-| 15 | Semáforo OTD | MC-01 fija meta ≥95% pero el dashboard pinta verde desde ≥90%. | PG-03 |
-| 16 | `registro_calidad_id` en NC | Existe en DB pero el modal de NC no permite setearlo. | PG-09 |
+| # | Tema | Detalle | PG que lo cubre | Estado |
+|---|------|---------|-----------------|--------|
+| 1 | NC mayor/menor | `no_conformidades` no clasifica mayor/menor ni registra aprobación de disposición por Dirección (MC-01 §5 la exige). | PG-09 §6.3.11 | Pendiente (control manual) |
+| 2 | Concesión sin justificación | La justificación de concesión solo se valida en frontend (`saveNC()`); no hay guard en DB. | PG-09 | **RESUELTO** mig 046 (`fn_nc_concesion_guard`) |
+| 3 | Notificación al cliente | `fn_nc_cierre_guard` no exige `cliente_notificado` para cerrar NC de origen 'cliente'. | PG-09 §6.4.15 | **RESUELTO** mig 046 |
+| 4 | Estados CAPA | El select permite saltar de 'abierta' a 'cerrada'; único gate duro es la verificación de eficacia. | PG-10 §6.5.15 | Pendiente (cubierto procedimentalmente) |
+| 5 | Certificado de conformidad no archivado | `generateCertConformidadPDF` genera on-demand y no persiste el PDF emitido (MTRs/calibraciones sí guardan `file_data`). | PG-07 §7 | Pendiente |
+| 6 | Tipo 'plano' inexistente | El CHECK de `documentos_controlados.tipo` no incluye 'plano'; se cargan como 'otro'. | PG-15 | **RESUELTO** mig 046 + frontend |
+| 7 | `codigo_plano` texto libre | Sin FK a `documentos_controlados`: la OP no garantiza referenciar la revisión vigente del plano. | PG-15 §6.6 | Pendiente |
+| 8 | WPS obsoleto con OP abierta | El gate valida vigencia solo al asignar; no re-bloquea referencias existentes si el WPS pasa a 'obsoleto'. | PG-16 §6.3.11 | Pendiente |
+| 9 | Selector de documento sin filtro por tipo | En operaciones se puede asociar cualquier documento vigente (p. ej. un formulario a una soldadura). | PG-16 | Pendiente (menor) |
+| 10 | Conversión de presupuesto 'enviado' | El frontend permite convertir sin estado 'aprobado'; la RPC solo valida no-convertido. | PG-03 | Pendiente (decisión de negocio) |
+| 11 | OTD: `fecha_entrega_hasta` | `convertir_presupuesto` copia la validez comercial de la oferta como compromiso de entrega. | PG-03 §6.5.13 | Pendiente (decisión de negocio) |
+| 12 | Alta manual de barras | Elude la cuarentena (default 'aceptado' por diseño de mig. 039). | PG-05 §6.1.5 | Por diseño |
+| 13 | Independencia de Calidad | Aceptar/rechazar recepciones es PATCH sin restricción de rol en DB (permisos por módulo solo visuales — deuda conocida). | PG-05 §6.3.11 | Pendiente (deuda mayor) |
+| 14 | Alerta de NC ≥30 días | El digest alerta NC abiertas sin umbral de antigüedad; la meta de cierre ≤30 días de MC-01 no tiene aviso. | PG-09 | **RESUELTO** frontend (alerta crítica >30 días) |
+| 15 | Semáforo OTD | MC-01 fija meta ≥95% pero el dashboard pinta verde desde ≥90%. | PG-03 | **RESUELTO** frontend (verde ≥95, ámbar ≥85) |
+| 16 | `registro_calidad_id` en NC | Existe en DB pero el modal de NC no permite setearlo. | PG-09 | **RESUELTO** frontend ("Ensayo vinculado") |
+
+**QA 2026-07-02 (bug UX):** los selects de estado de NC/CAPA no revertían cuando el gate
+de DB rechazaba el cambio. **RESUELTO** frontend (`cambiarEstado` re-renderiza on error).
 
 ## Tareas operativas pendientes
 

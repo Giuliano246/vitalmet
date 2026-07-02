@@ -1939,7 +1939,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
     <div class="modal-body">
       <input type="hidden" id="nc-edit-id">
       <div class="form-row" style="grid-template-columns:140px 1fr 1fr"><div class="form-group"><label>Fecha</label><input type="date" id="nc-fecha"></div><div class="form-group"><label>Origen</label><select id="nc-origen"><option value="recepcion">Recepción (proveedor)</option><option value="produccion" selected>Producción</option><option value="cliente">Reclamo de cliente</option><option value="proveedor">Proveedor</option><option value="auditoria">Auditoría</option><option value="otro">Otro</option></select></div><div class="form-group"><label>OP vinculada</label><select id="nc-orden"><option value="">— ninguna —</option></select></div></div>
-      <div class="form-row"><div class="form-group"><label>Recepción vinculada</label><select id="nc-recepcion"><option value="">— ninguna —</option></select></div><div class="form-group"><label>Venta vinculada</label><select id="nc-venta"><option value="">— ninguna —</option></select></div></div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr"><div class="form-group"><label>Recepción vinculada</label><select id="nc-recepcion"><option value="">— ninguna —</option></select></div><div class="form-group"><label>Venta vinculada</label><select id="nc-venta"><option value="">— ninguna —</option></select></div><div class="form-group"><label>Ensayo vinculado</label><select id="nc-registro"><option value="">— ninguno —</option></select></div></div>
       <div class="form-row single"><div class="form-group"><label>Descripción de la no conformidad *</label><textarea id="nc-descripcion" placeholder="Qué se detectó, contra qué requisito, cantidad afectada"></textarea></div></div>
       <div class="form-row" style="grid-template-columns:1fr 1fr 160px"><div class="form-group"><label>Disposición</label><select id="nc-disposicion"><option value="">— pendiente —</option><option value="retrabajo">Retrabajo</option><option value="reproceso">Reproceso</option><option value="rechazo">Rechazo / scrap</option><option value="concesion">Concesión (uso como está)</option><option value="devolucion_proveedor">Devolución a proveedor</option></select></div><div class="form-group"><label>Justificación de la disposición</label><input type="text" id="nc-justificacion" placeholder="Obligatoria si es concesión"></div><div class="form-group"><label>¿Cliente notificado?</label><select id="nc-cliente-notif"><option value="">N/A</option><option value="true">Sí</option><option value="false">No (pendiente)</option></select></div></div>
     </div>
@@ -1976,7 +1976,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
     <div class="modal-body">
       <input type="hidden" id="doc-edit-id">
       <div class="form-row" style="grid-template-columns:140px 1fr"><div class="form-group"><label>Código *</label><input type="text" id="doc-codigo" placeholder="PG-04 / WPS-01 / IT-02"></div><div class="form-group"><label>Título *</label><input type="text" id="doc-titulo" placeholder="Procedimiento de compras y evaluación de proveedores"></div></div>
-      <div class="form-row" style="grid-template-columns:1fr 100px 1fr"><div class="form-group"><label>Tipo</label><select id="doc-tipo"><option value="manual">Manual de calidad</option><option value="procedimiento" selected>Procedimiento</option><option value="instructivo">Instructivo</option><option value="formulario">Formulario</option><option value="wps">WPS</option><option value="pqr">PQR</option><option value="wpq">WPQ</option><option value="pqp">PQP</option><option value="plan_contingencia">Plan de contingencia</option><option value="otro">Otro</option></select></div><div class="form-group"><label>Revisión</label><input type="text" id="doc-revision" placeholder="0"></div><div class="form-group"><label>Estado</label><select id="doc-estado"><option value="borrador">Borrador</option><option value="vigente">Vigente (obsoleta las anteriores)</option></select></div></div>
+      <div class="form-row" style="grid-template-columns:1fr 100px 1fr"><div class="form-group"><label>Tipo</label><select id="doc-tipo"><option value="manual">Manual de calidad</option><option value="procedimiento" selected>Procedimiento</option><option value="instructivo">Instructivo</option><option value="formulario">Formulario</option><option value="plano">Plano</option><option value="wps">WPS</option><option value="pqr">PQR</option><option value="wpq">WPQ</option><option value="pqp">PQP</option><option value="plan_contingencia">Plan de contingencia</option><option value="otro">Otro</option></select></div><div class="form-group"><label>Revisión</label><input type="text" id="doc-revision" placeholder="0"></div><div class="form-group"><label>Estado</label><select id="doc-estado"><option value="borrador">Borrador</option><option value="vigente">Vigente (obsoleta las anteriores)</option></select></div></div>
       <div class="form-row"><div class="form-group"><label>Archivo (PDF)</label><div class="file-input-wrap" onclick="document.getElementById('doc-file').click()" style="padding:8px"><input type="file" id="doc-file" accept=".pdf" onchange="handleDocFile(this)"><div class="file-name" id="doc-file-name">Sin archivo</div></div></div><div class="form-group"><label>Observaciones</label><input type="text" id="doc-obs" placeholder="Motivo de la revisión"></div></div>
     </div>
     <div class="modal-footer">
@@ -3090,7 +3090,7 @@ async function cambiarEstado(table,id,nuevoEstado){
   try{
     await PATCH(table,{estado:nuevoEstado},`?id=eq.${id}`);
     await loadAll();renderAll();notify('Estado actualizado');
-  }catch(e){console.error('cambiarEstado',e);notify('Error: '+e.message,'err');}
+  }catch(e){console.error('cambiarEstado',e);notify('Error: '+e.message,'err');renderAll();}
 }
 
 // ─── RENDER ───────────────────────────────────────────────────────
@@ -3446,7 +3446,7 @@ function renderVentas(filter=''){
     <div class="stat-card"><div class="stat-label">Unidades vendidas</div><div class="stat-value" style="color:var(--coral)">${totalUnid}</div></div>
     <div class="stat-card"><div class="stat-label">Importe total</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtUSD(totalImp)}</div></div>
     <div class="stat-card"><div class="stat-label">Clientes distintos</div><div class="stat-value">${[...new Set(ventas.map(v=>v.cliente))].length}</div></div>
-    <div class="stat-card" title="Entregas a tiempo: fecha real de entrega ≤ fecha prometida (sobre ${otdBase.length} entregas con ambos datos)"><div class="stat-label">OTD — a tiempo</div><div class="stat-value" style="color:${otdPct===null?'var(--text3)':otdPct>=90?'var(--green)':otdPct>=75?'var(--accent)':'var(--red)'}">${otdPct===null?'—':otdPct+'%'}</div></div>
+    <div class="stat-card" title="Entregas a tiempo: fecha real de entrega ≤ fecha prometida (sobre ${otdBase.length} entregas con ambos datos)"><div class="stat-label">OTD — a tiempo</div><div class="stat-value" style="color:${otdPct===null?'var(--text3)':otdPct>=95?'var(--green)':otdPct>=85?'var(--accent)':'var(--red)'}">${otdPct===null?'—':otdPct+'%'}</div></div>
     <div class="stat-card" title="Pedidos pendientes cuya fecha de entrega prometida ya pasó"><div class="stat-label">Atrasados hoy</div><div class="stat-value" style="color:${atrasadas?'var(--red)':'var(--green)'}">${atrasadas}</div></div>`;
   const bE={entregado:'badge-ok',facturado:'badge-teal',pendiente:'badge-warn'};
   document.getElementById('ventas-tbody').innerHTML=list.length?list.map(v=>{const items=v.venta_items||[];const importe=items.reduce((a,i)=>a+(i.cantidad*(i.precio_unitario||0)),0);const totalU=items.reduce((a,i)=>a+i.cantidad,0);const piezas=[...new Set(items.map(i=>i.pieza||''))].join(', ');
@@ -3534,9 +3534,15 @@ function computeAlertas(){
     detalle:'Compras → Inspección de entrada'});
 
   const ncAbiertas=noConformidades.filter(n=>n.estado!=='cerrada');
-  if(ncAbiertas.length)out.push({sev:'warn',page:'ncr',count:ncAbiertas.length,
-    titulo:uno(ncAbiertas.length,'No conformidad abierta','No conformidades abiertas'),
-    detalle:ncAbiertas.slice(0,3).map(n=>'NC-'+String(n.numero).padStart(4,'0')+' · '+esc((n.descripcion||'').slice(0,40))).join('  —  ')+masDe(ncAbiertas)});
+  const hace30=hoyLocal(-30);
+  const ncViejas=ncAbiertas.filter(n=>(n.fecha||hoy)<hace30);
+  const ncRecientes=ncAbiertas.filter(n=>!ncViejas.includes(n));
+  if(ncViejas.length)out.push({sev:'crit',page:'ncr',count:ncViejas.length,
+    titulo:uno(ncViejas.length,'No conformidad abierta hace más de 30 días','No conformidades abiertas hace más de 30 días'),
+    detalle:ncViejas.slice(0,3).map(n=>'NC-'+String(n.numero).padStart(4,'0')+' · '+esc((n.descripcion||'').slice(0,40))).join('  —  ')+masDe(ncViejas)});
+  if(ncRecientes.length)out.push({sev:'warn',page:'ncr',count:ncRecientes.length,
+    titulo:uno(ncRecientes.length,'No conformidad abierta','No conformidades abiertas'),
+    detalle:ncRecientes.slice(0,3).map(n=>'NC-'+String(n.numero).padStart(4,'0')+' · '+esc((n.descripcion||'').slice(0,40))).join('  —  ')+masDe(ncRecientes)});
 
   const capaVenc=accionesCapa.filter(c=>c.estado!=='cerrada'&&c.fecha_compromiso&&c.fecha_compromiso<hoy);
   if(capaVenc.length)out.push({sev:'crit',page:'ncr',count:capaVenc.length,
@@ -7953,6 +7959,10 @@ function openNCModal(id){
     return `<option value="${r.id}" ${n?.recepcion_id===r.id?'selected':''}>${r.fecha} · ${esc(it?.descripcion||'')}</option>`;
   }).join('');
   document.getElementById('nc-venta').innerHTML='<option value="">— ninguna —</option>'+ventas.map(v=>`<option value="${v.id}" ${n?.venta_id===v.id?'selected':''}>${esc(v.nro_remito)} · ${esc(v.cliente)}</option>`).join('');
+  document.getElementById('nc-registro').innerHTML='<option value="">— ninguno —</option>'+registrosCalidad.map(r=>{
+    const op=ops.find(o=>o.id===r.orden_id);
+    return `<option value="${r.id}" ${n?.registro_calidad_id===r.id?'selected':''}>${esc(r.tipo||'ensayo')} · ${(r.created_at||'').slice(0,10)}${op?' · '+esc(op.nro):''} · ${esc(r.resultado||'')}</option>`;
+  }).join('');
   document.getElementById('nc-descripcion').value=n?.descripcion||'';
   document.getElementById('nc-disposicion').value=n?.disposicion||'';
   document.getElementById('nc-justificacion').value=n?.justificacion||'';
@@ -7971,6 +7981,7 @@ async function saveNC(){
     orden_id:document.getElementById('nc-orden').value||null,
     recepcion_id:document.getElementById('nc-recepcion').value||null,
     venta_id:document.getElementById('nc-venta').value||null,
+    registro_calidad_id:document.getElementById('nc-registro').value||null,
     descripcion,disposicion:disp,
     justificacion:document.getElementById('nc-justificacion').value.trim()||null,
     cliente_notificado:notif===''?null:notif==='true'};
@@ -8018,7 +8029,7 @@ async function saveCapa(){
 }
 
 // ─── Documentos controlados ───────────────────────────────────────
-const DOC_TIPO_L={manual:'Manual',procedimiento:'Procedimiento',instructivo:'Instructivo',formulario:'Formulario',wps:'WPS',pqr:'PQR',wpq:'WPQ',pqp:'PQP',plan_contingencia:'Plan contingencia',otro:'Otro'};
+const DOC_TIPO_L={manual:'Manual',procedimiento:'Procedimiento',instructivo:'Instructivo',formulario:'Formulario',plano:'Plano',wps:'WPS',pqr:'PQR',wpq:'WPQ',pqp:'PQP',plan_contingencia:'Plan contingencia',otro:'Otro'};
 let docFileData=null,docFileName=null;
 function handleDocFile(input){const file=input.files[0];if(!file)return;if(!validarArchivoAdjunto(file)){input.value='';return;}docFileName=file.name;document.getElementById('doc-file-name').textContent=file.name;const r=new FileReader();r.onload=e=>{docFileData=e.target.result;};r.readAsDataURL(file);}
 function renderDocumentos(filter=''){
