@@ -375,6 +375,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <div class="nav-item" data-group="compras" onclick="showPage('compras')"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></span>Compras</div>
       <div class="nav-item" data-group="ventas" onclick="showPage('presupuestos')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></span>Ventas</div>
       <div class="nav-item" data-group="analisis" onclick="showPage('costos')"><span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>Análisis</div>
+      <div class="nav-item" data-group="calidad" onclick="showPage('ncr')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></span>Calidad</div>
       <div class="nav-item" data-group="contabilidad" onclick="showPage('cuentas')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 17V7"/><path d="M11 17V11"/><path d="M15 17V13"/><path d="M19 17V9"/></svg></span>Contabilidad</div>
       <div class="nav-item" data-group="config" onclick="showPage('config')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>Configuración</div>
     </nav>
@@ -401,7 +402,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
           <div class="search-box"><input type="text" placeholder="Buscar por tipo, OC, lote..." oninput="renderMP(this.value)"></div>
           <button class="btn btn-ghost" onclick="openModal('modal-mp')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva barra</button>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Lote</th><th>Material</th><th>Perfil / Ø</th><th>Nro OC</th><th>Certificado</th><th>Mts disp.</th><th>Unid.</th><th>Estado</th><th></th></tr></thead><tbody id="mp-tbody"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Lote</th><th>Material</th><th>Perfil / Ø</th><th>Colada</th><th>Certificado</th><th>Mts disp.</th><th>Unid.</th><th>Estado</th><th></th></tr></thead><tbody id="mp-tbody"></tbody></table></div>
         <div id="mp-reposicion"></div>
       </div>
     </div>
@@ -415,7 +416,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
           <button class="btn btn-ghost" onclick="openModal('modal-pt')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo PT</button>
           <button class="btn btn-ghost" onclick="openImportPT()" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg></span>Importar Excel</button>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Lote PT</th><th>Pieza</th><th>Descripción</th><th>Cant. disponible</th><th>Barra origen</th><th>Nro OC</th><th>Certificado</th><th>OP</th><th></th></tr></thead><tbody id="pt-tbody"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Lote PT</th><th>Pieza</th><th>Descripción</th><th>Cant. disponible</th><th>Barra origen</th><th>Colada</th><th>Certificado</th><th>OP</th><th></th></tr></thead><tbody id="pt-tbody"></tbody></table></div>
       </div>
     </div>
     <!-- CERTIFICADOS -->
@@ -427,7 +428,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
           <div class="search-box"><input type="text" placeholder="Buscar por número, proveedor..." oninput="renderCert(this.value)"></div>
           <button class="btn btn-ghost" onclick="openModal('modal-cert')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo certificado</button>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Nro. cert.</th><th>Proveedor</th><th>Material</th><th>Nro OC</th><th>Metros</th><th>Fecha</th><th>PDF</th><th>Barras</th><th></th></tr></thead><tbody id="cert-tbody"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Nro. cert.</th><th>Proveedor</th><th>Material</th><th>Colada</th><th>Metros</th><th>Fecha</th><th>PDF</th><th>Barras</th><th></th></tr></thead><tbody id="cert-tbody"></tbody></table></div>
       </div>
     </div>
     <!-- INSUMOS -->
@@ -451,7 +452,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
           <div class="search-box"><input type="text" placeholder="Buscar por nombre, código, ubicación..." oninput="renderHerramientas(this.value)"></div>
           <button class="btn btn-ghost" onclick="openModalHerramienta()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva herramienta</button>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Código</th><th>Nombre</th><th>Cantidad</th><th>Estado</th><th>Ubicación</th><th>Precio compra</th><th>Fecha compra</th><th>Proveedor</th><th></th></tr></thead><tbody id="herramientas-tbody"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Código</th><th>Nombre</th><th>Cantidad</th><th>Estado</th><th>Ubicación</th><th>Precio compra</th><th>Fecha compra</th><th>Proveedor</th><th>Calibración</th><th></th></tr></thead><tbody id="herramientas-tbody"></tbody></table></div>
       </div>
     </div>
     <!-- ÓRDENES -->
@@ -473,6 +474,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="page-sub">// OC → recepción → stock</div>
         <div class="tabs">
           <div class="tab active" onclick="switchComprasTab('oc')">Órdenes de compra</div>
+          <div class="tab" onclick="switchComprasTab('inspeccion')">Inspección de entrada</div>
           <div class="tab" onclick="switchComprasTab('prov')">Proveedores</div>
           <div class="tab" onclick="switchComprasTab('facturas')">Facturas recibidas</div>
         </div>
@@ -486,13 +488,20 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
           </div>
           <div class="table-wrap"><table><thead><tr><th>Nro OC</th><th>Proveedor</th><th>Fecha</th><th>Entrega</th><th>Ítems</th><th>Mon.</th><th>Total ARS</th><th>Total USD</th><th>Estado</th><th>Remito</th><th>Cert MTC</th><th>Factura</th><th></th></tr></thead><tbody id="compras-tbody"></tbody></table></div>
         </div>
+        <div id="compras-tab-inspeccion" style="display:none">
+          <div class="stats-bar" id="insp-stats"></div>
+          <div class="toolbar">
+            <div class="search-box"><input type="text" placeholder="Buscar por OC, ítem, lote..." oninput="renderInspeccion(this.value)"></div>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>OC</th><th>Ítem</th><th>Cant.</th><th>Remito</th><th>MTR</th><th>Barra / lote</th><th>Inspección</th><th></th></tr></thead><tbody id="insp-tbody"></tbody></table></div>
+        </div>
         <div id="compras-tab-prov" style="display:none">
           <div class="stats-bar" id="prov-stats"></div>
           <div class="toolbar">
             <div class="search-box"><input type="text" placeholder="Buscar por nombre, CUIT..." oninput="renderProveedores(this.value)"></div>
             <button class="btn btn-ghost" onclick="openProveedorModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo proveedor</button>
           </div>
-          <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>CUIT</th><th>Contacto</th><th>Teléfono</th><th>Email</th><th>OCs</th><th>Deuda USD</th><th></th></tr></thead><tbody id="prov-tbody"></tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>CUIT</th><th>Contacto</th><th>Teléfono</th><th>Email</th><th>AVL</th><th>OCs</th><th>Deuda USD</th><th></th></tr></thead><tbody id="prov-tbody"></tbody></table></div>
         </div>
         <div id="compras-tab-facturas" style="display:none">
           <div class="stats-bar" id="fr-stats"></div>
@@ -501,6 +510,49 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
           </div>
           <div class="table-wrap"><table><thead><tr><th>OC</th><th>Proveedor</th><th>Nro factura</th><th>Fecha</th><th>Vto.</th><th>Mon.</th><th>Neto</th><th>IVA</th><th>Total</th><th>Match</th><th>Asiento</th></tr></thead><tbody id="fr-tbody"></tbody></table></div>
         </div>
+      </div>
+    </div>
+
+    <!-- CALIDAD: NCR / CAPA -->
+    <div class="page" id="page-ncr">
+      <div class="page-header"><div class="page-title">Calidad</div><div class="page-sub">// NCR → disposición → CAPA → verificación de eficacia</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="ncr-stats"></div>
+        <div class="toolbar">
+          <div class="search-box"><input type="text" placeholder="Buscar por nro, descripción..." oninput="renderNCR(this.value)"></div>
+          <button class="btn btn-ghost" onclick="openNCModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva NC</button>
+          <button class="btn btn-ghost" onclick="openCapaModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva CAPA</button>
+        </div>
+        <div class="section-label" style="margin-bottom:6px">No conformidades</div>
+        <div class="table-wrap" style="margin-bottom:18px"><table><thead><tr><th>Nº</th><th>Fecha</th><th>Origen</th><th>Descripción</th><th>Disposición</th><th>Estado</th><th></th></tr></thead><tbody id="ncr-tbody"></tbody></table></div>
+        <div class="section-label" style="margin-bottom:6px">Acciones correctivas / preventivas (CAPA)</div>
+        <div class="table-wrap"><table><thead><tr><th>Nº</th><th>Tipo</th><th>NC</th><th>Acción</th><th>Responsable</th><th>Compromiso</th><th>Eficacia</th><th>Estado</th><th></th></tr></thead><tbody id="capa-tbody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- CALIDAD: DOCUMENTOS CONTROLADOS -->
+    <div class="page" id="page-doccontrol">
+      <div class="page-header"><div class="page-title">Documentos controlados</div><div class="page-sub">// manual · procedimientos · instructivos · WPS/PQR/WPQ · PQP</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="doc-stats"></div>
+        <div class="toolbar">
+          <div class="search-box"><input type="text" placeholder="Buscar por código, título..." oninput="renderDocumentos(this.value)"></div>
+          <button class="btn btn-ghost" onclick="openDocModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo documento / revisión</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Código</th><th>Título</th><th>Tipo</th><th>Rev.</th><th>Estado</th><th>Vigente desde</th><th>PDF</th><th></th></tr></thead><tbody id="doc-tbody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- CALIDAD: PLANTILLAS PQP -->
+    <div class="page" id="page-pqptpl">
+      <div class="page-header"><div class="page-title">Plantillas PQP</div><div class="page-sub">// routing modelo por producto: operaciones + hold/witness points</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="pqp-stats"></div>
+        <div class="toolbar">
+          <div class="search-box"><input type="text" placeholder="Buscar por código, producto..." oninput="renderPQPPlantillas(this.value)"></div>
+          <button class="btn btn-ghost" onclick="openPQPModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva plantilla</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Código</th><th>Producto</th><th>Descripción</th><th>Pasos</th><th>Hold/Witness</th><th>Activa</th><th></th></tr></thead><tbody id="pqp-tbody"></tbody></table></div>
       </div>
     </div>
 
@@ -1018,7 +1070,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="form-group"><label>Cant. barras</label><input type="number" id="mp-unid" placeholder="0"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Nro OC *</label><input type="text" id="mp-colada" placeholder="OC-2024-001"></div>
+        <div class="form-group"><label>Colada (heat nº) *</label><input type="text" id="mp-colada" placeholder="Del MTR, ej. 84512"></div>
         <div class="form-group"><label>Metros mínimo (alerta)</label><input type="number" id="mp-min" placeholder="0" step="0.1"></div>
       </div>
       <hr class="form-divider">
@@ -1043,7 +1095,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       </div>
       <div class="form-row triple">
         <div class="form-group"><label>Material *</label><input type="text" id="cert-mat" placeholder="AISI 316"></div>
-        <div class="form-group"><label>Nro OC *</label><input type="text" id="cert-colada" placeholder="OC-2024-001"></div>
+        <div class="form-group"><label>Colada (heat nº) *</label><input type="text" id="cert-colada" placeholder="Del MTR, ej. 84512"></div>
         <div class="form-group"><label>Fecha emisión</label><input type="date" id="cert-fecha"></div>
       </div>
       <div class="form-row single">
@@ -1091,8 +1143,28 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <div class="form-row" style="grid-template-columns:100px 1fr 1fr"><div class="form-group"><label>Cantidad</label><input type="number" id="herr-cantidad" step="1" min="0" placeholder="1"></div><div class="form-group"><label>Estado</label><select id="herr-estado"><option value="nueva">Nueva</option><option value="en-uso">En uso</option><option value="mantenimiento">En mantenimiento</option><option value="dada-de-baja">Dada de baja</option></select></div><div class="form-group"><label>Ubicación</label><input type="text" id="herr-ubicacion" placeholder="Torno CNC / Depósito"></div></div>
       <div class="form-row" style="grid-template-columns:1fr 1fr 1fr"><div class="form-group"><label>Precio compra USD</label><input type="number" id="herr-precio" step="0.01" placeholder="0.00"></div><div class="form-group"><label>Fecha compra</label><input type="date" id="herr-fecha"></div><div class="form-group"><label>Proveedor</label><select id="herr-proveedor"><option value="">— ninguno —</option></select></div></div>
       <div class="form-row single"><div class="form-group"><label>Observaciones</label><input type="text" id="herr-observaciones" placeholder="Notas"></div></div>
+      <div style="margin:14px 0 8px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Metrología — calibración (ISO 7.1.5 / API Q1 4.4.4)</div>
+      <div class="form-row" style="grid-template-columns:1fr 130px 1fr"><div class="form-group"><label>Requiere calibración</label><select id="herr-req-cal"><option value="false">No</option><option value="true">Sí — instrumento de medición</option></select></div><div class="form-group"><label>Frecuencia (meses)</label><input type="number" id="herr-frec-cal" step="1" min="1" placeholder="12"></div><div class="form-group"><label>Patrón / referencia</label><input type="text" id="herr-patron" placeholder="Ej: patrón WIKA CPG1500"></div></div>
     </div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-herramienta')">Cancelar</button><button class="btn btn-primary" id="btn-save-herramienta" onclick="saveHerramienta()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Calibración de instrumento -->
+<div class="modal-overlay" id="modal-calibracion">
+  <div class="modal" style="width:640px">
+    <div class="modal-header"><div class="modal-title">Registrar calibración <span id="cal-herr-nombre" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="modal-close" onclick="closeModal('modal-calibracion')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="cal-herr-id">
+      <div class="form-row" style="grid-template-columns:140px 1fr 1fr"><div class="form-group"><label>Fecha</label><input type="date" id="cal-fecha"></div><div class="form-group"><label>Resultado</label><select id="cal-resultado"><option value="conforme">Conforme</option><option value="no_conforme">No conforme (bloquea el instrumento)</option></select></div><div class="form-group"><label>Nº certificado</label><input type="text" id="cal-cert-nro" placeholder="Cert. del laboratorio"></div></div>
+      <div class="form-row"><div class="form-group"><label>Laboratorio (proveedor)</label><select id="cal-laboratorio"><option value="">— ninguno —</option></select></div><div class="form-group"><label>Certificado PDF</label><div class="file-input-wrap" onclick="document.getElementById('cal-file').click()" style="padding:8px"><input type="file" id="cal-file" accept=".pdf,.jpg,.png" onchange="handleCalFile(this)"><div class="file-name" id="cal-file-name">Sin archivo</div></div></div></div>
+      <div class="form-row single"><div class="form-group"><label>Observaciones</label><input type="text" id="cal-obs" placeholder="Notas de la calibración"></div></div>
+      <div id="cal-historial" style="margin-top:10px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-calibracion')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-cal" onclick="saveCalibracion()">Registrar calibración</button>
+    </div>
   </div>
 </div>
 
@@ -1460,7 +1532,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="form-group"><label>Metros mínimo</label><input type="number" id="edit-barra-min" step="0.1"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Nro OC</label><input type="text" id="edit-barra-colada"></div>
+        <div class="form-group"><label>Colada (heat nº)</label><input type="text" id="edit-barra-colada"></div>
         <div class="form-group"><label>Certificado</label><select id="edit-barra-cert"><option value="">Sin certificado</option></select></div>
       </div>
       <div class="form-row single"><div class="form-group"><label>Observaciones</label><textarea id="edit-barra-obs"></textarea></div></div>
@@ -1484,7 +1556,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       </div>
       <div class="form-row triple">
         <div class="form-group"><label>Material</label><input type="text" id="edit-cert-mat"></div>
-        <div class="form-group"><label>Nro OC</label><input type="text" id="edit-cert-colada"></div>
+        <div class="form-group"><label>Colada (heat nº)</label><input type="text" id="edit-cert-colada"></div>
         <div class="form-group"><label>Fecha</label><input type="date" id="edit-cert-fecha"></div>
       </div>
       <div class="form-row single">
@@ -1614,6 +1686,10 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <div class="form-row"><div class="form-group"><label>Email</label><input type="email" id="prov-email" placeholder="ventas@aceros.com"></div><div class="form-group"><label>Condición de pago</label><input type="text" id="prov-cond" placeholder="30 días FF"></div></div>
       <div class="form-row single"><div class="form-group"><label>Dirección</label><input type="text" id="prov-dir" placeholder="Av. Industrial 1234"></div></div>
       <div class="form-row single"><div class="form-group"><label>Observaciones</label><input type="text" id="prov-obs" placeholder="Notas internas"></div></div>
+      <div style="margin:14px 0 8px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Calidad — AVL (evaluación de proveedores)</div>
+      <div class="form-row"><div class="form-group"><label>Criticidad</label><select id="prov-criticidad"><option value="no_critico">No crítico</option><option value="critico">Crítico (material/servicio O&amp;G)</option></select></div><div class="form-group"><label>Estado AVL</label><select id="prov-aprobado"><option value="false">No aprobado</option><option value="true">Aprobado</option></select></div></div>
+      <div class="form-row single"><div class="form-group"><label>Alcance de la aprobación</label><input type="text" id="prov-alcance" placeholder="Ej: materia prima AISI 4130 / tratamiento térmico"></div></div>
+      <div class="form-row"><div class="form-group"><label>Fecha de evaluación</label><input type="date" id="prov-fecha-eval"></div><div class="form-group"><label>Próxima reevaluación</label><input type="date" id="prov-fecha-reeval"></div></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-proveedor')">Cancelar</button>
@@ -1672,8 +1748,8 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
   <div class="modal" style="width:780px">
     <div class="modal-header"><div class="modal-title"><span style="display:inline-flex;vertical-align:-3px;width:16px;height:16px;margin-right:6px"><svg viewBox="0 0 24 24" style="width:100%;height:100%;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>Recepción de mercadería <span id="recep-oc-nro" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="modal-close" onclick="closeModal('modal-recepcion')">×</button></div>
     <div class="modal-body">
-      <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Marcá cuánto llegó de cada ítem. Si es acero (materia prima), automáticamente se crea una barra en stock al guardar.</p>
-      <div class="form-row" style="grid-template-columns:140px 1fr 1fr"><div class="form-group"><label>Fecha recepción</label><input type="date" id="recep-fecha"></div><div class="form-group"><label>Nro remito</label><input type="text" id="recep-remito-nro" placeholder="R-0001-00012345"></div><div class="form-group"><label>Certificado MTC (opcional)</label><select id="recep-cert"><option value="">— ninguno —</option></select></div></div>
+      <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Marcá cuánto llegó de cada ítem. Si es acero (materia prima), se crea la barra en stock <b>en cuarentena</b>: queda usable recién cuando la inspección de entrada la acepta (pestaña Inspección).</p>
+      <div class="form-row" style="grid-template-columns:140px 1fr 1fr 1fr"><div class="form-group"><label>Fecha recepción</label><input type="date" id="recep-fecha"></div><div class="form-group"><label>Nro remito</label><input type="text" id="recep-remito-nro" placeholder="R-0001-00012345"></div><div class="form-group"><label>Certificado MTC (MTR)</label><select id="recep-cert" onchange="recepCertColada()"><option value="">— ninguno —</option></select></div><div class="form-group"><label>Colada (heat nº)</label><input type="text" id="recep-colada" placeholder="Del MTR, ej. 84512"></div></div>
       <hr class="form-divider">
       <div id="recep-items-list" style="display:flex;flex-direction:column;gap:8px"></div>
       <div class="form-row single" style="margin-top:10px"><div class="form-group"><label>Observaciones</label><input type="text" id="recep-obs" placeholder="Notas de la recepción"></div></div>
@@ -1740,7 +1816,11 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div style="padding:16px;border-right:1px solid var(--border);overflow-y:auto;max-height:520px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
             <div class="section-label">Operaciones (pasos)</div>
-            <button class="btn btn-ghost btn-sm" onclick="openAddOperacion()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Paso</button>
+            <div style="display:flex;gap:4px">
+              <button class="btn btn-ghost btn-sm" style="border-color:var(--teal);color:var(--teal)" onclick="openAplicarPQP()" title="Instanciar el routing del Product Quality Plan del producto">PQP</button>
+              <button class="btn btn-ghost btn-sm" style="border-color:var(--accent);color:var(--accent)" onclick="openRegistroCalidad()" title="Registrar ensayo/inspección (hidro, dimensional...)">Ensayo</button>
+              <button class="btn btn-ghost btn-sm" onclick="openAddOperacion()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Paso</button>
+            </div>
           </div>
           <div id="tiempos-ops-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px"></div>
           <div class="section-label" style="margin-top:14px">Bitácora de tiempos</div>
@@ -1806,10 +1886,128 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="form-group"><label>Tiempo estimado (min)</label><input type="number" id="paso-estimado" placeholder="60" min="0"></div>
       </div>
       <div class="form-row single"><div class="form-group"><label>Tarifa máquina USD/h</label><input type="number" id="paso-tarifa" placeholder="30" min="0" step="0.1"></div></div>
+      <div class="form-row">
+        <div class="form-group"><label>Punto de control (PQP)</label><select id="paso-tipo-punto"><option value="normal">Normal</option><option value="hold">Hold point — frena sin firma QC</option><option value="witness">Witness point — requiere firma</option></select></div>
+        <div class="form-group"><label>Documento (WPS / instructivo)</label><select id="paso-doc"><option value="">— ninguno —</option></select></div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-add-op-paso')">Cancelar</button>
       <button class="btn btn-primary" id="btn-save-paso" onclick="saveOperacionPaso()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Aplicar plantilla PQP a la OP -->
+<div class="modal-overlay" id="modal-aplicar-pqp">
+  <div class="modal" style="width:520px">
+    <div class="modal-header"><div class="modal-title">Aplicar Product Quality Plan</div><button class="modal-close" onclick="closeModal('modal-aplicar-pqp')">×</button></div>
+    <div class="modal-body">
+      <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Instancia el routing modelo del producto (operaciones + hold/witness points + WPS/instructivos) en esta OP. La OP no tiene que tener pasos cargados.</p>
+      <div class="form-row single"><div class="form-group"><label>Plantilla PQP</label><select id="pqp-apply-select"></select></div></div>
+      <div id="pqp-apply-preview" style="font-size:11px;color:var(--text3);margin-top:8px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-aplicar-pqp')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-apply-pqp" onclick="aplicarPQP()">Aplicar PQP</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Registro de calidad (ensayo/inspección) -->
+<div class="modal-overlay" id="modal-registro-calidad">
+  <div class="modal" style="width:680px">
+    <div class="modal-header"><div class="modal-title">Registro de calidad <span id="rc-op-nro" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="modal-close" onclick="closeModal('modal-registro-calidad')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr"><div class="form-group"><label>Tipo de ensayo</label><select id="rc-tipo" onchange="rcToggleHidro()"><option value="hidrostatico">Ensayo hidrostático</option><option value="dimensional">Dimensional</option><option value="visual">Visual</option><option value="dureza">Dureza</option><option value="liquidos_penetrantes">Líquidos penetrantes</option><option value="particulas_magneticas">Partículas magnéticas</option><option value="otro">Otro</option></select></div><div class="form-group"><label>Instrumento</label><select id="rc-herramienta"><option value="">— ninguno —</option></select></div><div class="form-group"><label>Resultado</label><select id="rc-resultado"><option value="conforme">Conforme</option><option value="no_conforme">No conforme</option></select></div></div>
+      <div class="form-row" id="rc-hidro-row" style="grid-template-columns:1fr 1fr 1fr"><div class="form-group"><label>Presión (psi)</label><input type="number" id="rc-presion" placeholder="22000" step="1"></div><div class="form-group"><label>Sostenimiento (min)</label><input type="number" id="rc-sosten" placeholder="3" step="0.5"></div><div class="form-group"><label>Temperatura (°C)</label><input type="number" id="rc-temp" placeholder="21" step="0.5"></div></div>
+      <div class="form-row single"><div class="form-group"><label>Valores medidos / detalle</label><input type="text" id="rc-detalle" placeholder="Mediciones, plano de referencia, criterio de aceptación"></div></div>
+      <div class="form-row"><div class="form-group"><label>Adjunto (reporte PDF)</label><div class="file-input-wrap" onclick="document.getElementById('rc-file').click()" style="padding:8px"><input type="file" id="rc-file" accept=".pdf,.jpg,.png" onchange="handleRcFile(this)"><div class="file-name" id="rc-file-name">Sin archivo</div></div></div><div class="form-group"><label>Observaciones</label><input type="text" id="rc-obs" placeholder="Notas"></div></div>
+      <div id="rc-historial" style="margin-top:10px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-registro-calidad')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-rc" onclick="saveRegistroCalidad()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: No conformidad -->
+<div class="modal-overlay" id="modal-nc">
+  <div class="modal" style="width:680px">
+    <div class="modal-header"><div class="modal-title" id="modal-nc-title">Nueva no conformidad</div><button class="modal-close" onclick="closeModal('modal-nc')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="nc-edit-id">
+      <div class="form-row" style="grid-template-columns:140px 1fr 1fr"><div class="form-group"><label>Fecha</label><input type="date" id="nc-fecha"></div><div class="form-group"><label>Origen</label><select id="nc-origen"><option value="recepcion">Recepción (proveedor)</option><option value="produccion" selected>Producción</option><option value="cliente">Reclamo de cliente</option><option value="proveedor">Proveedor</option><option value="auditoria">Auditoría</option><option value="otro">Otro</option></select></div><div class="form-group"><label>OP vinculada</label><select id="nc-orden"><option value="">— ninguna —</option></select></div></div>
+      <div class="form-row"><div class="form-group"><label>Recepción vinculada</label><select id="nc-recepcion"><option value="">— ninguna —</option></select></div><div class="form-group"><label>Venta vinculada</label><select id="nc-venta"><option value="">— ninguna —</option></select></div></div>
+      <div class="form-row single"><div class="form-group"><label>Descripción de la no conformidad *</label><textarea id="nc-descripcion" placeholder="Qué se detectó, contra qué requisito, cantidad afectada"></textarea></div></div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 160px"><div class="form-group"><label>Disposición</label><select id="nc-disposicion"><option value="">— pendiente —</option><option value="retrabajo">Retrabajo</option><option value="reproceso">Reproceso</option><option value="rechazo">Rechazo / scrap</option><option value="concesion">Concesión (uso como está)</option><option value="devolucion_proveedor">Devolución a proveedor</option></select></div><div class="form-group"><label>Justificación de la disposición</label><input type="text" id="nc-justificacion" placeholder="Obligatoria si es concesión"></div><div class="form-group"><label>¿Cliente notificado?</label><select id="nc-cliente-notif"><option value="">N/A</option><option value="true">Sí</option><option value="false">No (pendiente)</option></select></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-nc')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-nc" onclick="saveNC()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Acción CAPA -->
+<div class="modal-overlay" id="modal-capa">
+  <div class="modal" style="width:680px">
+    <div class="modal-header"><div class="modal-title" id="modal-capa-title">Nueva acción CAPA</div><button class="modal-close" onclick="closeModal('modal-capa')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="capa-edit-id">
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr"><div class="form-group"><label>Tipo</label><select id="capa-tipo"><option value="correctiva">Correctiva</option><option value="preventiva">Preventiva</option></select></div><div class="form-group"><label>NC asociada</label><select id="capa-nc"><option value="">— ninguna —</option></select></div><div class="form-group"><label>Responsable</label><select id="capa-responsable"><option value="">— asignar —</option></select></div></div>
+      <div class="form-row single"><div class="form-group"><label>Causa raíz</label><textarea id="capa-causa" placeholder="Análisis de causa (5 porqués, Ishikawa...)"></textarea></div></div>
+      <div class="form-row single"><div class="form-group"><label>Acción *</label><textarea id="capa-accion" placeholder="Qué se va a hacer para eliminar la causa"></textarea></div></div>
+      <div class="form-row"><div class="form-group"><label>Fecha compromiso</label><input type="date" id="capa-compromiso"></div><div class="form-group"><label>Fecha implementación</label><input type="date" id="capa-implementacion"></div></div>
+      <div class="form-row" style="grid-template-columns:1fr 160px"><div class="form-group"><label>Verificación de eficacia</label><input type="text" id="capa-verificacion" placeholder="Cómo se verificó que funcionó (obligatoria para cerrar)"></div><div class="form-group"><label>¿Eficaz?</label><select id="capa-eficaz"><option value="">— pendiente —</option><option value="true">Sí</option><option value="false">No</option></select></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-capa')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-capa" onclick="saveCapa()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Documento controlado -->
+<div class="modal-overlay" id="modal-doc">
+  <div class="modal" style="width:640px">
+    <div class="modal-header"><div class="modal-title" id="modal-doc-title">Nuevo documento / revisión</div><button class="modal-close" onclick="closeModal('modal-doc')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="doc-edit-id">
+      <div class="form-row" style="grid-template-columns:140px 1fr"><div class="form-group"><label>Código *</label><input type="text" id="doc-codigo" placeholder="PG-04 / WPS-01 / IT-02"></div><div class="form-group"><label>Título *</label><input type="text" id="doc-titulo" placeholder="Procedimiento de compras y evaluación de proveedores"></div></div>
+      <div class="form-row" style="grid-template-columns:1fr 100px 1fr"><div class="form-group"><label>Tipo</label><select id="doc-tipo"><option value="manual">Manual de calidad</option><option value="procedimiento" selected>Procedimiento</option><option value="instructivo">Instructivo</option><option value="formulario">Formulario</option><option value="wps">WPS</option><option value="pqr">PQR</option><option value="wpq">WPQ</option><option value="pqp">PQP</option><option value="plan_contingencia">Plan de contingencia</option><option value="otro">Otro</option></select></div><div class="form-group"><label>Revisión</label><input type="text" id="doc-revision" placeholder="0"></div><div class="form-group"><label>Estado</label><select id="doc-estado"><option value="borrador">Borrador</option><option value="vigente">Vigente (obsoleta las anteriores)</option></select></div></div>
+      <div class="form-row"><div class="form-group"><label>Archivo (PDF)</label><div class="file-input-wrap" onclick="document.getElementById('doc-file').click()" style="padding:8px"><input type="file" id="doc-file" accept=".pdf" onchange="handleDocFile(this)"><div class="file-name" id="doc-file-name">Sin archivo</div></div></div><div class="form-group"><label>Observaciones</label><input type="text" id="doc-obs" placeholder="Motivo de la revisión"></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-doc')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-doc" onclick="saveDoc()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Plantilla PQP -->
+<div class="modal-overlay" id="modal-pqp">
+  <div class="modal" style="width:780px">
+    <div class="modal-header"><div class="modal-title" id="modal-pqp-title">Nueva plantilla PQP</div><button class="modal-close" onclick="closeModal('modal-pqp')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="pqp-edit-id">
+      <div class="form-row" style="grid-template-columns:140px 1fr 1fr"><div class="form-group"><label>Código *</label><input type="text" id="pqp-codigo" placeholder="PQP-1502"></div><div class="form-group"><label>Producto *</label><input type="text" id="pqp-producto" placeholder="Unión fig. 1502"></div><div class="form-group"><label>Documento PQP</label><select id="pqp-doc"><option value="">— ninguno —</option></select></div></div>
+      <div class="form-row single"><div class="form-group"><label>Descripción</label><input type="text" id="pqp-descripcion" placeholder="Alcance, material, norma aplicable"></div></div>
+      <div class="section-label" style="margin:10px 0 6px">Operaciones del routing</div>
+      <div id="pqp-ops-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px"></div>
+      <div style="display:grid;grid-template-columns:1fr 120px 130px 1fr 70px auto;gap:6px;align-items:end">
+        <div class="form-group"><label>Operación</label><input type="text" id="pqpop-nombre" placeholder="Mecanizado rosca"></div>
+        <div class="form-group"><label>Máquina</label><input type="text" id="pqpop-maquina" placeholder="CNC"></div>
+        <div class="form-group"><label>Punto</label><select id="pqpop-punto"><option value="normal">Normal</option><option value="hold">Hold</option><option value="witness">Witness</option></select></div>
+        <div class="form-group"><label>Documento</label><select id="pqpop-doc"><option value="">—</option></select></div>
+        <div class="form-group"><label>Min.</label><input type="number" id="pqpop-min" placeholder="60"></div>
+        <button class="btn btn-ghost btn-sm" style="margin-bottom:2px" onclick="addPQPOpDraft()">+ Agregar</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-pqp')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-pqp" onclick="savePQPPlantilla()">Guardar plantilla</button>
     </div>
   </div>
 </div>
@@ -1974,6 +2172,7 @@ let facturasRecibidas=[];
 let periodosContables=[];
 let correlatividad=[];
 let cuentasBancarias=[],extractoBancario=[];
+let documentosControlados=[],pqpPlantillas=[],pqpPlantillaOps=[],calibraciones=[],registrosCalidad=[],noConformidades=[],accionesCapa=[];
 let presupuestos=[],presupItemsList=[],presupItemsDraft=[];
 let certFileData=null,certFileName=null;
 
@@ -2249,7 +2448,7 @@ async function retryLoad(){
 async function loadAll(){
   _loadErrors=[];
   try{
-    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos,insumos,herramientas,cuentasContables,asientos,asientoLineas,indicesIpc,configContable,ejercicios,cheques,facturasRecibidas,periodosContables,correlatividad,cuentasBancarias,extractoBancario]=await Promise.all([
+    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos,insumos,herramientas,cuentasContables,asientos,asientoLineas,indicesIpc,configContable,ejercicios,cheques,facturasRecibidas,periodosContables,correlatividad,cuentasBancarias,extractoBancario,documentosControlados,pqpPlantillas,pqpPlantillaOps,calibraciones,registrosCalidad,noConformidades,accionesCapa]=await Promise.all([
       // Sin file_data: el base64 de los PDFs se descarga on-demand en openPDF() — si no, cada loadAll baja TODOS los PDFs
       GET('certificados','?order=created_at.desc&select=id,empresa_id,nro,proveedor,material,colada,fecha,metros,file_name,created_at').catch(e=>_loadFail('Certificados',e)),
       GET('barras','?order=created_at.desc&select=*,certificados(nro,colada,proveedor)').catch(e=>_loadFail('Materia prima',e)),
@@ -2282,6 +2481,14 @@ async function loadAll(){
       GET('v_correlatividad','?select=*').catch(e=>_loadFail('Correlatividad',e)),
       GET('cuentas_bancarias','?order=nombre.asc').catch(e=>_loadFail('Cuentas bancarias',e)),
       GET('extracto_bancario','?order=fecha.desc').catch(e=>_loadFail('Extracto bancario',e)),
+      // Calidad (Fase 2 ISO/Q1) — sin file_data: los PDFs se bajan on-demand en openPDF()
+      GET('documentos_controlados','?order=codigo.asc,revision.desc&select=id,empresa_id,codigo,titulo,tipo,revision,estado,fecha_vigencia,aprobado_por,file_name,observaciones,created_at').catch(e=>_loadFail('Documentos controlados',e)),
+      GET('pqp_plantillas','?order=codigo.asc').catch(e=>_loadFail('Plantillas PQP',e)),
+      GET('pqp_plantilla_operaciones','?order=secuencia.asc').catch(e=>_loadFail('Operaciones PQP',e)),
+      GET('calibraciones','?order=fecha.desc&select=id,empresa_id,herramienta_id,fecha,resultado,certificado_nro,laboratorio_id,file_name,observaciones,created_at,proveedores(nombre)').catch(e=>_loadFail('Calibraciones',e)),
+      GET('registros_calidad','?order=created_at.desc&select=id,empresa_id,orden_id,operacion_id,recepcion_id,tipo,herramienta_id,datos,resultado,observaciones,firmado_por,file_name,created_at').catch(e=>_loadFail('Registros de calidad',e)),
+      GET('no_conformidades','?order=numero.desc').catch(e=>_loadFail('No conformidades',e)),
+      GET('acciones_capa','?order=numero.desc').catch(e=>_loadFail('Acciones CAPA',e)),
     ]);
   }catch(e){
     // Red de seguridad: con catch por tabla no debería entrar acá
@@ -2292,12 +2499,13 @@ async function loadAll(){
     proveedores=proveedores||[];ordenesCompra=ordenesCompra||[];ocItems=ocItems||[];recepciones=recepciones||[];presupuestos=presupuestos||[];
     insumos=insumos||[];herramientas=herramientas||[];
     cuentasContables=cuentasContables||[];asientos=asientos||[];asientoLineas=asientoLineas||[];indicesIpc=indicesIpc||[];configContable=configContable||null;ejercicios=ejercicios||[];cheques=cheques||[];facturasRecibidas=facturasRecibidas||[];periodosContables=periodosContables||[];correlatividad=correlatividad||[];cuentasBancarias=cuentasBancarias||[];extractoBancario=extractoBancario||[];
+    documentosControlados=documentosControlados||[];pqpPlantillas=pqpPlantillas||[];pqpPlantillaOps=pqpPlantillaOps||[];calibraciones=calibraciones||[];registrosCalidad=registrosCalidad||[];noConformidades=noConformidades||[];accionesCapa=accionesCapa||[];
   }
   _showLoadErrors();
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',costos:'analisis',trace:'analisis',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
   contabilidad:[
@@ -2314,6 +2522,7 @@ const GROUP_TABS={
   ],
   ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'},{k:'ctacte',l:'Cta. corriente'}],
   analisis:[{k:'costos',l:'Costos y rentabilidad'},{k:'trace',l:'Trazabilidad'}],
+  calidad:[{k:'ncr',l:'NCR / CAPA'},{k:'doccontrol',l:'Documentos'},{k:'pqptpl',l:'Plantillas PQP'}],
 };
 // Mapa sub-página → tab-padre (para resaltar la tab principal cuando se está en una sub-página)
 const PAGE_TO_PARENT={
@@ -2984,7 +3193,7 @@ function renderMP(filter=''){
     <div class="stat-card"><div class="stat-label">Metros totales</div><div class="stat-value" style="color:var(--accent)">${totalKg.toFixed(0)}<span style="font-size:11px;color:var(--text3)"> mts</span></div></div>
     <div class="stat-card"><div class="stat-label">Stock bajo mínimo</div><div class="stat-value" style="color:${low.length?'var(--red)':'var(--text)'}">${low.length}</div></div>
     <div class="stat-card"><div class="stat-label">Materiales distintos</div><div class="stat-value">${[...new Set(barras.map(b=>b.material))].length}</div></div>`;
-  document.getElementById('mp-tbody').innerHTML=list.length?list.map(b=>{const cert=b.certificados;const isLow=b.kg_minimo>0&&b.kg_disponibles<=b.kg_minimo;return`<tr><td class="mono td-primary">${esc(b.lote)}</td><td>${esc(b.material)}</td><td>${b.perfil||''} ${esc(b.diametro||'')}</td><td class="mono">${b.nro_colada||'—'}</td><td>${cert?`<span class="badge badge-purple">${esc(cert.nro)}</span>`:'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:${isLow?'var(--red)':'var(--text)'}">${parseFloat(b.kg_disponibles).toFixed(1)}</td><td>${b.unidades||'—'}</td><td>${isLow?'<span class="badge badge-warn">STOCK BAJO</span>':'<span class="badge badge-ok">OK</span>'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editBarra('${b.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-ghost btn-sm" onclick="showTrace('barra','${b.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg></span>Trazar</button><button class="btn btn-danger btn-sm" onclick="deleteBarra('${b.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;}):( `<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div><div class="empty-title">Sin barras registradas</div><div class="empty-msg">Agregá la primera con el botón <b>+ Nueva barra</b> arriba.</div></div></td></tr>`);
+  document.getElementById('mp-tbody').innerHTML=list.length?list.map(b=>{const cert=b.certificados;const isLow=b.kg_minimo>0&&b.kg_disponibles<=b.kg_minimo;return`<tr><td class="mono td-primary">${esc(b.lote)}</td><td>${esc(b.material)}</td><td>${b.perfil||''} ${esc(b.diametro||'')}</td><td class="mono">${b.nro_colada||'—'}</td><td>${cert?`<span class="badge badge-purple">${esc(cert.nro)}</span>`:'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:${isLow?'var(--red)':'var(--text)'}">${parseFloat(b.kg_disponibles).toFixed(1)}</td><td>${b.unidades||'—'}</td><td>${b.estado_calidad==='cuarentena'?'<span class="badge badge-amber">CUARENTENA</span> ':b.estado_calidad==='rechazado'?'<span class="badge badge-coral">RECHAZADO</span> ':''}${isLow?'<span class="badge badge-warn">STOCK BAJO</span>':'<span class="badge badge-ok">OK</span>'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editBarra('${b.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-ghost btn-sm" onclick="showTrace('barra','${b.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg></span>Trazar</button><button class="btn btn-danger btn-sm" onclick="deleteBarra('${b.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;}):( `<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div><div class="empty-title">Sin barras registradas</div><div class="empty-msg">Agregá la primera con el botón <b>+ Nueva barra</b> arriba.</div></div></td></tr>`);
 }
 
 function getPTReservado(ptId){
@@ -3093,22 +3302,33 @@ function renderHerramientas(filter=''){
   const enUso=herramientas.filter(h=>h.estado==='en-uso').length;
   const mtto=herramientas.filter(h=>h.estado==='mantenimiento').length;
   const valorTotal=herramientas.reduce((a,h)=>a+(parseFloat(h.cantidad||1)*parseFloat(h.precio_compra||0)),0);
+  const hoyCal=new Date().toISOString().slice(0,10);
+  const calVencidas=herramientas.filter(h=>h.requiere_calibracion&&h.estado!=='dada-de-baja'&&(!h.vencimiento_calibracion||h.vencimiento_calibracion<hoyCal)).length;
   document.getElementById('herramientas-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Total herramientas</div><div class="stat-value" style="color:var(--blue)">${total}</div></div>
     <div class="stat-card"><div class="stat-label">En uso</div><div class="stat-value" style="color:var(--accent)">${enUso}</div></div>
     <div class="stat-card"><div class="stat-label">En mantenimiento</div><div class="stat-value" style="color:${mtto?'var(--coral)':'var(--text)'}">${mtto}</div></div>
+    <div class="stat-card"><div class="stat-label">Calibración vencida</div><div class="stat-value" style="color:${calVencidas?'var(--coral)':'var(--green)'}">${calVencidas}</div></div>
     <div class="stat-card"><div class="stat-label">Valor total</div><div class="stat-value" style="color:var(--green);font-size:13px">${fmtUSD(valorTotal)}</div></div>`;
   const estadoBadges={'nueva':'badge-blue','en-uso':'badge-warn','mantenimiento':'badge-coral','dada-de-baja':'badge-coral'};
+  const calCell=h=>{
+    if(!h.requiere_calibracion)return '<span style="color:var(--text3)">—</span>';
+    if(!h.vencimiento_calibracion)return '<span class="badge badge-coral">SIN CALIBRAR</span>';
+    if(h.vencimiento_calibracion<hoyCal)return `<span class="badge badge-coral">VENCIDA ${h.vencimiento_calibracion}</span>`;
+    const dias=Math.round((new Date(h.vencimiento_calibracion)-new Date(hoyCal))/86400000);
+    return dias<=30?`<span class="badge badge-amber">VENCE ${h.vencimiento_calibracion}</span>`:`<span class="badge badge-green">OK hasta ${h.vencimiento_calibracion}</span>`;
+  };
   document.getElementById('herramientas-tbody').innerHTML=list.length?list.map(h=>{
-    return`<tr><td class="mono" style="font-size:11px">${esc(h.codigo||'—')}</td><td class="td-primary">${esc(h.nombre)}</td><td class="mono">${h.cantidad||1}</td><td>${estadoSelect('herramientas',h.id,h.estado||'nueva',['nueva','en-uso','mantenimiento','dada-de-baja'],estadoBadges)}</td><td style="font-size:11px">${h.ubicacion||'—'}</td><td class="mono" style="color:var(--green)">${h.precio_compra?fmtUSD(parseFloat(h.precio_compra)):'—'}</td><td class="mono" style="font-size:11px">${h.fecha_compra||'—'}</td><td style="font-size:11px">${esc(h.proveedores?.nombre||'—')}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editHerramienta('${h.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteHerramienta('${h.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
-  }).join(''):`<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div><div class="empty-title">Sin herramientas cargadas</div><div class="empty-msg">Cargá la primera con <b>+ Nueva herramienta</b>. Cada herramienta recibida en una OC tipo "herramienta" se carga acá automáticamente.</div></div></td></tr>`;
+    return`<tr><td class="mono" style="font-size:11px">${esc(h.codigo||'—')}</td><td class="td-primary">${esc(h.nombre)}</td><td class="mono">${h.cantidad||1}</td><td>${estadoSelect('herramientas',h.id,h.estado||'nueva',['nueva','en-uso','mantenimiento','dada-de-baja'],estadoBadges)}</td><td style="font-size:11px">${h.ubicacion||'—'}</td><td class="mono" style="color:var(--green)">${h.precio_compra?fmtUSD(parseFloat(h.precio_compra)):'—'}</td><td class="mono" style="font-size:11px">${h.fecha_compra||'—'}</td><td style="font-size:11px">${esc(h.proveedores?.nombre||'—')}</td><td>${calCell(h)}</td><td style="display:flex;gap:4px">${h.requiere_calibracion?`<button class="btn btn-ghost btn-sm" style="border-color:var(--teal);color:var(--teal)" onclick="openCalibracionModal('${h.id}')">Calibrar</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editHerramienta('${h.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteHerramienta('${h.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+  }).join(''):`<tr><td colspan="10" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div><div class="empty-title">Sin herramientas cargadas</div><div class="empty-msg">Cargá la primera con <b>+ Nueva herramienta</b>. Cada herramienta recibida en una OC tipo "herramienta" se carga acá automáticamente.</div></div></td></tr>`;
 }
 function openModalHerramienta(id){
   document.getElementById('modal-herramienta-title').textContent=id?'Editar herramienta':'Nueva herramienta';
   document.getElementById('herr-edit-id').value=id||'';
-  resetF(['herr-codigo','herr-nombre','herr-descripcion','herr-cantidad','herr-ubicacion','herr-precio','herr-fecha','herr-observaciones']);
+  resetF(['herr-codigo','herr-nombre','herr-descripcion','herr-cantidad','herr-ubicacion','herr-precio','herr-fecha','herr-observaciones','herr-frec-cal','herr-patron']);
   document.getElementById('herr-cantidad').value=1;
   document.getElementById('herr-estado').value='nueva';
+  document.getElementById('herr-req-cal').value='false';
   const provSel=document.getElementById('herr-proveedor');
   provSel.innerHTML='<option value="">— ninguno —</option>'+proveedores.map(p=>`<option value="${p.id}">${esc(p.nombre)}</option>`).join('');
   if(id){
@@ -3123,6 +3343,9 @@ function openModalHerramienta(id){
     document.getElementById('herr-fecha').value=h.fecha_compra||'';
     document.getElementById('herr-proveedor').value=h.proveedor_id||'';
     document.getElementById('herr-observaciones').value=h.observaciones||'';
+    document.getElementById('herr-req-cal').value=h.requiere_calibracion?'true':'false';
+    document.getElementById('herr-frec-cal').value=h.frecuencia_calibracion_meses||'';
+    document.getElementById('herr-patron').value=h.patron_referencia||'';
   }
   openModal('modal-herramienta');
 }
@@ -3132,7 +3355,8 @@ async function saveHerramienta(){
   if(!g('herr-nombre'))return notify('Nombre es obligatorio','err');
   setBusy('btn-save-herramienta',true);
   try{
-    const data={empresa_id:currentEmpresa.id,codigo:g('herr-codigo')||null,nombre:g('herr-nombre'),descripcion:g('herr-descripcion')||null,cantidad:parseFloat(g('herr-cantidad'))||1,estado:g('herr-estado')||'nueva',ubicacion:g('herr-ubicacion')||null,precio_compra:parseFloat(g('herr-precio'))||null,fecha_compra:g('herr-fecha')||null,proveedor_id:g('herr-proveedor')||null,observaciones:g('herr-observaciones')||null};
+    const data={empresa_id:currentEmpresa.id,codigo:g('herr-codigo')||null,nombre:g('herr-nombre'),descripcion:g('herr-descripcion')||null,cantidad:parseFloat(g('herr-cantidad'))||1,estado:g('herr-estado')||'nueva',ubicacion:g('herr-ubicacion')||null,precio_compra:parseFloat(g('herr-precio'))||null,fecha_compra:g('herr-fecha')||null,proveedor_id:g('herr-proveedor')||null,observaciones:g('herr-observaciones')||null,
+      requiere_calibracion:g('herr-req-cal')==='true',frecuencia_calibracion_meses:parseInt(g('herr-frec-cal'))||null,patron_referencia:g('herr-patron')||null};
     if(id)await PATCH('herramientas',data,`?id=eq.${id}`);else await POST('herramientas',data);
     await loadAll();closeModal('modal-herramienta');renderAll();notify(id?'Herramienta actualizada':'Herramienta creada');
   }catch(e){notify(e.message,'err');}
@@ -3142,6 +3366,52 @@ async function deleteHerramienta(id){
   if(!confirm('¿Eliminar herramienta? Esta acción no se puede deshacer.'))return;
   try{await DEL('herramientas',`?id=eq.${id}`);await loadAll();renderAll();notify('Herramienta eliminada');}
   catch(e){notify(e.message,'err');}
+}
+
+// ─── CALIBRACIONES (ISO 7.1.5 / API Q1 4.4.4) ────────────────────
+let calFileData=null,calFileName=null;
+function handleCalFile(input){const file=input.files[0];if(!file)return;if(!validarArchivoAdjunto(file)){input.value='';return;}calFileName=file.name;document.getElementById('cal-file-name').textContent=file.name;const r=new FileReader();r.onload=e=>{calFileData=e.target.result;};r.readAsDataURL(file);}
+function openCalibracionModal(herrId){
+  const h=herramientas.find(x=>x.id===herrId);if(!h)return;
+  document.getElementById('cal-herr-id').value=herrId;
+  document.getElementById('cal-herr-nombre').textContent=`${h.codigo?h.codigo+' · ':''}${h.nombre}`;
+  document.getElementById('cal-fecha').value=hoyLocal();
+  document.getElementById('cal-resultado').value='conforme';
+  document.getElementById('cal-cert-nro').value='';
+  document.getElementById('cal-obs').value='';
+  calFileData=null;calFileName=null;
+  document.getElementById('cal-file').value='';
+  document.getElementById('cal-file-name').textContent='Sin archivo';
+  document.getElementById('cal-laboratorio').innerHTML='<option value="">— ninguno —</option>'+proveedores.map(p=>`<option value="${p.id}">${esc(p.nombre)}</option>`).join('');
+  const hist=calibraciones.filter(c=>c.herramienta_id===herrId);
+  document.getElementById('cal-historial').innerHTML=hist.length?`
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Historial (${hist.length})</div>
+    <div style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto">${hist.map(c=>`
+      <div style="display:flex;gap:8px;align-items:center;padding:6px 8px;background:var(--surface2);border-radius:4px;font-size:11px">
+        <span class="mono">${c.fecha}</span>
+        ${c.resultado==='conforme'?'<span class="badge badge-green">CONFORME</span>':'<span class="badge badge-coral">NO CONFORME</span>'}
+        <span class="mono" style="color:var(--text3)">${esc(c.certificado_nro||'—')}</span>
+        <span style="color:var(--text3)">${esc(c.proveedores?.nombre||'')}</span>
+      </div>`).join('')}</div>`:'<div style="font-size:11px;color:var(--text3)">Sin calibraciones registradas todavía.</div>';
+  openModal('modal-calibracion');
+}
+async function saveCalibracion(){
+  const herrId=document.getElementById('cal-herr-id').value;
+  const fecha=document.getElementById('cal-fecha').value;
+  if(!herrId||!fecha){notify('Completá la fecha','err');return;}
+  const h=herramientas.find(x=>x.id===herrId);
+  if(h&&!h.frecuencia_calibracion_meses)notify('Ojo: la herramienta no tiene frecuencia de calibración — el vencimiento no se va a calcular solo','err');
+  try{setBusy('btn-save-cal',true);
+    await POST('calibraciones',{empresa_id:currentEmpresa.id,herramienta_id:herrId,fecha,
+      resultado:document.getElementById('cal-resultado').value,
+      certificado_nro:document.getElementById('cal-cert-nro').value.trim()||null,
+      laboratorio_id:document.getElementById('cal-laboratorio').value||null,
+      file_data:calFileData||null,file_name:calFileName||null,
+      observaciones:document.getElementById('cal-obs').value.trim()||null});
+    await loadAll();closeModal('modal-calibracion');renderAll();
+    notify(document.getElementById('cal-resultado').value==='conforme'?'✓ Calibración registrada — vencimiento actualizado':'Calibración NO conforme — instrumento bloqueado y enviado a mantenimiento');
+  }catch(e){notify('Error: '+e.message,'err');}
+  finally{setBusy('btn-save-cal',false);}
 }
 
 function renderOP(filter=''){
@@ -3245,6 +3515,38 @@ function computeAlertas(){
   if(insBajo.length)out.push({sev:'warn',page:'insumos',count:insBajo.length,
     titulo:uno(insBajo.length,'Insumo bajo stock mínimo','Insumos bajo stock mínimo'),
     detalle:insBajo.slice(0,3).map(i=>esc(i.nombre||'')).join('  —  ')+masDe(insBajo)});
+
+  // ─── Calidad (ISO 9001 / API Q1) ───
+  const calVenc=herramientas.filter(h=>h.requiere_calibracion&&h.estado!=='dada-de-baja'&&(!h.vencimiento_calibracion||h.vencimiento_calibracion<hoy));
+  if(calVenc.length)out.push({sev:'crit',page:'herramientas',count:calVenc.length,
+    titulo:uno(calVenc.length,'Instrumento con calibración vencida — bloqueado para inspecciones','Instrumentos con calibración vencida — bloqueados para inspecciones'),
+    detalle:calVenc.slice(0,3).map(h=>esc(h.nombre||'')).join('  —  ')+masDe(calVenc)});
+
+  const en30d=hoyLocal(30);
+  const calProx=herramientas.filter(h=>h.requiere_calibracion&&h.estado!=='dada-de-baja'&&h.vencimiento_calibracion&&h.vencimiento_calibracion>=hoy&&h.vencimiento_calibracion<=en30d);
+  if(calProx.length)out.push({sev:'warn',page:'herramientas',count:calProx.length,
+    titulo:uno(calProx.length,'Calibración vence en los próximos 30 días','Calibraciones vencen en los próximos 30 días'),
+    detalle:calProx.slice(0,3).map(h=>esc(h.nombre||'')+` (${h.vencimiento_calibracion})`).join('  —  ')+masDe(calProx)});
+
+  const cuarentena=recepciones.filter(r=>r.estado_inspeccion==='cuarentena');
+  if(cuarentena.length)out.push({sev:'warn',page:'compras',count:cuarentena.length,
+    titulo:uno(cuarentena.length,'Recepción en cuarentena esperando inspección de entrada','Recepciones en cuarentena esperando inspección de entrada'),
+    detalle:'Compras → Inspección de entrada'});
+
+  const ncAbiertas=noConformidades.filter(n=>n.estado!=='cerrada');
+  if(ncAbiertas.length)out.push({sev:'warn',page:'ncr',count:ncAbiertas.length,
+    titulo:uno(ncAbiertas.length,'No conformidad abierta','No conformidades abiertas'),
+    detalle:ncAbiertas.slice(0,3).map(n=>'NC-'+String(n.numero).padStart(4,'0')+' · '+esc((n.descripcion||'').slice(0,40))).join('  —  ')+masDe(ncAbiertas)});
+
+  const capaVenc=accionesCapa.filter(c=>c.estado!=='cerrada'&&c.fecha_compromiso&&c.fecha_compromiso<hoy);
+  if(capaVenc.length)out.push({sev:'crit',page:'ncr',count:capaVenc.length,
+    titulo:uno(capaVenc.length,'Acción CAPA vencida sin cerrar','Acciones CAPA vencidas sin cerrar'),
+    detalle:capaVenc.slice(0,3).map(c=>(c.tipo==='preventiva'?'AP':'AC')+'-'+String(c.numero).padStart(4,'0')).join('  —  ')+masDe(capaVenc)});
+
+  const provReeval=proveedores.filter(p=>p.aprobado&&p.fecha_proxima_evaluacion&&p.fecha_proxima_evaluacion<hoy);
+  if(provReeval.length)out.push({sev:'warn',page:'compras',count:provReeval.length,
+    titulo:uno(provReeval.length,'Proveedor con reevaluación AVL vencida','Proveedores con reevaluación AVL vencida'),
+    detalle:provReeval.slice(0,3).map(p=>esc(p.nombre||'')).join('  —  ')+masDe(provReeval)});
 
   if(typeof cheques!=='undefined'&&cheques.length){
     const en7d=hoyLocal(7);
@@ -3439,7 +3741,7 @@ function buildTraceCard(pt){
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;font-size:11px">
       ${cert?`<div style="background:var(--surface2);border-radius:5px;padding:8px"><div style="color:var(--text3);margin-bottom:3px">Proveedor</div><div style="font-family:var(--mono);color:var(--text);font-size:11px">${esc(cert.proveedor)||'—'}</div></div>`:''}
       ${barra?`<div style="background:var(--surface2);border-radius:5px;padding:8px"><div style="color:var(--text3);margin-bottom:3px">Material / Ø</div><div style="font-family:var(--mono);color:var(--text);font-size:11px">${esc(barra.material)||''} ${esc(barra.diametro)||''}</div></div>`:''}
-      ${barra?`<div style="background:var(--surface2);border-radius:5px;padding:8px"><div style="color:var(--text3);margin-bottom:3px">Nro OC</div><div style="font-family:var(--mono);color:var(--text);font-size:11px">${esc(barra.nro_colada)||'—'}</div></div>`:''}
+      ${barra?`<div style="background:var(--surface2);border-radius:5px;padding:8px"><div style="color:var(--text3);margin-bottom:3px">Colada</div><div style="font-family:var(--mono);color:var(--text);font-size:11px">${esc(barra.nro_colada)||'—'}</div></div>`:''}
       <div style="background:var(--surface2);border-radius:5px;padding:8px"><div style="color:var(--text3);margin-bottom:3px">Pieza / cant.</div><div style="color:var(--teal);font-size:11px">${esc(pt.pieza)} · ${pt.cantidad} disp.</div></div>
       ${ventasVinc.length?`<div style="background:var(--surface2);border-radius:5px;padding:8px"><div style="color:var(--text3);margin-bottom:3px">Remito</div><div style="color:var(--coral);font-family:var(--mono);font-size:11px">${esc(ventasVinc.map(v=>v.nro_remito).join(', '))}</div></div>`:''}
       ${cert?.file_name?`<div style="background:var(--surface2);border-radius:5px;padding:8px"><div style="color:var(--text3);margin-bottom:3px">PDF cert.</div><span class="pdf-link" onclick="openPDF('${cert.id}')">Ver certificado</span></div>`:''}
@@ -3518,12 +3820,15 @@ const PAGE_RENDERS={
   insumos:[renderInsumos],
   herramientas:[renderHerramientas],
   op:[renderOP],
-  compras:[renderCompras,renderProveedores,renderFacturasRecibidas],
+  compras:[renderCompras,renderInspeccion,renderProveedores,renderFacturasRecibidas],
   presupuestos:[renderPresupuestos],
   ventas:[renderVentas],
   clientes:[renderClientes],
   ctacte:[renderCtaCte],
   costos:[renderCostos],
+  ncr:[renderNCR],
+  doccontrol:[renderDocumentos],
+  pqptpl:[renderPQPPlantillas],
   cuentas:[renderCuentas],
   asientosp:[renderAsientos],
   cobpag:[renderCobPag],
@@ -7205,7 +7510,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte'],analisis:['costos','trace'],contabilidad:['cuentas','asientosp','cobpag','cheques','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre','periodos','correlatividad','conciliacion']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl'],contabilidad:['cuentas','asientosp','cobpag','cheques','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre','periodos','correlatividad','conciliacion']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
@@ -7290,9 +7595,15 @@ function renderTiemposOps(){
     const totalMin=finished+live;
     const badge=o.estado==='completada'?'<span class="badge badge-ok">✓</span>':o.estado==='en_curso'?'<span class="badge badge-warn">▶</span>':'<span class="badge badge-blue">○</span>';
     const active=o.id===currentTiempoPasoId;
+    const doc=o.documento_id?documentosControlados.find(d=>d.id===o.documento_id):null;
+    const qcBadge=o.tipo_punto==='hold'?'<span class="badge badge-amber">HOLD</span>':o.tipo_punto==='witness'?'<span class="badge badge-blue">WITNESS</span>':'';
+    const qcFirma=o.tipo_punto&&o.tipo_punto!=='normal'
+      ?(o.signoff_at?`<span style="color:var(--green);font-size:10px">✓ liberado ${new Date(o.signoff_at).toLocaleDateString('es-AR')}</span>`
+        :`<button class="btn btn-ghost btn-sm" style="border-color:var(--green);color:var(--green);padding:1px 8px;font-size:10px" onclick="event.stopPropagation();firmarPunto('${o.id}')">Firmar QC</button>`)
+      :'';
     return `<div style="display:grid;grid-template-columns:auto 1fr auto auto auto;gap:10px;padding:10px;border:1px solid ${active?'var(--accent)':'var(--border)'};border-radius:4px;${active?'background:var(--surface2)':''};align-items:center">
       <span class="mono" style="color:var(--text3);font-size:11px;cursor:pointer" onclick="selectTiempoPaso('${o.id}')">#${o.secuencia}</span>
-      <div onclick="selectTiempoPaso('${o.id}')" style="cursor:pointer"><div style="font-weight:500">${esc(o.nombre)}</div><div style="font-size:10px;color:var(--text3)">${esc(o.maquina||'—')} · est. ${o.tiempo_estimado_min||0} min</div></div>
+      <div onclick="selectTiempoPaso('${o.id}')" style="cursor:pointer"><div style="font-weight:500">${esc(o.nombre)} ${qcBadge}</div><div style="font-size:10px;color:var(--text3);display:flex;gap:6px;align-items:center;flex-wrap:wrap">${esc(o.maquina||'—')} · est. ${o.tiempo_estimado_min||0} min${doc?` · <span class="mono" style="color:var(--teal)">${esc(doc.codigo)} rev.${esc(doc.revision)}</span>`:''}${qcFirma}</div></div>
       <div onclick="selectTiempoPaso('${o.id}')" style="cursor:pointer">${badge}</div>
       <div class="mono" style="font-size:12px;font-weight:600;cursor:pointer" onclick="selectTiempoPaso('${o.id}')">${fmtHMfromMin(totalMin)}</div>
       <button onclick="deletePaso('${o.id}')" title="Eliminar paso" style="background:transparent;border:none;color:var(--text3);cursor:pointer;padding:0 4px;font-size:15px;line-height:1;opacity:.4;transition:.15s" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=.4;this.style.color='var(--text3)'">×</button>
@@ -7443,17 +7754,403 @@ async function completeTiempoOp(){
   }catch(e){notify('Error: '+e.message,'err');}
 }
 
-function openAddOperacion(){document.getElementById('paso-nombre').value='';document.getElementById('paso-maquina').value='';document.getElementById('paso-estimado').value='';document.getElementById('paso-tarifa').value='';openModal('modal-add-op-paso');}
+function openAddOperacion(){
+  document.getElementById('paso-nombre').value='';document.getElementById('paso-maquina').value='';document.getElementById('paso-estimado').value='';document.getElementById('paso-tarifa').value='';
+  document.getElementById('paso-tipo-punto').value='normal';
+  document.getElementById('paso-doc').innerHTML='<option value="">— ninguno —</option>'+documentosControlados.filter(d=>d.estado==='vigente').map(d=>`<option value="${d.id}">${esc(d.codigo)} rev.${esc(d.revision)} · ${esc(d.titulo)}</option>`).join('');
+  openModal('modal-add-op-paso');
+}
+
+// ─── Calidad en la OP: firmar hold/witness, PQP, ensayos ──────────
+async function firmarPunto(id){
+  const p=opOperaciones.find(o=>o.id===id);if(!p)return;
+  if(!confirm(`¿Firmar/liberar "${p.nombre}" (${p.tipo_punto})? Queda registrado a tu nombre con fecha y hora.`))return;
+  try{
+    await PATCH('op_operaciones',{signoff_at:new Date().toISOString()},`?id=eq.${id}`);
+    await loadTiemposData(currentTiempoOpId);renderTiempos();notify('✓ Punto liberado');
+  }catch(e){notify('Error: '+e.message,'err');}
+}
+function openAplicarPQP(){
+  const activas=pqpPlantillas.filter(p=>p.activo!==false);
+  if(!activas.length){notify('No hay plantillas PQP cargadas — creá una en Calidad → Plantillas PQP','err');return;}
+  if(opOperaciones.length){notify('La OP ya tiene pasos cargados: el PQP se aplica sobre una OP sin pasos','err');return;}
+  const sel=document.getElementById('pqp-apply-select');
+  sel.innerHTML=activas.map(p=>`<option value="${p.id}">${esc(p.codigo)} · ${esc(p.producto)}</option>`).join('');
+  sel.onchange=()=>{
+    const ops=pqpPlantillaOps.filter(o=>o.plantilla_id===sel.value).sort((a,b)=>a.secuencia-b.secuencia);
+    document.getElementById('pqp-apply-preview').innerHTML=ops.length?('Pasos: '+ops.map(o=>`${o.secuencia}. ${esc(o.nombre)}${o.tipo_punto!=='normal'?' ['+o.tipo_punto.toUpperCase()+']':''}`).join(' → ')):'La plantilla no tiene operaciones.';
+  };
+  sel.onchange();
+  openModal('modal-aplicar-pqp');
+}
+async function aplicarPQP(){
+  const plantillaId=document.getElementById('pqp-apply-select').value;
+  if(!plantillaId)return;
+  try{setBusy('btn-apply-pqp',true);
+    const r=await POST('rpc/instanciar_pqp',{p_orden_id:currentTiempoOpId,p_plantilla_id:plantillaId});
+    closeModal('modal-aplicar-pqp');
+    await loadTiemposData(currentTiempoOpId);
+    currentTiempoPasoId=opOperaciones.find(o=>o.estado==='pendiente')?.id||null;
+    renderTiempos();notify(`✓ PQP ${r?.plantilla||''} aplicado (${r?.operaciones||0} pasos)`);
+  }catch(e){notify('Error: '+e.message,'err');}
+  finally{setBusy('btn-apply-pqp',false);}
+}
+let rcFileData=null,rcFileName=null;
+function handleRcFile(input){const file=input.files[0];if(!file)return;if(!validarArchivoAdjunto(file)){input.value='';return;}rcFileName=file.name;document.getElementById('rc-file-name').textContent=file.name;const r=new FileReader();r.onload=e=>{rcFileData=e.target.result;};r.readAsDataURL(file);}
+function rcToggleHidro(){document.getElementById('rc-hidro-row').style.display=document.getElementById('rc-tipo').value==='hidrostatico'?'':'none';}
+function openRegistroCalidad(){
+  const op=ops.find(o=>o.id===currentTiempoOpId);
+  document.getElementById('rc-op-nro').textContent=op?`${op.nro} · ${op.pieza}`:'';
+  document.getElementById('rc-tipo').value='hidrostatico';rcToggleHidro();
+  document.getElementById('rc-resultado').value='conforme';
+  ['rc-presion','rc-sosten','rc-temp','rc-detalle','rc-obs'].forEach(i=>document.getElementById(i).value='');
+  rcFileData=null;rcFileName=null;document.getElementById('rc-file').value='';document.getElementById('rc-file-name').textContent='Sin archivo';
+  const hoyRc=new Date().toISOString().slice(0,10);
+  document.getElementById('rc-herramienta').innerHTML='<option value="">— ninguno —</option>'+herramientas.filter(h=>h.estado!=='dada-de-baja').sort((a,b)=>(b.requiere_calibracion?1:0)-(a.requiere_calibracion?1:0)).map(h=>{
+    const venc=h.requiere_calibracion?(!h.vencimiento_calibracion||h.vencimiento_calibracion<hoyRc?' ⛔ CALIBRACIÓN VENCIDA':' ✓ calibrado'):'';
+    return `<option value="${h.id}">${esc(h.codigo?h.codigo+' · ':'')}${esc(h.nombre)}${venc}</option>`;
+  }).join('');
+  const hist=registrosCalidad.filter(r=>r.orden_id===currentTiempoOpId);
+  document.getElementById('rc-historial').innerHTML=hist.length?`
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Registros de esta OP (${hist.length})</div>
+    <div style="display:flex;flex-direction:column;gap:4px;max-height:140px;overflow-y:auto">${hist.map(r=>`
+      <div style="display:flex;gap:8px;align-items:center;padding:6px 8px;background:var(--surface2);border-radius:4px;font-size:11px">
+        <span class="mono">${(r.created_at||'').slice(0,10)}</span><span>${esc(r.tipo)}</span>
+        ${r.resultado==='conforme'?'<span class="badge badge-green">CONFORME</span>':'<span class="badge badge-coral">NO CONFORME</span>'}
+        <span style="color:var(--text3)">${esc(r.observaciones||'')}</span>
+      </div>`).join('')}</div>`:'';
+  openModal('modal-registro-calidad');
+}
+async function saveRegistroCalidad(){
+  const tipo=document.getElementById('rc-tipo').value;
+  const resultado=document.getElementById('rc-resultado').value;
+  const datos={};
+  const pres=parseFloat(document.getElementById('rc-presion').value);if(pres)datos.presion_psi=pres;
+  const sos=parseFloat(document.getElementById('rc-sosten').value);if(sos)datos.sostenimiento_min=sos;
+  const temp=parseFloat(document.getElementById('rc-temp').value);if(!isNaN(temp)&&document.getElementById('rc-temp').value!=='')datos.temperatura_c=temp;
+  const det=document.getElementById('rc-detalle').value.trim();if(det)datos.detalle=det;
+  if(tipo==='hidrostatico'&&(!datos.presion_psi||!datos.sostenimiento_min)){notify('El hidro requiere presión y tiempo de sostenimiento','err');return;}
+  try{setBusy('btn-save-rc',true);
+    await POST('registros_calidad',{empresa_id:currentEmpresa.id,orden_id:currentTiempoOpId,
+      operacion_id:currentTiempoPasoId||null,tipo,
+      herramienta_id:document.getElementById('rc-herramienta').value||null,
+      datos:Object.keys(datos).length?datos:null,resultado,
+      observaciones:document.getElementById('rc-obs').value.trim()||null,
+      file_data:rcFileData||null,file_name:rcFileName||null});
+    registrosCalidad=await GET('registros_calidad','?order=created_at.desc&select=id,empresa_id,orden_id,operacion_id,recepcion_id,tipo,herramienta_id,datos,resultado,observaciones,firmado_por,file_name,created_at').catch(()=>registrosCalidad);
+    closeModal('modal-registro-calidad');
+    notify(resultado==='conforme'?'✓ Registro de calidad guardado':'Registro NO CONFORME guardado — registrá la NC en Calidad → NCR');
+  }catch(e){notify('Error: '+e.message,'err');}
+  finally{setBusy('btn-save-rc',false);}
+}
 // ═══════════════════════════════════════════════════════════
 // 🛒 MÓDULO COMPRAS — Proveedores + OC + Recepciones
 // Tablas: proveedores, ordenes_compra, oc_items, recepciones_oc
 // ═══════════════════════════════════════════════════════════
 
 function switchComprasTab(tab){
-  document.querySelectorAll('#page-compras .tab').forEach((t,i)=>{t.classList.toggle('active',(i===0&&tab==='oc')||(i===1&&tab==='prov')||(i===2&&tab==='facturas'));});
+  document.querySelectorAll('#page-compras .tab').forEach((t,i)=>{t.classList.toggle('active',(i===0&&tab==='oc')||(i===1&&tab==='inspeccion')||(i===2&&tab==='prov')||(i===3&&tab==='facturas'));});
   document.getElementById('compras-tab-oc').style.display=tab==='oc'?'':'none';
+  document.getElementById('compras-tab-inspeccion').style.display=tab==='inspeccion'?'':'none';
   document.getElementById('compras-tab-prov').style.display=tab==='prov'?'':'none';
   document.getElementById('compras-tab-facturas').style.display=tab==='facturas'?'':'none';
+}
+
+// ─── Inspección de entrada (Q1 5.7.4) ─────────────────────────────
+function renderInspeccion(filter=''){
+  const f=filter.toLowerCase();
+  const itemById={};ocItems.forEach(i=>itemById[i.id]=i);
+  ordenesCompra.forEach(o=>(o.oc_items||[]).forEach(i=>{itemById[i.id]=itemById[i.id]||i;}));
+  const ocByItem={};ordenesCompra.forEach(o=>(o.oc_items||[]).forEach(i=>{ocByItem[i.id]=o;}));
+  ocItems.forEach(i=>{if(!ocByItem[i.id])ocByItem[i.id]=ordenesCompra.find(o=>o.id===i.oc_id);});
+  const enCuarentena=recepciones.filter(r=>r.estado_inspeccion==='cuarentena').length;
+  const rechazadas=recepciones.filter(r=>r.estado_inspeccion==='rechazado').length;
+  document.getElementById('insp-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">En cuarentena</div><div class="stat-value" style="color:${enCuarentena?'var(--amber, var(--accent))':'var(--green)'}">${enCuarentena}</div></div>
+    <div class="stat-card"><div class="stat-label">Rechazadas</div><div class="stat-value" style="color:${rechazadas?'var(--coral)':'var(--text3)'}">${rechazadas}</div></div>
+    <div class="stat-card"><div class="stat-label">Recepciones</div><div class="stat-value">${recepciones.length}</div></div>`;
+  const badgeInsp={cuarentena:'<span class="badge badge-amber">CUARENTENA</span>',aceptado:'<span class="badge badge-green">ACEPTADO</span>',rechazado:'<span class="badge badge-coral">RECHAZADO</span>'};
+  // Cuarentena primero, después por fecha desc
+  const list=[...recepciones].sort((a,b)=>{
+    const pa=a.estado_inspeccion==='cuarentena'?0:1, pb=b.estado_inspeccion==='cuarentena'?0:1;
+    return pa-pb||(b.fecha||'').localeCompare(a.fecha||'');
+  }).filter(r=>{
+    if(!f)return true;
+    const it=itemById[r.oc_item_id];const oc=ocByItem[r.oc_item_id];
+    const barra=barras.find(x=>x.id===r.barra_id);
+    return (oc?.nro||'').toLowerCase().includes(f)||(it?.descripcion||'').toLowerCase().includes(f)||(barra?.lote||'').toLowerCase().includes(f);
+  });
+  document.getElementById('insp-tbody').innerHTML=list.length?list.map(r=>{
+    const it=itemById[r.oc_item_id];const oc=ocByItem[r.oc_item_id];
+    const barra=barras.find(x=>x.id===r.barra_id);
+    const cert=certs.find(c=>c.id===r.certificado_id)||certs.find(c=>c.id===oc?.certificado_id);
+    const esMP=it?.tipo==='materia_prima';
+    const acciones=r.estado_inspeccion==='cuarentena'
+      ?`<button class="btn btn-ghost btn-sm" style="border-color:var(--green);color:var(--green)" onclick="aceptarRecepcion('${r.id}')">✓ Aceptar</button><button class="btn btn-ghost btn-sm" style="border-color:var(--coral);color:var(--coral)" onclick="rechazarRecepcion('${r.id}')">✕ Rechazar</button>`
+      :`<span style="font-size:10px;color:var(--text3)">${r.fecha_inspeccion?new Date(r.fecha_inspeccion).toLocaleDateString('es-AR'):''}</span>`;
+    return `<tr><td class="mono" style="font-size:11px">${r.fecha||'—'}</td><td class="mono td-primary">${esc(oc?.nro)||'—'}</td><td>${esc(it?.descripcion)||'—'}${esMP?' <span class="badge badge-blue">MP</span>':''}</td><td class="mono">${r.cantidad_recibida||0}</td><td class="mono" style="font-size:11px">${esc(r.remito_nro)||'—'}</td><td>${cert?`<span class="badge badge-purple" style="cursor:pointer" onclick="openPDF('${cert.id}')">${esc(cert.nro)}</span>`:(esMP?'<span class="badge badge-coral">SIN MTR</span>':'—')}</td><td class="mono" style="font-size:11px">${barra?esc(barra.lote):'—'}</td><td>${badgeInsp[r.estado_inspeccion]||'—'}</td><td style="display:flex;gap:4px">${acciones}</td></tr>`;
+  }).join(''):'<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-title">Sin recepciones</div><div class="empty-msg">Las recepciones de OC aparecen acá para su inspección de entrada. La materia prima queda en cuarentena hasta aceptarse.</div></div></td></tr>';
+}
+async function aceptarRecepcion(id){
+  const r=recepciones.find(x=>x.id===id);if(!r)return;
+  if(!confirm('¿Aceptar esta recepción? La barra vinculada queda liberada para producción.'))return;
+  try{
+    await PATCH('recepciones_oc',{estado_inspeccion:'aceptado'},`?id=eq.${id}`);
+    await loadAll();renderAll();notify('✓ Recepción aceptada — material liberado');
+  }catch(e){notify('Error: '+e.message,'err');}
+}
+async function rechazarRecepcion(id){
+  const r=recepciones.find(x=>x.id===id);if(!r)return;
+  if(!confirm('¿Rechazar esta recepción? La barra vinculada queda bloqueada. Registrá después la No Conformidad en Calidad → NCR.'))return;
+  try{
+    await PATCH('recepciones_oc',{estado_inspeccion:'rechazado'},`?id=eq.${id}`);
+    await loadAll();renderAll();notify('Recepción rechazada — registrá la NC en Calidad');
+  }catch(e){notify('Error: '+e.message,'err');}
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🛡️ MÓDULO CALIDAD — NCR/CAPA + Documentos controlados + PQP
+// Tablas: no_conformidades, acciones_capa, documentos_controlados,
+//         pqp_plantillas, pqp_plantilla_operaciones
+// ═══════════════════════════════════════════════════════════
+
+const NC_ORIGEN_L={recepcion:'Recepción',produccion:'Producción',cliente:'Cliente',proveedor:'Proveedor',auditoria:'Auditoría',otro:'Otro'};
+const NC_DISP_L={retrabajo:'Retrabajo',reproceso:'Reproceso',rechazo:'Rechazo',concesion:'Concesión',devolucion_proveedor:'Dev. a proveedor'};
+function renderNCR(filter=''){
+  const f=(filter||'').toLowerCase();
+  const abiertas=noConformidades.filter(n=>n.estado!=='cerrada').length;
+  const hoyNc=new Date().toISOString().slice(0,10);
+  const capaVencidas=accionesCapa.filter(c=>c.estado!=='cerrada'&&c.fecha_compromiso&&c.fecha_compromiso<hoyNc).length;
+  document.getElementById('ncr-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">NC abiertas</div><div class="stat-value" style="color:${abiertas?'var(--coral)':'var(--green)'}">${abiertas}</div></div>
+    <div class="stat-card"><div class="stat-label">NC totales</div><div class="stat-value">${noConformidades.length}</div></div>
+    <div class="stat-card"><div class="stat-label">CAPA vencidas</div><div class="stat-value" style="color:${capaVencidas?'var(--coral)':'var(--green)'}">${capaVencidas}</div></div>
+    <div class="stat-card"><div class="stat-label">CAPA abiertas</div><div class="stat-value">${accionesCapa.filter(c=>c.estado!=='cerrada').length}</div></div>`;
+  const ncBadges={abierta:'badge-coral',en_tratamiento:'badge-amber',cerrada:'badge-ok'};
+  const ncs=noConformidades.filter(n=>!f||String(n.numero).includes(f)||(n.descripcion||'').toLowerCase().includes(f));
+  document.getElementById('ncr-tbody').innerHTML=ncs.length?ncs.map(n=>{
+    return `<tr><td class="mono td-primary">NC-${String(n.numero).padStart(4,'0')}</td><td class="mono" style="font-size:11px">${n.fecha||'—'}</td><td>${NC_ORIGEN_L[n.origen_tipo]||n.origen_tipo}</td><td style="max-width:340px">${esc(n.descripcion)}</td><td>${n.disposicion?`<span class="badge badge-blue">${NC_DISP_L[n.disposicion]||n.disposicion}</span>`:'<span style="color:var(--text3)">pendiente</span>'}</td><td>${estadoSelect('no_conformidades',n.id,n.estado||'abierta',['abierta','en_tratamiento','cerrada'],ncBadges)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="openCapaModal(null,'${n.id}')" style="border-color:var(--teal);color:var(--teal)">+ CAPA</button><button class="btn btn-ghost btn-sm" onclick="openNCModal('${n.id}')">Editar</button></td></tr>`;
+  }).join(''):'<tr><td colspan="7" class="empty-cell"><div class="empty-state"><div class="empty-title">Sin no conformidades</div><div class="empty-msg">Registrá la primera con <b>+ Nueva NC</b>. Las NC nacen de recepciones rechazadas, ensayos no conformes, reclamos de clientes o auditorías.</div></div></td></tr>';
+  const capaBadges={abierta:'badge-coral',implementada:'badge-amber',verificada:'badge-blue',cerrada:'badge-ok'};
+  const capas=accionesCapa.filter(c=>!f||String(c.numero).includes(f)||(c.accion||'').toLowerCase().includes(f));
+  document.getElementById('capa-tbody').innerHTML=capas.length?capas.map(c=>{
+    const nc=c.nc_id?noConformidades.find(n=>n.id===c.nc_id):null;
+    const resp=c.responsable_id?(usuariosEmpresa.find(u=>u.id===c.responsable_id)?.nombre||'—'):'—';
+    const vencida=c.estado!=='cerrada'&&c.fecha_compromiso&&c.fecha_compromiso<hoyNc;
+    const efic=c.eficaz===true?'<span class="badge badge-green">EFICAZ</span>':c.eficaz===false?'<span class="badge badge-coral">NO EFICAZ</span>':'<span style="color:var(--text3)">pendiente</span>';
+    return `<tr><td class="mono td-primary">${c.tipo==='preventiva'?'AP':'AC'}-${String(c.numero).padStart(4,'0')}</td><td>${c.tipo}</td><td class="mono" style="font-size:11px">${nc?'NC-'+String(nc.numero).padStart(4,'0'):'—'}</td><td style="max-width:300px">${esc(c.accion)}</td><td style="font-size:11px">${esc(resp)}</td><td class="mono" style="font-size:11px;color:${vencida?'var(--coral)':'var(--text)'}">${c.fecha_compromiso||'—'}${vencida?' ⚠':''}</td><td>${efic}</td><td>${estadoSelect('acciones_capa',c.id,c.estado||'abierta',['abierta','implementada','verificada','cerrada'],capaBadges)}</td><td><button class="btn btn-ghost btn-sm" onclick="openCapaModal('${c.id}')">Editar</button></td></tr>`;
+  }).join(''):'<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-title">Sin acciones CAPA</div><div class="empty-msg">Las correctivas atacan la causa raíz de una NC; las preventivas nacen del análisis de riesgo. No cierran sin verificación de eficacia.</div></div></td></tr>';
+}
+function openNCModal(id){
+  document.getElementById('modal-nc-title').textContent=id?'Editar no conformidad':'Nueva no conformidad';
+  document.getElementById('nc-edit-id').value=id||'';
+  const n=id?noConformidades.find(x=>x.id===id):null;
+  document.getElementById('nc-fecha').value=n?.fecha||hoyLocal();
+  document.getElementById('nc-origen').value=n?.origen_tipo||'produccion';
+  document.getElementById('nc-orden').innerHTML='<option value="">— ninguna —</option>'+ops.map(o=>`<option value="${o.id}" ${n?.orden_id===o.id?'selected':''}>${esc(o.nro)} · ${esc(o.pieza)}</option>`).join('');
+  document.getElementById('nc-recepcion').innerHTML='<option value="">— ninguna —</option>'+recepciones.map(r=>{
+    const it=ocItems.find(i=>i.id===r.oc_item_id);
+    return `<option value="${r.id}" ${n?.recepcion_id===r.id?'selected':''}>${r.fecha} · ${esc(it?.descripcion||'')}</option>`;
+  }).join('');
+  document.getElementById('nc-venta').innerHTML='<option value="">— ninguna —</option>'+ventas.map(v=>`<option value="${v.id}" ${n?.venta_id===v.id?'selected':''}>${esc(v.nro_remito)} · ${esc(v.cliente)}</option>`).join('');
+  document.getElementById('nc-descripcion').value=n?.descripcion||'';
+  document.getElementById('nc-disposicion').value=n?.disposicion||'';
+  document.getElementById('nc-justificacion').value=n?.justificacion||'';
+  document.getElementById('nc-cliente-notif').value=n?.cliente_notificado===true?'true':n?.cliente_notificado===false?'false':'';
+  openModal('modal-nc');
+}
+async function saveNC(){
+  const id=document.getElementById('nc-edit-id').value;
+  const descripcion=document.getElementById('nc-descripcion').value.trim();
+  if(!descripcion){notify('La descripción es obligatoria','err');return;}
+  const disp=document.getElementById('nc-disposicion').value||null;
+  if(disp==='concesion'&&!document.getElementById('nc-justificacion').value.trim()){notify('La concesión requiere justificación','err');return;}
+  const notif=document.getElementById('nc-cliente-notif').value;
+  const data={fecha:document.getElementById('nc-fecha').value||null,
+    origen_tipo:document.getElementById('nc-origen').value,
+    orden_id:document.getElementById('nc-orden').value||null,
+    recepcion_id:document.getElementById('nc-recepcion').value||null,
+    venta_id:document.getElementById('nc-venta').value||null,
+    descripcion,disposicion:disp,
+    justificacion:document.getElementById('nc-justificacion').value.trim()||null,
+    cliente_notificado:notif===''?null:notif==='true'};
+  try{setBusy('btn-save-nc',true);
+    if(id){await PATCH('no_conformidades',data,`?id=eq.${id}`);}
+    else{await POST('no_conformidades',{...data,empresa_id:currentEmpresa.id});}
+    await loadAll();closeModal('modal-nc');renderAll();notify(id?'NC actualizada':'NC registrada');
+  }catch(e){notify('Error: '+e.message,'err');}
+  finally{setBusy('btn-save-nc',false);}
+}
+function openCapaModal(id,ncId){
+  document.getElementById('modal-capa-title').textContent=id?'Editar acción CAPA':'Nueva acción CAPA';
+  document.getElementById('capa-edit-id').value=id||'';
+  const c=id?accionesCapa.find(x=>x.id===id):null;
+  document.getElementById('capa-tipo').value=c?.tipo||'correctiva';
+  document.getElementById('capa-nc').innerHTML='<option value="">— ninguna —</option>'+noConformidades.map(n=>`<option value="${n.id}" ${(c?.nc_id||ncId)===n.id?'selected':''}>NC-${String(n.numero).padStart(4,'0')} · ${esc((n.descripcion||'').slice(0,60))}</option>`).join('');
+  document.getElementById('capa-responsable').innerHTML='<option value="">— asignar —</option>'+usuariosEmpresa.map(u=>`<option value="${u.id}" ${c?.responsable_id===u.id?'selected':''}>${esc(u.nombre||u.email)}</option>`).join('');
+  document.getElementById('capa-causa').value=c?.causa_raiz||'';
+  document.getElementById('capa-accion').value=c?.accion||'';
+  document.getElementById('capa-compromiso').value=c?.fecha_compromiso||'';
+  document.getElementById('capa-implementacion').value=c?.fecha_implementacion||'';
+  document.getElementById('capa-verificacion').value=c?.verificacion_eficacia||'';
+  document.getElementById('capa-eficaz').value=c?.eficaz===true?'true':c?.eficaz===false?'false':'';
+  openModal('modal-capa');
+}
+async function saveCapa(){
+  const id=document.getElementById('capa-edit-id').value;
+  const accion=document.getElementById('capa-accion').value.trim();
+  if(!accion){notify('La acción es obligatoria','err');return;}
+  const efi=document.getElementById('capa-eficaz').value;
+  const data={tipo:document.getElementById('capa-tipo').value,
+    nc_id:document.getElementById('capa-nc').value||null,
+    responsable_id:document.getElementById('capa-responsable').value||null,
+    causa_raiz:document.getElementById('capa-causa').value.trim()||null,
+    accion,fecha_compromiso:document.getElementById('capa-compromiso').value||null,
+    fecha_implementacion:document.getElementById('capa-implementacion').value||null,
+    verificacion_eficacia:document.getElementById('capa-verificacion').value.trim()||null,
+    eficaz:efi===''?null:efi==='true'};
+  try{setBusy('btn-save-capa',true);
+    if(id){await PATCH('acciones_capa',data,`?id=eq.${id}`);}
+    else{await POST('acciones_capa',{...data,empresa_id:currentEmpresa.id});}
+    await loadAll();closeModal('modal-capa');renderAll();notify(id?'CAPA actualizada':'CAPA registrada');
+  }catch(e){notify('Error: '+e.message,'err');}
+  finally{setBusy('btn-save-capa',false);}
+}
+
+// ─── Documentos controlados ───────────────────────────────────────
+const DOC_TIPO_L={manual:'Manual',procedimiento:'Procedimiento',instructivo:'Instructivo',formulario:'Formulario',wps:'WPS',pqr:'PQR',wpq:'WPQ',pqp:'PQP',plan_contingencia:'Plan contingencia',otro:'Otro'};
+let docFileData=null,docFileName=null;
+function handleDocFile(input){const file=input.files[0];if(!file)return;if(!validarArchivoAdjunto(file)){input.value='';return;}docFileName=file.name;document.getElementById('doc-file-name').textContent=file.name;const r=new FileReader();r.onload=e=>{docFileData=e.target.result;};r.readAsDataURL(file);}
+function renderDocumentos(filter=''){
+  const f=(filter||'').toLowerCase();
+  const vigentes=documentosControlados.filter(d=>d.estado==='vigente').length;
+  document.getElementById('doc-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Vigentes</div><div class="stat-value" style="color:var(--green)">${vigentes}</div></div>
+    <div class="stat-card"><div class="stat-label">Borradores</div><div class="stat-value" style="color:var(--accent)">${documentosControlados.filter(d=>d.estado==='borrador').length}</div></div>
+    <div class="stat-card"><div class="stat-label">Total (con obsoletos)</div><div class="stat-value">${documentosControlados.length}</div></div>`;
+  const badges={borrador:'<span class="badge badge-blue">BORRADOR</span>',vigente:'<span class="badge badge-green">VIGENTE</span>',obsoleto:'<span class="badge badge-coral">OBSOLETO</span>'};
+  const list=documentosControlados.filter(d=>!f||(d.codigo||'').toLowerCase().includes(f)||(d.titulo||'').toLowerCase().includes(f));
+  document.getElementById('doc-tbody').innerHTML=list.length?list.map(d=>{
+    return `<tr style="${d.estado==='obsoleto'?'opacity:.5':''}"><td class="mono td-primary">${esc(d.codigo)}</td><td>${esc(d.titulo)}</td><td>${DOC_TIPO_L[d.tipo]||d.tipo}</td><td class="mono">${esc(d.revision)}</td><td>${badges[d.estado]||d.estado}</td><td class="mono" style="font-size:11px">${d.fecha_vigencia||'—'}</td><td>${d.file_name?`<button class="btn btn-ghost btn-sm" onclick="openDocPDF('${d.id}')">PDF</button>`:'—'}</td><td style="display:flex;gap:4px">${d.estado==='borrador'?`<button class="btn btn-ghost btn-sm" style="border-color:var(--green);color:var(--green)" onclick="aprobarDoc('${d.id}')">Poner vigente</button>`:''}${d.estado==='vigente'?`<button class="btn btn-ghost btn-sm" onclick="nuevaRevisionDoc('${d.id}')">Nueva revisión</button>`:''}</td></tr>`;
+  }).join(''):'<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-title">Sin documentos controlados</div><div class="empty-msg">Acá viven el manual, procedimientos, instructivos, WPS y PQP con código + revisión + estado. Solo puede haber UNA revisión vigente por código.</div></div></td></tr>';
+}
+function openDocModal(){
+  document.getElementById('modal-doc-title').textContent='Nuevo documento / revisión';
+  document.getElementById('doc-edit-id').value='';
+  ['doc-codigo','doc-titulo','doc-obs'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('doc-revision').value='0';
+  document.getElementById('doc-tipo').value='procedimiento';
+  document.getElementById('doc-estado').value='borrador';
+  docFileData=null;docFileName=null;document.getElementById('doc-file').value='';document.getElementById('doc-file-name').textContent='Sin archivo';
+  openModal('modal-doc');
+}
+function nuevaRevisionDoc(id){
+  const d=documentosControlados.find(x=>x.id===id);if(!d)return;
+  openDocModal();
+  document.getElementById('modal-doc-title').textContent=`Nueva revisión de ${d.codigo}`;
+  document.getElementById('doc-codigo').value=d.codigo;
+  document.getElementById('doc-titulo').value=d.titulo;
+  document.getElementById('doc-tipo').value=d.tipo;
+  const revN=parseInt(d.revision);
+  document.getElementById('doc-revision').value=isNaN(revN)?d.revision+'-1':String(revN+1);
+}
+async function saveDoc(){
+  const codigo=document.getElementById('doc-codigo').value.trim();
+  const titulo=document.getElementById('doc-titulo').value.trim();
+  if(!codigo||!titulo){notify('Código y título son obligatorios','err');return;}
+  try{setBusy('btn-save-doc',true);
+    await POST('documentos_controlados',{empresa_id:currentEmpresa.id,codigo,titulo,
+      tipo:document.getElementById('doc-tipo').value,
+      revision:document.getElementById('doc-revision').value.trim()||'0',
+      estado:document.getElementById('doc-estado').value,
+      file_data:docFileData||null,file_name:docFileName||null,
+      observaciones:document.getElementById('doc-obs').value.trim()||null});
+    await loadAll();closeModal('modal-doc');renderAll();notify('Documento guardado');
+  }catch(e){notify('Error: '+e.message,'err');}
+  finally{setBusy('btn-save-doc',false);}
+}
+async function aprobarDoc(id){
+  const d=documentosControlados.find(x=>x.id===id);if(!d)return;
+  if(!confirm(`¿Poner vigente ${d.codigo} rev.${d.revision}? La revisión vigente anterior (si existe) pasa a obsoleta. Queda aprobado a tu nombre.`))return;
+  try{await PATCH('documentos_controlados',{estado:'vigente'},`?id=eq.${id}`);await loadAll();renderAll();notify(`✓ ${d.codigo} rev.${d.revision} vigente`);}
+  catch(e){notify('Error: '+e.message,'err');}
+}
+async function openDocPDF(id){
+  try{
+    const r=await GET('documentos_controlados',`?id=eq.${id}&select=file_data,file_name`);
+    const d=r&&r[0];if(!d?.file_data){notify('El documento no tiene archivo adjunto','err');return;}
+    const w=window.open('');w.document.write(`<iframe src="${d.file_data}" style="width:100%;height:100%;border:none"></iframe>`);
+  }catch(e){notify('Error: '+e.message,'err');}
+}
+
+// ─── Plantillas PQP ───────────────────────────────────────────────
+let pqpOpsDraft=[];
+function renderPQPPlantillas(filter=''){
+  const f=(filter||'').toLowerCase();
+  document.getElementById('pqp-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Plantillas</div><div class="stat-value" style="color:var(--teal)">${pqpPlantillas.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Activas</div><div class="stat-value" style="color:var(--green)">${pqpPlantillas.filter(p=>p.activo!==false).length}</div></div>`;
+  const list=pqpPlantillas.filter(p=>!f||(p.codigo||'').toLowerCase().includes(f)||(p.producto||'').toLowerCase().includes(f));
+  document.getElementById('pqp-tbody').innerHTML=list.length?list.map(p=>{
+    const opsP=pqpPlantillaOps.filter(o=>o.plantilla_id===p.id);
+    const hw=opsP.filter(o=>o.tipo_punto!=='normal').length;
+    return `<tr><td class="mono td-primary">${esc(p.codigo)}</td><td>${esc(p.producto)}</td><td style="font-size:11px">${esc(p.descripcion||'—')}</td><td class="mono">${opsP.length}</td><td>${hw?`<span class="badge badge-amber">${hw}</span>`:'—'}</td><td>${p.activo!==false?'<span class="badge badge-green">SÍ</span>':'<span class="badge badge-coral">NO</span>'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="openPQPModal('${p.id}')">Editar</button></td></tr>`;
+  }).join(''):'<tr><td colspan="7" class="empty-cell"><div class="empty-state"><div class="empty-title">Sin plantillas PQP</div><div class="empty-msg">El PQP es el routing modelo de cada producto crítico (fig. 1502, pup joint...) con sus hold/witness points. Se aplica a la OP desde Captura de tiempos → PQP.</div></div></td></tr>';
+}
+function renderPQPOpsDraft(){
+  document.getElementById('pqp-ops-list').innerHTML=pqpOpsDraft.length?pqpOpsDraft.map((o,i)=>{
+    const doc=o.documento_id?documentosControlados.find(d=>d.id===o.documento_id):null;
+    const punto=o.tipo_punto==='hold'?'<span class="badge badge-amber">HOLD</span>':o.tipo_punto==='witness'?'<span class="badge badge-blue">WITNESS</span>':'';
+    return `<div style="display:flex;gap:8px;align-items:center;padding:6px 8px;background:var(--surface2);border-radius:4px;font-size:12px">
+      <span class="mono" style="color:var(--text3)">#${i+1}</span><span style="flex:1">${esc(o.nombre)} ${punto}</span>
+      <span style="color:var(--text3);font-size:11px">${esc(o.maquina||'')}</span>
+      ${doc?`<span class="mono" style="color:var(--teal);font-size:11px">${esc(doc.codigo)}</span>`:''}
+      <span class="mono" style="color:var(--text3);font-size:11px">${o.tiempo_estimado_min||0} min</span>
+      <button onclick="pqpOpsDraft.splice(${i},1);renderPQPOpsDraft()" style="background:transparent;border:none;color:var(--text3);cursor:pointer">×</button>
+    </div>`;
+  }).join(''):'<div style="font-size:11px;color:var(--text3);padding:8px">Sin operaciones — agregalas abajo en orden.</div>';
+}
+function addPQPOpDraft(){
+  const nombre=document.getElementById('pqpop-nombre').value.trim();
+  if(!nombre){notify('Poné el nombre de la operación','err');return;}
+  pqpOpsDraft.push({nombre,maquina:document.getElementById('pqpop-maquina').value.trim()||null,
+    tipo_punto:document.getElementById('pqpop-punto').value,
+    documento_id:document.getElementById('pqpop-doc').value||null,
+    tiempo_estimado_min:parseInt(document.getElementById('pqpop-min').value)||0});
+  ['pqpop-nombre','pqpop-maquina','pqpop-min'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('pqpop-punto').value='normal';document.getElementById('pqpop-doc').value='';
+  renderPQPOpsDraft();
+}
+function openPQPModal(id){
+  document.getElementById('modal-pqp-title').textContent=id?'Editar plantilla PQP':'Nueva plantilla PQP';
+  document.getElementById('pqp-edit-id').value=id||'';
+  const p=id?pqpPlantillas.find(x=>x.id===id):null;
+  document.getElementById('pqp-codigo').value=p?.codigo||'';
+  document.getElementById('pqp-producto').value=p?.producto||'';
+  document.getElementById('pqp-descripcion').value=p?.descripcion||'';
+  const docsVig=documentosControlados.filter(d=>d.estado==='vigente');
+  document.getElementById('pqp-doc').innerHTML='<option value="">— ninguno —</option>'+docsVig.filter(d=>d.tipo==='pqp').map(d=>`<option value="${d.id}" ${p?.documento_id===d.id?'selected':''}>${esc(d.codigo)} rev.${esc(d.revision)}</option>`).join('');
+  document.getElementById('pqpop-doc').innerHTML='<option value="">—</option>'+docsVig.map(d=>`<option value="${d.id}">${esc(d.codigo)} rev.${esc(d.revision)}</option>`).join('');
+  pqpOpsDraft=id?pqpPlantillaOps.filter(o=>o.plantilla_id===id).sort((a,b)=>a.secuencia-b.secuencia).map(o=>({nombre:o.nombre,maquina:o.maquina,tipo_punto:o.tipo_punto,documento_id:o.documento_id,tiempo_estimado_min:o.tiempo_estimado_min})):[];
+  renderPQPOpsDraft();
+  openModal('modal-pqp');
+}
+async function savePQPPlantilla(){
+  const id=document.getElementById('pqp-edit-id').value;
+  const codigo=document.getElementById('pqp-codigo').value.trim();
+  const producto=document.getElementById('pqp-producto').value.trim();
+  if(!codigo||!producto){notify('Código y producto son obligatorios','err');return;}
+  if(!pqpOpsDraft.length){notify('Agregá al menos una operación','err');return;}
+  const cab={codigo,producto,descripcion:document.getElementById('pqp-descripcion').value.trim()||null,documento_id:document.getElementById('pqp-doc').value||null};
+  try{setBusy('btn-save-pqp',true);
+    let pid=id;
+    if(id){await PATCH('pqp_plantillas',cab,`?id=eq.${id}`);await DEL('pqp_plantilla_operaciones',`?plantilla_id=eq.${id}`);}
+    else{const r=await POST('pqp_plantillas',[{...cab,empresa_id:currentEmpresa.id,activo:true}]);pid=r&&r[0]?.id;}
+    if(!pid)throw new Error('No se pudo crear la plantilla');
+    await POST('pqp_plantilla_operaciones',pqpOpsDraft.map((o,i)=>({empresa_id:currentEmpresa.id,plantilla_id:pid,secuencia:i+1,...o})));
+    await loadAll();closeModal('modal-pqp');renderAll();notify('Plantilla PQP guardada');
+  }catch(e){notify('Error: '+e.message,'err');}
+  finally{setBusy('btn-save-pqp',false);}
 }
 
 // Convierte total de OC a ARS y a USD usando moneda + tipo_cambio del OC
@@ -7497,7 +8194,14 @@ function renderProveedores(filter=''){
     <div class="stat-card"><div class="stat-label">Proveedores</div><div class="stat-value" style="color:var(--accent)">${totalProv}</div></div>
     <div class="stat-card"><div class="stat-label">Deuda total</div><div class="stat-value" style="color:var(--coral);font-size:14px">${fmtUSD(Object.values(deudaPorProv).reduce((a,b)=>a+b,0))}</div></div>`;
   const list=proveedores.filter(p=>!f||p.nombre.toLowerCase().includes(f)||(p.cuit||'').toLowerCase().includes(f));
-  document.getElementById('prov-tbody').innerHTML=list.length?list.map(p=>`<tr><td class="td-primary">${esc(p.nombre)}</td><td class="mono" style="font-size:11px">${esc(p.cuit||'—')}</td><td>${esc(p.contacto||'—')}</td><td class="mono" style="font-size:11px">${esc(p.telefono||'—')}</td><td style="font-size:11px">${esc(p.email||'—')}</td><td class="mono">${ocPorProv[p.id]||0}</td><td class="mono" style="color:${deudaPorProv[p.id]>0?'var(--coral)':'var(--text3)'}">${fmtUSD(deudaPorProv[p.id]||0)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editProveedor('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteProveedor('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`).join(''):'<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg></div><div class="empty-title">Sin proveedores registrados</div><div class="empty-msg">Agregá tu primer proveedor con <b>+ Nuevo proveedor</b> para empezar a cargar órdenes de compra.</div></div></td></tr>';
+  const hoy=new Date().toISOString().slice(0,10);
+  const avlBadge=p=>{
+    if(!p.aprobado)return '<span class="badge badge-coral">No aprobado</span>';
+    const vencida=p.fecha_proxima_evaluacion&&p.fecha_proxima_evaluacion<hoy;
+    const crit=p.criticidad==='critico'?' <span class="badge badge-amber">Crítico</span>':'';
+    return (vencida?'<span class="badge badge-amber">Reeval. vencida</span>':'<span class="badge badge-green">Aprobado</span>')+crit;
+  };
+  document.getElementById('prov-tbody').innerHTML=list.length?list.map(p=>`<tr><td class="td-primary">${esc(p.nombre)}</td><td class="mono" style="font-size:11px">${esc(p.cuit||'—')}</td><td>${esc(p.contacto||'—')}</td><td class="mono" style="font-size:11px">${esc(p.telefono||'—')}</td><td style="font-size:11px">${esc(p.email||'—')}</td><td>${avlBadge(p)}</td><td class="mono">${ocPorProv[p.id]||0}</td><td class="mono" style="color:${deudaPorProv[p.id]>0?'var(--coral)':'var(--text3)'}">${fmtUSD(deudaPorProv[p.id]||0)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editProveedor('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteProveedor('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`).join(''):'<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg></div><div class="empty-title">Sin proveedores registrados</div><div class="empty-msg">Agregá tu primer proveedor con <b>+ Nuevo proveedor</b> para empezar a cargar órdenes de compra.</div></div></td></tr>';
 }
 
 function openProveedorModal(id){
@@ -7512,6 +8216,11 @@ function openProveedorModal(id){
   document.getElementById('prov-cond').value=p?.condicion_pago_default||'';
   document.getElementById('prov-dir').value=p?.direccion||'';
   document.getElementById('prov-obs').value=p?.observaciones||'';
+  document.getElementById('prov-criticidad').value=p?.criticidad||'no_critico';
+  document.getElementById('prov-aprobado').value=p?.aprobado?'true':'false';
+  document.getElementById('prov-alcance').value=p?.alcance_aprobacion||'';
+  document.getElementById('prov-fecha-eval').value=p?.fecha_evaluacion||'';
+  document.getElementById('prov-fecha-reeval').value=p?.fecha_proxima_evaluacion||'';
   openModal('modal-proveedor');
 }
 function editProveedor(id){openProveedorModal(id);}
@@ -7519,7 +8228,8 @@ async function saveProveedor(){
   const id=document.getElementById('prov-edit-id').value;
   const nombre=document.getElementById('prov-nombre').value.trim();
   if(!nombre){notify('El nombre es obligatorio','err');return;}
-  const data={nombre,cuit:document.getElementById('prov-cuit').value.trim()||null,contacto:document.getElementById('prov-contacto').value.trim()||null,telefono:document.getElementById('prov-tel').value.trim()||null,email:document.getElementById('prov-email').value.trim()||null,condicion_pago_default:document.getElementById('prov-cond').value.trim()||null,direccion:document.getElementById('prov-dir').value.trim()||null,observaciones:document.getElementById('prov-obs').value.trim()||null};
+  const data={nombre,cuit:document.getElementById('prov-cuit').value.trim()||null,contacto:document.getElementById('prov-contacto').value.trim()||null,telefono:document.getElementById('prov-tel').value.trim()||null,email:document.getElementById('prov-email').value.trim()||null,condicion_pago_default:document.getElementById('prov-cond').value.trim()||null,direccion:document.getElementById('prov-dir').value.trim()||null,observaciones:document.getElementById('prov-obs').value.trim()||null,
+    criticidad:document.getElementById('prov-criticidad').value,aprobado:document.getElementById('prov-aprobado').value==='true',alcance_aprobacion:document.getElementById('prov-alcance').value.trim()||null,fecha_evaluacion:document.getElementById('prov-fecha-eval').value||null,fecha_proxima_evaluacion:document.getElementById('prov-fecha-reeval').value||null};
   try{setBusy('btn-save-prov',true);
     if(id){await PATCH('proveedores',data,`?id=eq.${id}`);}
     else{await POST('proveedores',{...data,empresa_id:currentEmpresa.id,activo:true});}
@@ -7678,6 +8388,7 @@ function openRecepcionModal(ocId){
   // Pre-cargar remito + cert desde la OC si ya los cargó al crearla
   document.getElementById('recep-remito-nro').value=oc.remito_nro||'';
   document.getElementById('recep-cert').innerHTML='<option value="">— ninguno —</option>'+certs.map(c=>`<option value="${c.id}" ${oc.certificado_id===c.id?'selected':''}>${esc(c.nro)} · ${esc(c.material||'')}</option>`).join('');
+  recepCertColada();
   const items=oc.oc_items||ocItems.filter(i=>i.oc_id===ocId);
   const cont=document.getElementById('recep-items-list');
   cont.innerHTML=items.map(it=>{
@@ -7696,9 +8407,16 @@ function openRecepcionModal(ocId){
   openModal('modal-recepcion');
 }
 
+// Autocompleta la colada desde el MTR seleccionado (editable a mano)
+function recepCertColada(){
+  const certId=document.getElementById('recep-cert').value;
+  const c=certId?certs.find(x=>x.id===certId):null;
+  document.getElementById('recep-colada').value=c?.colada||'';
+}
 async function saveRecepcion(){
   const fecha=document.getElementById('recep-fecha').value;
   const certId=document.getElementById('recep-cert').value||null;
+  const colada=document.getElementById('recep-colada').value.trim();
   const remitoNro=document.getElementById('recep-remito-nro').value.trim()||null;
   const obs=document.getElementById('recep-obs').value.trim()||null;
   const rows=document.querySelectorAll('#recep-items-list > div');
@@ -7720,7 +8438,7 @@ async function saveRecepcion(){
       // Materia prima → crear barra en stock
       if(r.it.tipo==='materia_prima'){
         const lote=`${oc.nro}-${r.it.descripcion.slice(0,8).replace(/\s/g,'')}-${Date.now().toString().slice(-4)}`;
-        const barraData={empresa_id:currentEmpresa.id,lote,material:r.it.material||r.it.descripcion,perfil:r.it.perfil||'',diametro:r.it.diametro||'',kg_disponibles:r.it.unidad==='kg'?r.qty:0,unidades:r.it.unidad==='un'?r.qty:0,nro_colada:'',certificado_id:certId,kg_minimo:0,proveedor_id:oc.proveedor_id,oc_id:currentOCId,observaciones:`Recepción OC ${oc.nro}`};
+        const barraData={empresa_id:currentEmpresa.id,lote,material:r.it.material||r.it.descripcion,perfil:r.it.perfil||'',diametro:r.it.diametro||'',kg_disponibles:r.it.unidad==='kg'?r.qty:0,unidades:r.it.unidad==='un'?r.qty:0,nro_colada:colada,certificado_id:certId,kg_minimo:0,proveedor_id:oc.proveedor_id,oc_id:currentOCId,observaciones:`Recepción OC ${oc.nro}`};
         const bres=await POST('barras',[barraData]);
         if(bres&&bres[0])barraId=bres[0].id;
       }
@@ -8835,7 +9553,8 @@ async function saveOperacionPaso(){
   const secuencia=opOperaciones.length+1;
   try{
     setBusy('btn-save-paso',true);
-    const res=await POST('op_operaciones',[{empresa_id:currentEmpresa.id,orden_id:currentTiempoOpId,secuencia,nombre,maquina,tiempo_estimado_min:estimado,tarifa_maquina_usd:tarifa,estado:'pendiente'}]);
+    const res=await POST('op_operaciones',[{empresa_id:currentEmpresa.id,orden_id:currentTiempoOpId,secuencia,nombre,maquina,tiempo_estimado_min:estimado,tarifa_maquina_usd:tarifa,estado:'pendiente',
+      tipo_punto:document.getElementById('paso-tipo-punto').value,documento_id:document.getElementById('paso-doc').value||null}]);
     if(res&&res[0])opOperaciones.push(res[0]);
     if(!currentTiempoPasoId&&res&&res[0])currentTiempoPasoId=res[0].id;
     closeModal('modal-add-op-paso');notify('Paso agregado');renderTiempos();
