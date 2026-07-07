@@ -7535,7 +7535,7 @@ function aplicarPermisos(){
 // Tablas: op_operaciones + op_time_entries
 // ═══════════════════════════════════════════════════════════
 let opOperaciones=[],opTimeEntries=[];
-let currentTiempoOpId=null,currentTiempoPasoId=null;
+let currentTiempoOpId=null;
 let tiempoInterval=null;
 const TARIFA_OPERARIO_USD=18; // USD/hora operario (configurable)
 
@@ -7561,9 +7561,6 @@ async function openTiempos(opId){
   const op=ops.find(o=>o.id===opId);
   document.getElementById('tiempos-op-nro').textContent=op?`${op.nro} · ${op.pieza}`:'';
   await loadTiemposData(opId);
-  // Detectar operación activa
-  const activa=opOperaciones.find(o=>o.estado==='en_curso');
-  currentTiempoPasoId=activa?activa.id:(opOperaciones.find(o=>o.estado==='pendiente')?.id||null);
   openModal('modal-tiempos');
   renderTiempos();
   if(tiempoInterval)clearInterval(tiempoInterval);
@@ -7571,7 +7568,10 @@ async function openTiempos(opId){
 }
 function closeTiempos(){closeModal('modal-tiempos');if(tiempoInterval){clearInterval(tiempoInterval);tiempoInterval=null;}currentTiempoOpId=null;}
 
-function activeEntry(){return opTimeEntries.find(e=>!e.ended_at&&e.tipo==='productivo');}
+function openEntryOf(entries,opId,tipo){return entries.find(e=>e.operacion_id===opId&&e.tipo===tipo&&!e.ended_at)||null;}
+function activeProductivos(entries){return entries.filter(e=>e.tipo==='productivo'&&!e.ended_at);}
+function refreshTimersActivos(){} // panel global de timers (se implementa junto al panel en #page-op)
+function timersActivosTiene(){return false;} // ídem
 
 function renderTiempos(){renderTiemposOps();renderTiemposEntries();renderTiemposMetrics();renderTimerDisplay();updateTiemposButtons();}
 
@@ -7627,7 +7627,6 @@ async function deletePaso(id){
     await DEL('op_operaciones',`?id=eq.${id}`);
     opOperaciones=opOperaciones.filter(o=>o.id!==id);
     opTimeEntries=opTimeEntries.filter(e=>e.operacion_id!==id);
-    if(currentTiempoPasoId===id)currentTiempoPasoId=opOperaciones.find(o=>o.estado!=='completada')?.id||null;
     renderTiempos();notify('Paso eliminado');
   }catch(e){notify('Error: '+e.message,'err');}
 }
@@ -7691,72 +7690,85 @@ function updateTiemposButtons(){
   btnStop.disabled=!currentTiempoPasoId||opOperaciones.find(o=>o.id===currentTiempoPasoId)?.estado==='completada';
 }
 
-function selectTiempoPaso(id){
-  const p=opOperaciones.find(o=>o.id===id);
-  if(!p||p.estado==='completada'){notify('Ese paso ya está completado');return;}
-  if(activeEntry()){notify('Pausá el timer antes de cambiar de paso');return;}
-  currentTiempoPasoId=id;
-  renderTiempos();
-}
-
-async function startTiempoOp(){
-  if(!currentTiempoPasoId){notify('Seleccioná un paso');return;}
-  if(activeEntry()){notify('Ya hay un timer corriendo');return;}
+async function startTiempoOp(pasoId){
+  let paso=opOperaciones.find(o=>o.id===pasoId);
+  if(!paso){
+    // llamado desde el panel global sin el modal de esa OP abierto:
+    // operar directo contra la DB por filtro, sin estado local
+    const rows=await GET('op_operaciones',`?id=eq.${pasoId}`).catch(()=>[]);
+    paso=rows[0];
+    if(!paso)return;
+    if(paso.estado==='completada'){notify('Ese paso ya está completado');return;}
+    try{
+      const now=new Date().toISOString();
+      await PATCH('op_time_entries',{ended_at:now},`?operacion_id=eq.${pasoId}&tipo=eq.pausa&ended_at=is.null`);
+      await POST('op_time_entries',[{empresa_id:currentEmpresa.id,operacion_id:pasoId,operario_id:currentUser.id,tipo:'productivo',started_at:now}]);
+      if(paso.estado==='pendiente')await PATCH('op_operaciones',{estado:'en_curso'},`?id=eq.${pasoId}`);
+      notify('▶ Timer iniciado · '+paso.nombre);
+      refreshTimersActivos();
+    }catch(e){notify('Error al iniciar: '+e.message,'err');}
+    return;
+  }
+  if(paso.estado==='completada'){notify('Ese paso ya está completado');return;}
+  if(openEntryOf(opTimeEntries,pasoId,'productivo')){notify('Ese paso ya tiene un timer corriendo');return;}
   try{
-    setBusy('tiempos-btn-play',true);
-    // cerrar cualquier pausa abierta antes de iniciar productivo
-    const openPause=opTimeEntries.find(e=>e.tipo==='pausa'&&!e.ended_at);
+    // cerrar la pausa abierta de ESTE paso (los demás pasos no se tocan)
+    const openPause=openEntryOf(opTimeEntries,pasoId,'pausa');
     if(openPause){
       const nowP=new Date().toISOString();
       await PATCH('op_time_entries',{ended_at:nowP},`?id=eq.${openPause.id}`);
       openPause.ended_at=nowP;
     }
-    const res=await POST('op_time_entries',[{empresa_id:currentEmpresa.id,operacion_id:currentTiempoPasoId,operario_id:currentUser.id,tipo:'productivo',started_at:new Date().toISOString()}]);
+    const res=await POST('op_time_entries',[{empresa_id:currentEmpresa.id,operacion_id:pasoId,operario_id:currentUser.id,tipo:'productivo',started_at:new Date().toISOString()}]);
     if(res&&res[0])opTimeEntries.push(res[0]);
     else{
       // fallback: recargar desde DB si PostgREST no devolvió el row
       await loadTiemposData(currentTiempoOpId);
     }
-    // marcar operación en_curso si estaba pendiente
-    const paso=opOperaciones.find(o=>o.id===currentTiempoPasoId);
-    if(paso&&paso.estado==='pendiente'){await PATCH('op_operaciones',{estado:'en_curso'},`?id=eq.${paso.id}`);paso.estado='en_curso';}
-    notify('▶ Timer iniciado');renderTiempos();
+    if(paso.estado==='pendiente'){await PATCH('op_operaciones',{estado:'en_curso'},`?id=eq.${paso.id}`);paso.estado='en_curso';}
+    notify('▶ Timer iniciado · '+paso.nombre);renderTiempos();refreshTimersActivos();
   }catch(e){console.error('startTiempoOp error:',e);notify('Error al iniciar: '+e.message,'err');}
-  finally{setBusy('tiempos-btn-play',false);}
 }
 
-function openPauseTiempo(){openModal('modal-pausa-motivo');}
+let pausaCtx=null; // {operacionId} — seteado al abrir el modal de motivos
+
+function openPauseTiempo(pasoId){
+  if(!openEntryOf(opTimeEntries,pasoId,'productivo')&&!timersActivosTiene(pasoId)){notify('Ese paso no tiene timer corriendo');return;}
+  pausaCtx={operacionId:pasoId};
+  openModal('modal-pausa-motivo');
+}
+
 async function confirmPauseTiempo(motivo){
   closeModal('modal-pausa-motivo');
-  const ae=activeEntry();if(!ae)return;
+  const ctx=pausaCtx;pausaCtx=null;
+  if(!ctx)return;
   try{
     const now=new Date().toISOString();
-    await PATCH('op_time_entries',{ended_at:now},`?id=eq.${ae.id}`);
-    ae.ended_at=now;
-    // crear entry de pausa abierto? NO — lo registramos como un rango cerrado cuando vuelva a INICIAR
-    // Para mantener el motivo visible en bitácora: creamos el entry de pausa con ended_at en el próximo INICIAR
-    // Estrategia simple: crear pausa ahora con ended_at=null y motivo
-    const res=await POST('op_time_entries',[{empresa_id:currentEmpresa.id,operacion_id:ae.operacion_id,operario_id:currentUser.id,tipo:'pausa',motivo,started_at:now}]);
-    if(res&&res[0])opTimeEntries.push(res[0]);
-    notify('⏸ Pausado · '+motivo);renderTiempos();
+    // cierre por filtro: funciona tanto desde el modal como desde el panel
+    // global, sin depender de tener la entry en memoria
+    await PATCH('op_time_entries',{ended_at:now},`?operacion_id=eq.${ctx.operacionId}&tipo=eq.productivo&ended_at=is.null`);
+    await POST('op_time_entries',[{empresa_id:currentEmpresa.id,operacion_id:ctx.operacionId,operario_id:currentUser.id,tipo:'pausa',motivo,started_at:now}]);
+    // sincronizar memoria local si el modal de una OP está abierto
+    if(currentTiempoOpId){await loadTiemposData(currentTiempoOpId);renderTiempos();}
+    notify('⏸ Pausado · '+motivo);
+    refreshTimersActivos();
   }catch(e){notify('Error: '+e.message,'err');}
 }
 
-async function completeTiempoOp(){
-  if(!currentTiempoPasoId)return;
-  if(!confirm('¿Marcar este paso como completado?'))return;
+async function completeTiempoOp(pasoId){
+  const paso=opOperaciones.find(o=>o.id===pasoId);
+  if(!paso)return;
+  if(!confirm(`¿Marcar "${paso.nombre}" como completado?`))return;
   try{
-    const ae=activeEntry();
-    if(ae){const now=new Date().toISOString();await PATCH('op_time_entries',{ended_at:now},`?id=eq.${ae.id}`);ae.ended_at=now;}
-    const openPause=opTimeEntries.find(e=>e.tipo==='pausa'&&!e.ended_at);
-    if(openPause){const now=new Date().toISOString();await PATCH('op_time_entries',{ended_at:now},`?id=eq.${openPause.id}`);openPause.ended_at=now;}
-    await PATCH('op_operaciones',{estado:'completada'},`?id=eq.${currentTiempoPasoId}`);
-    const paso=opOperaciones.find(o=>o.id===currentTiempoPasoId);if(paso)paso.estado='completada';
-    // pasar al siguiente pendiente
-    const siguiente=opOperaciones.find(o=>o.estado==='pendiente');
-    currentTiempoPasoId=siguiente?siguiente.id:null;
-    notify(siguiente?'✓ Paso completado · Siguiente: '+siguiente.nombre:'🎉 Todos los pasos completados');
-    renderTiempos();
+    const now=new Date().toISOString();
+    // cerrar productivo y pausa abiertos de ESTE paso (los demás siguen corriendo)
+    await PATCH('op_time_entries',{ended_at:now},`?operacion_id=eq.${pasoId}&ended_at=is.null`);
+    opTimeEntries.forEach(e=>{if(e.operacion_id===pasoId&&!e.ended_at)e.ended_at=now;});
+    await PATCH('op_operaciones',{estado:'completada'},`?id=eq.${pasoId}`);
+    paso.estado='completada';
+    const pendientes=opOperaciones.filter(o=>o.estado==='pendiente'||o.estado==='en_curso').length;
+    notify(pendientes?`✓ ${paso.nombre} completado`:'🎉 Todos los pasos completados');
+    renderTiempos();refreshTimersActivos();
   }catch(e){notify('Error: '+e.message,'err');}
 }
 
