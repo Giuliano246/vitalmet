@@ -1870,6 +1870,16 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
   </div>
 </div>
 
+<!-- MODAL: elegir ítem del presupuesto para generar OP -->
+<div class="modal-overlay" id="modal-gen-op-item">
+  <div class="modal" style="width:440px">
+    <div class="modal-header"><div class="modal-title">¿Qué ítem fabricar?</div><button class="modal-close" onclick="closeModal('modal-gen-op-item')">×</button></div>
+    <div class="modal-body">
+      <div id="gen-op-items" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Nueva operación (paso) dentro de OP -->
 <div class="modal-overlay" id="modal-add-op-paso">
   <div class="modal" style="width:480px">
@@ -2577,7 +2587,7 @@ function openModal(id){
   if(id==='modal-pt'){openModalPT();return;}
   if(id==='modal-material'){openModalMaterial();return;}
   if(id==='modal-mp'){populateCertSel();const s=document.getElementById('mp-material');if(s)s.innerHTML=getMaterialOptions();}
-  if(id==='modal-op'){populateCertSel();populateBarraSel();autoDate('op-fecha');['op-fecha-fin','op-horas','op-codigo','op-oc-material','op-matriz-desc'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});document.getElementById('op-origen').value='barra';onOrigenChange();}
+  if(id==='modal-op'){opPresupuestoOrigen=null;populateCertSel();populateBarraSel();autoDate('op-fecha');['op-fecha-fin','op-horas','op-codigo','op-oc-material','op-matriz-desc'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});document.getElementById('op-origen').value='barra';onOrigenChange();}
   if(id==='modal-venta'){
     // Populate selects siempre (vendedores, listas)
     const vSel=document.getElementById('v-vendedor');
@@ -2735,6 +2745,34 @@ async function saveCert(){
   setBusy('btn-save-cert',false,'Guardar certificado');
 }
 
+// ─── Generar OP desde un presupuesto aprobado (1B) ──────────
+let opPresupuestoOrigen=null;
+
+function generarOPDesdePresupuesto(pid){
+  const p=presupuestos.find(x=>x.id===pid);
+  if(!p)return;
+  const items=(p.presupuesto_items||[]);
+  if(!items.length){notify('El presupuesto no tiene ítems','err');return;}
+  if(items.length===1){abrirOPPrecargada(pid,items[0].id);return;}
+  document.getElementById('gen-op-items').innerHTML=items.map(it=>
+    `<button class="btn btn-ghost" style="text-align:left;padding:10px" onclick="closeModal('modal-gen-op-item');abrirOPPrecargada('${pid}','${it.id}')">${esc(it.pieza||it.descripcion||'ítem')} <span class="mono" style="color:var(--text3)">× ${it.cantidad||1}</span></button>`
+  ).join('');
+  openModal('modal-gen-op-item');
+}
+
+function abrirOPPrecargada(pid,itemId){
+  const p=presupuestos.find(x=>x.id===pid);
+  const item=(p?.presupuesto_items||[]).find(i=>i.id===itemId);
+  if(!p||!item)return;
+  openModal('modal-op'); // mismo flujo que "Nueva orden" (resetea opPresupuestoOrigen)
+  document.getElementById('op-pieza').value=item.pieza||item.descripcion||'';
+  document.getElementById('op-cant').value=item.cantidad||1;
+  document.getElementById('op-precio').value=item.precio_unitario||'';
+  document.getElementById('op-desc').value=`Según presupuesto ${p.nro||''} — ${p.cliente||''}`.trim();
+  opPresupuestoOrigen=pid;
+  notify('OP pre-cargada desde el presupuesto '+(p.nro||''));
+}
+
 async function saveOP(){
   const origen=g('op-origen')||'barra';
   const esBarra=origen==='barra';
@@ -2760,7 +2798,7 @@ async function saveOP(){
     const cant=parseInt(g('op-cant'));
     const costo=parseFloat(g('op-precio'))||0;
     const descFull=esBarra?g('op-desc'):[g('op-desc'),g('op-matriz-desc')].filter(Boolean).join(' — ')||origen;
-    const op=await POST('ordenes_produccion',{empresa_id:currentEmpresa.id,nro:g('op-nro'),pieza:g('op-pieza'),descripcion:descFull,cantidad:cant,precio_unitario:costo,lote_pt:lotePT,barra_id:barraId,kg_usados:esBarra?kgU:0,merma_kg:parseFloat(g('op-merma'))||0,operario:g('op-operario'),estado,fecha:g('op-fecha')||hoyLocal(),fecha_fin:g('op-fecha-fin')||null,horas_total:g('op-horas')||null,codigo_plano:g('op-codigo')||null,oc_material:g('op-oc-material')||null,origen_material:origen});
+    const op=await POST('ordenes_produccion',{empresa_id:currentEmpresa.id,nro:g('op-nro'),pieza:g('op-pieza'),descripcion:descFull,cantidad:cant,precio_unitario:costo,lote_pt:lotePT,barra_id:barraId,kg_usados:esBarra?kgU:0,merma_kg:parseFloat(g('op-merma'))||0,operario:g('op-operario'),estado,fecha:g('op-fecha')||hoyLocal(),fecha_fin:g('op-fecha-fin')||null,horas_total:g('op-horas')||null,codigo_plano:g('op-codigo')||null,oc_material:g('op-oc-material')||null,origen_material:origen,presupuesto_id:opPresupuestoOrigen||null});
     // Descontar MP solo si es barra y hay metros consumidos.
     // Atómico en la DB: falla si el stock no alcanza AHORA (no según lo
     // leído al abrir el modal). Si falla, se revierte la OP recién creada.
@@ -2775,6 +2813,7 @@ async function saveOP(){
     } else {
       notify('Orden registrada — stock PT pendiente');
     }
+    opPresupuestoOrigen=null;
     await loadAll();closeModal('modal-op');resetF(['op-nro','op-pieza','op-desc','op-cant','op-precio','op-lote-pt','op-barra','op-barra-opt','op-kg-usados','op-merma','op-operario','op-fecha-fin','op-horas','op-codigo','op-oc-material','op-matriz-desc']);renderAll();
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-op',false,'Registrar orden');
@@ -3422,7 +3461,7 @@ function renderOP(filter=''){
     <div class="stat-card"><div class="stat-label">Completadas</div><div class="stat-value" style="color:var(--green)">${completadas}</div></div>
     <div class="stat-card"><div class="stat-label">Mts consumidos</div><div class="stat-value">${totalMtsUsados.toFixed(1)}<span style="font-size:11px;color:var(--text3)"> mts</span></div></div>`;
   const list=ops.filter(o=>!f||o.nro.toLowerCase().includes(f)||o.pieza.toLowerCase().includes(f));
-  document.getElementById('op-tbody').innerHTML=list.length?list.map(o=>{const tratsOP=tratamientos.filter(t=>t.orden_id===o.id);return`<tr><td class="mono td-primary">${esc(o.nro)}</td><td style="color:var(--accent);font-weight:500">${esc(o.pieza)}</td><td class="mono" style="font-size:11px">${o.codigo_plano||'—'}</td><td class="mono">${o.cantidad}</td><td>${o.barras?`<span class="badge badge-blue">${esc(o.barras.lote)}</span>`:'—'}</td><td class="mono">${parseFloat(o.kg_usados||0).toFixed(1)}</td><td class="mono" style="color:var(--text3)">${parseFloat(o.merma_kg||0).toFixed(1)}</td><td class="mono">${o.horas_total||'—'}</td><td>${estadoSelect('ordenes_produccion',o.id,o.estado||'en-proceso',['en-proceso','completada','suspendida'],opBadgeMap)}</td><td>${o.fecha||'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap">${o.estado==='en-proceso'||o.estado==='suspendida'?`<button class="btn btn-ghost btn-sm" onclick="openTratamientos('${o.id}')" style="border-color:var(--teal);color:var(--teal)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Trat${tratsOP.length?` (${tratsOP.length})`:''}</button>`:''}<button class="btn btn-ghost btn-sm" onclick="openTiempos('${o.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>Tiempos</button><button class="btn btn-ghost btn-sm" onclick="editOP('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteOP('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`}).join(''):(`<tr><td colspan="11" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></svg></div><div class="empty-title">Sin órdenes de producción</div><div class="empty-msg">Iniciá la primera con <b>+ Nueva orden</b> seleccionando la barra a consumir y la pieza a fabricar.</div></div></td></tr>`);
+  document.getElementById('op-tbody').innerHTML=list.length?list.map(o=>{const tratsOP=tratamientos.filter(t=>t.orden_id===o.id);const presupOP=o.presupuesto_id?presupuestos.find(p=>p.id===o.presupuesto_id):null;return`<tr><td class="mono td-primary">${esc(o.nro)}</td><td style="color:var(--accent);font-weight:500">${esc(o.pieza)}${presupOP?`<br><span class="mono" style="color:var(--teal);font-size:10px" title="Generada desde el presupuesto ${esc(presupOP.nro)} · ${esc(presupOP.cliente)}">⚙ ${esc(presupOP.nro)}</span>`:''}</td><td class="mono" style="font-size:11px">${o.codigo_plano||'—'}</td><td class="mono">${o.cantidad}</td><td>${o.barras?`<span class="badge badge-blue">${esc(o.barras.lote)}</span>`:'—'}</td><td class="mono">${parseFloat(o.kg_usados||0).toFixed(1)}</td><td class="mono" style="color:var(--text3)">${parseFloat(o.merma_kg||0).toFixed(1)}</td><td class="mono">${o.horas_total||'—'}</td><td>${estadoSelect('ordenes_produccion',o.id,o.estado||'en-proceso',['en-proceso','completada','suspendida'],opBadgeMap)}</td><td>${o.fecha||'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap">${o.estado==='en-proceso'||o.estado==='suspendida'?`<button class="btn btn-ghost btn-sm" onclick="openTratamientos('${o.id}')" style="border-color:var(--teal);color:var(--teal)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Trat${tratsOP.length?` (${tratsOP.length})`:''}</button>`:''}<button class="btn btn-ghost btn-sm" onclick="openTiempos('${o.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>Tiempos</button><button class="btn btn-ghost btn-sm" onclick="editOP('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteOP('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`}).join(''):(`<tr><td colspan="11" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></svg></div><div class="empty-title">Sin órdenes de producción</div><div class="empty-msg">Iniciá la primera con <b>+ Nueva orden</b> seleccionando la barra a consumir y la pieza a fabricar.</div></div></td></tr>`);
 }
 
 function renderVentas(filter=''){
@@ -8732,6 +8771,9 @@ function renderPresupuestos(filter=''){
   document.getElementById('presup-tbody').innerHTML=list.length?list.map(p=>{
     const items=p.presupuesto_items||[];
     const puedeConvertir=['enviado','aprobado'].includes(p.estado);
+    const opsVinc=ops.filter(o=>o.presupuesto_id===p.id);
+    const genOPBtn=p.estado==='aprobado'?`<button class="btn btn-ghost btn-sm" onclick="generarOPDesdePresupuesto('${p.id}')" style="border-color:var(--teal);color:var(--teal)" title="Generar orden de producción desde este presupuesto"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4"/><path d="M12 19v4"/><path d="m4.22 4.22 2.83 2.83"/><path d="m16.95 16.95 2.83 2.83"/><path d="M1 12h4"/><path d="M19 12h4"/><path d="m4.22 19.78 2.83-2.83"/><path d="m16.95 7.05 2.83-2.83"/></svg></span>OP</button>`:'';
+    const opsBadge=opsVinc.length?`<br><span class="badge ${opsVinc.every(o=>o.estado==='completada')?'badge-ok':'badge-warn'}" style="font-size:9px" title="${esc(opsVinc.map(o=>o.nro+' ('+(o.estado||'en-proceso')+')').join(', '))}">${opsVinc.length} OP${opsVinc.length>1?'s':''}</span>`:'';
     // Margen estimado de la cotización: total (con descuento) vs Σ costo×cant
     const costos=items.reduce((a,i)=>a+((parseFloat(i.costo_estimado)||0)*(parseFloat(i.cantidad)||0)),0);
     const totP=parseFloat(p.total||0);
@@ -8755,7 +8797,7 @@ function renderPresupuestos(filter=''){
         if(dEnv>=7)segBadge=`<br><span class="badge badge-warn" style="font-size:9px" title="Enviado hace ${dEnv} días sin respuesta — momento de llamar al cliente">${dEnv}D SIN RESP.</span>`;
       }
     }
-    return `<tr><td class="mono td-primary">${esc(p.nro)}</td><td style="font-weight:500">${esc(p.cliente)}</td><td>${p.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${p.fecha_vencimiento||'—'}${segBadge}</td><td class="mono">${items.length}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(p.total||0))}</td><td>${margenCell}</td><td>${estadoSelect('presupuestos',p.id,p.estado,['borrador','enviado','aprobado','rechazado','vencido'],badges)}</td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="generatePresupuestoPDF('${p.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>PDF</button>${puedeConvertir?`<button class="btn btn-ghost btn-sm" onclick="convertirPresupuesto('${p.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>Venta</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editPresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deletePresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+    return `<tr><td class="mono td-primary">${esc(p.nro)}</td><td style="font-weight:500">${esc(p.cliente)}</td><td>${p.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${p.fecha_vencimiento||'—'}${segBadge}</td><td class="mono">${items.length}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(p.total||0))}</td><td>${margenCell}</td><td>${estadoSelect('presupuestos',p.id,p.estado,['borrador','enviado','aprobado','rechazado','vencido'],badges)}${opsBadge}</td><td style="display:flex;gap:4px;flex-wrap:wrap">${genOPBtn}<button class="btn btn-ghost btn-sm" onclick="generatePresupuestoPDF('${p.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>PDF</button>${puedeConvertir?`<button class="btn btn-ghost btn-sm" onclick="convertirPresupuesto('${p.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>Venta</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editPresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deletePresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
   }).join(''):'<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">Sin presupuestos</div><div class="empty-msg">Generá uno con <b>+ Nuevo presupuesto</b>. Cuando el cliente lo apruebe, lo convertís en venta.</div></div></td></tr>';
 }
 
