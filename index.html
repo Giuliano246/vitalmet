@@ -586,6 +586,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <div class="page-header"><div class="page-title">Presupuestos</div><div class="page-sub">// cotización → aprobación → venta</div><div class="tabs"><div class="tab active">Todos</div></div></div>
       <div class="page-content">
         <div class="stats-bar" id="presup-stats"></div>
+        <div id="presup-pipeline" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px"></div>
         <div class="toolbar">
           <div class="search-box"><input type="text" placeholder="Buscar por nro, cliente..." oninput="renderPresupuestos(this.value)"></div><input type="date" id="presupf-fdesde" onchange="renderPresupuestos(document.querySelector('#page-presupuestos .search-box input').value)" title="Desde" style="width:auto"><input type="date" id="presupf-fhasta" onchange="renderPresupuestos(document.querySelector('#page-presupuestos .search-box input').value)" title="Hasta" style="width:auto">
           <button class="btn btn-ghost" onclick="exportPresupuestosCSV()" title="Exportar a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
@@ -7935,6 +7936,28 @@ setInterval(()=>{
   timersActivos.forEach(e=>{const el=document.getElementById('panel-timer-'+e.id);if(el)el.textContent=fmtTimerSec(secSince(e.started_at));});
 },1000);
 
+// ─── Métricas de pipeline comercial (tests/pipeline.test.js) ──────────
+function computePipelineMetrics(ps,hoyISO){
+  const hoyMs=new Date(hoyISO+'T00:00:00').getTime();
+  const dias=(a,b)=>Math.round((new Date(b).getTime()-new Date(a+'T00:00:00').getTime())/86400000);
+  const decididos=ps.filter(p=>['convertido','rechazado','vencido'].includes(p.estado)&&p.fecha&&p.updated_at);
+  const ciclos=decididos.map(p=>dias(p.fecha,p.updated_at)).filter(d=>d>=0&&d<365);
+  const cicloPromedioDias=ciclos.length?Math.round(ciclos.reduce((a,b)=>a+b,0)/ciclos.length):null;
+  const meses={};
+  ps.forEach(p=>{
+    if(!p.fecha)return;
+    const mes=p.fecha.slice(0,7);
+    if(!meses[mes])meses[mes]={mes,ganado:0,perdido:0};
+    if(p.estado==='convertido')meses[mes].ganado+=parseFloat(p.total||0);
+    else if(['rechazado','vencido'].includes(p.estado))meses[mes].perdido+=parseFloat(p.total||0);
+  });
+  const ganado6m=Object.values(meses).filter(m=>m.ganado||m.perdido).sort((a,b)=>b.mes.localeCompare(a.mes)).slice(0,6).reverse();
+  const agingAbiertos=ps.filter(p=>p.estado==='enviado'&&p.fecha)
+    .map(p=>({nro:p.nro,cliente:p.cliente,dias:Math.round((hoyMs-new Date(p.fecha+'T00:00:00').getTime())/86400000)}))
+    .sort((a,b)=>b.dias-a.dias);
+  return {cicloPromedioDias,ganado6m,agingAbiertos};
+}
+
 // ─── Generador de recordatorios (tests/mailings.test.js) ──────────
 function resolverTemplate(tpl,vars){
   const rep=s=>Object.entries(vars).reduce((a,[k,v])=>a.split('{'+k+'}').join(v),s||'');
@@ -9349,6 +9372,29 @@ function renderPresupuestos(filter=''){
     <div class="stat-card"><div class="stat-label">Convertidos a venta</div><div class="stat-value" style="color:var(--teal)">${convertidos}</div></div>
     <div class="stat-card"><div class="stat-label">Conversión</div><div class="stat-value" style="color:${conversion>=50?'var(--green)':conversion>=25?'var(--accent)':'var(--coral)'}">${decididos?conversion+'%':'—'}</div></div>
     <div class="stat-card"><div class="stat-label">Importe total</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtUSD(totalUSD)}</div></div>`;
+  const pipeEl=document.getElementById('presup-pipeline');
+  if(pipeEl){
+    const pm=computePipelineMetrics(presupuestos,hoy);
+    const mesLabel=m=>{const[y,mm]=m.split('-');return['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][parseInt(mm)-1]+' '+y.slice(2);};
+    const maxGP=Math.max(1,...pm.ganado6m.map(m=>Math.max(m.ganado,m.perdido)));
+    pipeEl.innerHTML=`
+      <div class="dash-card"><div class="section-label">Ciclo de venta</div>
+        <div style="font-size:26px;font-weight:700;font-family:var(--mono);margin-top:8px;color:var(--accent)">${pm.cicloPromedioDias!=null?pm.cicloPromedioDias+' días':'—'}</div>
+        <div style="font-size:11px;color:var(--text3)">promedio envío → decisión</div></div>
+      <div class="dash-card"><div class="section-label">Ganado vs. perdido por mes (USD)</div>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px">${pm.ganado6m.length?pm.ganado6m.map(m=>`
+          <div style="display:grid;grid-template-columns:44px 1fr 1fr;gap:6px;align-items:center;font-size:10px">
+            <span class="mono" style="color:var(--text3)">${mesLabel(m.mes)}</span>
+            <div style="background:var(--surface2);border-radius:3px"><div style="width:${Math.round(m.ganado/maxGP*100)}%;background:var(--green);height:10px;border-radius:3px" title="Ganado ${fmtUSD(m.ganado)}"></div></div>
+            <div style="background:var(--surface2);border-radius:3px"><div style="width:${Math.round(m.perdido/maxGP*100)}%;background:var(--coral);height:10px;border-radius:3px" title="Perdido ${fmtUSD(m.perdido)}"></div></div>
+          </div>`).join(''):'<div style="font-size:11px;color:var(--text3)">Sin decisiones registradas aún</div>'}
+        </div>
+        <div style="display:flex;gap:14px;font-size:9px;color:var(--text3);margin-top:6px"><span><span style="display:inline-block;width:8px;height:8px;background:var(--green);border-radius:2px"></span> ganado</span><span><span style="display:inline-block;width:8px;height:8px;background:var(--coral);border-radius:2px"></span> perdido</span></div></div>
+      <div class="dash-card"><div class="section-label">Pipeline abierto (esperando respuesta)</div>
+        <div style="display:flex;flex-direction:column;gap:4px;margin-top:8px;font-size:11px">${pm.agingAbiertos.length?pm.agingAbiertos.slice(0,5).map(a=>`
+          <div style="display:flex;justify-content:space-between;gap:8px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.nro||'')} · ${esc(a.cliente||'')}</span><span class="mono" style="color:${a.dias>=7?'var(--coral)':'var(--text3)'};font-weight:600;flex-shrink:0">${a.dias}d</span></div>`).join(''):'<div style="color:var(--text3)">Nada esperando respuesta 👌</div>'}
+        </div></div>`;
+  }
   const badges={borrador:'badge-warn',enviado:'badge-blue',aprobado:'badge-ok',rechazado:'badge-coral',vencido:'badge-coral',convertido:'badge-teal'};
   const _pFd=document.getElementById('presupf-fdesde')?.value||'',_pFh=document.getElementById('presupf-fhasta')?.value||'';
   const list=presupuestos.filter(p=>(!f||p.nro.toLowerCase().includes(f)||p.cliente.toLowerCase().includes(f))&&enRango(p.fecha,_pFd,_pFh));
