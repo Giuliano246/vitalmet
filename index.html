@@ -383,6 +383,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <div class="nav-item" data-group="config" onclick="showPage('config')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>Configuración</div>
     </nav>
     <div class="sidebar-footer" style="position:relative">
+      <button onclick="openPalette()" title="Buscar (Ctrl+K)" aria-label="Buscar" style="position:absolute;top:8px;right:32px;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:2px 4px;line-height:1">⌕</button>
       <button onclick="toggleTheme()" id="btn-theme" title="Cambiar tema" style="position:absolute;top:8px;right:10px;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:2px 4px;line-height:1"><span id="theme-icon">☀</span></button>
       <div class="user-info" id="sidebar-user" style="padding-right:22px">—</div>
       <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
@@ -1889,6 +1890,16 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <button class="btn btn-ghost" style="border-left:3px solid var(--coral);text-align:left;padding:10px" onclick="confirmPauseTiempo('Esperando operario')"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">No planif.</div>Esperando operario</button>
         <button class="btn btn-ghost" style="text-align:left;padding:10px" onclick="confirmPauseTiempo('Otro')"><div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">General</div>Otro</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Command palette (Ctrl+K) -->
+<div class="modal-overlay" id="modal-palette">
+  <div class="modal" style="width:560px;align-self:flex-start;margin-top:10vh">
+    <div class="modal-body" style="padding:12px">
+      <input type="text" id="palette-input" placeholder="Buscar clientes, ventas, OPs, páginas… (Esc para cerrar)" autocomplete="off" style="width:100%;font-size:14px;padding:10px 12px">
+      <div id="palette-results" style="margin-top:8px;max-height:50vh;overflow-y:auto"></div>
     </div>
   </div>
 </div>
@@ -7684,6 +7695,28 @@ function enRango(fecha,desde,hasta){
   return(!desde||f>=desde)&&(!hasta||f<=hasta);
 }
 
+// ─── Command palette: matching puro (tests/palette.test.js) ──────────
+function paletteMatch(query,items){
+  const terms=query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if(!terms.length)return[];
+  const scored=[];
+  items.forEach(it=>{
+    const l=(it.label||'').toLowerCase();
+    if(!terms.every(t=>l.includes(t)))return;
+    let score=1;
+    if(l===terms.join(' '))score=3;
+    else if(terms.some(t=>l.startsWith(t)))score=2;
+    scored.push({it,score});
+  });
+  scored.sort((a,b)=>b.score-a.score||a.it.label.localeCompare(b.it.label,'es'));
+  const porCat={},out=[];
+  scored.forEach(({it})=>{
+    porCat[it.cat]=(porCat[it.cat]||0)+1;
+    if(porCat[it.cat]<=4)out.push(it);
+  });
+  return out;
+}
+
 // ─── Rollup de eficiencia (funciones puras, testeadas en tests/eficiencia.test.js) ──────────
 function minutosEntry(e,ahoraMs){const end=e.ended_at?new Date(e.ended_at).getTime():(ahoraMs||Date.now());return Math.max(0,Math.floor((end-new Date(e.started_at).getTime())/60000));}
 
@@ -7802,6 +7835,77 @@ setInterval(()=>{
   if(!page||!page.classList.contains('active')||!timersActivos.length)return;
   timersActivos.forEach(e=>{const el=document.getElementById('panel-timer-'+e.id);if(el)el.textContent=fmtTimerSec(secSince(e.started_at));});
 },1000);
+
+// ─── Command palette: índice, render y teclado ──────────
+let _palItems=[],_palSel=0,_palIndex=null;
+function buildPaletteIndex(){
+  const ix=[];
+  clientes.forEach(c=>ix.push({cat:'Clientes',label:`${c.nombre}${c.cuit?' · '+c.cuit:''}`,page:'clientes',id:c.id}));
+  ventas.forEach(v=>ix.push({cat:'Ventas',label:`${v.nro_remito||v.nro_pedido||''} · ${v.cliente||''} · ${fmtUSD(parseFloat(v.total||0))}`,page:'ventas',id:v.id}));
+  presupuestos.forEach(p=>ix.push({cat:'Presupuestos',label:`${p.nro||''} · ${p.cliente||''} (${p.estado||''})`,page:'presupuestos',id:p.id}));
+  ops.forEach(o=>ix.push({cat:'Órdenes de producción',label:`${o.nro||''} · ${o.pieza||''}`,page:'op',id:o.id}));
+  barras.forEach(b=>ix.push({cat:'Materia prima',label:`${b.lote||''} · ${b.material||''}`,page:'mp',id:b.id}));
+  pts.forEach(p=>ix.push({cat:'Prod. terminados',label:`${p.lote||''} · ${p.pieza||''}`,page:'pt',id:p.id}));
+  certs.forEach(c=>ix.push({cat:'Certificados',label:`${c.nro||''} · ${c.material||''}${c.colada?' · colada '+c.colada:''}`,page:'cert',id:c.id}));
+  proveedores.forEach(p=>ix.push({cat:'Proveedores',label:p.nombre||'',page:'compras',id:p.id}));
+  cheques.forEach(c=>ix.push({cat:'Cheques',label:`${c.numero||''} · ${c.banco||''} (${c.estado||''})`,page:'cheques',id:c.id}));
+  noConformidades.forEach(n=>ix.push({cat:'NCR',label:`NC-${String(n.numero).padStart(4,'0')} · ${(n.descripcion||'').slice(0,50)}`,page:'ncr',id:n.id}));
+  const vistos=new Set();
+  Object.values(GROUP_TABS).flat().forEach(t=>{
+    (t.sub||[t]).forEach(s=>{if(!vistos.has(s.k)){vistos.add(s.k);ix.push({cat:'Páginas',label:'Ir a '+s.l,run:()=>showPage(s.k)});}});
+  });
+  ix.push({cat:'Páginas',label:'Ir a Métricas',run:()=>showPage('dash')});
+  ix.push({cat:'Acciones',label:'⚡ Nueva venta',run:()=>openModal('modal-venta')});
+  ix.push({cat:'Acciones',label:'⚡ Nuevo presupuesto',run:()=>openPresupuestoModal()});
+  ix.push({cat:'Acciones',label:'⚡ Nueva orden de producción',run:()=>openModal('modal-op')});
+  ix.push({cat:'Acciones',label:'⚡ Nueva orden de compra',run:()=>openOCModal()});
+  return ix;
+}
+function openPalette(){
+  _palIndex=buildPaletteIndex();
+  openModal('modal-palette');
+  const inp=document.getElementById('palette-input');
+  inp.value='';renderPaletteResults('');
+  setTimeout(()=>inp.focus(),50);
+}
+function renderPaletteResults(q){
+  const cont=document.getElementById('palette-results');
+  _palItems=q.trim()?paletteMatch(q,_palIndex):_palIndex.filter(i=>i.cat==='Acciones').concat(_palIndex.filter(i=>i.cat==='Páginas').slice(0,6));
+  _palSel=0;
+  if(!_palItems.length){cont.innerHTML='<div style="padding:14px;text-align:center;color:var(--text3);font-size:12px">Sin resultados</div>';return;}
+  let lastCat=null;
+  cont.innerHTML=_palItems.map((it,i)=>{
+    const header=it.cat!==lastCat?`<div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);padding:8px 10px 3px">${esc(it.cat)}</div>`:'';
+    lastCat=it.cat;
+    return header+`<div class="palette-item" data-i="${i}" onclick="execPaletteItem(${i})" style="padding:8px 10px;border-radius:4px;cursor:pointer;font-size:13px">${esc(it.label)}</div>`;
+  }).join('');
+  updatePaletteSel();
+}
+function updatePaletteSel(){
+  document.querySelectorAll('.palette-item').forEach(el=>{
+    const sel=parseInt(el.dataset.i)===_palSel;
+    el.style.background=sel?'var(--surface2)':'transparent';
+    el.style.outline=sel?'1px solid var(--accent)':'none';
+    if(sel)el.scrollIntoView({block:'nearest'});
+  });
+}
+function execPaletteItem(i){
+  const it=_palItems[i];if(!it)return;
+  closeModal('modal-palette');
+  if(it.run)it.run();
+  else showPage(it.page,it.id);
+}
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&(e.key==='k'||e.key==='K')){e.preventDefault();openPalette();return;}
+  const overlay=document.getElementById('modal-palette');
+  if(!overlay||!overlay.classList.contains('open'))return;
+  if(e.key==='Escape'){e.preventDefault();closeModal('modal-palette');}
+  else if(e.key==='ArrowDown'){e.preventDefault();_palSel=Math.min(_palSel+1,_palItems.length-1);updatePaletteSel();}
+  else if(e.key==='ArrowUp'){e.preventDefault();_palSel=Math.max(_palSel-1,0);updatePaletteSel();}
+  else if(e.key==='Enter'&&_palItems.length){e.preventDefault();execPaletteItem(_palSel);}
+});
+const _palInput=document.getElementById('palette-input');
+if(_palInput&&_palInput.addEventListener)_palInput.addEventListener('input',e=>renderPaletteResults(e.target.value));
 
 // ─── Sort de tablas: delegación global ──────────
 let _tableSorts={};
