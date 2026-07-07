@@ -972,7 +972,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
             <button class="btn btn-ghost btn-sm" id="cp-tab-pago" onclick="switchCobPag('pago')" style="border-radius:0;border:none">Pago a proveedor</button>
           </div>
           <div class="form-group" style="margin:0;width:160px"><label>Fecha</label><input type="date" id="cp-fecha"></div>
-          <div class="form-group" style="margin:0;flex:1;min-width:240px"><label id="cp-tercero-label">Cliente</label><input type="text" id="cp-tercero" placeholder="Razón social..." list="cp-tercero-list"><datalist id="cp-tercero-list"></datalist></div>
+          <div class="form-group" style="margin:0;flex:1;min-width:240px"><label id="cp-tercero-label">Cliente</label><select id="cp-tercero-sel" onchange="document.getElementById('cp-tercero-otro').style.display=this.value==='__otro__'?'':'none'"></select><input type="text" id="cp-tercero-otro" placeholder="Razón social..." style="display:none;margin-top:6px"></div>
           <div class="form-group" style="margin:0;width:140px"><label>Monto</label><input type="number" id="cp-monto" step="0.01" min="0" placeholder="0.00"></div>
           <div class="form-group" style="margin:0;width:130px"><label>Moneda</label><select id="cp-moneda" onchange="onCobPagMonedaChange()"><option value="ARS">ARS</option><option value="USD" selected>USD</option></select></div>
           <div class="form-group" style="margin:0;width:120px"><label>TC</label><input type="number" id="cp-tc" step="0.01" min="0" placeholder="auto"></div>
@@ -5274,12 +5274,14 @@ function switchCobPag(modo){
 }
 
 function renderCobPagAutocomplete(){
-  const list=document.getElementById('cp-tercero-list');if(!list)return;
-  if(cobPagModo==='cobro'){
-    list.innerHTML=clientes.map(c=>`<option value="${esc(c.nombre||'')}">`).join('');
-  }else{
-    list.innerHTML=proveedores.map(p=>`<option value="${esc(p.nombre||'')}">`).join('');
-  }
+  const sel=document.getElementById('cp-tercero-sel');if(!sel)return;
+  const src=cobPagModo==='cobro'?clientes:proveedores;
+  const actual=sel.value;
+  sel.innerHTML='<option value="">— Seleccioná —</option>'
+    +[...src].sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'','es')).map(x=>`<option value="${esc(x.nombre||'')}">${esc(x.nombre||'')}</option>`).join('')
+    +'<option value="__otro__">Otro…</option>';
+  if([...sel.options].some(o=>o.value===actual))sel.value=actual;
+  document.getElementById('cp-tercero-otro').style.display=sel.value==='__otro__'?'':'none';
 }
 
 function onCobPagMonedaChange(){
@@ -5327,7 +5329,8 @@ async function anularCobPag(id){
 
 async function registrarCobroOPago(){
   const fecha=document.getElementById('cp-fecha').value;
-  const tercero=document.getElementById('cp-tercero').value.trim();
+  const _selT=document.getElementById('cp-tercero-sel').value;
+  const tercero=(_selT==='__otro__'?document.getElementById('cp-tercero-otro').value:_selT).trim();
   const monto=parseFloat(document.getElementById('cp-monto').value);
   const moneda=document.getElementById('cp-moneda').value;
   const tc=parseFloat(document.getElementById('cp-tc').value)||0;
