@@ -2805,7 +2805,7 @@ function setBusy(id,busy,label='Guardar'){const b=document.getElementById(id);if
 let _savingMP=false;
 async function saveMP(){
   if(_savingMP)return;
-  if(!g('mp-lote')||!g('mp-material')||!g('mp-kg')||!g('mp-colada'))return notify('Completá los campos obligatorios','err');
+  if(!validarCampos([['mp-lote',!!g('mp-lote'),'Completá el lote'],['mp-material',!!g('mp-material'),'Completá el material'],['mp-kg',!!g('mp-kg'),'Completá los metros/kg'],['mp-colada',!!g('mp-colada'),'Completá la colada']]))return;
   _savingMP=true;setBusy('btn-save-mp',true);
   try{
     await POST('barras',{empresa_id:currentEmpresa.id,lote:g('mp-lote'),material:g('mp-material'),perfil:g('mp-perfil'),diametro:g('mp-diam'),kg_disponibles:parseFloat(g('mp-kg'))||0,unidades:parseInt(g('mp-unid'))||0,nro_colada:g('mp-colada'),certificado_id:g('mp-cert-link')||null,kg_minimo:parseFloat(g('mp-min'))||0,observaciones:g('mp-obs')});
@@ -2821,7 +2821,7 @@ async function saveMP(){
 }
 
 async function saveCert(){
-  if(!g('cert-nro')||!g('cert-prov')||!g('cert-mat')||!g('cert-colada'))return notify('Completá los campos obligatorios','err');
+  if(!validarCampos([['cert-nro',!!g('cert-nro'),'Completá el nro de certificado'],['cert-prov',!!g('cert-prov'),'Completá el proveedor'],['cert-mat',!!g('cert-mat'),'Completá el material'],['cert-colada',!!g('cert-colada'),'Completá la colada']]))return;
   setBusy('btn-save-cert',true);
   try{
     const nroNuevo=g('cert-nro');
@@ -2885,8 +2885,8 @@ function abrirOPPrecargada(pid,itemId){
 async function saveOP(){
   const origen=g('op-origen')||'barra';
   const esBarra=origen==='barra';
-  if(!g('op-nro')||!g('op-pieza')||!g('op-cant'))return notify('Completá los campos obligatorios','err');
-  if(esBarra&&(!g('op-barra')||!g('op-kg-usados')))return notify('Seleccioná barra y metros consumidos','err');
+  if(!validarCampos([['op-nro',!!g('op-nro'),'Completá el nro de orden'],['op-pieza',!!g('op-pieza'),'Completá la pieza'],['op-cant',!!g('op-cant'),'Completá la cantidad']]))return;
+  if(esBarra&&!validarCampos([['op-barra',!!g('op-barra'),'Seleccioná la barra'],['op-kg-usados',!!g('op-kg-usados'),'Completá los metros consumidos']]))return;
   const kgU=parseFloat(g('op-kg-usados'))||0;
   let barra=null;
   let barraId=null;
@@ -2931,7 +2931,7 @@ async function saveOP(){
 let _savingVenta=false;
 async function saveVenta(){
   if(_savingVenta)return;
-  if(!g('v-remito')||!g('v-cliente'))return notify('Completá nro pedido y razón social','err');
+  if(!validarCampos([['v-remito',!!g('v-remito'),'Completá el nro de pedido'],['v-cliente',!!g('v-cliente'),'Completá la razón social']]))return;
   if(!ventaItemsList.length)return notify('Agregá al menos un ítem','err');
   const isEdit=!!window.editingVentaId;
   // Validación stock: si es edit, sumar el stock de los items viejos antes de comparar
@@ -5430,10 +5430,12 @@ async function registrarCobroOPago(){
   const metodo=document.getElementById('cp-metodo').value;
   const comprobante=document.getElementById('cp-comprobante').value.trim()||null;
   const obs=document.getElementById('cp-obs').value.trim()||null;
-  if(!fecha)return notify('Cargá la fecha','err');
-  if(!tercero)return notify(`Cargá el ${cobPagModo==='cobro'?'cliente':'proveedor'}`,'err');
-  if(!(monto>0))return notify('Monto inválido','err');
-  if(moneda==='USD'&&!(tc>0))return notify('Cargá el tipo de cambio (USD)','err');
+  if(!validarCampos([
+    ['cp-fecha',!!fecha,'Cargá la fecha'],
+    ['cp-tercero-sel',!!tercero,`Cargá el ${cobPagModo==='cobro'?'cliente':'proveedor'}`],
+    ['cp-monto',monto>0,'Monto inválido'],
+    ['cp-tc',!(moneda==='USD')||tc>0,'Cargá el tipo de cambio (USD)'],
+  ]))return;
   if(!configContable)return notify('Falta configurar la imputación contable (Configuración → Imputación contable)','err');
   const cfg=configContable;
   // Cuentas según método
@@ -5706,7 +5708,7 @@ function editCheque(id){
   openModal('modal-cheque');
 }
 async function saveCheque(){
-  if(!g('cheque-numero')||!g('cheque-fecha-pago')||!(parseFloat(g('cheque-monto'))>0))return notify('Completá número, fecha de pago y monto','err');
+  if(!validarCampos([['cheque-numero',!!g('cheque-numero'),'Completá el número del cheque'],['cheque-fecha-pago',!!g('cheque-fecha-pago'),'Completá la fecha de pago'],['cheque-monto',parseFloat(g('cheque-monto'))>0,'Monto inválido']]))return;
   const id=g('cheque-edit-id');
   const tipo=document.getElementById('cheque-tipo').value;
   const tercero=g('cheque-tercero').trim();
@@ -7760,6 +7762,22 @@ function closeTiempos(){closeModal('modal-tiempos');if(tiempoInterval){clearInte
 
 function openEntryOf(entries,opId,tipo){return entries.find(e=>e.operacion_id===opId&&e.tipo===tipo&&!e.ended_at)||null;}
 function activeProductivos(entries){return entries.filter(e=>e.tipo==='productivo'&&!e.ended_at);}
+// ─── Validación por campo (marca + foco; se limpia al tipear) ──────────
+function marcarInvalido(id){
+  const el=document.getElementById(id);if(!el)return;
+  el.style.borderColor='var(--red)';el.style.boxShadow='0 0 0 3px rgba(220,80,80,.15)';
+  const clear=()=>{el.style.borderColor='';el.style.boxShadow='';el.removeEventListener('input',clear);el.removeEventListener('change',clear);};
+  el.addEventListener('input',clear);el.addEventListener('change',clear);
+}
+function validarCampos(pares){
+  const malos=pares.filter(p=>!p[1]);
+  if(!malos.length)return true;
+  malos.forEach(p=>marcarInvalido(p[0]));
+  const first=document.getElementById(malos[0][0]);if(first)first.focus();
+  notify(malos[0][2]||'Revisá los campos marcados','err');
+  return false;
+}
+
 // ─── Sort de tablas: parsers puros (tests/sort.test.js) ──────────
 function parseCellValue(s){
   const t=(s||'').trim();
@@ -8106,7 +8124,7 @@ async function saveEmailEdit(aprobar){
   const id=_emailEditId;if(!id)return;
   const to=document.getElementById('em-to').value.trim();
   const subject=document.getElementById('em-subject').value.trim();
-  if(!to||!subject)return notify('Completá destinatario y asunto','err');
+  if(!validarCampos([['em-to',!!to,'Completá el destinatario'],['em-subject',!!subject,'Completá el asunto']]))return;
   try{
     const patch={to_email:to,subject,body_html:document.getElementById('em-body').value};
     if(aprobar===true){patch.estado='aprobado';patch.aprobado_por=currentUser.id;patch.aprobado_at=new Date().toISOString();}
@@ -8129,7 +8147,7 @@ async function saveTemplate(){
   const nombre=document.getElementById('tpl-nombre').value.trim();
   const subject=document.getElementById('tpl-subject').value.trim();
   const body=document.getElementById('tpl-body').value;
-  if(!nombre||!subject||!body)return notify('Completá nombre, asunto y cuerpo','err');
+  if(!validarCampos([['tpl-nombre',!!nombre,'Completá el nombre'],['tpl-subject',!!subject,'Completá el asunto'],['tpl-body',!!body,'Completá el cuerpo']]))return;
   try{setBusy('btn-save-tpl',true);
     const data={nombre,tipo:document.getElementById('tpl-tipo').value,subject,body_html:body,activo:document.getElementById('tpl-activo').checked};
     if(_tplEditId)await PATCH('email_templates',data,`?id=eq.${_tplEditId}`);
@@ -9546,7 +9564,7 @@ async function savePresupuesto(){
   const nro=document.getElementById('presup-nro').value.trim();
   const cliente=document.getElementById('presup-cliente').value.trim();
   const fecha=document.getElementById('presup-fecha').value;
-  if(!nro||!cliente||!fecha){notify('Nro, cliente y fecha son obligatorios','err');return;}
+  if(!validarCampos([['presup-nro',!!nro,'Completá el nro'],['presup-cliente',!!cliente,'Completá el cliente'],['presup-fecha',!!fecha,'Completá la fecha']]))return;
   if(!presupItemsDraft.length){notify('Agregá al menos un ítem','err');return;}
   const sub=presupItemsDraft.reduce((a,i)=>a+(parseFloat(i.subtotal)||0),0);
   const desc=parseFloat(document.getElementById('presup-desc-pct').value||0);
@@ -10278,7 +10296,7 @@ async function saveCfgCostos(){
 
 async function saveOperacionPaso(){
   const nombre=document.getElementById('paso-nombre').value.trim();
-  if(!nombre){notify('El nombre es obligatorio','err');return;}
+  if(!validarCampos([['paso-nombre',!!nombre,'El nombre del paso es obligatorio']]))return;
   const maquina=document.getElementById('paso-maquina').value.trim();
   const estimado=parseInt(document.getElementById('paso-estimado').value||0);
   const tarifa=parseFloat(document.getElementById('paso-tarifa').value||0);
