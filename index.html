@@ -2574,7 +2574,7 @@ const TBL={
   periodos_contables:{label:'Períodos',q:'?order=anio.desc,mes.desc',set:r=>{periodosContables=r||[];}},
   v_correlatividad:{label:'Correlatividad',q:'?select=*',set:r=>{correlatividad=r||[];}},
   cuentas_bancarias:{label:'Cuentas bancarias',q:'?order=nombre.asc',set:r=>{cuentasBancarias=r||[];}},
-  extracto_bancario:{label:'Extracto bancario',q:'?order=fecha.desc',set:r=>{extractoBancario=r||[];}},
+  extracto_bancario:{label:'Extracto bancario',q:'?order=fecha.desc',set:r=>{extractoBancario=r||[];},lazy:true}, // solo Conciliación (carga on-demand)
   // Calidad (Fase 2 ISO/Q1) — sin file_data: los PDFs se bajan on-demand en openPDF()
   documentos_controlados:{label:'Documentos controlados',q:'?order=codigo.asc,revision.desc&select=id,empresa_id,codigo,titulo,tipo,revision,estado,fecha_vigencia,aprobado_por,file_name,observaciones,created_at',set:r=>{documentosControlados=r||[];}},
   pqp_plantillas:{label:'Plantillas PQP',q:'?order=codigo.asc',set:r=>{pqpPlantillas=r||[];}},
@@ -4275,7 +4275,9 @@ function renderCorrelatividad(){
   }</tbody></table></div>`;
 }
 
-function renderConciliacion(){
+let _extractoLoaded=false;
+async function renderConciliacion(){
+  if(!_extractoLoaded){await reload('extracto_bancario');_extractoLoaded=true;}
   const el=document.getElementById('concil-cuentas');if(!el)return;
   const total=cuentasBancarias.length;
   const activas=cuentasBancarias.filter(c=>c.activa!==false).length;
@@ -8250,6 +8252,17 @@ document.addEventListener('keydown',e=>{
 });
 const _palInput=document.getElementById('palette-input');
 if(_palInput&&_palInput.addEventListener)_palInput.addEventListener('input',e=>renderPaletteResults(e.target.value));
+
+// ─── Refetch al volver a la pestaña (datos >5 min → refresh en background) ──────────
+let _refetching=false;
+document.addEventListener('visibilitychange',async()=>{
+  if(document.visibilityState!=='visible')return;
+  if(_refetching||!_lastLoadAllAt||Date.now()-_lastLoadAllAt<5*60*1000)return;
+  if(!currentEmpresa)return; // sin sesión no hay nada que refrescar
+  _refetching=true;
+  try{await loadAll();renderAll();}catch(e){console.warn('refetch on focus:',e);}
+  finally{_refetching=false;}
+});
 
 // ─── Esc cierra el modal abierto (el palette tiene su propio handler) ──────────
 document.addEventListener('keydown',e=>{
