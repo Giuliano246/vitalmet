@@ -657,6 +657,22 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div id="mail-vista-log" class="table-wrap" style="display:none"><table><thead><tr><th>Fecha</th><th>Para</th><th>Asunto</th></tr></thead><tbody id="mail-log-tbody"></tbody></table></div>
       </div>
     </div>
+    <!-- PRECIOS BASE -->
+    <div class="page" id="page-precios">
+      <div class="page-header"><div class="page-title">Precios de venta</div><div class="page-sub">// precio de lista USD por pieza — el último precio al cliente manda</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="precios-stats"></div>
+        <div class="toolbar">
+          <div class="search-box"><input type="text" placeholder="Buscar pieza..." oninput="renderPrecios(this.value)"></div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost" onclick="importarPreciosDesdeStock()" title="Crea entradas para las piezas del stock PT que aún no tienen precio base">Importar desde stock</button>
+            <button class="btn btn-ghost" onclick="ajustarPreciosPct()" style="border-color:var(--accent);color:var(--accent)">Ajustar todo %</button>
+            <button class="btn" onclick="nuevoPrecioBase()" style="background:var(--accent);color:white">+ Pieza</button>
+          </div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Pieza</th><th>Precio USD</th><th>Actualizado</th><th></th></tr></thead><tbody id="precios-tbody"></tbody></table></div>
+      </div>
+    </div>
     <!-- CHEQUES DIFERIDOS -->
     <div class="page" id="page-cheques">
       <div class="page-header"><div class="page-title">Cheques diferidos</div><div class="page-sub">// cartera de valores · recibidos y emitidos · vencimientos</div><div class="tabs"></div></div>
@@ -2260,6 +2276,7 @@ let currentSession=null, currentUser=null, currentEmpresa=null;
 let certs=[],barras=[],ops=[],pts=[],ventas=[],ventaItemsList=[],materiales=[],tratamientos=[],usuariosEmpresa=[],permisosUsuario=[],clientes=[],vendedores=[],listasPrecios=[],currentUserData=null;
 let proveedores=[],ordenesCompra=[],ocItems=[],recepciones=[],ocItemsDraft=[],currentOCId=null;
 let mailingsQueueCount=null; // emails pendientes de aprobación (lo carga el módulo Mailings)
+let preciosBase=[];
 let insumos=[],herramientas=[];
 let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[],cheques=[];
 let facturasRecibidas=[];
@@ -2583,6 +2600,7 @@ const TBL={
   registros_calidad:{label:'Registros de calidad',q:'?order=created_at.desc&select=id,empresa_id,orden_id,operacion_id,recepcion_id,tipo,herramienta_id,datos,resultado,observaciones,firmado_por,file_name,created_at',set:r=>{registrosCalidad=r||[];}},
   no_conformidades:{label:'No conformidades',q:'?order=numero.desc',set:r=>{noConformidades=r||[];}},
   acciones_capa:{label:'Acciones CAPA',q:'?order=numero.desc',set:r=>{accionesCapa=r||[];}},
+  precios_base:{label:'Precios base',q:'?order=pieza.asc',set:r=>{preciosBase=r||[];}},
 };
 let _lastLoadAllAt=0;
 async function _loadTables(nombres){
@@ -2607,7 +2625,7 @@ async function loadAll(){
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',mailings:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',mailings:'ventas',precios:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
   produccion:[{k:'op',l:'Órdenes'},{k:'eficiencia',l:'Eficiencia'}],
@@ -2623,7 +2641,7 @@ const GROUP_TABS={
     {k:'analisis',l:'Análisis',sub:[{k:'ratios',l:'Ratios'},{k:'bimon',l:'Bimonetario'},{k:'compha',l:'Hist. vs Ajust.'},{k:'compej',l:'Compar. ejerc.'}]},
     {k:'cierreinf',l:'Cierre e inflación',sub:[{k:'periodos',l:'Períodos mensuales'},{k:'ipc',l:'Índices IPC'},{k:'ajuste',l:'Ajuste inflación'},{k:'cierre',l:'Cierre y apertura'}]}
   ],
-  ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'},{k:'ctacte',l:'Cta. corriente'},{k:'mailings',l:'Mailings'}],
+  ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'},{k:'ctacte',l:'Cta. corriente'},{k:'mailings',l:'Mailings'},{k:'precios',l:'Precios'}],
   analisis:[{k:'costos',l:'Costos y rentabilidad'},{k:'trace',l:'Trazabilidad'}],
   calidad:[{k:'ncr',l:'NCR / CAPA'},{k:'doccontrol',l:'Documentos'},{k:'pqptpl',l:'Plantillas PQP'}],
 };
@@ -4032,6 +4050,7 @@ const PAGE_RENDERS={
   op:[renderOP,refreshTimersActivos],
   eficiencia:[renderEficiencia],
   mailings:[renderMailings],
+  precios:[renderPrecios],
   compras:[renderCompras,renderInspeccion,renderProveedores,renderFacturasRecibidas],
   presupuestos:[renderPresupuestos],
   ventas:[renderVentas],
@@ -7733,7 +7752,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op','eficiencia'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte','mailings'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl'],contabilidad:['cuentas','asientosp','cobpag','cheques','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre','periodos','correlatividad','conciliacion']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op','eficiencia'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte','mailings','precios'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl'],contabilidad:['cuentas','asientosp','cobpag','cheques','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre','periodos','correlatividad','conciliacion']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
@@ -7999,6 +8018,61 @@ function computePipelineMetrics(ps,hoyISO){
     .map(p=>({nro:p.nro,cliente:p.cliente,dias:Math.round((hoyMs-new Date(p.fecha+'T00:00:00').getTime())/86400000)}))
     .sort((a,b)=>b.dias-a.dias);
   return {cicloPromedioDias,ganado6m,agingAbiertos};
+}
+
+// ═══ PRECIOS BASE — lista USD por pieza + reprecio masivo ═══
+function renderPrecios(filter=''){
+  const f=(filter||'').toLowerCase();
+  const el=document.getElementById('precios-stats');if(!el)return;
+  const sinPrecio=[...new Set(pts.map(p=>(p.pieza||'').trim().toLowerCase()))].filter(x=>x&&!preciosBase.some(pb=>pb.pieza.trim().toLowerCase()===x)).length;
+  el.innerHTML=`<div class="stat-card"><div class="stat-label">Piezas con precio</div><div class="stat-value" style="color:var(--accent)">${preciosBase.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Piezas en stock sin precio</div><div class="stat-value" style="color:${sinPrecio?'var(--coral)':'var(--green)'}">${sinPrecio}</div></div>`;
+  const list=preciosBase.filter(p=>!f||p.pieza.toLowerCase().includes(f));
+  document.getElementById('precios-tbody').innerHTML=list.length?list.map(p=>`<tr data-id="${p.id}">
+    <td style="font-weight:500">${esc(p.pieza)}</td>
+    <td><input type="number" step="0.01" min="0" value="${parseFloat(p.precio_usd)||0}" style="width:120px" onchange="savePrecioBase('${p.id}',this.value)" aria-label="Precio USD de ${esc(p.pieza)}"></td>
+    <td class="mono" style="font-size:11px;color:var(--text3)">${(p.updated_at||'').slice(0,10)}</td>
+    <td><button class="btn btn-danger btn-sm" onclick="deletePrecioBase('${p.id}')" aria-label="Eliminar">×</button></td></tr>`).join('')
+    :'<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:24px">Sin precios cargados — arrancá con <b>Importar desde stock</b></td></tr>';
+}
+async function savePrecioBase(id,valor){
+  try{await PATCH('precios_base',{precio_usd:parseFloat(valor)||0},`?id=eq.${id}`);await reload('precios_base');renderPrecios();notify('Precio actualizado');}
+  catch(e){notify('Error: '+e.message,'err');}
+}
+async function deletePrecioBase(id){
+  const p=preciosBase.find(x=>x.id===id);
+  if(!confirm(`¿Eliminar el precio base de "${p?.pieza||''}"?`))return;
+  try{await DEL('precios_base',`?id=eq.${id}`);await reload('precios_base');renderPrecios();notify('Eliminado');}
+  catch(e){notify('Error: '+e.message,'err');}
+}
+async function nuevoPrecioBase(){
+  const pieza=prompt('Pieza:');if(!pieza||!pieza.trim())return;
+  const precio=parseFloat(prompt('Precio USD:'))||0;
+  try{await POST('precios_base',{empresa_id:currentEmpresa.id,pieza:pieza.trim(),precio_usd:precio});await reload('precios_base');renderPrecios();notify('Precio agregado');}
+  catch(e){notify('Error: '+e.message,'err');}
+}
+async function ajustarPreciosPct(){
+  if(!preciosBase.length){notify('No hay precios para ajustar');return;}
+  const pct=parseFloat(prompt(`Ajuste porcentual sobre ${preciosBase.length} piezas (ej: 8 para +8%, -5 para bajar 5%):`));
+  if(isNaN(pct)||pct===0)return;
+  if(!confirm(`¿Ajustar los ${preciosBase.length} precios en ${pct>0?'+':''}${pct}%?`))return;
+  try{
+    for(const p of preciosBase){await PATCH('precios_base',{precio_usd:Math.round((parseFloat(p.precio_usd)||0)*(1+pct/100)*100)/100},`?id=eq.${p.id}`);}
+    await reload('precios_base');renderPrecios();notify(`✓ ${preciosBase.length} precios ajustados ${pct>0?'+':''}${pct}%`);
+  }catch(e){notify('Error: '+e.message,'err');}
+}
+async function importarPreciosDesdeStock(){
+  const existentes=new Set(preciosBase.map(p=>p.pieza.trim().toLowerCase()));
+  const nuevos={};
+  [...pts].sort((a,b)=>(a.created_at||'').localeCompare(b.created_at||'')).forEach(p=>{
+    const k=(p.pieza||'').trim();if(!k||existentes.has(k.toLowerCase()))return;
+    nuevos[k.toLowerCase()]={empresa_id:currentEmpresa.id,pieza:k,precio_usd:parseFloat(p.precio_unitario)||0}; // el más reciente pisa
+  });
+  const rows=Object.values(nuevos);
+  if(!rows.length){notify('Todas las piezas del stock ya tienen precio');return;}
+  if(!confirm(`Se van a crear ${rows.length} precios desde el stock PT. ¿Continuar?`))return;
+  try{await POST('precios_base',rows);await reload('precios_base');renderPrecios();notify(`✓ ${rows.length} precios importados`);}
+  catch(e){notify('Error: '+e.message,'err');}
 }
 
 // ─── Generador de recordatorios (tests/mailings.test.js) ──────────
