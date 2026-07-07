@@ -2205,6 +2205,7 @@ const BILLING_API_KEY = localStorage.getItem('billing_api_key') || '';
 let currentSession=null, currentUser=null, currentEmpresa=null;
 let certs=[],barras=[],ops=[],pts=[],ventas=[],ventaItemsList=[],materiales=[],tratamientos=[],usuariosEmpresa=[],permisosUsuario=[],clientes=[],vendedores=[],listasPrecios=[],currentUserData=null;
 let proveedores=[],ordenesCompra=[],ocItems=[],recepciones=[],ocItemsDraft=[],currentOCId=null;
+let mailingsQueueCount=null; // emails pendientes de aprobación (lo carga el módulo Mailings)
 let insumos=[],herramientas=[];
 let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[],cheques=[];
 let facturasRecibidas=[];
@@ -3659,6 +3660,42 @@ function computeAlertas(){
       titulo:uno(rech.length,'Cheque rechazado sin resolver','Cheques rechazados sin resolver'),
       detalle:rech.slice(0,3).map(c=>esc((c.numero||'')+' · '+_chequeTercero(c))).join('  —  ')+masDe(rech)});
   }
+
+  // OCs demoradas (entrega esperada vencida sin recibir)
+  const ocDemoradas=ordenesCompra.filter(o=>['enviada','confirmada','recibida_parcial'].includes(o.estado)&&o.fecha_entrega_esperada&&o.fecha_entrega_esperada<hoy);
+  if(ocDemoradas.length)out.push({sev:'crit',page:'compras',count:ocDemoradas.length,
+    titulo:uno(ocDemoradas.length,'OC con entrega vencida sin recibir','OCs con entrega vencida sin recibir'),
+    detalle:ocDemoradas.slice(0,3).map(o=>esc((o.nro||'')+' (esperada '+o.fecha_entrega_esperada+')')).join('  —  ')+masDe(ocDemoradas)});
+
+  // Facturas de proveedor vencidas / por vencer (7 días)
+  const en7dF=hoyLocal(7);
+  const factVencidas=ordenesCompra.filter(o=>o.factura_vto&&o.estado!=='anulada'&&o.factura_vto<hoy);
+  if(factVencidas.length)out.push({sev:'crit',page:'compras',count:factVencidas.length,
+    titulo:uno(factVencidas.length,'Factura de proveedor vencida','Facturas de proveedor vencidas'),
+    detalle:factVencidas.slice(0,3).map(o=>esc((o.nro||'')+' (vto '+o.factura_vto+')')).join('  —  ')+masDe(factVencidas)});
+  const factPorVencer=ordenesCompra.filter(o=>o.factura_vto&&o.estado!=='anulada'&&o.factura_vto>=hoy&&o.factura_vto<=en7dF);
+  if(factPorVencer.length)out.push({sev:'warn',page:'compras',count:factPorVencer.length,
+    titulo:uno(factPorVencer.length,'Factura de proveedor vence en 7 días','Facturas de proveedor vencen en 7 días'),
+    detalle:factPorVencer.slice(0,3).map(o=>esc((o.nro||'')+' (vto '+o.factura_vto+')')).join('  —  ')+masDe(factPorVencer)});
+
+  // Ventas entregadas sin facturar (3+ días)
+  const hace3d=hoyLocal(-3);
+  const sinFacturar=ventas.filter(v=>v.estado==='entregado'&&!v.factura_emitida_id&&v.fecha&&v.fecha<=hace3d);
+  if(sinFacturar.length)out.push({sev:'warn',page:'ventas',count:sinFacturar.length,
+    titulo:uno(sinFacturar.length,'Venta entregada sin facturar','Ventas entregadas sin facturar'),
+    detalle:sinFacturar.slice(0,3).map(v=>esc((v.nro_remito||'')+' · '+(v.cliente||''))).join('  —  ')+masDe(sinFacturar)});
+
+  // Presupuestos aprobados sin convertir ni OP (5+ días)
+  const hace5d=hoyLocal(-5);
+  const aprobFrios=presupuestos.filter(p=>p.estado==='aprobado'&&p.fecha&&p.fecha<=hace5d&&!ops.some(o=>o.presupuesto_id===p.id));
+  if(aprobFrios.length)out.push({sev:'warn',page:'presupuestos',count:aprobFrios.length,
+    titulo:uno(aprobFrios.length,'Presupuesto aprobado sin arrancar','Presupuestos aprobados sin arrancar'),
+    detalle:aprobFrios.slice(0,3).map(p=>esc((p.nro||'')+' · '+(p.cliente||''))).join('  —  ')+masDe(aprobFrios)});
+
+  // Emails esperando aprobación (si el módulo mailings ya cargó el dato)
+  if(typeof mailingsQueueCount==='number'&&mailingsQueueCount>0)out.push({sev:'warn',page:'mailings',count:mailingsQueueCount,
+    titulo:uno(mailingsQueueCount,'Email esperando tu aprobación','Emails esperando tu aprobación'),
+    detalle:'Revisalos en Ventas → Mailings'});
 
   return out;
 }
