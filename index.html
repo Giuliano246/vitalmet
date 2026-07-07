@@ -1827,15 +1827,9 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
           <div id="tiempos-entries" style="display:flex;flex-direction:column;max-height:220px;overflow-y:auto;font-size:12px"></div>
         </div>
         <div style="padding:20px;background:var(--surface2);display:flex;flex-direction:column;gap:14px">
-          <div style="background:linear-gradient(135deg,#003a8c,var(--accent));color:white;padding:20px;border-radius:6px;text-align:center">
-            <div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;opacity:0.7">Tiempo activo</div>
-            <div id="tiempos-timer" style="font-family:var(--mono);font-size:52px;font-weight:700;letter-spacing:-2px;margin:8px 0">00:00:00</div>
-            <div id="tiempos-status" style="font-size:12px;opacity:0.85;margin-bottom:14px">Seleccioná un paso</div>
-            <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap">
-              <button id="tiempos-btn-play" class="btn" style="background:var(--green);color:white;min-width:120px" onclick="startTiempoOp()"><span class="btn-icon"><svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><polygon points="6 3 20 12 6 21 6 3"/></svg></span>INICIAR</button>
-              <button id="tiempos-btn-pause" class="btn" style="background:#f59e0b;color:white;min-width:120px" onclick="openPauseTiempo()" disabled><span class="btn-icon"><svg viewBox="0 0 24 24" style="fill:currentColor;stroke:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg></span>PAUSAR</button>
-              <button id="tiempos-btn-stop" class="btn btn-danger" style="min-width:120px" onclick="completeTiempoOp()" disabled>✓ COMPLETAR</button>
-            </div>
+          <div id="tiempos-active-summary" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px">
+            <div class="section-label">Timers de esta OP</div>
+            <div id="tiempos-summary-body" style="margin-top:8px;font-size:12px;color:var(--text3)">Sin timers corriendo</div>
           </div>
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:14px">
             <div class="section-label">Métricas en vivo</div>
@@ -7573,22 +7567,27 @@ function activeProductivos(entries){return entries.filter(e=>e.tipo==='productiv
 function refreshTimersActivos(){} // panel global de timers (se implementa junto al panel en #page-op)
 function timersActivosTiene(){return false;} // ídem
 
-function renderTiempos(){renderTiemposOps();renderTiemposEntries();renderTiemposMetrics();renderTimerDisplay();updateTiemposButtons();}
+function renderTiempos(){renderTiemposOps();renderTiemposEntries();renderTiemposMetrics();renderTimerDisplay();}
 
 function renderTimerDisplay(){
-  const ae=activeEntry();
-  const disp=document.getElementById('tiempos-timer');
-  const status=document.getElementById('tiempos-status');
-  if(!disp)return;
-  if(ae){
-    disp.textContent=fmtTimerSec(secSince(ae.started_at));
-    const paso=opOperaciones.find(o=>o.id===ae.operacion_id);
-    status.textContent=paso?`⚙️ ${paso.nombre}${paso.maquina?' · '+paso.maquina:''}`:'Timer activo';
-  }else{
-    disp.textContent='00:00:00';
-    const sel=opOperaciones.find(o=>o.id===currentTiempoPasoId);
-    status.textContent=sel?`Listo para iniciar: ${sel.nombre}`:'Seleccioná un paso';
-  }
+  // tick por fila: solo textContent, sin re-render (no rompe hover/click)
+  opOperaciones.forEach(o=>{
+    const el=document.getElementById('paso-time-'+o.id);
+    if(!el)return;
+    const entries=opTimeEntries.filter(e=>e.operacion_id===o.id&&e.tipo==='productivo');
+    const finished=entries.filter(e=>e.ended_at).reduce((s,e)=>s+(new Date(e.ended_at)-new Date(e.started_at))/60000,0);
+    const live=entries.find(e=>!e.ended_at);
+    el.textContent=live?fmtTimerSec(secSince(live.started_at)+Math.round(finished*60)):fmtHMfromMin(finished);
+  });
+  const body=document.getElementById('tiempos-summary-body');
+  if(!body)return;
+  const act=activeProductivos(opTimeEntries);
+  const pausados=opTimeEntries.filter(e=>e.tipo==='pausa'&&!e.ended_at);
+  if(!act.length&&!pausados.length){body.textContent='Sin timers corriendo';return;}
+  body.innerHTML=[
+    act.length?`<span style="color:var(--green);font-weight:600">▶ ${act.length} corriendo</span>`:'',
+    pausados.length?`<span style="color:var(--coral);font-weight:600">⏸ ${pausados.length} en pausa</span>`:''
+  ].filter(Boolean).join(' · ');
 }
 
 function renderTiemposOps(){
@@ -7599,19 +7598,31 @@ function renderTiemposOps(){
     const finished=entries.filter(e=>e.ended_at).reduce((s,e)=>s+(new Date(e.ended_at)-new Date(e.started_at))/60000,0);
     const live=entries.find(e=>!e.ended_at)?minSince(entries.find(e=>!e.ended_at).started_at):0;
     const totalMin=finished+live;
-    const badge=o.estado==='completada'?'<span class="badge badge-ok">✓</span>':o.estado==='en_curso'?'<span class="badge badge-warn">▶</span>':'<span class="badge badge-blue">○</span>';
-    const active=o.id===currentTiempoPasoId;
+    const openProd=openEntryOf(opTimeEntries,o.id,'productivo');
+    const openPausa=openEntryOf(opTimeEntries,o.id,'pausa');
+    let controls='';
+    if(o.estado==='completada'){
+      controls='<span class="badge badge-ok">✓ listo</span>';
+    }else if(openProd){
+      controls=`<button class="btn btn-sm" style="background:#f59e0b;color:white;min-width:34px" onclick="openPauseTiempo('${o.id}')" aria-label="Pausar" title="Pausar">⏸</button>
+        <button class="btn btn-ghost btn-sm" style="min-width:34px" onclick="completeTiempoOp('${o.id}')" aria-label="Completar" title="Completar paso">✓</button>`;
+    }else{
+      controls=`<button class="btn btn-sm" style="background:var(--green);color:white;min-width:34px" onclick="startTiempoOp('${o.id}')" aria-label="${openPausa?'Reanudar':'Iniciar'}" title="${openPausa?'Reanudar':'Iniciar'}">▶</button>
+        <button class="btn btn-ghost btn-sm" style="min-width:34px" onclick="completeTiempoOp('${o.id}')" aria-label="Completar" title="Completar paso">✓</button>`;
+    }
+    const estadoBadge=openProd?'<span class="badge badge-warn">▶ corriendo</span>':openPausa?`<span class="badge badge-coral">⏸ ${esc(openPausa.motivo||'pausa')}</span>`:o.estado==='completada'?'':'<span class="badge badge-blue">○</span>';
     const doc=o.documento_id?documentosControlados.find(d=>d.id===o.documento_id):null;
     const qcBadge=o.tipo_punto==='hold'?'<span class="badge badge-amber">HOLD</span>':o.tipo_punto==='witness'?'<span class="badge badge-blue">WITNESS</span>':'';
     const qcFirma=o.tipo_punto&&o.tipo_punto!=='normal'
       ?(o.signoff_at?`<span style="color:var(--green);font-size:10px">✓ liberado ${new Date(o.signoff_at).toLocaleDateString('es-AR')}</span>`
         :`<button class="btn btn-ghost btn-sm" style="border-color:var(--green);color:var(--green);padding:1px 8px;font-size:10px" onclick="event.stopPropagation();firmarPunto('${o.id}')">Firmar QC</button>`)
       :'';
-    return `<div style="display:grid;grid-template-columns:auto 1fr auto auto auto;gap:10px;padding:10px;border:1px solid ${active?'var(--accent)':'var(--border)'};border-radius:4px;${active?'background:var(--surface2)':''};align-items:center">
-      <span class="mono" style="color:var(--text3);font-size:11px;cursor:pointer" onclick="selectTiempoPaso('${o.id}')">#${o.secuencia}</span>
-      <div onclick="selectTiempoPaso('${o.id}')" style="cursor:pointer"><div style="font-weight:500">${esc(o.nombre)} ${qcBadge}</div><div style="font-size:10px;color:var(--text3);display:flex;gap:6px;align-items:center;flex-wrap:wrap">${esc(o.maquina||'—')} · est. ${o.tiempo_estimado_min||0} min${doc?` · <span class="mono" style="color:var(--teal)">${esc(doc.codigo)} rev.${esc(doc.revision)}</span>`:''}${qcFirma}</div></div>
-      <div onclick="selectTiempoPaso('${o.id}')" style="cursor:pointer">${badge}</div>
-      <div class="mono" style="font-size:12px;font-weight:600;cursor:pointer" onclick="selectTiempoPaso('${o.id}')">${fmtHMfromMin(totalMin)}</div>
+    return `<div style="display:grid;grid-template-columns:auto 1fr auto auto auto auto;gap:10px;padding:10px;border:1px solid ${openProd?'var(--accent)':'var(--border)'};border-radius:4px;${openProd?'background:var(--surface2)':''};align-items:center">
+      <span class="mono" style="color:var(--text3);font-size:11px">#${o.secuencia}</span>
+      <div><div style="font-weight:500">${esc(o.nombre)} ${qcBadge}</div><div style="font-size:10px;color:var(--text3);display:flex;gap:6px;align-items:center;flex-wrap:wrap">${esc(o.maquina||'—')} · est. ${o.tiempo_estimado_min||0} min${doc?` · <span class="mono" style="color:var(--teal)">${esc(doc.codigo)} rev.${esc(doc.revision)}</span>`:''}${qcFirma}</div></div>
+      <div>${estadoBadge}</div>
+      <div class="mono" id="paso-time-${o.id}" style="font-size:12px;font-weight:600">${fmtHMfromMin(totalMin)}</div>
+      <div style="display:flex;gap:4px">${controls}</div>
       <button onclick="deletePaso('${o.id}')" title="Eliminar paso" style="background:transparent;border:none;color:var(--text3);cursor:pointer;padding:0 4px;font-size:15px;line-height:1;opacity:.4;transition:.15s" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=.4;this.style.color='var(--text3)'">×</button>
     </div>`;
   }).join('');
@@ -7678,16 +7689,6 @@ function renderTiemposMetrics(){
   document.getElementById('tiempos-m-pause').textContent=fmtHMfromMin(pauseMin);
   document.getElementById('tiempos-m-eff').textContent=eff?eff+'%':'—';
   document.getElementById('tiempos-m-cost').textContent='$'+cost.toFixed(0);
-}
-
-function updateTiemposButtons(){
-  const ae=activeEntry();
-  const btnPlay=document.getElementById('tiempos-btn-play');
-  const btnPause=document.getElementById('tiempos-btn-pause');
-  const btnStop=document.getElementById('tiempos-btn-stop');
-  btnPlay.disabled=!!ae||!currentTiempoPasoId;
-  btnPause.disabled=!ae;
-  btnStop.disabled=!currentTiempoPasoId||opOperaciones.find(o=>o.id===currentTiempoPasoId)?.estado==='completada';
 }
 
 async function startTiempoOp(pasoId){
@@ -7808,7 +7809,6 @@ async function aplicarPQP(){
     const r=await POST('rpc/instanciar_pqp',{p_orden_id:currentTiempoOpId,p_plantilla_id:plantillaId});
     closeModal('modal-aplicar-pqp');
     await loadTiemposData(currentTiempoOpId);
-    currentTiempoPasoId=opOperaciones.find(o=>o.estado==='pendiente')?.id||null;
     renderTiempos();notify(`✓ PQP ${r?.plantilla||''} aplicado (${r?.operaciones||0} pasos)`);
   }catch(e){notify('Error: '+e.message,'err');}
   finally{setBusy('btn-apply-pqp',false);}
@@ -7849,8 +7849,10 @@ async function saveRegistroCalidad(){
   const det=document.getElementById('rc-detalle').value.trim();if(det)datos.detalle=det;
   if(tipo==='hidrostatico'&&(!datos.presion_psi||!datos.sostenimiento_min)){notify('El hidro requiere presión y tiempo de sostenimiento','err');return;}
   try{setBusy('btn-save-rc',true);
+    // asociar al paso si hay exactamente UNO corriendo; si no, queda a nivel OP
+    const actRc=activeProductivos(opTimeEntries);
     await POST('registros_calidad',{empresa_id:currentEmpresa.id,orden_id:currentTiempoOpId,
-      operacion_id:currentTiempoPasoId||null,tipo,
+      operacion_id:(actRc.length===1?actRc[0].operacion_id:null),tipo,
       herramienta_id:document.getElementById('rc-herramienta').value||null,
       datos:Object.keys(datos).length?datos:null,resultado,
       observaciones:document.getElementById('rc-obs').value.trim()||null,
@@ -9579,7 +9581,6 @@ async function saveOperacionPaso(){
     const res=await POST('op_operaciones',[{empresa_id:currentEmpresa.id,orden_id:currentTiempoOpId,secuencia,nombre,maquina,tiempo_estimado_min:estimado,tarifa_maquina_usd:tarifa,estado:'pendiente',
       tipo_punto:document.getElementById('paso-tipo-punto').value,documento_id:document.getElementById('paso-doc').value||null}]);
     if(res&&res[0])opOperaciones.push(res[0]);
-    if(!currentTiempoPasoId&&res&&res[0])currentTiempoPasoId=res[0].id;
     closeModal('modal-add-op-paso');notify('Paso agregado');renderTiempos();
   }catch(e){notify('Error: '+e.message,'err');}
   finally{setBusy('btn-save-paso',false);}
