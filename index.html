@@ -466,7 +466,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div id="timers-activos-panel" style="display:none;margin-bottom:14px"></div>
         <div class="stats-bar" id="op-stats"></div>
         <div class="toolbar">
-          <div class="search-box"><input type="text" placeholder="Buscar por OP, pieza..." oninput="renderOP(this.value)"></div>
+          <div class="search-box"><input type="text" placeholder="Buscar por OP, pieza..." oninput="renderOP(this.value)"></div><input type="date" id="opf-fdesde" onchange="renderOP(document.querySelector('#page-op .search-box input').value)" title="Desde" style="width:auto"><input type="date" id="opf-fhasta" onchange="renderOP(document.querySelector('#page-op .search-box input').value)" title="Hasta" style="width:auto">
           <button class="btn btn-ghost" onclick="openModal('modal-op')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva orden</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Nº OT</th><th>Pieza</th><th>Código</th><th>Cant.</th><th>Barra</th><th>Mts</th><th>Merma</th><th>Horas</th><th>Estado</th><th>Inicio</th><th></th></tr></thead><tbody id="op-tbody"></tbody></table></div>
@@ -508,7 +508,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div id="compras-tab-oc">
           <div class="stats-bar" id="compras-stats"></div>
           <div class="toolbar">
-            <div class="search-box"><input type="text" placeholder="Buscar por OC, proveedor..." oninput="renderCompras(this.value)"></div>
+            <div class="search-box"><input type="text" placeholder="Buscar por OC, proveedor..." oninput="renderCompras(this.value)"></div><input type="date" id="ocf-fdesde" onchange="renderCompras(document.querySelector('#page-compras .search-box input').value)" title="Desde" style="width:auto"><input type="date" id="ocf-fhasta" onchange="renderCompras(document.querySelector('#page-compras .search-box input').value)" title="Hasta" style="width:auto">
             <button class="btn btn-ghost" onclick="openOCModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva OC</button>
           </div>
           <div class="table-wrap"><table><thead><tr><th>Nro OC</th><th>Proveedor</th><th>Fecha</th><th>Entrega</th><th>Ítems</th><th>Mon.</th><th>Total ARS</th><th>Total USD</th><th>Estado</th><th>Remito</th><th>Cert MTC</th><th>Factura</th><th></th></tr></thead><tbody id="compras-tbody"></tbody></table></div>
@@ -587,7 +587,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <div class="page-content">
         <div class="stats-bar" id="presup-stats"></div>
         <div class="toolbar">
-          <div class="search-box"><input type="text" placeholder="Buscar por nro, cliente..." oninput="renderPresupuestos(this.value)"></div>
+          <div class="search-box"><input type="text" placeholder="Buscar por nro, cliente..." oninput="renderPresupuestos(this.value)"></div><input type="date" id="presupf-fdesde" onchange="renderPresupuestos(document.querySelector('#page-presupuestos .search-box input').value)" title="Desde" style="width:auto"><input type="date" id="presupf-fhasta" onchange="renderPresupuestos(document.querySelector('#page-presupuestos .search-box input').value)" title="Hasta" style="width:auto">
           <button class="btn btn-ghost" onclick="exportPresupuestosCSV()" title="Exportar a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
           <button class="btn btn-ghost" onclick="openPresupuestoModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo presupuesto</button>
         </div>
@@ -601,7 +601,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <div class="page-content">
         <div class="stats-bar" id="ventas-stats"></div>
         <div class="toolbar">
-          <div class="search-box"><input type="text" placeholder="Buscar por cliente, remito..." oninput="renderVentas(this.value)"></div>
+          <div class="search-box"><input type="text" placeholder="Buscar por cliente, remito..." oninput="renderVentas(this.value)"></div><input type="date" id="ventasf-fdesde" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Desde" style="width:auto"><input type="date" id="ventasf-fhasta" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Hasta" style="width:auto">
           <button class="btn btn-ghost" onclick="exportVentasCSV()" title="Exportar a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Nro. remito</th><th>Cliente</th><th>Fecha</th><th>Piezas</th><th>Total unid.</th><th>Importe</th><th>Estado</th><th></th></tr></thead><tbody id="ventas-tbody"></tbody></table></div>
@@ -641,7 +641,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <div class="page-content">
         <div class="stats-bar" id="cheques-stats"></div>
         <div class="toolbar">
-          <div class="search-box"><input type="text" id="cheques-search" placeholder="Buscar por número, banco, tercero..." oninput="renderCheques(this.value)"></div>
+          <div class="search-box"><input type="text" id="cheques-search" placeholder="Buscar por número, banco, tercero..." oninput="renderCheques(this.value)"></div><input type="date" id="chqf-fdesde" onchange="renderCheques()" title="Desde" style="width:auto"><input type="date" id="chqf-fhasta" onchange="renderCheques()" title="Hasta" style="width:auto">
           <select id="cheques-filtro-tipo" onchange="renderCheques()" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 10px;color:var(--text);font-size:12px"><option value="">Todos</option><option value="recibido">Recibidos</option><option value="emitido">Emitidos</option></select>
           <button class="btn btn-ghost" onclick="exportChequesCSV()" title="Exportar a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
           <button class="btn btn-primary" onclick="openChequeModal()">+ Nuevo cheque</button>
@@ -3513,14 +3513,16 @@ function renderOP(filter=''){
     <div class="stat-card"><div class="stat-label">En proceso</div><div class="stat-value" style="color:${enProceso?'var(--accent)':'var(--text)'}">${enProceso}</div></div>
     <div class="stat-card"><div class="stat-label">Completadas</div><div class="stat-value" style="color:var(--green)">${completadas}</div></div>
     <div class="stat-card"><div class="stat-label">Mts consumidos</div><div class="stat-value">${totalMtsUsados.toFixed(1)}<span style="font-size:11px;color:var(--text3)"> mts</span></div></div>`;
-  const list=ops.filter(o=>!f||o.nro.toLowerCase().includes(f)||o.pieza.toLowerCase().includes(f));
+  const _opFd=document.getElementById('opf-fdesde')?.value||'',_opFh=document.getElementById('opf-fhasta')?.value||'';
+  const list=ops.filter(o=>(!f||o.nro.toLowerCase().includes(f)||o.pieza.toLowerCase().includes(f))&&enRango(o.fecha,_opFd,_opFh));
   document.getElementById('op-tbody').innerHTML=list.length?list.map(o=>{const tratsOP=tratamientos.filter(t=>t.orden_id===o.id);const presupOP=o.presupuesto_id?presupuestos.find(p=>p.id===o.presupuesto_id):null;return`<tr data-id="${o.id}"><td class="mono td-primary">${esc(o.nro)}</td><td style="color:var(--accent);font-weight:500">${esc(o.pieza)}${presupOP?`<br><span class="mono" onclick="event.stopPropagation();showPage('presupuestos','${o.presupuesto_id}')" style="color:var(--teal);font-size:10px;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="Ver presupuesto ${esc(presupOP.nro)} · ${esc(presupOP.cliente)}">⚙ ${esc(presupOP.nro)}</span>`:''}</td><td class="mono" style="font-size:11px">${o.codigo_plano||'—'}</td><td class="mono">${o.cantidad}</td><td>${o.barras?`<span class="badge badge-blue">${esc(o.barras.lote)}</span>`:'—'}</td><td class="mono">${parseFloat(o.kg_usados||0).toFixed(1)}</td><td class="mono" style="color:var(--text3)">${parseFloat(o.merma_kg||0).toFixed(1)}</td><td class="mono">${o.horas_total||'—'}</td><td>${estadoSelect('ordenes_produccion',o.id,o.estado||'en-proceso',['en-proceso','completada','suspendida'],opBadgeMap)}</td><td>${o.fecha||'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap">${o.estado==='en-proceso'||o.estado==='suspendida'?`<button class="btn btn-ghost btn-sm" onclick="openTratamientos('${o.id}')" style="border-color:var(--teal);color:var(--teal)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Trat${tratsOP.length?` (${tratsOP.length})`:''}</button>`:''}<button class="btn btn-ghost btn-sm" onclick="openTiempos('${o.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>Tiempos</button><button class="btn btn-ghost btn-sm" onclick="editOP('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteOP('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`}).join(''):(`<tr><td colspan="11" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></svg></div><div class="empty-title">Sin órdenes de producción</div><div class="empty-msg">Iniciá la primera con <b>+ Nueva orden</b> seleccionando la barra a consumir y la pieza a fabricar.</div></div></td></tr>`);
 }
 
 function renderVentas(filter=''){
   const f=filter.toLowerCase();
   const hoy=hoyLocal();
-  const list=ventas.filter(v=>!f||v.nro_remito.toLowerCase().includes(f)||v.cliente.toLowerCase().includes(f));
+  const _vFd=document.getElementById('ventasf-fdesde')?.value||'',_vFh=document.getElementById('ventasf-fhasta')?.value||'';
+  const list=ventas.filter(v=>(!f||v.nro_remito.toLowerCase().includes(f)||v.cliente.toLowerCase().includes(f))&&enRango(v.fecha,_vFd,_vFh));
   const totalImp=ventas.reduce((a,v)=>{const items=v.venta_items||[];return a+items.reduce((b,i)=>b+(i.cantidad*(i.precio_unitario||0)),0);},0);
   const totalUnid=ventas.reduce((a,v)=>{const items=v.venta_items||[];return a+items.reduce((b,i)=>b+i.cantidad,0);},0);
   // OTD: entregas a tiempo sobre las que tienen fecha prometida y fecha real
@@ -5533,8 +5535,10 @@ function renderCheques(filter){
     <div class="stat-card"><div class="stat-label">Emitidos a cubrir ≤ 7 días</div><div class="stat-value" style="color:${aCubrir.length?'var(--coral)':'var(--green)'}">${aCubrir.length}</div><div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${aCubrir.length?_chequesTotalStr(aCubrir):''}</div></div>
     <div class="stat-card"><div class="stat-label">Rechazados</div><div class="stat-value" style="color:${rechazados.length?'var(--red)':'var(--green)'}">${rechazados.length}</div></div>`;
 
+  const _chFd=document.getElementById('chqf-fdesde')?.value||'',_chFh=document.getElementById('chqf-fhasta')?.value||'';
   let list=cheques.filter(c=>{
     if(tipoF&&c.tipo!==tipoF)return false;
+    if(!enRango(c.fecha_pago||c.fecha_recepcion,_chFd,_chFh))return false;
     if(!f)return true;
     return [c.numero,c.banco,_chequeTercero(c),c.observaciones].some(x=>(x||'').toLowerCase().includes(f));
   });
@@ -8571,7 +8575,8 @@ function renderCompras(filter=''){
     <div class="stat-card"><div class="stat-label">Total compras (ARS)</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtARS(totalARS)}</div></div>
     <div class="stat-card"><div class="stat-label">Deuda facturada (ARS)</div><div class="stat-value" style="color:var(--coral);font-size:14px">${fmtARS(deudaARS)}</div></div>`;
   const badges={borrador:'badge-warn',enviada:'badge-blue',confirmada:'badge-teal',recibida_parcial:'badge-warn',recibida:'badge-ok',facturada:'badge-ok',anulada:'badge-coral'};
-  const list=ordenesCompra.filter(o=>!f||o.nro.toLowerCase().includes(f)||(o.proveedores?.nombre||'').toLowerCase().includes(f));
+  const _ocFd=document.getElementById('ocf-fdesde')?.value||'',_ocFh=document.getElementById('ocf-fhasta')?.value||'';
+  const list=ordenesCompra.filter(o=>(!f||o.nro.toLowerCase().includes(f)||(o.proveedores?.nombre||'').toLowerCase().includes(f))&&enRango(o.fecha,_ocFd,_ocFh));
   document.getElementById('compras-tbody').innerHTML=list.length?list.map(o=>{
     const items=o.oc_items||ocItems.filter(i=>i.oc_id===o.id);
     const cantItems=items.length;
@@ -9069,7 +9074,8 @@ function renderPresupuestos(filter=''){
     <div class="stat-card"><div class="stat-label">Conversión</div><div class="stat-value" style="color:${conversion>=50?'var(--green)':conversion>=25?'var(--accent)':'var(--coral)'}">${decididos?conversion+'%':'—'}</div></div>
     <div class="stat-card"><div class="stat-label">Importe total</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtUSD(totalUSD)}</div></div>`;
   const badges={borrador:'badge-warn',enviado:'badge-blue',aprobado:'badge-ok',rechazado:'badge-coral',vencido:'badge-coral',convertido:'badge-teal'};
-  const list=presupuestos.filter(p=>!f||p.nro.toLowerCase().includes(f)||p.cliente.toLowerCase().includes(f));
+  const _pFd=document.getElementById('presupf-fdesde')?.value||'',_pFh=document.getElementById('presupf-fhasta')?.value||'';
+  const list=presupuestos.filter(p=>(!f||p.nro.toLowerCase().includes(f)||p.cliente.toLowerCase().includes(f))&&enRango(p.fecha,_pFd,_pFh));
   document.getElementById('presup-tbody').innerHTML=list.length?list.map(p=>{
     const items=p.presupuesto_items||[];
     const puedeConvertir=['enviado','aprobado'].includes(p.estado);
