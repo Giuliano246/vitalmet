@@ -13,7 +13,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <style>
-:root{--bg:#100e0b;--surface:#1b1814;--surface2:#262019;--border:#352d23;--border2:#463c2e;--accent:#e3a142;--accent2:#c4882c;--teal:#36b09e;--blue:#5a9ec9;--purple:#a07fc9;--red:#df5a4a;--green:#5aaa78;--coral:#e0764a;--text:#ece7dd;--text2:#a39a89;--text3:#8a8073;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
+:root{--bg:#100e0b;--surface:#1b1814;--surface2:#262019;--border:#352d23;--border2:#463c2e;--accent:#e3a142;--accent2:#c4882c;--teal:#36b09e;--blue:#5a9ec9;--purple:#a07fc9;--red:#df5a4a;--green:#5aaa78;--coral:#e0764a;--text:#ece7dd;--text2:#a39a89;--text3:#98917f;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
 html[data-theme="light"]{--bg:#f6f1e8;--surface:#fffefb;--surface2:#ede5d6;--border:#e0d7c4;--border2:#cabb9e;--accent:#8b5e34;--accent2:#6f4a28;--teal:#2a7d70;--blue:#36678f;--purple:#715299;--red:#b23b2e;--green:#2f7d57;--coral:#b75a36;--text:#2a241c;--text2:#5c5141;--text3:#6f6552}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh}
@@ -1519,7 +1519,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
 
 <datalist id="clientes-datalist"></datalist>
 
-<div class="notif" id="notif"></div>
+<div class="notif" id="notif" role="status" aria-live="polite"></div>
 
 <!-- MODAL: Nuevo PT manual -->
 <div class="modal-overlay" id="modal-pt">
