@@ -635,6 +635,27 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div style="margin-top:18px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text3);line-height:1.6"><b style="color:var(--text2)">Cómo se calcula:</b> los cargos son las ventas <b>entregadas o facturadas</b> (los pedidos pendientes no son deuda exigible). El vencimiento se toma de la condición de pago (ej. "30 días" → fecha + 30; sin número = contado). Los cobros registrados en <b>Cobros y Pagos</b> se imputan a las facturas más viejas primero (FIFO). Todo expresado en USD; los cobros en ARS se convierten por el TC del asiento.</div>
       </div>
     </div>
+    <!-- MAILINGS -->
+    <div class="page" id="page-mailings">
+      <div class="page-header"><div class="page-title">Mailings</div><div class="page-sub">// recordatorios con tu aprobación — nada sale solo</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="mail-stats"></div>
+        <div class="toolbar">
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost" id="mail-tab-cola" onclick="switchMailTab('cola')" style="border-color:var(--accent);color:var(--accent)">Cola de aprobación</button>
+            <button class="btn btn-ghost" id="mail-tab-templates" onclick="switchMailTab('templates')">Templates</button>
+            <button class="btn btn-ghost" id="mail-tab-log" onclick="switchMailTab('log')">Historial</button>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost" id="mail-nuevo-tpl" onclick="openTemplateEdit('')" style="display:none">+ Template</button>
+            <button class="btn" id="mail-aprobar-todos" onclick="aprobarTodos()" style="background:var(--green);color:white">✓ Aprobar todos</button>
+          </div>
+        </div>
+        <div id="mail-vista-cola" class="table-wrap"><table><thead><tr><th>Para</th><th>Asunto</th><th>Origen</th><th>Creado</th><th>Estado</th><th></th></tr></thead><tbody id="mail-cola-tbody"></tbody></table></div>
+        <div id="mail-vista-templates" class="table-wrap" style="display:none"><table><thead><tr><th>Nombre</th><th>Tipo</th><th>Asunto</th><th>Activo</th><th></th></tr></thead><tbody id="mail-templates-tbody"></tbody></table></div>
+        <div id="mail-vista-log" class="table-wrap" style="display:none"><table><thead><tr><th>Fecha</th><th>Para</th><th>Asunto</th></tr></thead><tbody id="mail-log-tbody"></tbody></table></div>
+      </div>
+    </div>
     <!-- CHEQUES DIFERIDOS -->
     <div class="page" id="page-cheques">
       <div class="page-header"><div class="page-title">Cheques diferidos</div><div class="page-sub">// cartera de valores · recibidos y emitidos · vencimientos</div><div class="tabs"></div></div>
@@ -1894,6 +1915,38 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
   </div>
 </div>
 
+<!-- MODAL: preview/editar email -->
+<div class="modal-overlay" id="modal-email">
+  <div class="modal modal-lg">
+    <div class="modal-header"><div class="modal-title" id="email-modal-title">Email</div><button class="modal-close" onclick="closeModal('modal-email')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row"><div class="form-group"><label>Para *</label><input type="email" id="em-to"></div><div class="form-group"><label>Asunto *</label><input type="text" id="em-subject"></div></div>
+      <div class="form-row single"><div class="form-group"><label>Cuerpo (HTML)</label><textarea id="em-body" rows="9" style="width:100%;font-family:var(--mono);font-size:11px"></textarea></div></div>
+      <div class="section-label">Vista previa</div>
+      <div id="em-preview" style="border:1px solid var(--border);border-radius:6px;padding:14px;background:white;color:#222;max-height:220px;overflow-y:auto"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-email')">Cerrar</button>
+      <button class="btn btn-ghost" id="btn-email-save" onclick="saveEmailEdit()">Guardar cambios</button>
+      <button class="btn" id="btn-email-approve" style="background:var(--green);color:white">✓ Aprobar y programar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: template de email -->
+<div class="modal-overlay" id="modal-template">
+  <div class="modal modal-lg">
+    <div class="modal-header"><div class="modal-title">Template de email</div><button class="modal-close" onclick="closeModal('modal-template')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row"><div class="form-group"><label>Nombre *</label><input type="text" id="tpl-nombre"></div><div class="form-group"><label>Tipo</label><select id="tpl-tipo"><option value="cobranza">Cobranza</option><option value="seguimiento_presupuesto">Seguimiento presupuesto</option><option value="individual">Individual</option></select></div></div>
+      <div class="form-row single"><div class="form-group"><label>Asunto *</label><input type="text" id="tpl-subject"></div></div>
+      <div class="form-row single"><div class="form-group"><label>Cuerpo HTML * <span style="color:var(--text3);font-size:10px">placeholders: {cliente} {monto} {dias} {nro} {detalle}</span></label><textarea id="tpl-body" rows="9" style="width:100%;font-family:var(--mono);font-size:11px"></textarea></div></div>
+      <div class="form-row single"><div class="form-group"><label style="display:flex;gap:6px;align-items:center;text-transform:none;font-size:12px"><input type="checkbox" id="tpl-activo" checked style="width:auto"> Activo</label></div></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-template')">Cancelar</button><button class="btn" id="btn-save-tpl" onclick="saveTemplate()" style="background:var(--accent);color:white">Guardar</button></div>
+  </div>
+</div>
+
 <!-- MODAL: Command palette (Ctrl+K) -->
 <div class="modal-overlay" id="modal-palette">
   <div class="modal" style="width:560px;align-self:flex-start;margin-top:10vh">
@@ -2545,7 +2598,7 @@ async function loadAll(){
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',mailings:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
   produccion:[{k:'op',l:'Órdenes'},{k:'eficiencia',l:'Eficiencia'}],
@@ -2561,7 +2614,7 @@ const GROUP_TABS={
     {k:'analisis',l:'Análisis',sub:[{k:'ratios',l:'Ratios'},{k:'bimon',l:'Bimonetario'},{k:'compha',l:'Hist. vs Ajust.'},{k:'compej',l:'Compar. ejerc.'}]},
     {k:'cierreinf',l:'Cierre e inflación',sub:[{k:'periodos',l:'Períodos mensuales'},{k:'ipc',l:'Índices IPC'},{k:'ajuste',l:'Ajuste inflación'},{k:'cierre',l:'Cierre y apertura'}]}
   ],
-  ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'},{k:'ctacte',l:'Cta. corriente'}],
+  ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'},{k:'ctacte',l:'Cta. corriente'},{k:'mailings',l:'Mailings'}],
   analisis:[{k:'costos',l:'Costos y rentabilidad'},{k:'trace',l:'Trazabilidad'}],
   calidad:[{k:'ncr',l:'NCR / CAPA'},{k:'doccontrol',l:'Documentos'},{k:'pqptpl',l:'Plantillas PQP'}],
 };
@@ -3953,6 +4006,7 @@ const PAGE_RENDERS={
   herramientas:[renderHerramientas],
   op:[renderOP,refreshTimersActivos],
   eficiencia:[renderEficiencia],
+  mailings:[renderMailings],
   compras:[renderCompras,renderInspeccion,renderProveedores,renderFacturasRecibidas],
   presupuestos:[renderPresupuestos],
   ventas:[renderVentas],
@@ -7650,7 +7704,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op','eficiencia'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl'],contabilidad:['cuentas','asientosp','cobpag','cheques','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre','periodos','correlatividad','conciliacion']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op','eficiencia'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte','mailings'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl'],contabilidad:['cuentas','asientosp','cobpag','cheques','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre','periodos','correlatividad','conciliacion']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
@@ -7879,6 +7933,116 @@ setInterval(()=>{
   if(!page||!page.classList.contains('active')||!timersActivos.length)return;
   timersActivos.forEach(e=>{const el=document.getElementById('panel-timer-'+e.id);if(el)el.textContent=fmtTimerSec(secSince(e.started_at));});
 },1000);
+
+// ═══ MAILINGS — cola de aprobación, templates, historial ═══
+let emailQueue=[],emailTemplates=[],emailLog=[],mailingsLoaded=false,_mailTab='cola',_emailEditId=null,_tplEditId=null;
+async function ensureMailingsData(force){
+  if(mailingsLoaded&&!force)return;
+  [emailQueue,emailTemplates,emailLog]=await Promise.all([
+    GET('email_queue','?order=created_at.desc&estado=in.(pendiente_aprobacion,aprobado,fallido)').catch(()=>[]),
+    GET('email_templates','?order=nombre.asc').catch(()=>[]),
+    GET('email_log','?order=created_at.desc&limit=200').catch(()=>[])
+  ]);
+  mailingsLoaded=true;
+  mailingsQueueCount=emailQueue.filter(e=>e.estado==='pendiente_aprobacion').length;
+}
+function switchMailTab(t){
+  _mailTab=t;
+  ['cola','templates','log'].forEach(k=>{
+    const v=document.getElementById('mail-vista-'+k);if(v)v.style.display=k===t?'':'none';
+    const b=document.getElementById('mail-tab-'+k);if(!b)return;
+    b.style.borderColor=k===t?'var(--accent)':'';b.style.color=k===t?'var(--accent)':'';
+  });
+  document.getElementById('mail-aprobar-todos').style.display=t==='cola'?'':'none';
+  document.getElementById('mail-nuevo-tpl').style.display=t==='templates'?'':'none';
+}
+async function renderMailings(){
+  await ensureMailingsData();
+  const pend=emailQueue.filter(e=>e.estado==='pendiente_aprobacion');
+  const aprob=emailQueue.filter(e=>e.estado==='aprobado');
+  const fall=emailQueue.filter(e=>e.estado==='fallido');
+  const statsEl=document.getElementById('mail-stats');
+  if(!statsEl)return;
+  statsEl.innerHTML=[
+    ['Esperando aprobación',pend.length,pend.length?'var(--accent)':'var(--text)'],
+    ['Aprobados (por salir)',aprob.length,'var(--blue)'],
+    ['Fallidos',fall.length,fall.length?'var(--red)':'var(--text)'],
+    ['Enviados (histórico)',emailLog.length,'var(--green)']
+  ].map(([l,v,c])=>`<div class="stat-card"><div class="stat-label">${l}</div><div class="stat-value" style="color:${c}">${v}</div></div>`).join('');
+  const badge=e=>e.estado==='pendiente_aprobacion'?'<span class="badge badge-warn">PENDIENTE</span>':e.estado==='aprobado'?'<span class="badge badge-blue">APROBADO</span>':`<span class="badge badge-coral" title="${esc(e.error_texto||'')}">FALLIDO</span>`;
+  document.getElementById('mail-cola-tbody').innerHTML=emailQueue.length?emailQueue.map(e=>`<tr data-id="${e.id}"><td>${esc(e.to_nombre||'')} <span class="mono" style="color:var(--text3);font-size:10px">${esc(e.to_email)}</span></td><td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(e.subject)}">${esc(e.subject)}</td><td class="mono" style="font-size:10px;color:var(--text3)">${e.venta_id?'venta':e.cliente_id?'cliente':'—'}</td><td class="mono" style="font-size:11px">${(e.created_at||'').slice(0,10)}</td><td>${badge(e)}</td><td style="display:flex;gap:4px">${e.estado!=='aprobado'?`<button class="btn btn-ghost btn-sm" onclick="openEmailPreview('${e.id}')">Ver / Editar</button><button class="btn btn-sm" style="background:var(--green);color:white" onclick="aprobarEmail('${e.id}')" title="Aprobar">✓</button>`:''}<button class="btn btn-danger btn-sm" onclick="cancelarEmail('${e.id}')" title="Cancelar">✗</button></td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">Sin emails en cola. Los recordatorios se generan solos cada mañana al abrir el ERP.</td></tr>';
+  document.getElementById('mail-templates-tbody').innerHTML=emailTemplates.length?emailTemplates.map(t=>`<tr><td style="font-weight:500">${esc(t.nombre)}</td><td><span class="badge badge-blue">${esc(t.tipo)}</span></td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.subject)}</td><td>${t.activo!==false?'<span class="badge badge-ok">Sí</span>':'<span class="badge">No</span>'}</td><td><button class="btn btn-ghost btn-sm" onclick="openTemplateEdit('${t.id}')">Editar</button></td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:24px">Sin templates — se crean solos con el primer ciclo de recordatorios</td></tr>';
+  document.getElementById('mail-log-tbody').innerHTML=emailLog.length?emailLog.map(l=>`<tr><td class="mono" style="font-size:11px">${(l.created_at||'').slice(0,16).replace('T',' ')}</td><td>${esc(l.to_email)}</td><td>${esc(l.subject)}</td></tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:var(--text3);padding:24px">Sin envíos todavía</td></tr>';
+}
+async function aprobarEmail(id){
+  try{
+    await PATCH('email_queue',{estado:'aprobado',aprobado_por:currentUser.id,aprobado_at:new Date().toISOString()},`?id=eq.${id}`);
+    await ensureMailingsData(true);renderMailings();notify('✓ Aprobado — sale en el próximo ciclo de envío');
+  }catch(e){notify('Error: '+e.message,'err');}
+}
+async function aprobarTodos(){
+  const pend=emailQueue.filter(e=>e.estado==='pendiente_aprobacion');
+  if(!pend.length){notify('No hay pendientes');return;}
+  if(!confirm(`¿Aprobar los ${pend.length} emails pendientes? Salen en el próximo ciclo de envío.`))return;
+  try{
+    await PATCH('email_queue',{estado:'aprobado',aprobado_por:currentUser.id,aprobado_at:new Date().toISOString()},'?estado=eq.pendiente_aprobacion');
+    await ensureMailingsData(true);renderMailings();notify(`✓ ${pend.length} aprobados`);
+  }catch(e){notify('Error: '+e.message,'err');}
+}
+async function cancelarEmail(id){
+  if(!confirm('¿Cancelar este email? No se va a enviar.'))return;
+  try{await PATCH('email_queue',{estado:'cancelado'},`?id=eq.${id}`);await ensureMailingsData(true);renderMailings();notify('Cancelado');}
+  catch(e){notify('Error: '+e.message,'err');}
+}
+function openEmailPreview(id){
+  const e=emailQueue.find(x=>x.id===id);if(!e)return;
+  _emailEditId=id;
+  document.getElementById('email-modal-title').textContent='Email — '+(e.to_nombre||e.to_email);
+  document.getElementById('em-to').value=e.to_email;
+  document.getElementById('em-subject').value=e.subject;
+  document.getElementById('em-body').value=e.body_html;
+  // contenido generado por el sistema desde templates propios (no input de terceros)
+  document.getElementById('em-preview').innerHTML=e.body_html;
+  document.getElementById('em-body').oninput=ev=>{document.getElementById('em-preview').innerHTML=ev.target.value;};
+  document.getElementById('btn-email-approve').onclick=()=>{saveEmailEdit(true);};
+  openModal('modal-email');
+}
+async function saveEmailEdit(aprobar){
+  const id=_emailEditId;if(!id)return;
+  const to=document.getElementById('em-to').value.trim();
+  const subject=document.getElementById('em-subject').value.trim();
+  if(!to||!subject)return notify('Completá destinatario y asunto','err');
+  try{
+    const patch={to_email:to,subject,body_html:document.getElementById('em-body').value};
+    if(aprobar===true){patch.estado='aprobado';patch.aprobado_por=currentUser.id;patch.aprobado_at=new Date().toISOString();}
+    await PATCH('email_queue',patch,`?id=eq.${id}`);
+    closeModal('modal-email');await ensureMailingsData(true);renderMailings();
+    notify(aprobar===true?'✓ Aprobado y programado':'Cambios guardados');
+  }catch(e){notify('Error: '+e.message,'err');}
+}
+function openTemplateEdit(id){
+  const t=id?emailTemplates.find(x=>x.id===id):null;
+  _tplEditId=id||null;
+  document.getElementById('tpl-nombre').value=t?.nombre||'';
+  document.getElementById('tpl-tipo').value=t?.tipo||'cobranza';
+  document.getElementById('tpl-subject').value=t?.subject||'';
+  document.getElementById('tpl-body').value=t?.body_html||'';
+  document.getElementById('tpl-activo').checked=t?t.activo!==false:true;
+  openModal('modal-template');
+}
+async function saveTemplate(){
+  const nombre=document.getElementById('tpl-nombre').value.trim();
+  const subject=document.getElementById('tpl-subject').value.trim();
+  const body=document.getElementById('tpl-body').value;
+  if(!nombre||!subject||!body)return notify('Completá nombre, asunto y cuerpo','err');
+  try{setBusy('btn-save-tpl',true);
+    const data={nombre,tipo:document.getElementById('tpl-tipo').value,subject,body_html:body,activo:document.getElementById('tpl-activo').checked};
+    if(_tplEditId)await PATCH('email_templates',data,`?id=eq.${_tplEditId}`);
+    else await POST('email_templates',{empresa_id:currentEmpresa.id,...data});
+    closeModal('modal-template');await ensureMailingsData(true);renderMailings();notify('Template guardado');
+  }catch(e){notify('Error: '+e.message,'err');}
+  finally{setBusy('btn-save-tpl',false);}
+}
 
 // ─── Command palette: índice, render y teclado ──────────
 let _palItems=[],_palSel=0,_palIndex=null;
