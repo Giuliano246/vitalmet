@@ -101,9 +101,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .btn-sm{padding:4px 9px;font-size:11px}
 .btn-danger{background:transparent;border-color:var(--red);color:var(--red)}
 .btn-danger:hover{background:rgba(224,82,82,.1)}
-.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow-x:auto}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:auto;max-height:calc(100vh - 230px)}
 table{width:100%;border-collapse:collapse;table-layout:auto}
-thead th{padding:8px 8px;text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;font-weight:500;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
+thead th{padding:8px 8px;text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;font-weight:500;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap;position:sticky;top:0;z-index:2;cursor:pointer;user-select:none}
+.sort-ind{color:var(--accent);font-size:9px}
 tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:var(--surface2)}
