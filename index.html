@@ -7756,10 +7756,36 @@ function openFichaCliente(id){
   }
 
   if(topPiezas.length){
-    html+=`<div class="section-label">Productos más comprados</div>
+    html+=`<div class="section-label">Productos más comprados · último precio</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
-      ${topPiezas.slice(0,8).map(([p,c])=>`<span class="badge badge-teal">${p} (${c})</span>`).join('')}
+      ${topPiezas.slice(0,8).map(([pz,cnt])=>{
+        const up=resolverPrecio(pz,c.nombre,ventas,preciosBase,pts);
+        return `<span class="badge badge-teal" title="${PRECIO_ORIGEN_L[up.origen]||'Sin precio registrado'}">${esc(pz)} (${cnt})${up.precio?' · '+fmtUSD(up.precio):''}</span>`;
+      }).join('')}
     </div>`;
+  }
+  // ─── Vista 360: cta cte, rentabilidad y presupuestos abiertos ───
+  const cta360=computeCtaCte().find(x=>x.cliente&&x.cliente.id===c.id);
+  const vencido360=cta360?cta360.buckets.d30+cta360.buckets.d60+cta360.buckets.d90+cta360.buckets.mas90:0;
+  const presupAb=presupuestos.filter(p=>['enviado','aprobado'].includes(p.estado)&&(p.cliente||'').toLowerCase()===(c.nombre||'').toLowerCase());
+  const costoPorPieza={};
+  pts.forEach(p=>{const k=(p.pieza||'').trim().toLowerCase();if(k&&costoPorPieza[k]==null){const cc=computeCostoPT(p);if(cc&&cc.total>0)costoPorPieza[k]=cc.total;}});
+  const rent=computeRentabilidadCliente(ventasC,costoPorPieza);
+  html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+    <div class="dash-card"><div class="section-label">Cta. corriente</div>
+      <div style="font-size:18px;font-weight:700;font-family:var(--mono);color:${cta360&&cta360.saldo>0.005?(vencido360>0.005?'var(--coral)':'var(--accent)'):'var(--green)'};margin-top:6px">${cta360?fmtUSD(Math.max(0,cta360.saldo)):'US$ 0'}</div>
+      <div style="font-size:11px;color:${vencido360>0.005?'var(--coral)':'var(--text3)'}">${vencido360>0.005?fmtUSD(vencido360)+' vencido':'sin deuda vencida'}</div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="closeModal('modal-ficha-cliente');showPage('ctacte')">Ver cta. corriente</button></div>
+    <div class="dash-card"><div class="section-label">Rentabilidad histórica</div>
+      <div style="font-size:18px;font-weight:700;font-family:var(--mono);color:${rent.margenPct==null?'var(--text3)':rent.margenPct>=30?'var(--green)':rent.margenPct>=15?'var(--accent)':'var(--coral)'};margin-top:6px">${rent.margenPct!=null?rent.margenPct+'%':'—'}</div>
+      <div style="font-size:11px;color:var(--text3)">margen sobre ${fmtUSD(rent.facturado)} facturado <span title="Costo estimado con el costeo actual de cada pieza">*al costo de hoy</span></div></div>
+  </div>`;
+  if(presupAb.length){
+    html+=`<div class="section-label">Presupuestos abiertos (${presupAb.length})</div>
+    <div style="display:flex;flex-direction:column;gap:4px;margin:8px 0 16px">${presupAb.map(p=>{
+      const dias=p.fecha?Math.floor((Date.now()-new Date(p.fecha+'T00:00:00'))/86400000):0;
+      return `<div onclick="closeModal('modal-ficha-cliente');showPage('presupuestos','${p.id}')" style="display:flex;justify-content:space-between;padding:6px 10px;background:var(--surface2);border-radius:4px;cursor:pointer;font-size:12px"><span>${esc(p.nro||'')} · ${fmtUSD(parseFloat(p.total||0))} <span class="badge badge-${p.estado==='aprobado'?'ok':'blue'}" style="font-size:9px">${p.estado}</span></span><span class="mono" style="color:${dias>=7?'var(--coral)':'var(--text3)'}">${dias}d</span></div>`;
+    }).join('')}</div>`;
   }
 
   html+=`<div class="section-label">Historial de compras (${ventasC.length})</div>`;
@@ -8061,6 +8087,19 @@ function resolverPrecio(pieza,cliente,ventasArr,preciosArr,ptsArr){
   return{precio:0,origen:null};
 }
 const PRECIO_ORIGEN_L={cliente:'Último precio cobrado a este cliente',base:'Precio de lista',pt:'Precio del stock PT'};
+
+// ─── Rentabilidad por cliente (tests/cliente360.test.js) ──────────
+function computeRentabilidadCliente(ventasC,costoPorPieza){
+  let facturado=0,costoEstimado=0,conCosto=0,total=0;
+  ventasC.filter(v=>v.estado!=='anulada').forEach(v=>(v.venta_items||[]).forEach(i=>{
+    const sub=(parseFloat(i.cantidad)||0)*(parseFloat(i.precio_unitario)||0);
+    facturado+=sub;total++;
+    const c=costoPorPieza[((i.pieza||i.productos_terminados?.pieza||'')+'').trim().toLowerCase()];
+    if(c!=null){costoEstimado+=(parseFloat(i.cantidad)||0)*c;conCosto++;}
+  }));
+  const margenPct=(conCosto&&conCosto===total&&facturado>0)?Math.round((facturado-costoEstimado)/facturado*100):null;
+  return{facturado,costoEstimado,margenPct};
+}
 
 // ─── Métricas de pipeline comercial (tests/pipeline.test.js) ──────────
 function computePipelineMetrics(ps,hoyISO){
