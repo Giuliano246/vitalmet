@@ -602,7 +602,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <div class="page-content">
         <div class="stats-bar" id="ventas-stats"></div>
         <div class="toolbar">
-          <div class="search-box"><input type="text" placeholder="Buscar por cliente, remito..." oninput="renderVentas(this.value)"></div><input type="date" id="ventasf-fdesde" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Desde" style="width:auto"><input type="date" id="ventasf-fhasta" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Hasta" style="width:auto">
+          <div class="search-box"><input type="text" placeholder="Buscar por cliente, remito..." oninput="renderVentas(this.value)"></div><button class="btn btn-ghost" id="btn-fact-lote" onclick="facturarEntregadas()" style="border-color:var(--green);color:var(--green);display:none">Facturar entregadas</button><input type="date" id="ventasf-fdesde" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Desde" style="width:auto"><input type="date" id="ventasf-fhasta" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Hasta" style="width:auto">
           <button class="btn btn-ghost" onclick="exportVentasCSV()" title="Exportar a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Nro. remito</th><th>Cliente</th><th>Fecha</th><th>Piezas</th><th>Total unid.</th><th>Importe</th><th>Estado</th><th></th></tr></thead><tbody id="ventas-tbody"></tbody></table></div>
@@ -3036,14 +3036,14 @@ async function saveVenta(){
 }
 
 // ─── FACTURACIÓN ELECTRÓNICA AFIP (vitalmet-billing) ───────────────
-async function emitirFactura(ventaId){
+async function emitirFactura(ventaId,skipConfirm){
   if(!BILLING_API_KEY){
     const k=prompt('Falta configurar billing_api_key. Pegá el API key del microservicio (se guarda en localStorage):');
-    if(!k)return;
+    if(!k)return false;
     localStorage.setItem('billing_api_key',k);
-    location.reload();return;
+    location.reload();return false;
   }
-  if(!confirm('¿Emitir factura electrónica para esta venta?\n\nEsto solicita un CAE a AFIP. La operación NO se puede deshacer (un CAE emitido queda en la base de AFIP, después solo se puede emitir una Nota de Crédito).'))return;
+  if(!skipConfirm&&!confirm('¿Emitir factura electrónica para esta venta?\n\nEsto solicita un CAE a AFIP. La operación NO se puede deshacer (un CAE emitido queda en la base de AFIP, después solo se puede emitir una Nota de Crédito).'))return false;
   const vList=await GET('ventas',`?id=eq.${ventaId}&select=*,venta_items(*)`).catch(()=>[]);
   const venta=vList[0];
   if(!venta){notify('Venta no encontrada','err');return;}
@@ -3111,10 +3111,29 @@ async function emitirFactura(ventaId){
     }
     await reload('ventas','asientos','asiento_lineas');renderVentas(document.querySelector('#page-ventas .search-box input')?.value||'');
     notify(`✓ CAE ${data.cae} — Factura ${data.tipo_comprobante}-${String(data.punto_venta).padStart(5,'0')}-${String(data.numero).padStart(8,'0')}`,'ok');
+    return true;
   }catch(e){
     notify(`Error al facturar: ${e.message}`,'err');
     if(btn){btn.disabled=false;btn.innerHTML='<span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m13 2-3 7h8l-9 13 3-9H4z"/></svg></span>Facturar';}
+    return false;
   }
+}
+
+async function facturarEntregadas(){
+  const pendientes=ventas.filter(v=>v.estado==='entregado'&&!v.factura_emitida_id);
+  if(!pendientes.length){notify('No hay entregadas sin facturar');return;}
+  if(!confirm(`¿Solicitar CAE a AFIP para ${pendientes.length} venta${pendientes.length>1?'s':''} entregada${pendientes.length>1?'s':''}?\n\nLa operación NO se puede deshacer.`))return;
+  const b=document.getElementById('btn-fact-lote');
+  if(b)b.disabled=true;
+  let ok=0,err=0;
+  for(const v of pendientes){
+    if(b)b.textContent=`Facturando ${ok+err+1}/${pendientes.length}…`;
+    const r=await emitirFactura(v.id,true);
+    if(r)ok++;else err++;
+  }
+  if(b)b.disabled=false;
+  renderVentas(document.querySelector('#page-ventas .search-box input')?.value||'');
+  notify(err?`${ok} facturadas · ${err} con error`:`✓ ${ok} facturadas`,err?'err':undefined);
 }
 
 async function verFactura(facturaEmitidaId){
@@ -3629,6 +3648,12 @@ function renderOP(filter=''){
 function renderVentas(filter=''){
   const f=filter.toLowerCase();
   const hoy=hoyLocal();
+  const _btnLote=document.getElementById('btn-fact-lote');
+  if(_btnLote){
+    const nPend=ventas.filter(v=>v.estado==='entregado'&&!v.factura_emitida_id).length;
+    _btnLote.style.display=nPend?'':'none';
+    if(nPend&&!_btnLote.disabled)_btnLote.textContent=`Facturar entregadas (${nPend})`;
+  }
   const _vFd=document.getElementById('ventasf-fdesde')?.value||'',_vFh=document.getElementById('ventasf-fhasta')?.value||'';
   const list=ventas.filter(v=>(!f||v.nro_remito.toLowerCase().includes(f)||v.cliente.toLowerCase().includes(f))&&enRango(v.fecha,_vFd,_vFh));
   const totalImp=ventas.reduce((a,v)=>{const items=v.venta_items||[];return a+items.reduce((b,i)=>b+(i.cantidad*(i.precio_unitario||0)),0);},0);
