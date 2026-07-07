@@ -2946,7 +2946,7 @@ async function saveOP(){
       notify('Orden registrada — stock PT pendiente');
     }
     opPresupuestoOrigen=null;_modalDirty['modal-op']=false;
-    await loadAll();closeModal('modal-op');resetF(['op-nro','op-pieza','op-desc','op-cant','op-precio','op-lote-pt','op-barra','op-barra-opt','op-kg-usados','op-merma','op-operario','op-fecha-fin','op-horas','op-codigo','op-oc-material','op-matriz-desc']);renderAll();
+    await reload('ordenes_produccion','barras','productos_terminados');closeModal('modal-op');resetF(['op-nro','op-pieza','op-desc','op-cant','op-precio','op-lote-pt','op-barra','op-barra-opt','op-kg-usados','op-merma','op-operario','op-fecha-fin','op-horas','op-codigo','op-oc-material','op-matriz-desc']);renderAll();
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-op',false,'Registrar orden');
 }
@@ -2999,7 +2999,7 @@ async function saveVenta(){
     // ANTES: se generaba asiento contable acá. Ahora el asiento se genera
     // recién al emitir la factura electrónica (ver emitirFactura → generarAsientoFactura).
     // Razón: hasta que no hay CAE, no hay hecho imponible documentado.
-    await loadAll();_modalDirty['modal-venta']=false;closeModal('modal-venta');ventaItemsList=[];window.editingVentaId=null;
+    await reload('ventas','productos_terminados','clientes','asientos','asiento_lineas');_modalDirty['modal-venta']=false;closeModal('modal-venta');ventaItemsList=[];window.editingVentaId=null;
     resetF(['v-remito','v-cliente','v-cuit','v-fecha','v-condicion','v-estado','v-obs','v-grupo-bonif']);
     renderAll();notify(isEdit?'Venta actualizada':'Pedido registrado');
   }catch(e){notify(e.message,'err');}
@@ -3080,7 +3080,7 @@ async function emitirFactura(ventaId){
       // Asiento contable automático con los datos reales del CAE (no bloquea si falla)
       await generarAsientoFactura(facturaEmitidaId,data,venta).catch(e=>console.warn('Asiento de factura no generado:',e));
     }
-    await loadAll();renderVentas(document.querySelector('#page-ventas .search-box input')?.value||'');
+    await reload('ventas','asientos','asiento_lineas');renderVentas(document.querySelector('#page-ventas .search-box input')?.value||'');
     notify(`✓ CAE ${data.cae} — Factura ${data.tipo_comprobante}-${String(data.punto_venta).padStart(5,'0')}-${String(data.numero).padStart(8,'0')}`,'ok');
   }catch(e){
     notify(`Error al facturar: ${e.message}`,'err');
@@ -3255,7 +3255,7 @@ function estadoSelect(table,id,current,values,badgeMap){
 async function cambiarEstado(table,id,nuevoEstado){
   try{
     await PATCH(table,{estado:nuevoEstado},`?id=eq.${id}`);
-    await loadAll();renderAll();notify('Estado actualizado');
+    await reload(table);renderAll();notify('Estado actualizado');
   }catch(e){console.error('cambiarEstado',e);notify('Error: '+e.message,'err');renderAll();}
 }
 
@@ -4007,7 +4007,7 @@ async function anularVenta(id){
     // Atómico en la DB: repone stock + anula asientos + desengancha el
     // presupuesto + borra la venta. Bloquea si tiene factura emitida (CAE).
     await RPC('anular_venta',{p_venta_id:id});
-    await loadAll();renderAll();notify('Venta anulada — stock PT repuesto + asiento anulado');
+    await reload('ventas','productos_terminados','clientes','asientos','asiento_lineas');renderAll();notify('Venta anulada — stock PT repuesto + asiento anulado');
   }catch(e){notify(e.message,'err');}
 }
 
@@ -4359,7 +4359,7 @@ async function importarExtracto(btnId){
   try{
     await POST('extracto_bancario',rows);
     _extractoPreview=[];const ta=document.getElementById('concil-paste');if(ta)ta.value='';
-    await loadAll();renderAll();notify(`${rows.length} líneas importadas`);
+    await reload('extracto_bancario');renderAll();notify(`${rows.length} líneas importadas`);
   }catch(e){notify(e.message||'Error importando','err');}
   finally{setBusy(btnId,false);}
 }
@@ -5439,7 +5439,7 @@ function renderCobPag(){
 async function anularCobPag(id){
   const a=asientos.find(x=>x.id===id);if(!a)return;
   if(!confirm(`¿Anular asiento N° ${a.numero} (${a.tipo})?\nQueda con estado "anulado", no se borra.`))return;
-  try{await PATCH('asientos',{estado:'anulado'},`?id=eq.${id}`);await loadAll();renderAll();notify('Movimiento anulado');}
+  try{await PATCH('asientos',{estado:'anulado'},`?id=eq.${id}`);await reload('asientos','asiento_lineas','cheques');renderAll();notify('Movimiento anulado');}
   catch(e){notify(e.message,'err');}
 }
 
@@ -5500,7 +5500,7 @@ async function registrarCobroOPago(){
     ];
     // Atómico (RPC): cabecera + líneas juntas, numeración en la DB.
     const r=await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas});
-    await loadAll();
+    await reload('asientos','asiento_lineas','cheques');
     notify(`✓ ${cobPagModo==='cobro'?'Cobro':'Pago'} registrado · Asiento N° ${r.numero}`);
     // limpiar form (mantener fecha/método/tercero por si hay varios)
     document.getElementById('cp-monto').value='';
@@ -6047,7 +6047,7 @@ async function saveAsiento(){
     const cabecera={numero:parseInt(g('asiento-numero'))||null,fecha:g('asiento-fecha'),descripcion:g('asiento-descripcion'),comprobante_nro:g('asiento-comprobante')||null,estado:g('asiento-estado'),tipo:'manual',moneda,tipo_cambio:tc,tc_tipo:tcTipo};
     const lns=lineasDraft.map((l,idx)=>({cuenta_id:l.cuenta_id,debe:parseFloat(l.debe||0),haber:parseFloat(l.haber||0),descripcion:l.descripcion||null,orden:idx}));
     await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lns,p_asiento_id:id||null});
-    await loadAll();closeModal('modal-asiento');renderAll();notify(id?'Asiento actualizado':'Asiento registrado');
+    await reload('asientos','asiento_lineas');closeModal('modal-asiento');renderAll();notify(id?'Asiento actualizado':'Asiento registrado');
   }catch(e){notify(e.message,'err');}
   finally{_savingAsiento=false;setBusy('btn-save-asiento',false,'Guardar asiento');}
 }
@@ -6055,7 +6055,7 @@ async function saveAsiento(){
 async function anularAsiento(id){
   const a=asientos.find(x=>x.id===id);if(!a)return;
   if(!confirm(`¿Anular asiento N° ${a.numero}? El asiento queda en la base pero marcado como anulado.`))return;
-  try{await PATCH('asientos',{estado:'anulado'},`?id=eq.${id}`);await loadAll();renderAll();notify('Asiento anulado');}
+  try{await PATCH('asientos',{estado:'anulado'},`?id=eq.${id}`);await reload('asientos','asiento_lineas');renderAll();notify('Asiento anulado');}
   catch(e){notify(e.message,'err');}
 }
 async function deleteAsiento(id){
@@ -6069,7 +6069,7 @@ async function deleteAsiento(id){
   try{
     await DEL('asiento_lineas',`?asiento_id=eq.${id}`);
     await DEL('asientos',`?id=eq.${id}`);
-    await loadAll();renderAll();notify('Asiento eliminado');
+    await reload('asientos','asiento_lineas');renderAll();notify('Asiento eliminado');
   }catch(e){notify('Error: '+e.message,'err');}
 }
 
@@ -6944,13 +6944,13 @@ async function saveEditOP(){
     } else {
       notify('Orden actualizada');
     }
-    await loadAll();closeModal('modal-edit-op');renderAll();
+    await reload('ordenes_produccion','barras','productos_terminados');closeModal('modal-edit-op');renderAll();
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-edit-op',false,'Guardar cambios');
 }
 async function deleteOP(id){
   if(!confirm('¿Eliminar esta orden de producción?'))return;
-  try{await DEL('ordenes_produccion',`?id=eq.${id}`);await loadAll();renderAll();notify('Orden eliminada');}
+  try{await DEL('ordenes_produccion',`?id=eq.${id}`);await reload('ordenes_produccion','barras','productos_terminados');renderAll();notify('Orden eliminada');}
   catch(e){notify(e.message,'err');}
 }
 
@@ -8645,7 +8645,7 @@ async function aceptarRecepcion(id){
   if(!confirm('¿Aceptar esta recepción? La barra vinculada queda liberada para producción.'))return;
   try{
     await PATCH('recepciones_oc',{estado_inspeccion:'aceptado'},`?id=eq.${id}`);
-    await loadAll();renderAll();notify('✓ Recepción aceptada — material liberado');
+    await reload('recepciones_oc','ordenes_compra','oc_items','barras','insumos','herramientas','certificados');renderAll();notify('✓ Recepción aceptada — material liberado');
   }catch(e){notify('Error: '+e.message,'err');}
 }
 async function rechazarRecepcion(id){
@@ -8653,7 +8653,7 @@ async function rechazarRecepcion(id){
   if(!confirm('¿Rechazar esta recepción? La barra vinculada queda bloqueada. Registrá después la No Conformidad en Calidad → NCR.'))return;
   try{
     await PATCH('recepciones_oc',{estado_inspeccion:'rechazado'},`?id=eq.${id}`);
-    await loadAll();renderAll();notify('Recepción rechazada — registrá la NC en Calidad');
+    await reload('recepciones_oc','ordenes_compra','oc_items','barras');renderAll();notify('Recepción rechazada — registrá la NC en Calidad');
   }catch(e){notify('Error: '+e.message,'err');}
 }
 
@@ -9122,7 +9122,7 @@ async function saveOC(){
     else{const res=await POST('ordenes_compra',[{...data,empresa_id:currentEmpresa.id}]);ocId=res[0].id;}
     const items=ocItemsDraft.map(i=>({oc_id:ocId,tipo:i.tipo,descripcion:i.descripcion,material:i.material||null,perfil:i.perfil||null,diametro:i.diametro||null,cantidad:parseFloat(i.cantidad)||0,unidad:i.unidad,precio_unitario:parseFloat(i.precio_unitario)||0,subtotal:parseFloat(i.subtotal)||0,cantidad_recibida:parseFloat(i.cantidad_recibida)||0}));
     if(items.length)await POST('oc_items',items);
-    await loadAll();closeModal('modal-oc');renderAll();notify(id?'OC actualizada':'OC creada');
+    await reload('ordenes_compra','oc_items','asientos','asiento_lineas');closeModal('modal-oc');renderAll();notify(id?'OC actualizada':'OC creada');
   }catch(e){notify('Error: '+e.message,'err');}
   finally{_savingOC=false;setBusy('btn-save-oc',false);}
 }
@@ -9130,7 +9130,7 @@ async function saveOC(){
 async function deleteOC(id){
   const oc=ordenesCompra.find(x=>x.id===id);if(!oc)return;
   if(!confirm(`¿Eliminar OC "${oc.nro}"? Se borran también sus ítems y recepciones.`))return;
-  try{await DEL('ordenes_compra',`?id=eq.${id}`);await loadAll();renderAll();notify('OC eliminada');}
+  try{await DEL('ordenes_compra',`?id=eq.${id}`);await reload('ordenes_compra','oc_items','asientos','asiento_lineas');renderAll();notify('OC eliminada');}
   catch(e){notify('Error: '+e.message,'err');}
 }
 
@@ -9224,7 +9224,7 @@ async function saveRecepcion(){
     await PATCH('ordenes_compra',{estado:nuevoEstado},`?id=eq.${currentOCId}`);
     // Asiento contable automático de compra
     await generarAsientoCompra(recepcionesNuevas,oc,fecha);
-    await loadAll();closeModal('modal-recepcion');renderAll();
+    await reload('recepciones_oc','ordenes_compra','oc_items','barras','insumos','herramientas','certificados');closeModal('modal-recepcion');renderAll();
     notify(allComplete?'✓ Recepción completa registrada':'Recepción parcial registrada');
   }catch(e){notify('Error: '+e.message,'err');console.error(e);}
   finally{setBusy('btn-save-recep',false);}
@@ -9351,7 +9351,7 @@ async function registrarFacturaRecibida(btnId){
   try{
     setBusy(btnId,true);
     await RPC('registrar_factura_recibida',{p_factura:f,p_override:override,p_motivo:motivo});
-    await loadAll();closeModal('modal-factura-recibida');renderAll();
+    await reload('facturas_recibidas','ordenes_compra','asientos','asiento_lineas');closeModal('modal-factura-recibida');renderAll();
     notify('Factura registrada');
   }catch(e){notify(e.message||'Error registrando factura','err');}
   finally{setBusy(btnId,false);}
@@ -10347,13 +10347,13 @@ async function saveOperacionPaso(){
 async function conciliarLinea(extractoId,asientoLineaId){
   try{
     await PATCH('extracto_bancario',{conciliado:true,asiento_linea_id:asientoLineaId},`?id=eq.${extractoId}`);
-    await loadAll();renderAll();notify('Línea conciliada');
+    await reload('extracto_bancario','asientos','asiento_lineas');renderAll();notify('Línea conciliada');
   }catch(e){notify(e.message||'Error al conciliar','err');}
 }
 async function desconciliarLinea(extractoId){
   try{
     await PATCH('extracto_bancario',{conciliado:false,asiento_linea_id:null},`?id=eq.${extractoId}`);
-    await loadAll();renderAll();notify('Conciliación deshecha');
+    await reload('extracto_bancario','asientos','asiento_lineas');renderAll();notify('Conciliación deshecha');
   }catch(e){notify(e.message||'Error','err');}
 }
 
@@ -10385,13 +10385,13 @@ async function crearAsientoDesdeExtracto(btnId){
   setBusy(btnId,true);
   try{
     const as=await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas});
-    await loadAll();
+    await reload('asientos','asiento_lineas','extracto_bancario');
     const lineaBanco=asientoLineas.find(l=>l.asiento_id===as.id&&l.cuenta_id===ctaBanco);
     if(lineaBanco){
       await PATCH('extracto_bancario',{conciliado:true,asiento_linea_id:lineaBanco.id},`?id=eq.${ex.id}`);
-      await loadAll();closeModal('modal-asiento-extracto');renderAll();notify('Asiento creado y línea conciliada');
+      await reload('asientos','asiento_lineas','extracto_bancario');closeModal('modal-asiento-extracto');renderAll();notify('Asiento creado y línea conciliada');
     }else{
-      await loadAll();closeModal('modal-asiento-extracto');renderAll();
+      await reload('asientos','asiento_lineas','extracto_bancario');closeModal('modal-asiento-extracto');renderAll();
       notify('Asiento creado, pero no se pudo vincular la línea: recargá y conciliala manualmente','err');
     }
   }catch(e){notify(e.message||'Error creando asiento','err');}
