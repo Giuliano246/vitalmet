@@ -2540,61 +2540,68 @@ async function retryLoad(){
     if(b){b.disabled=false;b.textContent='Reintentar';}
   }
 }
+// ─── Registro de tablas: query + setter por tabla (P5) ──────────
+// loadAll() itera TODO el registro; reload(...tablas) baja solo lo afectado.
+// Las queries son las históricas, verbatim. lazy:true = fuera del arranque.
+const TBL={
+  certificados:{label:'Certificados',q:'?order=created_at.desc&select=id,empresa_id,nro,proveedor,material,colada,fecha,metros,file_name,created_at',set:r=>{certs=r||[];}},
+  barras:{label:'Materia prima',q:'?order=created_at.desc&select=*,certificados(nro,colada,proveedor)',set:r=>{barras=r||[];}},
+  ordenes_produccion:{label:'Órdenes de producción',q:'?order=created_at.desc&select=*,barras(lote)',set:r=>{ops=r||[];}},
+  productos_terminados:{label:'Productos terminados',q:'?order=created_at.desc&select=*,barras(lote,nro_colada,certificados(nro)),ordenes_produccion(nro)',set:r=>{pts=r||[];}},
+  ventas:{label:'Ventas',q:'?order=created_at.desc&select=*,venta_items(*,productos_terminados(lote,pieza))',set:r=>{ventas=r||[];}},
+  materiales:{label:'Materiales',fetch:()=>GET('materiales','?order=orden.asc,nombre.asc&activo=eq.true').catch(()=>GET('materiales','?order=nombre.asc')),set:r=>{materiales=r||[];}},
+  tratamientos:{label:'Tratamientos',q:'?order=created_at.desc&select=id,empresa_id,orden_id,tipo,descripcion,proveedor,fecha,certificado_nro,certificado_file_name,created_at',set:r=>{tratamientos=r||[];}},
+  usuarios:{label:'Usuarios',fetch:()=>POST('rpc/get_usuarios_empresa',{}),set:r=>{usuariosEmpresa=r||[];}},
+  permisos_usuario:{label:'Permisos',q:'?order=modulo.asc',set:r=>{permisosUsuario=r||[];}},
+  clientes:{label:'Clientes',q:'?order=nombre.asc',set:r=>{clientes=r||[];}},
+  vendedores:{label:'Vendedores',q:'?order=nombre.asc&activo=eq.true',set:r=>{vendedores=r||[];}},
+  listas_precios:{label:'Listas de precios',q:'?order=nombre.asc&activo=eq.true',set:r=>{listasPrecios=r||[];}},
+  proveedores:{label:'Proveedores',q:'?order=nombre.asc&activo=eq.true',set:r=>{proveedores=r||[];}},
+  ordenes_compra:{label:'Órdenes de compra',q:'?order=fecha.desc&select=*,proveedores(*),oc_items(*),certificados(id,nro,material,colada)',set:r=>{ordenesCompra=r||[];}},
+  oc_items:{label:'Ítems de OC',q:'?order=created_at.asc',set:r=>{ocItems=r||[];}},
+  recepciones_oc:{label:'Recepciones',q:'?order=fecha.desc',set:r=>{recepciones=r||[];}},
+  presupuestos:{label:'Presupuestos',q:'?order=fecha.desc&select=*,presupuesto_items(*)',set:r=>{presupuestos=r||[];}},
+  insumos:{label:'Insumos',q:'?order=nombre.asc&select=*,proveedores(nombre)',set:r=>{insumos=r||[];}},
+  herramientas:{label:'Herramientas',q:'?order=nombre.asc&select=*,proveedores(nombre)',set:r=>{herramientas=r||[];}},
+  cuentas_contables:{label:'Plan de cuentas',q:'?order=codigo.asc',set:r=>{cuentasContables=r||[];}},
+  asientos:{label:'Asientos',q:'?order=fecha.desc,numero.desc',set:r=>{asientos=r||[];}},
+  asiento_lineas:{label:'Líneas de asientos',q:'?order=orden.asc&select=*,cuentas_contables(codigo,nombre)',set:r=>{asientoLineas=r||[];}},
+  indices_ipc:{label:'Índices IPC',q:'?order=anio.desc,mes.desc',set:r=>{indicesIpc=r||[];}},
+  config_contable:{label:'Config. contable',q:'?limit=1',set:r=>{configContable=(r&&r[0])||null;}},
+  ejercicios:{label:'Ejercicios',q:'?order=numero.asc',set:r=>{ejercicios=r||[];}},
+  cheques:{label:'Cheques',q:'?order=fecha_pago.asc',set:r=>{cheques=r||[];}},
+  facturas_recibidas:{label:'Facturas recibidas',q:'?order=created_at.desc',set:r=>{facturasRecibidas=r||[];}},
+  periodos_contables:{label:'Períodos',q:'?order=anio.desc,mes.desc',set:r=>{periodosContables=r||[];}},
+  v_correlatividad:{label:'Correlatividad',q:'?select=*',set:r=>{correlatividad=r||[];}},
+  cuentas_bancarias:{label:'Cuentas bancarias',q:'?order=nombre.asc',set:r=>{cuentasBancarias=r||[];}},
+  extracto_bancario:{label:'Extracto bancario',q:'?order=fecha.desc',set:r=>{extractoBancario=r||[];}},
+  // Calidad (Fase 2 ISO/Q1) — sin file_data: los PDFs se bajan on-demand en openPDF()
+  documentos_controlados:{label:'Documentos controlados',q:'?order=codigo.asc,revision.desc&select=id,empresa_id,codigo,titulo,tipo,revision,estado,fecha_vigencia,aprobado_por,file_name,observaciones,created_at',set:r=>{documentosControlados=r||[];}},
+  pqp_plantillas:{label:'Plantillas PQP',q:'?order=codigo.asc',set:r=>{pqpPlantillas=r||[];}},
+  pqp_plantilla_operaciones:{label:'Operaciones PQP',q:'?order=secuencia.asc',set:r=>{pqpPlantillaOps=r||[];}},
+  calibraciones:{label:'Calibraciones',q:'?order=fecha.desc&select=id,empresa_id,herramienta_id,fecha,resultado,certificado_nro,laboratorio_id,file_name,observaciones,created_at,proveedores(nombre)',set:r=>{calibraciones=r||[];}},
+  registros_calidad:{label:'Registros de calidad',q:'?order=created_at.desc&select=id,empresa_id,orden_id,operacion_id,recepcion_id,tipo,herramienta_id,datos,resultado,observaciones,firmado_por,file_name,created_at',set:r=>{registrosCalidad=r||[];}},
+  no_conformidades:{label:'No conformidades',q:'?order=numero.desc',set:r=>{noConformidades=r||[];}},
+  acciones_capa:{label:'Acciones CAPA',q:'?order=numero.desc',set:r=>{accionesCapa=r||[];}},
+};
+let _lastLoadAllAt=0;
+async function _loadTables(nombres){
+  await Promise.all(nombres.map(n=>{
+    const t=TBL[n];if(!t)return Promise.resolve();
+    const p=t.fetch?t.fetch():GET(n,t.q);
+    return p.catch(e=>{_loadFail(t.label||n,e);return null;}).then(r=>t.set(r));
+  }));
+}
+async function reload(...nombres){await _loadTables(nombres);}
 async function loadAll(){
   _loadErrors=[];
   try{
-    [certs,barras,ops,pts,ventas,materiales,tratamientos,usuariosEmpresa,permisosUsuario,clientes,vendedores,listasPrecios,proveedores,ordenesCompra,ocItems,recepciones,presupuestos,insumos,herramientas,cuentasContables,asientos,asientoLineas,indicesIpc,configContable,ejercicios,cheques,facturasRecibidas,periodosContables,correlatividad,cuentasBancarias,extractoBancario,documentosControlados,pqpPlantillas,pqpPlantillaOps,calibraciones,registrosCalidad,noConformidades,accionesCapa]=await Promise.all([
-      // Sin file_data: el base64 de los PDFs se descarga on-demand en openPDF() — si no, cada loadAll baja TODOS los PDFs
-      GET('certificados','?order=created_at.desc&select=id,empresa_id,nro,proveedor,material,colada,fecha,metros,file_name,created_at').catch(e=>_loadFail('Certificados',e)),
-      GET('barras','?order=created_at.desc&select=*,certificados(nro,colada,proveedor)').catch(e=>_loadFail('Materia prima',e)),
-      GET('ordenes_produccion','?order=created_at.desc&select=*,barras(lote)').catch(e=>_loadFail('Órdenes de producción',e)),
-      GET('productos_terminados','?order=created_at.desc&select=*,barras(lote,nro_colada,certificados(nro)),ordenes_produccion(nro)').catch(e=>_loadFail('Productos terminados',e)),
-      GET('ventas','?order=created_at.desc&select=*,venta_items(*,productos_terminados(lote,pieza))').catch(e=>_loadFail('Ventas',e)),
-      GET('materiales','?order=orden.asc,nombre.asc&activo=eq.true').catch(()=>GET('materiales','?order=nombre.asc')).catch(e=>_loadFail('Materiales',e)),
-      GET('tratamientos','?order=created_at.desc&select=id,empresa_id,orden_id,tipo,descripcion,proveedor,fecha,certificado_nro,certificado_file_name,created_at').catch(e=>_loadFail('Tratamientos',e)),
-      POST('rpc/get_usuarios_empresa',{}).catch(e=>_loadFail('Usuarios',e)),
-      GET('permisos_usuario','?order=modulo.asc').catch(e=>_loadFail('Permisos',e)),
-      GET('clientes','?order=nombre.asc').catch(e=>_loadFail('Clientes',e)),
-      GET('vendedores','?order=nombre.asc&activo=eq.true').catch(e=>_loadFail('Vendedores',e)),
-      GET('listas_precios','?order=nombre.asc&activo=eq.true').catch(e=>_loadFail('Listas de precios',e)),
-      GET('proveedores','?order=nombre.asc&activo=eq.true').catch(e=>_loadFail('Proveedores',e)),
-      GET('ordenes_compra','?order=fecha.desc&select=*,proveedores(*),oc_items(*),certificados(id,nro,material,colada)').catch(e=>_loadFail('Órdenes de compra',e)),
-      GET('oc_items','?order=created_at.asc').catch(e=>_loadFail('Ítems de OC',e)),
-      GET('recepciones_oc','?order=fecha.desc').catch(e=>_loadFail('Recepciones',e)),
-      GET('presupuestos','?order=fecha.desc&select=*,presupuesto_items(*)').catch(e=>_loadFail('Presupuestos',e)),
-      GET('insumos','?order=nombre.asc&select=*,proveedores(nombre)').catch(e=>_loadFail('Insumos',e)),
-      GET('herramientas','?order=nombre.asc&select=*,proveedores(nombre)').catch(e=>_loadFail('Herramientas',e)),
-      GET('cuentas_contables','?order=codigo.asc').catch(e=>_loadFail('Plan de cuentas',e)),
-      GET('asientos','?order=fecha.desc,numero.desc').catch(e=>_loadFail('Asientos',e)),
-      GET('asiento_lineas','?order=orden.asc&select=*,cuentas_contables(codigo,nombre)').catch(e=>_loadFail('Líneas de asientos',e)),
-      GET('indices_ipc','?order=anio.desc,mes.desc').catch(e=>_loadFail('Índices IPC',e)),
-      GET('config_contable','?limit=1').then(r=>r&&r[0]||null).catch(e=>_loadFail('Config. contable',e,null)),
-      GET('ejercicios','?order=numero.asc').catch(e=>_loadFail('Ejercicios',e)),
-      GET('cheques','?order=fecha_pago.asc').catch(e=>_loadFail('Cheques',e)),
-      GET('facturas_recibidas','?order=created_at.desc').catch(e=>_loadFail('Facturas recibidas',e)),
-      GET('periodos_contables','?order=anio.desc,mes.desc').catch(e=>_loadFail('Períodos',e)),
-      GET('v_correlatividad','?select=*').catch(e=>_loadFail('Correlatividad',e)),
-      GET('cuentas_bancarias','?order=nombre.asc').catch(e=>_loadFail('Cuentas bancarias',e)),
-      GET('extracto_bancario','?order=fecha.desc').catch(e=>_loadFail('Extracto bancario',e)),
-      // Calidad (Fase 2 ISO/Q1) — sin file_data: los PDFs se bajan on-demand en openPDF()
-      GET('documentos_controlados','?order=codigo.asc,revision.desc&select=id,empresa_id,codigo,titulo,tipo,revision,estado,fecha_vigencia,aprobado_por,file_name,observaciones,created_at').catch(e=>_loadFail('Documentos controlados',e)),
-      GET('pqp_plantillas','?order=codigo.asc').catch(e=>_loadFail('Plantillas PQP',e)),
-      GET('pqp_plantilla_operaciones','?order=secuencia.asc').catch(e=>_loadFail('Operaciones PQP',e)),
-      GET('calibraciones','?order=fecha.desc&select=id,empresa_id,herramienta_id,fecha,resultado,certificado_nro,laboratorio_id,file_name,observaciones,created_at,proveedores(nombre)').catch(e=>_loadFail('Calibraciones',e)),
-      GET('registros_calidad','?order=created_at.desc&select=id,empresa_id,orden_id,operacion_id,recepcion_id,tipo,herramienta_id,datos,resultado,observaciones,firmado_por,file_name,created_at').catch(e=>_loadFail('Registros de calidad',e)),
-      GET('no_conformidades','?order=numero.desc').catch(e=>_loadFail('No conformidades',e)),
-      GET('acciones_capa','?order=numero.desc').catch(e=>_loadFail('Acciones CAPA',e)),
-    ]);
+    await _loadTables(Object.keys(TBL).filter(n=>!TBL[n].lazy));
+    _lastLoadAllAt=Date.now();
   }catch(e){
     // Red de seguridad: con catch por tabla no debería entrar acá
     console.error('Error cargando datos:',e);
     _loadFail('datos generales',e);
-    certs=certs||[];barras=barras||[];ops=ops||[];pts=pts||[];ventas=ventas||[];
-    materiales=materiales||[];tratamientos=tratamientos||[];usuariosEmpresa=usuariosEmpresa||[];permisosUsuario=permisosUsuario||[];clientes=clientes||[];vendedores=vendedores||[];listasPrecios=listasPrecios||[];
-    proveedores=proveedores||[];ordenesCompra=ordenesCompra||[];ocItems=ocItems||[];recepciones=recepciones||[];presupuestos=presupuestos||[];
-    insumos=insumos||[];herramientas=herramientas||[];
-    cuentasContables=cuentasContables||[];asientos=asientos||[];asientoLineas=asientoLineas||[];indicesIpc=indicesIpc||[];configContable=configContable||null;ejercicios=ejercicios||[];cheques=cheques||[];facturasRecibidas=facturasRecibidas||[];periodosContables=periodosContables||[];correlatividad=correlatividad||[];cuentasBancarias=cuentasBancarias||[];extractoBancario=extractoBancario||[];
-    documentosControlados=documentosControlados||[];pqpPlantillas=pqpPlantillas||[];pqpPlantillaOps=pqpPlantillaOps||[];calibraciones=calibraciones||[];registrosCalidad=registrosCalidad||[];noConformidades=noConformidades||[];accionesCapa=accionesCapa||[];
   }
   _showLoadErrors();
 }
