@@ -3919,6 +3919,7 @@ function renderPage(p){
   (PAGE_RENDERS[p]||[]).forEach(f=>f());
   _dirtyPages.delete(p);
   animateNumbers();applyIconButtonLabels();
+  document.querySelectorAll(`#page-${p} tbody[id]`).forEach(tb=>{if(_tableSorts[tb.id])applyTableSort(tb.id);});
 }
 function renderAll(){
   Object.keys(PAGE_RENDERS).forEach(p=>_dirtyPages.add(p));
@@ -7627,6 +7628,41 @@ function closeTiempos(){closeModal('modal-tiempos');if(tiempoInterval){clearInte
 
 function openEntryOf(entries,opId,tipo){return entries.find(e=>e.operacion_id===opId&&e.tipo===tipo&&!e.ended_at)||null;}
 function activeProductivos(entries){return entries.filter(e=>e.tipo==='productivo'&&!e.ended_at);}
+// ─── Sort de tablas: parsers puros (tests/sort.test.js) ──────────
+function parseCellValue(s){
+  const t=(s||'').trim();
+  if(!t||t==='—')return{tipo:'vacio',v:null};
+  let m=t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m)return{tipo:'fecha',v:t.slice(0,10)};
+  m=t.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if(m)return{tipo:'fecha',v:`${m[3]}-${m[2]}-${m[1]}`};
+  const num=t.replace(/US\$|\$|%|\s/g,'').replace(/\.(?=\d{3}(\D|$))/g,'').replace(',','.');
+  if(num&&!isNaN(Number(num)))return{tipo:'num',v:Number(num)};
+  return{tipo:'texto',v:t.toLowerCase()};
+}
+function detectColType(values){
+  const parsed=values.map(parseCellValue).filter(p=>p.tipo!=='vacio');
+  if(!parsed.length)return'texto';
+  const counts={};parsed.forEach(p=>counts[p.tipo]=(counts[p.tipo]||0)+1);
+  if((counts.num||0)>=parsed.length*0.6)return'num';
+  if((counts.fecha||0)>=parsed.length*0.6)return'fecha';
+  return'texto';
+}
+function compareCells(a,b,tipo){
+  const pa=parseCellValue(a),pb=parseCellValue(b);
+  if(pa.tipo==='vacio'&&pb.tipo==='vacio')return 0;
+  if(pa.tipo==='vacio')return 1;
+  if(pb.tipo==='vacio')return -1;
+  if(tipo==='num'){const va=pa.tipo==='num'?pa.v:-Infinity,vb=pb.tipo==='num'?pb.v:-Infinity;return va-vb;}
+  if(tipo==='fecha'){const va=pa.tipo==='fecha'?pa.v:'',vb=pb.tipo==='fecha'?pb.v:'';return va<vb?-1:va>vb?1:0;}
+  return String(pa.v).localeCompare(String(pb.v),'es');
+}
+function enRango(fecha,desde,hasta){
+  if(!fecha)return!(desde||hasta);
+  const f=String(fecha).slice(0,10);
+  return(!desde||f>=desde)&&(!hasta||f<=hasta);
+}
+
 // ─── Rollup de eficiencia (funciones puras, testeadas en tests/eficiencia.test.js) ──────────
 function minutosEntry(e,ahoraMs){const end=e.ended_at?new Date(e.ended_at).getTime():(ahoraMs||Date.now());return Math.max(0,Math.floor((end-new Date(e.started_at).getTime())/60000));}
 
@@ -7745,6 +7781,42 @@ setInterval(()=>{
   if(!page||!page.classList.contains('active')||!timersActivos.length)return;
   timersActivos.forEach(e=>{const el=document.getElementById('panel-timer-'+e.id);if(el)el.textContent=fmtTimerSec(secSince(e.started_at));});
 },1000);
+
+// ─── Sort de tablas: delegación global ──────────
+let _tableSorts={};
+document.addEventListener('click',e=>{
+  const th=e.target.closest('thead th');
+  if(!th||e.target.closest('button,select,input,a'))return;
+  if(!th.textContent.replace(/[▲▼\s]/g,''))return; // columnas de acciones vacías
+  const tbody=th.closest('table')?.querySelector('tbody');
+  if(!tbody||!tbody.id)return;
+  const col=Array.from(th.parentNode.children).indexOf(th);
+  const prev=_tableSorts[tbody.id];
+  _tableSorts[tbody.id]={col,dir:prev&&prev.col===col&&prev.dir==='asc'?'desc':'asc'};
+  applyTableSort(tbody.id);
+});
+function applyTableSort(tbodyId){
+  const st=_tableSorts[tbodyId];if(!st)return;
+  const tbody=document.getElementById(tbodyId);if(!tbody)return;
+  const rows=Array.from(tbody.querySelectorAll(':scope > tr')).filter(r=>!r.querySelector('td[colspan]'));
+  if(rows.length>1){
+    const vals=rows.map(r=>(r.children[st.col]?.textContent)||'');
+    const tipo=detectColType(vals);
+    rows.map((r,i)=>({r,v:vals[i]}))
+      .sort((a,b)=>{const c=compareCells(a.v,b.v,tipo);return st.dir==='asc'?c:-c;})
+      .forEach(x=>tbody.appendChild(x.r));
+  }
+  const table=tbody.closest('table');if(!table)return;
+  table.querySelectorAll('thead th').forEach((th,i)=>{
+    th.querySelector('.sort-ind')?.remove();
+    th.removeAttribute('aria-sort');
+    if(i===st.col){
+      th.setAttribute('aria-sort',st.dir==='asc'?'ascending':'descending');
+      const s=document.createElement('span');s.className='sort-ind';s.textContent=st.dir==='asc'?' ▲':' ▼';
+      th.appendChild(s);
+    }
+  });
+}
 
 function renderTiempos(){renderTiemposOps();renderTiemposEntries();renderTiemposMetrics();renderTimerDisplay();}
 
