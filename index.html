@@ -7604,6 +7604,48 @@ function closeTiempos(){closeModal('modal-tiempos');if(tiempoInterval){clearInte
 
 function openEntryOf(entries,opId,tipo){return entries.find(e=>e.operacion_id===opId&&e.tipo===tipo&&!e.ended_at)||null;}
 function activeProductivos(entries){return entries.filter(e=>e.tipo==='productivo'&&!e.ended_at);}
+// ─── Rollup de eficiencia (funciones puras, testeadas en tests/eficiencia.test.js) ──────────
+function minutosEntry(e,ahoraMs){const end=e.ended_at?new Date(e.ended_at).getTime():(ahoraMs||Date.now());return Math.max(0,Math.floor((end-new Date(e.started_at).getTime())/60000));}
+
+function computeEficienciaPorOperacion(operaciones,entries){
+  const porOp={};
+  entries.forEach(e=>{if(e.tipo!=='productivo')return;porOp[e.operacion_id]=(porOp[e.operacion_id]||0)+minutosEntry(e);});
+  const grupos={};
+  operaciones.forEach(o=>{
+    const k=(o.nombre||'—').trim().toLowerCase();
+    if(!grupos[k])grupos[k]={nombre:k,estMin:0,realMin:0,n:0};
+    grupos[k].estMin+=o.tiempo_estimado_min||0;
+    grupos[k].realMin+=porOp[o.id]||0;
+    grupos[k].n++;
+  });
+  return Object.values(grupos)
+    .map(x=>({...x,eff:x.realMin>0&&x.estMin>0?Math.round(x.estMin/x.realMin*100):null}))
+    .sort((a,b)=>b.realMin-a.realMin);
+}
+
+function computePausasPorMotivo(entries){
+  const g={};
+  entries.forEach(e=>{if(e.tipo!=='pausa')return;const k=e.motivo||'Sin motivo';if(!g[k])g[k]={motivo:k,min:0,count:0};g[k].min+=minutosEntry(e);g[k].count++;});
+  return Object.values(g).sort((a,b)=>b.min-a.min);
+}
+
+function computeEficienciaPorPieza(ordenes,operaciones,entries){
+  const porOp={};
+  entries.forEach(e=>{if(e.tipo!=='productivo')return;porOp[e.operacion_id]=(porOp[e.operacion_id]||0)+minutosEntry(e);});
+  const ordenPieza={};ordenes.forEach(o=>ordenPieza[o.id]=o.pieza||'—');
+  const g={};
+  operaciones.forEach(op=>{
+    const pieza=ordenPieza[op.orden_id];if(pieza===undefined)return;
+    if(!g[pieza])g[pieza]={pieza,estMin:0,realMin:0,_ordenes:new Set()};
+    g[pieza].estMin+=op.tiempo_estimado_min||0;
+    g[pieza].realMin+=porOp[op.id]||0;
+    g[pieza]._ordenes.add(op.orden_id);
+  });
+  return Object.values(g)
+    .map(x=>({pieza:x.pieza,estMin:x.estMin,realMin:x.realMin,nOps:x._ordenes.size,eff:x.realMin>0&&x.estMin>0?Math.round(x.estMin/x.realMin*100):null}))
+    .sort((a,b)=>b.realMin-a.realMin);
+}
+
 // ─── Panel global "⏱ Timers activos" (página Producción) ──────────
 let timersActivos=[];
 async function refreshTimersActivos(){
