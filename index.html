@@ -3824,6 +3824,13 @@ function computeAlertas(){
     titulo:uno(aprobFrios.length,'Presupuesto aprobado sin arrancar','Presupuestos aprobados sin arrancar'),
     detalle:aprobFrios.slice(0,3).map(p=>esc((p.nro||'')+' · '+(p.cliente||''))).join('  —  ')+masDe(aprobFrios)});
 
+  // Documentos controlados: revisión anual pendiente (ISO 9001)
+  const hace365=hoyLocal(-365);
+  const docsRev=documentosControlados.filter(d=>d.estado==='vigente'&&d.fecha_vigencia&&d.fecha_vigencia<hace365);
+  if(docsRev.length)out.push({sev:'warn',page:'doccontrol',count:docsRev.length,
+    titulo:uno(docsRev.length,'Documento con revisión anual pendiente','Documentos con revisión anual pendiente'),
+    detalle:docsRev.slice(0,3).map(d=>esc((d.codigo||'')+' rev.'+(d.revision||'')+' (vigente desde '+d.fecha_vigencia+')')).join('  —  ')+masDe(docsRev)});
+
   // Emails esperando aprobación (si el módulo mailings ya cargó el dato)
   if(typeof mailingsQueueCount==='number'&&mailingsQueueCount>0)out.push({sev:'warn',page:'mailings',count:mailingsQueueCount,
     titulo:uno(mailingsQueueCount,'Email esperando tu aprobación','Emails esperando tu aprobación'),
@@ -8794,10 +8801,19 @@ async function aceptarRecepcion(id){
 }
 async function rechazarRecepcion(id){
   const r=recepciones.find(x=>x.id===id);if(!r)return;
-  if(!confirm('¿Rechazar esta recepción? La barra vinculada queda bloqueada. Registrá después la No Conformidad en Calidad → NCR.'))return;
+  if(!confirm('¿Rechazar esta recepción? La barra vinculada queda bloqueada y se crea la No Conformidad automáticamente.'))return;
   try{
     await PATCH('recepciones_oc',{estado_inspeccion:'rechazado'},`?id=eq.${id}`);
-    await reload('recepciones_oc','ordenes_compra','oc_items','barras');renderAll();notify('Recepción rechazada — registrá la NC en Calidad');
+    // NC automática pre-cargada (numero lo asigna la DB, como en el alta manual)
+    let ncMsg='';
+    try{
+      const oc=ordenesCompra.find(o=>o.id===r.oc_id);
+      const desc=`Rechazo de recepción ${r.fecha||hoyLocal()}${oc?` — OC ${oc.nro||''} · ${oc.proveedores?.nombre||''}`:''}${r.remito_nro?` · remito ${r.remito_nro}`:''}. Detectado en inspección de entrada.`;
+      await POST('no_conformidades',{empresa_id:currentEmpresa.id,fecha:hoyLocal(),origen_tipo:'recepcion',recepcion_id:id,descripcion:desc});
+      ncMsg=' — NC creada automáticamente en Calidad → NCR (completá la disposición)';
+    }catch(eNC){console.error('NC automática:',eNC);ncMsg=' — ⚠ la NC automática falló, registrala a mano en Calidad';}
+    await reload('recepciones_oc','ordenes_compra','oc_items','barras','no_conformidades');renderAll();
+    notify('Recepción rechazada'+ncMsg,ncMsg.includes('⚠')?'err':undefined);
   }catch(e){notify('Error: '+e.message,'err');}
 }
 
