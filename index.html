@@ -2784,7 +2784,18 @@ function onOrigenChange(){
 // ─── VENTA ITEMS ──────────────────────────────────────────────────
 function addVentaItem(){ventaItemsList.push({ptId:'',cant:1,precio:0,moneda:'USD',bonif:0});renderVentaItems();}
 function removeVentaItem(i){ventaItemsList.splice(i,1);renderVentaItems();}
-function ventaItemChange(i,f,v){ventaItemsList[i][f]=v;if(f==='ptId'){const pt=pts.find(p=>p.id===v);if(pt&&!ventaItemsList[i].precio)ventaItemsList[i].precio=pt.precio_unitario||0;}renderVentaItems();}
+function ventaItemChange(i,f,v){
+  ventaItemsList[i][f]=v;
+  if(f==='ptId'){
+    const pt=pts.find(p=>p.id===v);
+    if(pt&&!ventaItemsList[i].precio){
+      const res=resolverPrecio(pt.pieza,g('v-cliente'),ventas,preciosBase,pts);
+      ventaItemsList[i].precio=res.precio;
+      ventaItemsList[i]._origen=res.origen;
+    }
+  }
+  renderVentaItems();
+}
 function renderVentaItems(){
   const w=document.getElementById('venta-items-wrap');
   if(!ventaItemsList.length){w.innerHTML=`<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Agregá ítems con el botón de abajo</div>`;updateVTotal();return;}
@@ -2805,7 +2816,7 @@ function renderVentaItems(){
       ${pts.filter(p=>p.cantidad>0).map(p=>`<option value="${p.id}" ${item.ptId===p.id?'selected':''}>${esc(p.pieza)} — ${esc(p.descripcion)||''} (${p.cantidad} disp.)</option>`).join('')}
     </select>
     <input type="number" min="1" value="${item.cant}" onchange="ventaItemChange(${i},'cant',+this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;color:var(--text);font-size:11px;text-align:right;width:100%">
-    <input type="number" min="0" step="0.01" value="${item.precio||''}" placeholder="0.00" onchange="ventaItemChange(${i},'precio',+this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;color:var(--coral);font-size:11px;text-align:right;width:100%">
+    <input type="number" min="0" step="0.01" value="${item.precio||''}" placeholder="0.00" title="${PRECIO_ORIGEN_L[item._origen]||'Precio manual'}" onchange="ventaItemChange(${i},'precio',+this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;color:var(--coral);font-size:11px;text-align:right;width:100%">
     <div style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--green);padding:4px 2px">USD</div>
     <div style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--green);padding:4px 2px">${Math.round(total).toLocaleString('es-AR')}</div>
     <input type="number" min="0" step="0.01" value="${item.bonif||0}" onchange="ventaItemChange(${i},'bonif',+this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 4px;color:var(--text3);font-size:10px;text-align:right;width:100%">
@@ -7998,6 +8009,27 @@ setInterval(()=>{
   timersActivos.forEach(e=>{const el=document.getElementById('panel-timer-'+e.id);if(el)el.textContent=fmtTimerSec(secSince(e.started_at));});
 },1000);
 
+// ─── Resolver de precio en cascada (tests/precios.test.js) ──────────
+// último precio al cliente > precio base > precio del PT > 0
+function resolverPrecio(pieza,cliente,ventasArr,preciosArr,ptsArr){
+  const pk=(pieza||'').trim().toLowerCase();
+  const ck=(cliente||'').trim().toLowerCase();
+  if(ck){
+    const vs=[...ventasArr].filter(v=>(v.cliente||'').trim().toLowerCase()===ck&&v.estado!=='anulada')
+      .sort((a,b)=>(b.created_at||b.fecha||'').localeCompare(a.created_at||a.fecha||''));
+    for(const v of vs){
+      const it=(v.venta_items||[]).find(i=>((i.productos_terminados?.pieza)||'').trim().toLowerCase()===pk);
+      if(it&&parseFloat(it.precio_unitario)>0)return{precio:parseFloat(it.precio_unitario),origen:'cliente'};
+    }
+  }
+  const pb=preciosArr.find(p=>(p.pieza||'').trim().toLowerCase()===pk);
+  if(pb&&parseFloat(pb.precio_usd)>0)return{precio:parseFloat(pb.precio_usd),origen:'base'};
+  const pt=[...ptsArr].sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||'')).find(p=>((p.pieza||'').trim().toLowerCase())===pk);
+  if(pt&&parseFloat(pt.precio_unitario)>0)return{precio:parseFloat(pt.precio_unitario),origen:'pt'};
+  return{precio:0,origen:null};
+}
+const PRECIO_ORIGEN_L={cliente:'Último precio cobrado a este cliente',base:'Precio de lista',pt:'Precio del stock PT'};
+
 // ─── Métricas de pipeline comercial (tests/pipeline.test.js) ──────────
 function computePipelineMetrics(ps,hoyISO){
   const hoyMs=new Date(hoyISO+'T00:00:00').getTime();
@@ -9597,7 +9629,10 @@ function onPresupItemChange(idx,field,val){
   if(field==='producto_id'&&val){
     const pt=pts.find(x=>x.id===val);
     if(pt){
-      it.pieza=pt.pieza;it.descripcion=pt.descripcion||'';it.precio_unitario=parseFloat(pt.precio_unitario||0);
+      it.pieza=pt.pieza;it.descripcion=pt.descripcion||'';
+      const resP=resolverPrecio(pt.pieza,document.getElementById('presup-cliente')?.value||'',ventas,preciosBase,pts);
+      it.precio_unitario=resP.precio||parseFloat(pt.precio_unitario||0);
+      it._origen=resP.origen;
       // Costo real histórico del producto (MP + tiempos + overhead)
       const c=computeCostoPT(pt);
       it.costo_estimado=Math.round((c.total||0)*100)/100;
