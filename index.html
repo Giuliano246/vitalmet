@@ -468,6 +468,26 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="table-wrap"><table><thead><tr><th>Nº OT</th><th>Pieza</th><th>Código</th><th>Cant.</th><th>Barra</th><th>Mts</th><th>Merma</th><th>Horas</th><th>Estado</th><th>Inicio</th><th></th></tr></thead><tbody id="op-tbody"></tbody></table></div>
       </div>
     </div>
+    <!-- EFICIENCIA DE PRODUCCIÓN -->
+    <div class="page" id="page-eficiencia">
+      <div class="page-header"><div class="page-title">Eficiencia de producción</div><div class="page-sub">// estimado vs. real · dónde se pierde tiempo</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div class="toolbar">
+          <select id="eff-rango" onchange="renderEficiencia()" style="width:auto">
+            <option value="90">Últimos 90 días</option>
+            <option value="30">Últimos 30 días</option>
+            <option value="365">Último año</option>
+            <option value="0">Todo</option>
+          </select>
+        </div>
+        <div class="stats-bar" id="eff-stats"></div>
+        <div class="dash-grid">
+          <div class="dash-card"><div class="section-label">Estimado vs. real por operación</div><div class="table-wrap"><table><thead><tr><th>Operación</th><th>Pasos</th><th>Estimado</th><th>Real</th><th>Eficiencia</th></tr></thead><tbody id="eff-ops-tbody"></tbody></table></div></div>
+          <div class="dash-card"><div class="section-label">Eficiencia por pieza</div><div class="table-wrap"><table><thead><tr><th>Pieza</th><th>OPs</th><th>Estimado</th><th>Real</th><th>Eficiencia</th></tr></thead><tbody id="eff-piezas-tbody"></tbody></table></div></div>
+        </div>
+        <div class="dash-card" style="margin-top:14px"><div class="section-label">Paradas por motivo</div><div class="table-wrap"><table><thead><tr><th>Motivo</th><th>Veces</th><th>Tiempo total</th></tr></thead><tbody id="eff-pausas-tbody"></tbody></table></div></div>
+      </div>
+    </div>
     <!-- COMPRAS -->
     <div class="page" id="page-compras">
       <div class="page-header">
@@ -2510,9 +2530,10 @@ async function loadAll(){
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
+  produccion:[{k:'op',l:'Órdenes'},{k:'eficiencia',l:'Eficiencia'}],
   contabilidad:[
     {k:'cuentas',l:'Plan de cuentas'},
     {k:'asientosp',l:'Asientos'},
@@ -3860,6 +3881,7 @@ const PAGE_RENDERS={
   insumos:[renderInsumos],
   herramientas:[renderHerramientas],
   op:[renderOP,refreshTimersActivos],
+  eficiencia:[renderEficiencia],
   compras:[renderCompras,renderInspeccion,renderProveedores,renderFacturasRecibidas],
   presupuestos:[renderPresupuestos],
   ventas:[renderVentas],
@@ -7550,7 +7572,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl'],contabilidad:['cuentas','asientosp','cobpag','cheques','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre','periodos','correlatividad','conciliacion']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op','eficiencia'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl'],contabilidad:['cuentas','asientosp','cobpag','cheques','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre','periodos','correlatividad','conciliacion']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
@@ -7646,10 +7668,50 @@ function computeEficienciaPorPieza(ordenes,operaciones,entries){
     .sort((a,b)=>b.realMin-a.realMin);
 }
 
+// ─── Página Eficiencia: carga on-demand (fuera de loadAll) ──────────
+let effOperaciones=null,effEntries=null;
+async function ensureEficienciaData(){
+  if(effOperaciones)return;
+  [effOperaciones,effEntries]=await Promise.all([
+    GET('op_operaciones','?select=id,orden_id,nombre,maquina,tiempo_estimado_min,tarifa_maquina_usd,estado').catch(()=>[]),
+    GET('op_time_entries','?select=operacion_id,tipo,motivo,started_at,ended_at&order=started_at.asc').catch(()=>[])
+  ]);
+}
+async function renderEficiencia(){
+  await ensureEficienciaData();
+  const dias=parseInt(document.getElementById('eff-rango')?.value||'90');
+  const desde=dias?Date.now()-dias*86400000:0;
+  const entries=effEntries.filter(e=>new Date(e.started_at).getTime()>=desde);
+  const opIds=new Set(entries.map(e=>e.operacion_id));
+  const opers=effOperaciones.filter(o=>opIds.has(o.id));
+
+  const porOperacion=computeEficienciaPorOperacion(opers,entries);
+  const porPieza=computeEficienciaPorPieza(ops,opers,entries);
+  const pausas=computePausasPorMotivo(entries);
+
+  const totProd=entries.filter(e=>e.tipo==='productivo').reduce((s,e)=>s+minutosEntry(e),0);
+  const totPausa=entries.filter(e=>e.tipo==='pausa').reduce((s,e)=>s+minutosEntry(e),0);
+  const totEst=opers.reduce((s,o)=>s+(o.tiempo_estimado_min||0),0);
+  const effGlobal=totProd>0&&totEst>0?Math.round(totEst/totProd*100):null;
+  document.getElementById('eff-stats').innerHTML=[
+    ['Horas productivas',fmtHMfromMin(totProd),'var(--green)'],
+    ['Horas de parada',fmtHMfromMin(totPausa),'var(--coral)'],
+    ['Eficiencia global',effGlobal?effGlobal+'%':'—',effGlobal>=100?'var(--green)':effGlobal>=80?'var(--accent)':'var(--coral)'],
+    ['OPs con registro',new Set(opers.map(o=>o.orden_id)).size,'var(--accent)']
+  ].map(([l,v,c])=>`<div class="stat-card"><div class="stat-label">${l}</div><div class="stat-value" style="color:${c}">${v}</div></div>`).join('');
+
+  const effBadge=e=>e==null?'<span class="badge">—</span>':e>=100?`<span class="badge badge-ok">${e}%</span>`:e>=80?`<span class="badge badge-warn">${e}%</span>`:`<span class="badge badge-coral">${e}%</span>`;
+  const emptyRow=(cols,msg)=>`<tr><td colspan="${cols}" style="text-align:center;color:var(--text3);padding:18px">${msg}</td></tr>`;
+  document.getElementById('eff-ops-tbody').innerHTML=porOperacion.length?porOperacion.map(x=>`<tr><td>${esc(x.nombre)}</td><td class="mono">${x.n}</td><td class="mono">${fmtHMfromMin(x.estMin)}</td><td class="mono">${fmtHMfromMin(x.realMin)}</td><td>${effBadge(x.eff)}</td></tr>`).join(''):emptyRow(5,'Sin registros de tiempo en el rango — cargá tiempos desde el botón Tiempos de cada OP');
+  document.getElementById('eff-piezas-tbody').innerHTML=porPieza.length?porPieza.map(x=>`<tr><td>${esc(x.pieza)}</td><td class="mono">${x.nOps}</td><td class="mono">${fmtHMfromMin(x.estMin)}</td><td class="mono">${fmtHMfromMin(x.realMin)}</td><td>${effBadge(x.eff)}</td></tr>`).join(''):emptyRow(5,'Sin datos');
+  document.getElementById('eff-pausas-tbody').innerHTML=pausas.length?pausas.map(x=>`<tr><td>${esc(x.motivo)}</td><td class="mono">${x.count}</td><td class="mono">${fmtHMfromMin(x.min)}</td></tr>`).join(''):emptyRow(3,'Sin paradas registradas');
+}
+
 // ─── Panel global "⏱ Timers activos" (página Producción) ──────────
 let timersActivos=[];
 async function refreshTimersActivos(){
   timersActivos=await GET('op_time_entries','?ended_at=is.null&select=id,tipo,motivo,started_at,operacion_id,op_operaciones(id,nombre,maquina,orden_id)').catch(()=>[]);
+  effOperaciones=null;effEntries=null; // invalidar cache de Eficiencia: hubo movimiento de timers
   renderTimersActivosPanel();
 }
 function timersActivosTiene(opId){return timersActivos.some(e=>e.operacion_id===opId&&e.tipo==='productivo');}
