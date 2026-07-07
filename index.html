@@ -2832,7 +2832,7 @@ async function saveMP(){
   _savingMP=true;setBusy('btn-save-mp',true);
   try{
     await POST('barras',{empresa_id:currentEmpresa.id,lote:g('mp-lote'),material:g('mp-material'),perfil:g('mp-perfil'),diametro:g('mp-diam'),kg_disponibles:parseFloat(g('mp-kg'))||0,unidades:parseInt(g('mp-unid'))||0,nro_colada:g('mp-colada'),certificado_id:g('mp-cert-link')||null,kg_minimo:parseFloat(g('mp-min'))||0,observaciones:g('mp-obs')});
-    await loadAll();closeModal('modal-mp');resetF(['mp-lote','mp-material','mp-diam','mp-kg','mp-unid','mp-colada','mp-cert-link','mp-min','mp-obs']);renderAll();notify('Barra registrada');
+    await reload('barras');closeModal('modal-mp');resetF(['mp-lote','mp-material','mp-diam','mp-kg','mp-unid','mp-colada','mp-cert-link','mp-min','mp-obs']);renderAll();notify('Barra registrada');
   }catch(e){
     if(e.message.includes('unique')||e.message.includes('duplicate')){
       notify('Ya existe una barra con ese lote. Usá un lote diferente.','err');
@@ -2859,7 +2859,7 @@ async function saveCert(){
       file_data:certFileData||null,
       file_name:certFileName||null
     });
-    await loadAll();
+    await reload('certificados','barras');
     closeModal('modal-cert');
     resetF(['cert-nro','cert-prov','cert-mat','cert-colada','cert-fecha','cert-metros']);
     certFileData=null;certFileName=null;
@@ -3450,13 +3450,13 @@ async function saveInsumo(){
   try{
     const data={empresa_id:currentEmpresa.id,codigo:g('insumo-codigo')||null,nombre:g('insumo-nombre'),categoria:g('insumo-categoria')||null,descripcion:g('insumo-descripcion')||null,cantidad:parseFloat(g('insumo-cantidad'))||0,unidad:g('insumo-unidad')||'un',stock_minimo:parseFloat(g('insumo-minimo'))||0,ultimo_precio:parseFloat(g('insumo-precio'))||null,proveedor_id:g('insumo-proveedor')||null,observaciones:g('insumo-observaciones')||null};
     if(id)await PATCH('insumos',data,`?id=eq.${id}`);else await POST('insumos',data);
-    await loadAll();closeModal('modal-insumo');renderAll();notify(id?'Insumo actualizado':'Insumo creado');
+    await reload('insumos');closeModal('modal-insumo');renderAll();notify(id?'Insumo actualizado':'Insumo creado');
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-insumo',false,'Guardar');
 }
 async function deleteInsumo(id){
   if(!confirm('¿Eliminar insumo? Esta acción no se puede deshacer.'))return;
-  try{await DEL('insumos',`?id=eq.${id}`);await loadAll();renderAll();notify('Insumo eliminado');}
+  try{await DEL('insumos',`?id=eq.${id}`);await reload('insumos');renderAll();notify('Insumo eliminado');}
   catch(e){notify(e.message,'err');}
 }
 
@@ -3524,13 +3524,13 @@ async function saveHerramienta(){
     const data={empresa_id:currentEmpresa.id,codigo:g('herr-codigo')||null,nombre:g('herr-nombre'),descripcion:g('herr-descripcion')||null,cantidad:parseFloat(g('herr-cantidad'))||1,estado:g('herr-estado')||'nueva',ubicacion:g('herr-ubicacion')||null,precio_compra:parseFloat(g('herr-precio'))||null,fecha_compra:g('herr-fecha')||null,proveedor_id:g('herr-proveedor')||null,observaciones:g('herr-observaciones')||null,
       requiere_calibracion:g('herr-req-cal')==='true',frecuencia_calibracion_meses:parseInt(g('herr-frec-cal'))||null,patron_referencia:g('herr-patron')||null};
     if(id)await PATCH('herramientas',data,`?id=eq.${id}`);else await POST('herramientas',data);
-    await loadAll();closeModal('modal-herramienta');renderAll();notify(id?'Herramienta actualizada':'Herramienta creada');
+    await reload('herramientas');closeModal('modal-herramienta');renderAll();notify(id?'Herramienta actualizada':'Herramienta creada');
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-herramienta',false,'Guardar');
 }
 async function deleteHerramienta(id){
   if(!confirm('¿Eliminar herramienta? Esta acción no se puede deshacer.'))return;
-  try{await DEL('herramientas',`?id=eq.${id}`);await loadAll();renderAll();notify('Herramienta eliminada');}
+  try{await DEL('herramientas',`?id=eq.${id}`);await reload('herramientas');renderAll();notify('Herramienta eliminada');}
   catch(e){notify(e.message,'err');}
 }
 
@@ -3574,7 +3574,7 @@ async function saveCalibracion(){
       laboratorio_id:document.getElementById('cal-laboratorio').value||null,
       file_data:calFileData||null,file_name:calFileName||null,
       observaciones:document.getElementById('cal-obs').value.trim()||null});
-    await loadAll();closeModal('modal-calibracion');renderAll();
+    await reload('calibraciones');closeModal('modal-calibracion');renderAll();
     notify(document.getElementById('cal-resultado').value==='conforme'?'✓ Calibración registrada — vencimiento actualizado':'Calibración NO conforme — instrumento bloqueado y enviado a mantenimiento');
   }catch(e){notify('Error: '+e.message,'err');}
   finally{setBusy('btn-save-cal',false);}
@@ -3998,7 +3998,7 @@ async function openPDF(certId){
 
 async function deleteCert(id){
   if(!confirm('¿Eliminar este certificado?'))return;
-  try{await DEL('certificados',`?id=eq.${id}`);await loadAll();renderAll();notify('Certificado eliminado');}catch(e){notify(e.message,'err');}
+  try{await DEL('certificados',`?id=eq.${id}`);await reload('certificados','barras');renderAll();notify('Certificado eliminado');}catch(e){notify(e.message,'err');}
 }
 
 async function anularVenta(id){
@@ -4208,7 +4208,7 @@ async function saveCuenta(){
   try{
     const data={empresa_id:currentEmpresa.id,codigo:g('cuenta-codigo'),nombre:g('cuenta-nombre'),tipo:g('cuenta-tipo'),cuenta_padre_id:g('cuenta-padre')||null,imputable:document.getElementById('cuenta-imputable').checked,activa:document.getElementById('cuenta-activa').checked,es_ajustable:document.getElementById('cuenta-es-ajustable').checked,observaciones:g('cuenta-observaciones')||null};
     if(id)await PATCH('cuentas_contables',data,`?id=eq.${id}`);else await POST('cuentas_contables',data);
-    await loadAll();closeModal('modal-cuenta');renderAll();notify(id?'Cuenta actualizada':'Cuenta creada');
+    await reload('cuentas_contables');closeModal('modal-cuenta');renderAll();notify(id?'Cuenta actualizada':'Cuenta creada');
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-cuenta',false,'Guardar');
 }
@@ -4219,7 +4219,7 @@ async function deleteCuenta(id){
   const hijas=cuentasContables.filter(x=>x.cuenta_padre_id===id).length;
   if(hijas>0)return notify(`No se puede eliminar: la cuenta tiene ${hijas} subcuenta(s)`,'err');
   if(!confirm(`¿Eliminar cuenta "${c.codigo} · ${c.nombre}"?`))return;
-  try{await DEL('cuentas_contables',`?id=eq.${id}`);await loadAll();renderAll();notify('Cuenta eliminada');}
+  try{await DEL('cuentas_contables',`?id=eq.${id}`);await reload('cuentas_contables');renderAll();notify('Cuenta eliminada');}
   catch(e){notify(e.message,'err');}
 }
 
@@ -4506,7 +4506,7 @@ async function saveCuentaBancaria(btnId){
   try{
     if(id){await PATCH('cuentas_bancarias',data,`?id=eq.${id}`);}
     else{await POST('cuentas_bancarias',data);}
-    await loadAll();closeModal('modal-cuenta-bancaria');renderAll();notify('Cuenta bancaria guardada');
+    await reload('cuentas_bancarias');closeModal('modal-cuenta-bancaria');renderAll();notify('Cuenta bancaria guardada');
   }catch(e){notify(e.message||'Error guardando cuenta','err');}
   finally{setBusy(btnId,false);}
 }
@@ -4524,7 +4524,7 @@ async function cerrarPeriodo(anio,mes){
     const ex=periodosContables.find(p=>p.anio===anio&&p.mes===mes);
     if(ex){ await PATCH('periodos_contables',{estado:'cerrado'},`?id=eq.${ex.id}`); }
     else  { await POST('periodos_contables',{empresa_id:currentEmpresa.id,anio,mes,estado:'cerrado'}); }
-    await loadAll();renderAll();notify('Período cerrado');
+    await reload('periodos_contables','asientos','asiento_lineas');renderAll();notify('Período cerrado');
   }catch(e){notify(e.message||'Error cerrando período','err');}
 }
 async function reabrirPeriodo(id){
@@ -4532,7 +4532,7 @@ async function reabrirPeriodo(id){
   if(!confirm('¿Reabrir el período? Volverá a permitir asientos en ese mes.'))return;
   try{
     await PATCH('periodos_contables',{estado:'abierto'},`?id=eq.${id}`);
-    await loadAll();renderAll();notify('Período reabierto');
+    await reload('periodos_contables','asientos','asiento_lineas');renderAll();notify('Período reabierto');
   }catch(e){notify(e.message||'No se pudo reabrir','err');}
 }
 
@@ -4603,7 +4603,7 @@ async function saveIndiceIPC(){
   try{
     const data={empresa_id:currentEmpresa.id,anio,mes,indice,fuente:g('ipc-fuente')||'INDEC',observaciones:g('ipc-observaciones')||null};
     if(id)await PATCH('indices_ipc',data,`?id=eq.${id}`);else await POST('indices_ipc',data);
-    await loadAll();closeModal('modal-indice-ipc');renderAll();notify(id?'Índice actualizado':'Índice cargado');
+    await reload('indices_ipc');closeModal('modal-indice-ipc');renderAll();notify(id?'Índice actualizado':'Índice cargado');
   }catch(e){
     const msg=(e.message||'').toLowerCase().includes('unique')||(e.message||'').includes('duplicate')?`Ya existe un índice para ${MES_NOMBRE[mes]} ${anio}. Editalo en lugar de crear uno nuevo.`:e.message;
     notify(msg,'err');
@@ -4613,7 +4613,7 @@ async function saveIndiceIPC(){
 async function deleteIndiceIPC(id){
   const i=indicesIpc.find(x=>x.id===id);if(!i)return;
   if(!confirm(`¿Eliminar índice de ${MES_NOMBRE[i.mes]} ${i.anio}?`))return;
-  try{await DEL('indices_ipc',`?id=eq.${id}`);await loadAll();renderAll();notify('Índice eliminado');}
+  try{await DEL('indices_ipc',`?id=eq.${id}`);await reload('indices_ipc');renderAll();notify('Índice eliminado');}
   catch(e){notify(e.message,'err');}
 }
 
@@ -5753,13 +5753,13 @@ async function saveCheque(){
     };
     if(id){data.updated_at=new Date().toISOString();await PATCH('cheques',data,`?id=eq.${id}`);}
     else{data.empresa_id=currentEmpresa.id;await POST('cheques',data);}
-    await loadAll();closeModal('modal-cheque');renderAll();notify(id?'Cheque actualizado':'Cheque registrado');
+    await reload('cheques');closeModal('modal-cheque');renderAll();notify(id?'Cheque actualizado':'Cheque registrado');
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-cheque',false);
 }
 async function deleteCheque(id){
   if(!confirm('¿Eliminar este cheque del registro?'))return;
-  try{await DEL('cheques',`?id=eq.${id}`);await loadAll();renderAll();notify('Cheque eliminado');}
+  try{await DEL('cheques',`?id=eq.${id}`);await reload('cheques');renderAll();notify('Cheque eliminado');}
   catch(e){notify(e.message,'err');}
 }
 function exportChequesCSV(){
@@ -6688,14 +6688,14 @@ async function saveMaterial(){
       await POST('materiales',{...payload,empresa_id:currentEmpresa.id});
       notify('Material agregado');
     }
-    await loadAll();closeModal('modal-material');renderAll();
+    await reload('materiales');closeModal('modal-material');renderAll();
   }catch(e){notify(e.message.includes('unique')?'Ya existe un material con ese nombre':e.message,'err');}
   setBusy('btn-save-mat',false,'Guardar');
 }
 
 async function deleteMaterial(id){
   if(!confirm('¿Eliminar este material? No afecta las barras ya registradas.'))return;
-  try{await DEL('materiales',`?id=eq.${id}`);await loadAll();renderAll();notify('Material eliminado');}
+  try{await DEL('materiales',`?id=eq.${id}`);await reload('materiales');renderAll();notify('Material eliminado');}
   catch(e){notify(e.message,'err');}
 }
 
@@ -6731,13 +6731,13 @@ async function saveEditBarra(){
       certificado_id:document.getElementById('edit-barra-cert').value||null,
       observaciones:document.getElementById('edit-barra-obs').value,
     },`?id=eq.${id}`);
-    await loadAll();closeModal('modal-edit-barra');renderAll();notify('Barra actualizada');
+    await reload('barras');closeModal('modal-edit-barra');renderAll();notify('Barra actualizada');
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-edit-barra',false,'Guardar cambios');
 }
 async function deleteBarra(id){
   if(!confirm('¿Eliminar esta barra? Esta acción no se puede deshacer.'))return;
-  try{await DEL('barras',`?id=eq.${id}`);await loadAll();renderAll();notify('Barra eliminada');}
+  try{await DEL('barras',`?id=eq.${id}`);await reload('barras');renderAll();notify('Barra eliminada');}
   catch(e){notify(e.message,'err');}
 }
 
@@ -6764,7 +6764,7 @@ async function saveEditCert(){
       fecha:document.getElementById('edit-cert-fecha').value||null,
       metros:parseFloat(document.getElementById('edit-cert-metros').value)||null,
     },`?id=eq.${id}`);
-    await loadAll();closeModal('modal-edit-cert');renderAll();notify('Certificado actualizado');
+    await reload('certificados','barras');closeModal('modal-edit-cert');renderAll();notify('Certificado actualizado');
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-edit-cert',false,'Guardar cambios');
 }
@@ -6864,13 +6864,13 @@ async function savePT(){
         notify('Producto creado');
       }
     }
-    await loadAll();closeModal('modal-pt');renderAll();
+    await reload('productos_terminados');closeModal('modal-pt');renderAll();
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-pt',false,'Guardar');
 }
 async function deletePT(id){
   if(!confirm('¿Eliminar este producto terminado?'))return;
-  try{await DEL('productos_terminados',`?id=eq.${id}`);await loadAll();renderAll();notify('Producto eliminado');}
+  try{await DEL('productos_terminados',`?id=eq.${id}`);await reload('productos_terminados');renderAll();notify('Producto eliminado');}
   catch(e){notify(e.message,'err');}
 }
 
@@ -7105,7 +7105,7 @@ async function saveConfigContable(){
     }else{
       await POST('config_contable',data);
     }
-    await loadAll();renderImputacionContable();
+    await reload('config_contable');renderImputacionContable();
     notify('Imputación contable guardada');
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-cfg-imputacion',false,'Guardar configuración');
@@ -7173,7 +7173,7 @@ async function savePermisos(){
         await POST('permisos_usuario',{empresa_id:currentEmpresa.id,usuario_id:userId,modulo:c.value});
       }
     }
-    await loadAll();closeModal('modal-permisos');renderUsuarios();notify('Permisos actualizados');
+    await reload('permisos_usuario','usuarios');closeModal('modal-permisos');renderUsuarios();notify('Permisos actualizados');
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-permisos',false,'Guardar permisos');
 }
@@ -7231,7 +7231,7 @@ async function saveTratamiento(){
       certificado_file_name:tratFileName,
       certificado_file_data:tratFileData,
     });
-    await loadAll();renderTratLista(opId);
+    await reload('tratamientos');renderTratLista(opId);
     ['trat-tipo','trat-proveedor','trat-desc','trat-cert-nro'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     document.getElementById('trat-cert-file-name').textContent='Sin archivo';
     tratFileData=null;tratFileName=null;
@@ -7245,7 +7245,7 @@ async function deleteTratamiento(id){
   if(!confirm('¿Eliminar este tratamiento?'))return;
   try{
     await DEL('tratamientos',`?id=eq.${id}`);
-    await loadAll();renderTratLista(t?.orden_id||'');
+    await reload('tratamientos');renderTratLista(t?.orden_id||'');
     notify('Tratamiento eliminado');
   }catch(e){notify(e.message,'err');}
 }
@@ -7367,7 +7367,7 @@ async function saveCliente(){
       await POST('clientes',data);
       notify('Cliente registrado');
     }
-    await loadAll();closeModal('modal-cliente');renderAll();
+    await reload('clientes');closeModal('modal-cliente');renderAll();
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-cliente',false,'Guardar');
 }
@@ -7497,7 +7497,7 @@ async function importClientes(){
       }
     }catch(e){console.error('Error importando',c.nombre,e);errores++;}
   }
-  await loadAll();renderAll();
+  await reload('clientes');renderAll();
   setBusy('btn-import-cli',false,'Importar');
   closeModal('modal-import-clientes');
   notify(`Importación: ${creados} creados, ${actualizados} actualizados, ${saltados} saltados${errores?', '+errores+' con error':''}`);
@@ -7641,7 +7641,7 @@ async function importPT(){
       }
     }catch(e){console.error('Error importando PT',p.lote,e);errores++;}
   }
-  await loadAll();renderAll();
+  await reload('productos_terminados');renderAll();
   _importingPT=false;
   setBusy('btn-import-pt',false,'Importar');
   closeModal('modal-import-pt');
@@ -7659,7 +7659,7 @@ async function deleteCliente(id){
   }
   try{
     await DEL('clientes',`?id=eq.${id}`);
-    await loadAll();renderAll();notify('Cliente eliminado');
+    await reload('clientes');renderAll();notify('Cliente eliminado');
   }catch(e){notify(e.message,'err');}
 }
 
@@ -8731,7 +8731,7 @@ async function saveNC(){
   try{setBusy('btn-save-nc',true);
     if(id){await PATCH('no_conformidades',data,`?id=eq.${id}`);}
     else{await POST('no_conformidades',{...data,empresa_id:currentEmpresa.id});}
-    await loadAll();closeModal('modal-nc');renderAll();notify(id?'NC actualizada':'NC registrada');
+    await reload('no_conformidades');closeModal('modal-nc');renderAll();notify(id?'NC actualizada':'NC registrada');
   }catch(e){notify('Error: '+e.message,'err');}
   finally{setBusy('btn-save-nc',false);}
 }
@@ -8766,7 +8766,7 @@ async function saveCapa(){
   try{setBusy('btn-save-capa',true);
     if(id){await PATCH('acciones_capa',data,`?id=eq.${id}`);}
     else{await POST('acciones_capa',{...data,empresa_id:currentEmpresa.id});}
-    await loadAll();closeModal('modal-capa');renderAll();notify(id?'CAPA actualizada':'CAPA registrada');
+    await reload('acciones_capa');closeModal('modal-capa');renderAll();notify(id?'CAPA actualizada':'CAPA registrada');
   }catch(e){notify('Error: '+e.message,'err');}
   finally{setBusy('btn-save-capa',false);}
 }
@@ -8819,14 +8819,14 @@ async function saveDoc(){
       estado:document.getElementById('doc-estado').value,
       file_data:docFileData||null,file_name:docFileName||null,
       observaciones:document.getElementById('doc-obs').value.trim()||null});
-    await loadAll();closeModal('modal-doc');renderAll();notify('Documento guardado');
+    await reload('documentos_controlados');closeModal('modal-doc');renderAll();notify('Documento guardado');
   }catch(e){notify('Error: '+e.message,'err');}
   finally{setBusy('btn-save-doc',false);}
 }
 async function aprobarDoc(id){
   const d=documentosControlados.find(x=>x.id===id);if(!d)return;
   if(!confirm(`¿Poner vigente ${d.codigo} rev.${d.revision}? La revisión vigente anterior (si existe) pasa a obsoleta. Queda aprobado a tu nombre.`))return;
-  try{await PATCH('documentos_controlados',{estado:'vigente'},`?id=eq.${id}`);await loadAll();renderAll();notify(`✓ ${d.codigo} rev.${d.revision} vigente`);}
+  try{await PATCH('documentos_controlados',{estado:'vigente'},`?id=eq.${id}`);await reload('documentos_controlados');renderAll();notify(`✓ ${d.codigo} rev.${d.revision} vigente`);}
   catch(e){notify('Error: '+e.message,'err');}
 }
 async function openDocPDF(id){
@@ -8902,7 +8902,7 @@ async function savePQPPlantilla(){
     else{const r=await POST('pqp_plantillas',[{...cab,empresa_id:currentEmpresa.id,activo:true}]);pid=r&&r[0]?.id;}
     if(!pid)throw new Error('No se pudo crear la plantilla');
     await POST('pqp_plantilla_operaciones',pqpOpsDraft.map((o,i)=>({empresa_id:currentEmpresa.id,plantilla_id:pid,secuencia:i+1,...o})));
-    await loadAll();closeModal('modal-pqp');renderAll();notify('Plantilla PQP guardada');
+    await reload('pqp_plantillas','pqp_plantilla_operaciones');closeModal('modal-pqp');renderAll();notify('Plantilla PQP guardada');
   }catch(e){notify('Error: '+e.message,'err');}
   finally{setBusy('btn-save-pqp',false);}
 }
@@ -8988,7 +8988,7 @@ async function saveProveedor(){
   try{setBusy('btn-save-prov',true);
     if(id){await PATCH('proveedores',data,`?id=eq.${id}`);}
     else{await POST('proveedores',{...data,empresa_id:currentEmpresa.id,activo:true});}
-    await loadAll();closeModal('modal-proveedor');renderAll();notify(id?'Proveedor actualizado':'Proveedor creado');
+    await reload('proveedores');closeModal('modal-proveedor');renderAll();notify(id?'Proveedor actualizado':'Proveedor creado');
   }catch(e){notify('Error: '+e.message,'err');}
   finally{setBusy('btn-save-prov',false);}
 }
@@ -8997,7 +8997,7 @@ async function deleteProveedor(id){
   const tieneOC=ordenesCompra.some(o=>o.proveedor_id===id);
   if(tieneOC){notify('No se puede eliminar: tiene OCs asociadas','err');return;}
   if(!confirm(`¿Eliminar proveedor "${p.nombre}"?`))return;
-  try{await DEL('proveedores',`?id=eq.${id}`);await loadAll();renderAll();notify('Proveedor eliminado');}
+  try{await DEL('proveedores',`?id=eq.${id}`);await reload('proveedores');renderAll();notify('Proveedor eliminado');}
   catch(e){notify('Error: '+e.message,'err');}
 }
 
@@ -9609,14 +9609,14 @@ async function savePresupuesto(){
     else{const r=await POST('presupuestos',[{...data,empresa_id:currentEmpresa.id}]);pid=r[0].id;}
     const items=presupItemsDraft.map(i=>({presupuesto_id:pid,producto_id:i.producto_id||null,pieza:i.pieza,descripcion:i.descripcion||null,cantidad:parseFloat(i.cantidad)||0,precio_unitario:parseFloat(i.precio_unitario)||0,subtotal:parseFloat(i.subtotal)||0,costo_estimado:parseFloat(i.costo_estimado)||null}));
     if(items.length)await POST('presupuesto_items',items);
-    await loadAll();_modalDirty['modal-presupuesto']=false;closeModal('modal-presupuesto');renderAll();notify(id?'Presupuesto actualizado':'Presupuesto creado');
+    await reload('presupuestos');_modalDirty['modal-presupuesto']=false;closeModal('modal-presupuesto');renderAll();notify(id?'Presupuesto actualizado':'Presupuesto creado');
   }catch(e){notify('Error: '+e.message,'err');}
   finally{_savingPresup=false;setBusy('btn-save-presup',false);}
 }
 async function deletePresupuesto(id){
   const p=presupuestos.find(x=>x.id===id);if(!p)return;
   if(!confirm(`¿Eliminar presupuesto "${p.nro}"? Se borran también sus ítems.`))return;
-  try{await DEL('presupuestos',`?id=eq.${id}`);await loadAll();renderAll();notify('Presupuesto eliminado');}
+  try{await DEL('presupuestos',`?id=eq.${id}`);await reload('presupuestos');renderAll();notify('Presupuesto eliminado');}
   catch(e){notify('Error: '+e.message,'err');}
 }
 async function convertirPresupuesto(id){
