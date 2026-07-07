@@ -2720,9 +2720,25 @@ function openModal(id){
     }
     updateVTotal();
   }
-  document.getElementById(id).classList.add('open');
+  const _ov=document.getElementById(id);
+  _ov.classList.add('open');
+  // foco al primer control visible + aria + tracking de cambios (guard de cierre)
+  setTimeout(()=>{const f=_ov.querySelector('.modal input:not([type=hidden]),.modal select,.modal textarea');if(f&&f.offsetParent!==null)f.focus();},80);
+  const _m=_ov.querySelector('.modal');
+  if(_m){_m.setAttribute('role','dialog');_m.setAttribute('aria-modal','true');}
+  _modalDirty[id]=false;
+  if(!_ov._dirtyHooked){_ov._dirtyHooked=true;_ov.addEventListener('input',()=>{_modalDirty[id]=true;});_ov.addEventListener('change',()=>{_modalDirty[id]=true;});}
 }
-function closeModal(id){document.getElementById(id).classList.remove('open');if(id==='modal-venta')window.editingVentaId=null;}
+let _modalDirty={};
+const MODALES_CON_GUARD=new Set(['modal-venta','modal-presupuesto','modal-op']);
+function closeModal(id,force){
+  if(!force&&MODALES_CON_GUARD.has(id)&&_modalDirty[id]){
+    if(!confirm('Tenés cambios sin guardar. ¿Cerrar igual?'))return;
+  }
+  _modalDirty[id]=false;
+  document.getElementById(id).classList.remove('open');
+  if(id==='modal-venta')window.editingVentaId=null;
+}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id);}));
 function autoDate(id){const el=document.getElementById(id);if(el&&!el.value)el.value=hoyLocal();}
 function g(id){return document.getElementById(id)?.value?.trim()||'';}
@@ -2922,7 +2938,7 @@ async function saveOP(){
     } else {
       notify('Orden registrada — stock PT pendiente');
     }
-    opPresupuestoOrigen=null;
+    opPresupuestoOrigen=null;_modalDirty['modal-op']=false;
     await loadAll();closeModal('modal-op');resetF(['op-nro','op-pieza','op-desc','op-cant','op-precio','op-lote-pt','op-barra','op-barra-opt','op-kg-usados','op-merma','op-operario','op-fecha-fin','op-horas','op-codigo','op-oc-material','op-matriz-desc']);renderAll();
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-op',false,'Registrar orden');
@@ -2976,7 +2992,7 @@ async function saveVenta(){
     // ANTES: se generaba asiento contable acá. Ahora el asiento se genera
     // recién al emitir la factura electrónica (ver emitirFactura → generarAsientoFactura).
     // Razón: hasta que no hay CAE, no hay hecho imponible documentado.
-    await loadAll();closeModal('modal-venta');ventaItemsList=[];window.editingVentaId=null;
+    await loadAll();_modalDirty['modal-venta']=false;closeModal('modal-venta');ventaItemsList=[];window.editingVentaId=null;
     resetF(['v-remito','v-cliente','v-cuit','v-fecha','v-condicion','v-estado','v-obs','v-grupo-bonif']);
     renderAll();notify(isEdit?'Venta actualizada':'Pedido registrado');
   }catch(e){notify(e.message,'err');}
@@ -8228,6 +8244,15 @@ document.addEventListener('keydown',e=>{
 const _palInput=document.getElementById('palette-input');
 if(_palInput&&_palInput.addEventListener)_palInput.addEventListener('input',e=>renderPaletteResults(e.target.value));
 
+// ─── Esc cierra el modal abierto (el palette tiene su propio handler) ──────────
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  const abiertos=[...document.querySelectorAll('.modal-overlay.open')].filter(o=>o.id!=='modal-palette');
+  if(!abiertos.length)return;
+  e.preventDefault();
+  closeModal(abiertos[abiertos.length-1].id);
+});
+
 // ─── Sort de tablas: delegación global ──────────
 let _tableSorts={};
 document.addEventListener('click',e=>{
@@ -9577,7 +9602,7 @@ async function savePresupuesto(){
     else{const r=await POST('presupuestos',[{...data,empresa_id:currentEmpresa.id}]);pid=r[0].id;}
     const items=presupItemsDraft.map(i=>({presupuesto_id:pid,producto_id:i.producto_id||null,pieza:i.pieza,descripcion:i.descripcion||null,cantidad:parseFloat(i.cantidad)||0,precio_unitario:parseFloat(i.precio_unitario)||0,subtotal:parseFloat(i.subtotal)||0,costo_estimado:parseFloat(i.costo_estimado)||null}));
     if(items.length)await POST('presupuesto_items',items);
-    await loadAll();closeModal('modal-presupuesto');renderAll();notify(id?'Presupuesto actualizado':'Presupuesto creado');
+    await loadAll();_modalDirty['modal-presupuesto']=false;closeModal('modal-presupuesto');renderAll();notify(id?'Presupuesto actualizado':'Presupuesto creado');
   }catch(e){notify('Error: '+e.message,'err');}
   finally{_savingPresup=false;setBusy('btn-save-presup',false);}
 }
