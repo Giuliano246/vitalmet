@@ -2502,6 +2502,7 @@ async function loadEmpresaAndStart(){
     // Cotizacion USD oficial — fetch inicial + refresh cada 5min
     fetchCotizacion();
     if(!window._cotIv)window._cotIv=setInterval(()=>fetchCotizacion(true),5*60*1000);
+    generarRecordatoriosAuto(); // recordatorios de cobranza/seguimiento (1x/día, con aprobación manual)
   }catch(e){
     console.error('Error al iniciar:',e);
     // Si falla por sesión expirada, limpiar y mostrar login
@@ -7933,6 +7934,77 @@ setInterval(()=>{
   if(!page||!page.classList.contains('active')||!timersActivos.length)return;
   timersActivos.forEach(e=>{const el=document.getElementById('panel-timer-'+e.id);if(el)el.textContent=fmtTimerSec(secSince(e.started_at));});
 },1000);
+
+// ─── Generador de recordatorios (tests/mailings.test.js) ──────────
+function resolverTemplate(tpl,vars){
+  const rep=s=>Object.entries(vars).reduce((a,[k,v])=>a.split('{'+k+'}').join(v),s||'');
+  return {subject:rep(tpl.subject),body:rep(tpl.body_html)};
+}
+
+const SEED_TEMPLATES=[
+ {tipo:'cobranza',nombre:'Recordatorio de cobranza',subject:'Vitalmet SA — Recordatorio de saldo pendiente',
+  body_html:'<p>Estimado/a {cliente}:</p><p>Le recordamos que registra un saldo vencido de <b>{monto}</b> con hasta {dias} días de atraso.</p><p>Comprobantes: {detalle}</p><p>Si el pago ya fue realizado, por favor desestime este correo y avísenos para conciliarlo.</p><p>Saludos cordiales,<br>Vitalmet SA — Administración</p>'},
+ {tipo:'seguimiento_presupuesto',nombre:'Seguimiento de presupuesto',subject:'Vitalmet SA — Seguimiento presupuesto {nro}',
+  body_html:'<p>Estimado/a {cliente}:</p><p>Le escribimos para hacer seguimiento del presupuesto <b>{nro}</b> enviado hace {dias} días.</p><p>Quedamos a disposición por cualquier consulta técnica o comercial, o para ajustar la propuesta si hiciera falta.</p><p>Saludos cordiales,<br>Vitalmet SA — Ventas</p>'}
+];
+
+async function generarRecordatoriosAuto(){
+  const hoy=hoyLocal();
+  if(localStorage.getItem('lastMailGen')===hoy)return;
+  try{
+    await ensureMailingsData();
+    // seeds si faltan
+    let seeded=false;
+    for(const s of SEED_TEMPLATES){
+      if(!emailTemplates.some(t=>t.tipo===s.tipo)){
+        await POST('email_templates',{empresa_id:currentEmpresa.id,...s,activo:true}).catch(()=>{});
+        seeded=true;
+      }
+    }
+    if(seeded)await ensureMailingsData(true);
+    const tplCob=emailTemplates.find(t=>t.tipo==='cobranza'&&t.activo!==false);
+    const tplSeg=emailTemplates.find(t=>t.tipo==='seguimiento_presupuesto'&&t.activo!==false);
+    const nuevos=[];const sinEmail=[];
+    const hace7dIso=new Date(Date.now()-7*86400000).toISOString();
+    const yaEncolado=(clienteId,marca)=>emailQueue.some(e=>
+      ((clienteId&&e.cliente_id===clienteId)||(marca&&(e.subject||'').includes(marca)))&&
+      (['pendiente_aprobacion','aprobado'].includes(e.estado)||(e.estado==='enviado'&&e.enviado_at&&e.enviado_at>hace7dIso)));
+    // 1) Cobranzas vencidas (aging FIFO de la cta cte)
+    if(tplCob){
+      const hoyMs=Date.now();
+      computeCtaCte().filter(c=>c.cliente&&(c.buckets.d30+c.buckets.d60+c.buckets.d90+c.buckets.mas90)>0.005).forEach(c=>{
+        const cli=c.cliente;
+        if(!cli.email){sinEmail.push(c.nombre);return;}
+        if(yaEncolado(cli.id,null))return;
+        const vencido=c.buckets.d30+c.buckets.d60+c.buckets.d90+c.buckets.mas90;
+        const atrasos=c.cargos.filter(x=>x.venc&&x.venc<hoy).map(x=>Math.floor((hoyMs-new Date(x.venc+'T00:00:00').getTime())/86400000));
+        const diasMax=atrasos.length?Math.max(...atrasos):0;
+        const detalle=c.cargos.filter(x=>x.venc&&x.venc<hoy).slice(0,3).map(x=>`${x.ref||'s/ref'} (venc. ${x.venc})`).join(', ')||'—';
+        const {subject,body}=resolverTemplate(tplCob,{cliente:cli.nombre,monto:fmtUSD(vencido),dias:String(diasMax),detalle});
+        nuevos.push({empresa_id:currentEmpresa.id,cliente_id:cli.id,template_id:tplCob.id,to_email:cli.email,to_nombre:cli.nombre,subject,body_html:body,scheduled_at:new Date().toISOString(),created_by:currentUser.id});
+      });
+    }
+    // 2) Presupuestos enviados 7+ días sin respuesta
+    if(tplSeg){
+      const hace7=new Date(Date.now()-7*86400000).toISOString().slice(0,10);
+      presupuestos.filter(p=>p.estado==='enviado'&&p.fecha&&p.fecha<=hace7).forEach(p=>{
+        const cli=clientes.find(c=>(c.nombre||'').toLowerCase()===(p.cliente||'').toLowerCase());
+        if(!cli||!cli.email){sinEmail.push(p.cliente);return;}
+        if(yaEncolado(null,p.nro))return;
+        const dias=Math.floor((Date.now()-new Date(p.fecha+'T00:00:00').getTime())/86400000);
+        const {subject,body}=resolverTemplate(tplSeg,{cliente:cli.nombre,nro:p.nro||'',dias:String(dias)});
+        nuevos.push({empresa_id:currentEmpresa.id,cliente_id:cli.id,template_id:tplSeg.id,to_email:cli.email,to_nombre:cli.nombre,subject,body_html:body,scheduled_at:new Date().toISOString(),created_by:currentUser.id});
+      });
+    }
+    if(nuevos.length){
+      await POST('email_queue',nuevos);
+      await ensureMailingsData(true);
+      notify(`✉ ${nuevos.length} recordatorio${nuevos.length>1?'s':''} generado${nuevos.length>1?'s':''} — revisalos en Ventas → Mailings`);
+    }
+    if(sinEmail.length)console.warn('Clientes sin email para recordatorios:',[...new Set(sinEmail)]);
+    localStorage.setItem('lastMailGen',hoy);
+  }catch(e){console.error('generarRecordatoriosAuto:',e);}
+}
 
 // ═══ MAILINGS — cola de aprobación, templates, historial ═══
 let emailQueue=[],emailTemplates=[],emailLog=[],mailingsLoaded=false,_mailTab='cola',_emailEditId=null,_tplEditId=null;
