@@ -459,6 +459,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
     <div class="page" id="page-op">
       <div class="page-header"><div class="page-title">Órdenes de producción</div><div class="page-sub">// consumo MP → generación PT</div><div class="tabs"><div class="tab active">Historial</div></div></div>
       <div class="page-content">
+        <div id="timers-activos-panel" style="display:none;margin-bottom:14px"></div>
         <div class="stats-bar" id="op-stats"></div>
         <div class="toolbar">
           <div class="search-box"><input type="text" placeholder="Buscar por OP, pieza..." oninput="renderOP(this.value)"></div>
@@ -3819,7 +3820,7 @@ const PAGE_RENDERS={
   cert:[renderCert],
   insumos:[renderInsumos],
   herramientas:[renderHerramientas],
-  op:[renderOP],
+  op:[renderOP,refreshTimersActivos],
   compras:[renderCompras,renderInspeccion,renderProveedores,renderFacturasRecibidas],
   presupuestos:[renderPresupuestos],
   ventas:[renderVentas],
@@ -7564,8 +7565,42 @@ function closeTiempos(){closeModal('modal-tiempos');if(tiempoInterval){clearInte
 
 function openEntryOf(entries,opId,tipo){return entries.find(e=>e.operacion_id===opId&&e.tipo===tipo&&!e.ended_at)||null;}
 function activeProductivos(entries){return entries.filter(e=>e.tipo==='productivo'&&!e.ended_at);}
-function refreshTimersActivos(){} // panel global de timers (se implementa junto al panel en #page-op)
-function timersActivosTiene(){return false;} // ídem
+// ─── Panel global "⏱ Timers activos" (página Producción) ──────────
+let timersActivos=[];
+async function refreshTimersActivos(){
+  timersActivos=await GET('op_time_entries','?ended_at=is.null&select=id,tipo,motivo,started_at,operacion_id,op_operaciones(id,nombre,maquina,orden_id)').catch(()=>[]);
+  renderTimersActivosPanel();
+}
+function timersActivosTiene(opId){return timersActivos.some(e=>e.operacion_id===opId&&e.tipo==='productivo');}
+
+function renderTimersActivosPanel(){
+  const panel=document.getElementById('timers-activos-panel');
+  if(!panel)return;
+  if(!timersActivos.length){panel.style.display='none';panel.innerHTML='';return;}
+  panel.style.display='block';
+  const rows=timersActivos.map(e=>{
+    const paso=e.op_operaciones||{};
+    const orden=ops.find(o=>o.id===paso.orden_id);
+    const enPausa=e.tipo==='pausa';
+    const accion=enPausa
+      ?`<button class="btn btn-sm" style="background:var(--green);color:white" onclick="event.stopPropagation();startTiempoOp('${e.operacion_id}')" aria-label="Reanudar" title="Reanudar">▶</button>`
+      :`<button class="btn btn-sm" style="background:#f59e0b;color:white" onclick="event.stopPropagation();openPauseTiempo('${e.operacion_id}')" aria-label="Pausar" title="Pausar">⏸</button>`;
+    return `<div onclick="openTiempos('${paso.orden_id}')" style="display:grid;grid-template-columns:1fr auto auto auto;gap:12px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);cursor:pointer">
+      <div><span class="mono" style="color:var(--accent);font-weight:600">${esc(orden?orden.nro:'—')}</span> ${esc(orden?orden.pieza:'')} <span style="color:var(--text3)">· ${esc(paso.nombre||'')}${paso.maquina?' · '+esc(paso.maquina):''}</span></div>
+      <span class="badge ${enPausa?'badge-coral':'badge-warn'}">${enPausa?'⏸ '+esc(e.motivo||'pausa'):'▶'}</span>
+      <span class="mono" id="panel-timer-${e.id}" style="font-weight:700;font-size:13px">${fmtTimerSec(secSince(e.started_at))}</span>
+      ${accion}
+    </div>`;
+  }).join('');
+  panel.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:6px">
+    <div class="section-label" style="padding:10px 12px 0">⏱ Timers activos (${timersActivos.length})</div>${rows}</div>`;
+}
+
+setInterval(()=>{
+  const page=document.getElementById('page-op');
+  if(!page||!page.classList.contains('active')||!timersActivos.length)return;
+  timersActivos.forEach(e=>{const el=document.getElementById('panel-timer-'+e.id);if(el)el.textContent=fmtTimerSec(secSince(e.started_at));});
+},1000);
 
 function renderTiempos(){renderTiemposOps();renderTiemposEntries();renderTiemposMetrics();renderTimerDisplay();}
 
