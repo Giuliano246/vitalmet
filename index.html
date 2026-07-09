@@ -249,6 +249,10 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
   *,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important}
 }
 
+/* Permiso "ver costos": body.no-costos oculta todo elemento marcado (campos,
+   columnas y tarjetas con costos/márgenes) para usuarios sin el permiso */
+body.no-costos .solo-costos{display:none!important}
+
 </style>
 </head>
 <body>
@@ -444,7 +448,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
           <div class="search-box"><input type="text" placeholder="Buscar por nombre, código, categoría..." oninput="renderInsumos(this.value)"></div>
           <button class="btn btn-ghost" onclick="openModalInsumo()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo insumo</button>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Stock</th><th>Unidad</th><th>Mínimo</th><th>Último precio</th><th>Proveedor</th><th></th></tr></thead><tbody id="insumos-tbody"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Stock</th><th>Unidad</th><th>Mínimo</th><th class="solo-costos">Último precio</th><th>Proveedor</th><th></th></tr></thead><tbody id="insumos-tbody"></tbody></table></div>
       </div>
     </div>
     <!-- HERRAMIENTAS -->
@@ -456,7 +460,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
           <div class="search-box"><input type="text" placeholder="Buscar por nombre, código, ubicación..." oninput="renderHerramientas(this.value)"></div>
           <button class="btn btn-ghost" onclick="openModalHerramienta()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva herramienta</button>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Código</th><th>Nombre</th><th>Cantidad</th><th>Estado</th><th>Ubicación</th><th>Precio compra</th><th>Fecha compra</th><th>Proveedor</th><th>Calibración</th><th></th></tr></thead><tbody id="herramientas-tbody"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Código</th><th>Nombre</th><th>Cantidad</th><th>Estado</th><th>Ubicación</th><th class="solo-costos">Precio compra</th><th>Fecha compra</th><th>Proveedor</th><th>Calibración</th><th></th></tr></thead><tbody id="herramientas-tbody"></tbody></table></div>
       </div>
     </div>
     <!-- ÓRDENES -->
@@ -592,7 +596,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
           <button class="btn btn-ghost" onclick="exportPresupuestosCSV()" title="Exportar a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
           <button class="btn btn-ghost" onclick="openPresupuestoModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo presupuesto</button>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Nro</th><th>Cliente</th><th>Fecha</th><th>Vence</th><th>Ítems</th><th>Total USD</th><th>Margen est.</th><th>Estado</th><th></th></tr></thead><tbody id="presup-tbody"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Nro</th><th>Cliente</th><th>Fecha</th><th>Vence</th><th>Ítems</th><th>Total USD</th><th class="solo-costos">Margen est.</th><th>Estado</th><th></th></tr></thead><tbody id="presup-tbody"></tbody></table></div>
       </div>
     </div>
 
@@ -693,7 +697,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <div class="page-header"><div class="page-title">Costos y rentabilidad</div><div class="page-sub">// costo real MP + tiempo + overhead · margen por pieza</div><div class="tabs"><div class="tab active">Por producto</div></div></div>
       <div class="page-content">
         <div class="stats-bar" id="costos-stats"></div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end">
+        <div class="solo-costos" style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end">
           <div><label style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:4px">Tarifa operario USD/h</label><input type="number" id="cfg-tarifa-op" step="0.1" min="0" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--text);font-family:var(--mono)"></div>
           <div><label style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:4px">Overhead %</label><input type="number" id="cfg-overhead" step="0.1" min="0" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--text);font-family:var(--mono)"></div>
           <div style="font-size:11px;color:var(--text3);line-height:1.4">La tarifa del operario y el overhead se aplican al calcular costo total. El overhead representa gastos indirectos (luz, alquiler, etc.)</div>
@@ -1188,7 +1192,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <div class="form-row" style="grid-template-columns:120px 1fr 140px"><div class="form-group"><label>Código</label><input type="text" id="insumo-codigo" placeholder="INS-001"></div><div class="form-group"><label>Nombre *</label><input type="text" id="insumo-nombre" placeholder="Aceite hidráulico ISO 68"></div><div class="form-group"><label>Categoría</label><input type="text" id="insumo-categoria" placeholder="Lubricantes" list="insumo-cats-datalist"></div></div>
       <datalist id="insumo-cats-datalist"><option>Lubricantes</option><option>Soldadura</option><option>Limpieza</option><option>Embalaje</option><option>Seguridad</option><option>Tornillería</option><option>Otros</option></datalist>
       <div class="form-row single"><div class="form-group"><label>Descripción</label><input type="text" id="insumo-descripcion" placeholder="Detalle adicional"></div></div>
-      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr"><div class="form-group"><label>Cantidad</label><input type="number" id="insumo-cantidad" step="0.01" placeholder="0"></div><div class="form-group"><label>Unidad</label><select id="insumo-unidad"><option value="un">unidad</option><option value="kg">kg</option><option value="lt">litros</option><option value="ml">ml</option><option value="m">metros</option><option value="caja">caja</option><option value="par">par</option><option value="rollo">rollo</option></select></div><div class="form-group"><label>Stock mínimo</label><input type="number" id="insumo-minimo" step="0.01" placeholder="0"></div><div class="form-group"><label>Último precio USD</label><input type="number" id="insumo-precio" step="0.01" placeholder="0.00"></div></div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr"><div class="form-group"><label>Cantidad</label><input type="number" id="insumo-cantidad" step="0.01" placeholder="0"></div><div class="form-group"><label>Unidad</label><select id="insumo-unidad"><option value="un">unidad</option><option value="kg">kg</option><option value="lt">litros</option><option value="ml">ml</option><option value="m">metros</option><option value="caja">caja</option><option value="par">par</option><option value="rollo">rollo</option></select></div><div class="form-group"><label>Stock mínimo</label><input type="number" id="insumo-minimo" step="0.01" placeholder="0"></div><div class="form-group solo-costos"><label>Último precio USD</label><input type="number" id="insumo-precio" step="0.01" placeholder="0.00"></div></div>
       <div class="form-row"><div class="form-group"><label>Último proveedor</label><select id="insumo-proveedor"><option value="">— ninguno —</option></select></div><div class="form-group"><label>Observaciones</label><input type="text" id="insumo-observaciones" placeholder="Notas"></div></div>
     </div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-insumo')">Cancelar</button><button class="btn btn-primary" id="btn-save-insumo" onclick="saveInsumo()">Guardar</button></div>
@@ -1204,7 +1208,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <div class="form-row" style="grid-template-columns:120px 1fr"><div class="form-group"><label>Código</label><input type="text" id="herr-codigo" placeholder="H-001"></div><div class="form-group"><label>Nombre *</label><input type="text" id="herr-nombre" placeholder="Inserto CNMG 12 04 08"></div></div>
       <div class="form-row single"><div class="form-group"><label>Descripción</label><input type="text" id="herr-descripcion" placeholder="Detalle, marca, especificación"></div></div>
       <div class="form-row" style="grid-template-columns:100px 1fr 1fr"><div class="form-group"><label>Cantidad</label><input type="number" id="herr-cantidad" step="1" min="0" placeholder="1"></div><div class="form-group"><label>Estado</label><select id="herr-estado"><option value="nueva">Nueva</option><option value="en-uso">En uso</option><option value="mantenimiento">En mantenimiento</option><option value="dada-de-baja">Dada de baja</option></select></div><div class="form-group"><label>Ubicación</label><input type="text" id="herr-ubicacion" placeholder="Torno CNC / Depósito"></div></div>
-      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr"><div class="form-group"><label>Precio compra USD</label><input type="number" id="herr-precio" step="0.01" placeholder="0.00"></div><div class="form-group"><label>Fecha compra</label><input type="date" id="herr-fecha"></div><div class="form-group"><label>Proveedor</label><select id="herr-proveedor"><option value="">— ninguno —</option></select></div></div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr"><div class="form-group solo-costos"><label>Precio compra USD</label><input type="number" id="herr-precio" step="0.01" placeholder="0.00"></div><div class="form-group"><label>Fecha compra</label><input type="date" id="herr-fecha"></div><div class="form-group"><label>Proveedor</label><select id="herr-proveedor"><option value="">— ninguno —</option></select></div></div>
       <div class="form-row single"><div class="form-group"><label>Observaciones</label><input type="text" id="herr-observaciones" placeholder="Notas"></div></div>
       <div style="margin:14px 0 8px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Metrología — calibración (ISO 7.1.5 / API Q1 4.4.4)</div>
       <div class="form-row" style="grid-template-columns:1fr 130px 1fr"><div class="form-group"><label>Requiere calibración</label><select id="herr-req-cal"><option value="false">No</option><option value="true">Sí — instrumento de medición</option></select></div><div class="form-group"><label>Frecuencia (meses)</label><input type="number" id="herr-frec-cal" step="1" min="1" placeholder="12"></div><div class="form-group"><label>Patrón / referencia</label><input type="text" id="herr-patron" placeholder="Ej: patrón WIKA CPG1500"></div></div>
@@ -1346,7 +1350,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       <hr class="form-divider">
       <div class="section-label">Producción</div>
       <div class="form-row triple">
-        <div class="form-group"><label>Costo unitario US$ (fabricación)</label><input type="number" id="op-precio" placeholder="0.00" step="0.01"></div>
+        <div class="form-group solo-costos"><label>Costo unitario US$ (fabricación)</label><input type="number" id="op-precio" placeholder="0.00" step="0.01"></div>
         <div class="form-group"><label>Estado</label><select id="op-estado"><option value="en-proceso">En proceso</option><option value="completada">Completada</option><option value="suspendida">Suspendida / Parada</option></select></div>
         <div class="form-group"><label>Máquina / Operario</label><input type="text" id="op-operario" placeholder="Torno CNC / Juan"></div>
       </div>
@@ -1552,7 +1556,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
         <div class="form-group"><label>Cantidad *</label><input type="number" id="pt-cant" placeholder="0" min="0"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Costo unitario US$ (fabricación)</label><input type="number" id="pt-precio" placeholder="0.00" step="0.01"></div>
+        <div class="form-group solo-costos"><label>Costo unitario US$ (fabricación)</label><input type="number" id="pt-precio" placeholder="0.00" step="0.01"></div>
         <div class="form-group"><label>Barra origen (opcional)</label><select id="pt-barra" onchange="onPTBarraChange()"><option value="">Sin barra vinculada</option></select></div>
       </div>
       <div id="pt-kg-section" style="display:none">
@@ -1655,7 +1659,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
       </div>
       <div class="form-row triple">
         <div class="form-group"><label>Cantidad</label><input type="number" id="edit-op-cant"></div>
-        <div class="form-group"><label>Costo unitario US$</label><input type="number" id="edit-op-precio" step="0.01"></div>
+        <div class="form-group solo-costos"><label>Costo unitario US$</label><input type="number" id="edit-op-precio" step="0.01"></div>
         <div class="form-group"><label>Merma mts</label><input type="number" id="edit-op-merma" step="0.01"></div>
       </div>
       <div class="form-row triple">
@@ -1900,7 +1904,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
               <div style="text-align:center;padding:10px;background:var(--surface2);border-radius:4px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3)">Productivo</div><div id="tiempos-m-prod" class="mono" style="font-size:18px;font-weight:700;color:var(--green);margin-top:4px">0h 00m</div></div>
               <div style="text-align:center;padding:10px;background:var(--surface2);border-radius:4px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3)">Paradas</div><div id="tiempos-m-pause" class="mono" style="font-size:18px;font-weight:700;color:var(--coral);margin-top:4px">0h 00m</div></div>
               <div style="text-align:center;padding:10px;background:var(--surface2);border-radius:4px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3)">Eficiencia</div><div id="tiempos-m-eff" class="mono" style="font-size:18px;font-weight:700;margin-top:4px">—</div></div>
-              <div style="text-align:center;padding:10px;background:var(--surface2);border-radius:4px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3)">Costo USD</div><div id="tiempos-m-cost" class="mono" style="font-size:18px;font-weight:700;color:var(--green);margin-top:4px">$0</div></div>
+              <div class="solo-costos" style="text-align:center;padding:10px;background:var(--surface2);border-radius:4px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3)">Costo USD</div><div id="tiempos-m-cost" class="mono" style="font-size:18px;font-weight:700;color:var(--green);margin-top:4px">$0</div></div>
             </div>
           </div>
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;font-size:11px;color:var(--text3)">
@@ -2200,6 +2204,10 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
           <option value="true">Administrador (acceso total)</option>
         </select>
       </div>
+      <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:5px;cursor:pointer;font-size:13px;margin-top:4px">
+        <input type="checkbox" id="permisos-vercostos" style="width:15px;height:15px;accent-color:var(--accent)">
+        <span>Puede ver costos y márgenes<br><span style="font-size:11px;color:var(--text3)">Por defecto los empleados no ven costos, márgenes ni rentabilidad. Los administradores siempre los ven.</span></span>
+      </label>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-permisos')">Cancelar</button>
@@ -3226,14 +3234,19 @@ function exportVentasCSV(){
   exportCSV(`ventas_${hoyLocal()}.csv`,['Remito','Cliente','Fecha','Estado','Condición de pago','Unidades','Importe USD','Piezas'],rows);
 }
 function exportPresupuestosCSV(){
+  const conCostos=puedeVerCostos();
   const rows=presupuestos.map(p=>{
     const items=p.presupuesto_items||[];
     const costos=items.reduce((a,i)=>a+((parseFloat(i.costo_estimado)||0)*(parseFloat(i.cantidad)||0)),0);
     const tot=parseFloat(p.total)||0;
     const margen=(costos>0&&tot>0)?((tot-costos)/tot*100).toFixed(1):'';
-    return[p.nro,p.cliente,p.fecha||'',p.fecha_vencimiento||'',p.estado||'',items.length,_numAR(tot),margen?margen.replace('.',','):''];
+    const row=[p.nro,p.cliente,p.fecha||'',p.fecha_vencimiento||'',p.estado||'',items.length,_numAR(tot)];
+    if(conCostos)row.push(margen?margen.replace('.',','):'');
+    return row;
   });
-  exportCSV(`presupuestos_${hoyLocal()}.csv`,['Nro','Cliente','Fecha','Vence','Estado','Ítems','Total USD','Margen est. %'],rows);
+  const headers=['Nro','Cliente','Fecha','Vence','Estado','Ítems','Total USD'];
+  if(conCostos)headers.push('Margen est. %');
+  exportCSV(`presupuestos_${hoyLocal()}.csv`,headers,rows);
 }
 function exportClientesCSV(){
   const rows=clientes.map(c=>[c.nombre,c.contacto||'',c.telefono||'',c.email||'',c.cuit||'',c.direccion||'',c.limite_credito?_numAR(c.limite_credito):'']);
@@ -3431,7 +3444,7 @@ function renderPT(filter=''){
     <div class="stat-card"><div class="stat-label">Stock total</div><div class="stat-value" style="color:var(--teal)">${totalPiezas}</div></div>
     <div class="stat-card"><div class="stat-label">Reservado</div><div class="stat-value" style="color:${totalReservado?'var(--accent)':'var(--text)'}">${totalReservado}</div></div>
     <div class="stat-card"><div class="stat-label">Disponible</div><div class="stat-value" style="color:var(--green)">${totalDisponible}</div></div>
-    <div class="stat-card"><div class="stat-label">Valor stock (costo)</div><div class="stat-value" style="color:var(--green);font-size:13px">${fmtUSD(valorCosto)}</div></div>`;
+    ${puedeVerCostos()?`<div class="stat-card"><div class="stat-label">Valor stock (costo)</div><div class="stat-value" style="color:var(--green);font-size:13px">${fmtUSD(valorCosto)}</div></div>`:''}`;
   document.getElementById('pt-tbody').innerHTML=list.length?list.map(p=>{const b=p.barras;const cert=b?.certificados;const op=p.ordenes_produccion;const reserv=getPTReservado(p.id);const disp=parseInt(p.cantidad||0)-reserv;const cStock=p.cantidad<=0?'var(--red)':p.cantidad<=3?'var(--accent)':'var(--text)';const cDisp=disp<=0?'var(--red)':disp<=3?'var(--accent)':'var(--green)';return`<tr data-id="${p.id}"><td class="mono td-primary">${esc(p.lote)}</td><td style="color:var(--teal);font-weight:500">${esc(p.pieza)}</td><td>${esc(p.descripcion)||'—'}</td><td class="mono" style="color:${cStock}">${p.cantidad}<span style="color:var(--text3);font-size:10px"> total</span>${reserv>0?`<div style="font-size:10px;color:var(--accent);font-family:var(--mono)">${reserv} reserv.</div><div style="font-size:10px;color:${cDisp};font-weight:700;font-family:var(--mono)">${disp} disp.</div>`:''}</td><td>${b?`<span class="badge badge-blue">${esc(b.lote)}</span>`:'—'}</td><td class="mono">${esc(b?.nro_colada)||'—'}</td><td>${cert?`<span class="badge badge-purple">${esc(cert.nro)}</span>`:'—'}</td><td class="mono">${esc(op?.nro)||'—'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editPT('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-ghost btn-sm" onclick="showTrace('pt','${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg></span>Trazar</button><button class="btn btn-danger btn-sm" onclick="deletePT('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;}):(`<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div><div class="empty-title">Sin productos terminados</div><div class="empty-msg">Los PT se generan al completar una orden de producción. Cargá una con <b>+ Nueva orden</b>.</div></div></td></tr>`);
 }
 
@@ -3462,10 +3475,10 @@ function renderInsumos(filter=''){
     <div class="stat-card"><div class="stat-label">Total insumos</div><div class="stat-value" style="color:var(--blue)">${total}</div></div>
     <div class="stat-card"><div class="stat-label">Categorías</div><div class="stat-value" style="color:var(--teal)">${cats}</div></div>
     <div class="stat-card"><div class="stat-label">Stock bajo mínimo</div><div class="stat-value" style="color:${lowStock?'var(--red)':'var(--text)'}">${lowStock}</div></div>
-    <div class="stat-card"><div class="stat-label">Valor total stock</div><div class="stat-value" style="color:var(--green);font-size:13px">${fmtUSD(valorTotal)}</div></div>`;
+    ${puedeVerCostos()?`<div class="stat-card"><div class="stat-label">Valor total stock</div><div class="stat-value" style="color:var(--green);font-size:13px">${fmtUSD(valorTotal)}</div></div>`:''}`;
   document.getElementById('insumos-tbody').innerHTML=list.length?list.map(i=>{
     const isLow=parseFloat(i.stock_minimo||0)>0&&parseFloat(i.cantidad||0)<=parseFloat(i.stock_minimo||0);
-    return`<tr><td class="mono" style="font-size:11px">${esc(i.codigo||'—')}</td><td class="td-primary">${esc(i.nombre)}</td><td>${i.categoria?`<span class="badge badge-teal">${esc(i.categoria)}</span>`:'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:${isLow?'var(--red)':'var(--text)'}">${parseFloat(i.cantidad||0).toFixed(2)}</td><td class="mono" style="font-size:11px">${esc(i.unidad||'—')}</td><td class="mono" style="color:var(--text3);font-size:11px">${parseFloat(i.stock_minimo||0).toFixed(2)}</td><td class="mono" style="color:var(--green)">${i.ultimo_precio?fmtUSD(parseFloat(i.ultimo_precio)):'—'}</td><td style="font-size:11px">${esc(i.proveedores?.nombre||'—')}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editInsumo('${i.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteInsumo('${i.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+    return`<tr><td class="mono" style="font-size:11px">${esc(i.codigo||'—')}</td><td class="td-primary">${esc(i.nombre)}</td><td>${i.categoria?`<span class="badge badge-teal">${esc(i.categoria)}</span>`:'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:${isLow?'var(--red)':'var(--text)'}">${parseFloat(i.cantidad||0).toFixed(2)}</td><td class="mono" style="font-size:11px">${esc(i.unidad||'—')}</td><td class="mono" style="color:var(--text3);font-size:11px">${parseFloat(i.stock_minimo||0).toFixed(2)}</td><td class="mono solo-costos" style="color:var(--green)">${i.ultimo_precio?fmtUSD(parseFloat(i.ultimo_precio)):'—'}</td><td style="font-size:11px">${esc(i.proveedores?.nombre||'—')}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editInsumo('${i.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteInsumo('${i.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
   }).join(''):`<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M5 8h14"/><path d="M5 8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2"/><rect x="3" y="8" width="18" height="14" rx="1"/><path d="M10 12h4"/></svg></div><div class="empty-title">Sin insumos cargados</div><div class="empty-msg">Cargá el primero con <b>+ Nuevo insumo</b>. Los insumos se suman automáticamente al recibir órdenes de compra del tipo "insumo".</div></div></td></tr>`;
 }
 function openModalInsumo(id){
@@ -3523,7 +3536,7 @@ function renderHerramientas(filter=''){
     <div class="stat-card"><div class="stat-label">En uso</div><div class="stat-value" style="color:var(--accent)">${enUso}</div></div>
     <div class="stat-card"><div class="stat-label">En mantenimiento</div><div class="stat-value" style="color:${mtto?'var(--coral)':'var(--text)'}">${mtto}</div></div>
     <div class="stat-card"><div class="stat-label">Calibración vencida</div><div class="stat-value" style="color:${calVencidas?'var(--coral)':'var(--green)'}">${calVencidas}</div></div>
-    <div class="stat-card"><div class="stat-label">Valor total</div><div class="stat-value" style="color:var(--green);font-size:13px">${fmtUSD(valorTotal)}</div></div>`;
+    ${puedeVerCostos()?`<div class="stat-card"><div class="stat-label">Valor total</div><div class="stat-value" style="color:var(--green);font-size:13px">${fmtUSD(valorTotal)}</div></div>`:''}`;
   const estadoBadges={'nueva':'badge-blue','en-uso':'badge-warn','mantenimiento':'badge-coral','dada-de-baja':'badge-coral'};
   const calCell=h=>{
     if(!h.requiere_calibracion)return '<span style="color:var(--text3)">—</span>';
@@ -3533,7 +3546,7 @@ function renderHerramientas(filter=''){
     return dias<=30?`<span class="badge badge-amber">VENCE ${h.vencimiento_calibracion}</span>`:`<span class="badge badge-green">OK hasta ${h.vencimiento_calibracion}</span>`;
   };
   document.getElementById('herramientas-tbody').innerHTML=list.length?list.map(h=>{
-    return`<tr><td class="mono" style="font-size:11px">${esc(h.codigo||'—')}</td><td class="td-primary">${esc(h.nombre)}</td><td class="mono">${h.cantidad||1}</td><td>${estadoSelect('herramientas',h.id,h.estado||'nueva',['nueva','en-uso','mantenimiento','dada-de-baja'],estadoBadges)}</td><td style="font-size:11px">${h.ubicacion||'—'}</td><td class="mono" style="color:var(--green)">${h.precio_compra?fmtUSD(parseFloat(h.precio_compra)):'—'}</td><td class="mono" style="font-size:11px">${h.fecha_compra||'—'}</td><td style="font-size:11px">${esc(h.proveedores?.nombre||'—')}</td><td>${calCell(h)}</td><td style="display:flex;gap:4px">${h.requiere_calibracion?`<button class="btn btn-ghost btn-sm" style="border-color:var(--teal);color:var(--teal)" onclick="openCalibracionModal('${h.id}')">Calibrar</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editHerramienta('${h.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteHerramienta('${h.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+    return`<tr><td class="mono" style="font-size:11px">${esc(h.codigo||'—')}</td><td class="td-primary">${esc(h.nombre)}</td><td class="mono">${h.cantidad||1}</td><td>${estadoSelect('herramientas',h.id,h.estado||'nueva',['nueva','en-uso','mantenimiento','dada-de-baja'],estadoBadges)}</td><td style="font-size:11px">${h.ubicacion||'—'}</td><td class="mono solo-costos" style="color:var(--green)">${h.precio_compra?fmtUSD(parseFloat(h.precio_compra)):'—'}</td><td class="mono" style="font-size:11px">${h.fecha_compra||'—'}</td><td style="font-size:11px">${esc(h.proveedores?.nombre||'—')}</td><td>${calCell(h)}</td><td style="display:flex;gap:4px">${h.requiere_calibracion?`<button class="btn btn-ghost btn-sm" style="border-color:var(--teal);color:var(--teal)" onclick="openCalibracionModal('${h.id}')">Calibrar</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editHerramienta('${h.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteHerramienta('${h.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
   }).join(''):`<tr><td colspan="10" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div><div class="empty-title">Sin herramientas cargadas</div><div class="empty-msg">Cargá la primera con <b>+ Nueva herramienta</b>. Cada herramienta recibida en una OC tipo "herramienta" se carga acá automáticamente.</div></div></td></tr>`;
 }
 function openModalHerramienta(id){
@@ -3898,12 +3911,12 @@ function renderDash(){
     <div class="kpi"><div class="kpi-label">Mts MP en stock</div><div class="kpi-val" style="color:var(--blue)">${totalKgMP.toFixed(0)}</div></div>
     <div class="kpi"><div class="kpi-label">Piezas PT disp.</div><div class="kpi-val" style="color:var(--teal)">${totalPT}</div></div>
     <div class="kpi"><div class="kpi-label">Ingresos por ventas</div><div class="kpi-val" style="color:var(--coral);font-size:12px">${fmtUSD(ingresoVentas)}</div></div>
-    <div class="kpi"><div class="kpi-label">Costo vendido</div><div class="kpi-val" style="color:var(--text2);font-size:12px">${fmtUSD(costoVendido)}</div></div>
+    ${puedeVerCostos()?`<div class="kpi"><div class="kpi-label">Costo vendido</div><div class="kpi-val" style="color:var(--text2);font-size:12px">${fmtUSD(costoVendido)}</div></div>
     <div class="kpi"><div class="kpi-label">Ganancia bruta</div><div class="kpi-val" style="color:${ganancia>=0?'var(--green)':'var(--red)'};font-size:12px">${fmtUSD(ganancia)}</div></div>
-    <div class="kpi"><div class="kpi-label">Margen bruto</div><div class="kpi-val" style="color:${margen>30?'var(--green)':margen>15?'var(--accent)':'var(--red)'}">${margen}%</div></div>
+    <div class="kpi"><div class="kpi-label">Margen bruto</div><div class="kpi-val" style="color:${margen>30?'var(--green)':margen>15?'var(--accent)':'var(--red)'}">${margen}%</div></div>`:''}
   </div>
   <div class="kpi-grid-4">
-    <div class="kpi"><div class="kpi-label">Stock PT valor costo</div><div class="kpi-val" style="color:var(--green);font-size:12px">${fmtUSD(valorPT)}</div></div>
+    ${puedeVerCostos()?`<div class="kpi"><div class="kpi-label">Stock PT valor costo</div><div class="kpi-val" style="color:var(--green);font-size:12px">${fmtUSD(valorPT)}</div></div>`:''}
     <div class="kpi"><div class="kpi-label">% merma prom.</div><div class="kpi-val" style="color:${pctMerma>15?'var(--red)':pctMerma>10?'var(--accent)':'var(--green)'}">${pctMerma}%</div></div>
     <div class="kpi"><div class="kpi-label">Alertas MP</div><div class="kpi-val" style="color:${low>0?'var(--red)':'var(--text)'}">${low}</div></div>
     <div class="kpi"><div class="kpi-label">OPs en proceso</div><div class="kpi-val" style="color:var(--accent)">${ops.filter(o=>o.estado==='en-proceso').length}</div></div>
@@ -3914,7 +3927,7 @@ function renderDash(){
     <div class="dash-card"><div class="dash-card-title">Clientes por importe</div>${topClientes.length?'<div style="height:220px;position:relative"><canvas id="chart-clientes"></canvas></div>':'<div style="color:var(--text3);font-size:12px;padding:32px 0;text-align:center">Sin clientes aún</div>'}</div>
     <div class="dash-card"><div class="dash-card-title">OPs por estado</div>${ops.length?'<div style="height:220px;position:relative"><canvas id="chart-ops-estado"></canvas></div>':'<div style="color:var(--text3);font-size:12px;padding:32px 0;text-align:center">Sin órdenes aún</div>'}</div>
     <div class="dash-card" style="grid-column:1/-1"><div class="dash-card-title">Producción mensual (últimos 6 meses)</div>${ops.length?'<div style="height:240px;position:relative"><canvas id="chart-prod-mensual"></canvas></div>':'<div style="color:var(--text3);font-size:12px;padding:32px 0;text-align:center">Sin órdenes aún</div>'}</div>
-    <div class="dash-card" style="grid-column:1/-1"><div class="dash-card-title">Rentabilidad por pieza</div>
+    ${!puedeVerCostos()?'':`<div class="dash-card" style="grid-column:1/-1"><div class="dash-card-title">Rentabilidad por pieza</div>
       ${(()=>{
         const byPieza={};
         ventas.forEach(v=>(v.venta_items||[]).forEach(i=>{
@@ -3930,7 +3943,7 @@ function renderDash(){
         return '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="border-bottom:1px solid var(--border)"><th style="padding:6px 10px;text-align:left;color:var(--text3);font-weight:500">Pieza</th><th style="padding:6px 10px;text-align:right;color:var(--text3);font-weight:500">Unid.</th><th style="padding:6px 10px;text-align:right;color:var(--text3);font-weight:500">Ingresos</th><th style="padding:6px 10px;text-align:right;color:var(--text3);font-weight:500">Costo</th><th style="padding:6px 10px;text-align:right;color:var(--text3);font-weight:500">Ganancia</th><th style="padding:6px 10px;text-align:right;color:var(--text3);font-weight:500">Margen</th></tr></thead><tbody>'+
           rows.map(([pieza,d])=>{const gan=d.ingresos-d.costos;const mrg=d.ingresos>0?((gan/d.ingresos)*100).toFixed(1):0;return`<tr style="border-bottom:1px solid var(--border)"><td style="padding:7px 10px;color:var(--text);font-weight:500">${esc(pieza)}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--text2)">${d.unidades}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--coral)">${fmtUSD(d.ingresos)}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:var(--text3)">${fmtUSD(d.costos)}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:${gan>=0?'var(--green)':'var(--red)'}">${fmtUSD(gan)}</td><td style="padding:7px 10px;text-align:right;font-family:var(--mono);color:${mrg>30?'var(--green)':mrg>15?'var(--accent)':'var(--red)'}">${mrg}%</td></tr>`}).join('')+'</tbody></table>';
       })()}
-    </div>
+    </div>`}
     <div class="dash-card"><div class="dash-card-title">Materiales a reponer</div>${matReponer.length?`<div class="chart-bar-wrap">${matReponer.map(r=>`<div class="chart-bar-row"><div class="chart-bar-label">${esc(r.nombre)}</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.min(100,Math.round((r.disponible/(r.rop||1))*100))}%;background:var(--red)"></div></div><div class="chart-bar-val">${r.disponible.toFixed(0)}/${r.rop.toFixed(0)}mts</div></div>`).join('')}</div>`:'<div style="color:var(--green);font-size:12px">✓ Todo sobre el punto de reorden</div>'}</div>
   </div>`;
   setTimeout(()=>initDashCharts(topProd,topVend,topClientes),0);
@@ -7191,7 +7204,7 @@ function renderUsuarios(){
       <td class="mono td-primary">${esc(u.email||'—')}</td>
       <td>${esc(u.nombre||'—')}</td>
       <td>${esAdmin?'<span class="badge badge-purple">ADMIN</span>':'<span class="badge badge-blue">EMPLEADO</span>'}</td>
-      <td style="font-size:11px;color:var(--text2)">${esAdmin?'Acceso total':misPermisos.length?misPermisos.join(', '):'Sin módulos asignados'}</td>
+      <td style="font-size:11px;color:var(--text2)">${esAdmin?'Acceso total':(misPermisos.length?misPermisos.join(', '):'Sin módulos asignados')+(u.ver_costos?' · <span style="color:var(--green)">ve costos</span>':' · <span style="color:var(--text3)">sin costos</span>')}</td>
       <td>${u.id!==currentUser.id?`<button class="btn btn-ghost btn-sm" onclick="openPermisos('${u.id}')">Permisos</button>`:'<span style="color:var(--text3);font-size:11px">Vos</span>'}</td>
     </tr>`;
   }).join(''):`<tr><td colspan="5" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="10" cy="8" r="5"/><path d="M2 21a8 8 0 0 1 10.434-7.62"/><circle cx="18" cy="18" r="3"/><path d="m22 22-1.9-1.9"/></svg></div><div class="empty-title">Sin usuarios registrados</div><div class="empty-msg">Compartí el código de invitación de la empresa para que los usuarios se sumen al ERP.</div></div></td></tr>`;
@@ -7215,6 +7228,7 @@ function openPermisos(userId){
   document.getElementById('permisos-user-id').value=userId;
   document.getElementById('permisos-titulo').textContent='Permisos — '+(u.nombre||u.email);
   document.getElementById('permisos-esadmin').value=String(u.es_admin||false);
+  document.getElementById('permisos-vercostos').checked=u.ver_costos===true;
   const misPermisos=permisosUsuario.filter(p=>p.usuario_id===userId).map(p=>p.modulo);
   document.getElementById('permisos-checks').innerHTML=Object.entries(MODULOS_LABELS).map(([mod,label])=>`
     <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:5px;cursor:pointer;font-size:13px">
@@ -7227,9 +7241,10 @@ function openPermisos(userId){
 async function savePermisos(){
   const userId=document.getElementById('permisos-user-id').value;
   const esAdmin=document.getElementById('permisos-esadmin').value==='true';
+  const verCostos=document.getElementById('permisos-vercostos').checked;
   setBusy('btn-save-permisos',true);
   try{
-    await PATCH('usuarios',{es_admin:esAdmin},`?id=eq.${userId}`);
+    await PATCH('usuarios',{es_admin:esAdmin,ver_costos:verCostos},`?id=eq.${userId}`);
     await DEL('permisos_usuario',`?usuario_id=eq.${userId}`);
     if(!esAdmin){
       const checks=document.querySelectorAll('#permisos-checks input[type=checkbox]:checked');
@@ -7776,9 +7791,11 @@ function openFichaCliente(id){
       <div style="font-size:18px;font-weight:700;font-family:var(--mono);color:${cta360&&cta360.saldo>0.005?(vencido360>0.005?'var(--coral)':'var(--accent)'):'var(--green)'};margin-top:6px">${cta360?fmtUSD(Math.max(0,cta360.saldo)):'US$ 0'}</div>
       <div style="font-size:11px;color:${vencido360>0.005?'var(--coral)':'var(--text3)'}">${vencido360>0.005?fmtUSD(vencido360)+' vencido':'sin deuda vencida'}</div>
       <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="closeModal('modal-ficha-cliente');showPage('ctacte')">Ver cta. corriente</button></div>
-    <div class="dash-card"><div class="section-label">Rentabilidad histórica</div>
+    ${puedeVerCostos()?`<div class="dash-card"><div class="section-label">Rentabilidad histórica</div>
       <div style="font-size:18px;font-weight:700;font-family:var(--mono);color:${rent.margenPct==null?'var(--text3)':rent.margenPct>=30?'var(--green)':rent.margenPct>=15?'var(--accent)':'var(--coral)'};margin-top:6px">${rent.margenPct!=null?rent.margenPct+'%':'—'}</div>
-      <div style="font-size:11px;color:var(--text3)">margen sobre ${fmtUSD(rent.facturado)} facturado <span title="Costo estimado con el costeo actual de cada pieza">*al costo de hoy</span></div></div>
+      <div style="font-size:11px;color:var(--text3)">margen sobre ${fmtUSD(rent.facturado)} facturado <span title="Costo estimado con el costeo actual de cada pieza">*al costo de hoy</span></div></div>`:`<div class="dash-card"><div class="section-label">Facturación histórica</div>
+      <div style="font-size:18px;font-weight:700;font-family:var(--mono);color:var(--green);margin-top:6px">${fmtUSD(rent.facturado)}</div>
+      <div style="font-size:11px;color:var(--text3)">total facturado a este cliente</div></div>`}
   </div>`;
   if(presupAb.length){
     html+=`<div class="section-label">Presupuestos abiertos (${presupAb.length})</div>
@@ -7815,8 +7832,12 @@ function editClienteFromFicha(){
   editCliente(id);
 }
 
+function puedeVerCostos(){
+  return currentUserData?.es_admin===true||currentUserData?.ver_costos===true;
+}
 function aplicarPermisos(){
   const esAdmin=currentUserData?.es_admin===true;
+  document.body.classList.toggle('no-costos',!!currentUserData&&!puedeVerCostos());
   const misPermisos=permisosUsuario.filter(p=>p.usuario_id===currentUser?.id).map(p=>p.modulo);
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
@@ -9676,7 +9697,7 @@ function renderPresupuestos(filter=''){
         if(dEnv>=7)segBadge=`<br><span class="badge badge-warn" style="font-size:9px" title="Enviado hace ${dEnv} días sin respuesta — momento de llamar al cliente">${dEnv}D SIN RESP.</span>`;
       }
     }
-    return `<tr data-id="${p.id}"><td class="mono td-primary">${esc(p.nro)}</td><td style="font-weight:500">${esc(p.cliente)}</td><td>${p.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${p.fecha_vencimiento||'—'}${segBadge}</td><td class="mono">${items.length}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(p.total||0))}</td><td>${margenCell}</td><td>${estadoSelect('presupuestos',p.id,p.estado,['borrador','enviado','aprobado','rechazado','vencido'],badges)}${opsBadge}</td><td style="display:flex;gap:4px;flex-wrap:wrap">${genOPBtn}<button class="btn btn-ghost btn-sm" onclick="generatePresupuestoPDF('${p.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>PDF</button>${puedeConvertir?`<button class="btn btn-ghost btn-sm" onclick="convertirPresupuesto('${p.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>Venta</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editPresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deletePresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+    return `<tr data-id="${p.id}"><td class="mono td-primary">${esc(p.nro)}</td><td style="font-weight:500">${esc(p.cliente)}</td><td>${p.fecha||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${p.fecha_vencimiento||'—'}${segBadge}</td><td class="mono">${items.length}</td><td class="mono" style="color:var(--green)">${fmtUSD(parseFloat(p.total||0))}</td><td class="solo-costos">${margenCell}</td><td>${estadoSelect('presupuestos',p.id,p.estado,['borrador','enviado','aprobado','rechazado','vencido'],badges)}${opsBadge}</td><td style="display:flex;gap:4px;flex-wrap:wrap">${genOPBtn}<button class="btn btn-ghost btn-sm" onclick="generatePresupuestoPDF('${p.id}')" style="border-color:var(--accent);color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>PDF</button>${puedeConvertir?`<button class="btn btn-ghost btn-sm" onclick="convertirPresupuesto('${p.id}')" style="border-color:var(--green);color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></span>Venta</button>`:''}<button class="btn btn-ghost btn-sm" onclick="editPresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deletePresupuesto('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
   }).join(''):'<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">Sin presupuestos</div><div class="empty-msg">Generá uno con <b>+ Nuevo presupuesto</b>. Cuando el cliente lo apruebe, lo convertís en venta.</div></div></td></tr>';
 }
 
@@ -9746,6 +9767,7 @@ function calcPresupTotal(){
   document.getElementById('presup-total').textContent=fmtUSD(total);
   // Panel de rentabilidad estimada de la cotización completa
   const el=document.getElementById('presup-costeo');
+  if(el&&!puedeVerCostos()){el.innerHTML='';return;}
   if(el){
     const costos=presupItemsDraft.reduce((a,i)=>a+((parseFloat(i.costo_estimado)||0)*(parseFloat(i.cantidad)||0)),0);
     if(costos>0&&total>0){
@@ -9761,25 +9783,27 @@ function calcPresupTotal(){
 function renderPresupItems(){
   const cont=document.getElementById('presup-items-list');
   if(!presupItemsDraft.length){cont.innerHTML='<div style="padding:18px;text-align:center;color:var(--text3);font-size:12px;border:1px dashed var(--border);border-radius:4px">Sin ítems. Click en "<span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Ítem"</div>';return;}
+  const conCostos=puedeVerCostos();
+  const gridCols=conCostos?'170px 2fr 65px 90px 90px 95px auto':'170px 2fr 65px 90px 95px auto';
   // Header row con labels claros
-  const header=`<div style="display:grid;grid-template-columns:170px 2fr 65px 90px 90px 95px auto;gap:6px;padding:0 6px;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);font-weight:500">
+  const header=`<div style="display:grid;grid-template-columns:${gridCols};gap:6px;padding:0 6px;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);font-weight:500">
     <div>Producto</div>
     <div>Pieza / descripción</div>
     <div style="text-align:right">Unidades</div>
     <div style="text-align:right">Precio USD</div>
-    <div style="text-align:right" title="Costo unitario estimado — se autocompleta con el costo real del producto, editable para piezas nuevas">Costo est.</div>
+    ${conCostos?'<div style="text-align:right" title="Costo unitario estimado — se autocompleta con el costo real del producto, editable para piezas nuevas">Costo est.</div>':''}
     <div style="text-align:right">Subtotal</div>
     <div></div>
   </div>`;
   cont.innerHTML=header+presupItemsDraft.map((it,idx)=>{
     const ptOptions='<option value="">— manual —</option>'+pts.map(p=>`<option value="${p.id}" ${it.producto_id===p.id?'selected':''}>${esc(p.pieza)} (${esc(p.lote)})</option>`).join('');
-    return `<div style="display:grid;grid-template-columns:170px 2fr 65px 90px 90px 95px auto;gap:6px;align-items:center;padding:6px;background:var(--surface2);border-radius:4px">
+    return `<div style="display:grid;grid-template-columns:${gridCols};gap:6px;align-items:center;padding:6px;background:var(--surface2);border-radius:4px">
       <select onchange="onPresupItemChange(${idx},'producto_id',this.value)" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:11px">${ptOptions}</select>
       <input type="text" value="${esc(it.pieza||'')}" onchange="onPresupItemChange(${idx},'pieza',this.value)" placeholder="Pieza / descripción" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px">
       <input type="number" value="${it.cantidad}" min="0" step="1" onchange="onPresupItemChange(${idx},'cantidad',this.value)" placeholder="Unid." style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-size:12px;font-family:var(--mono);text-align:right">
       <input type="number" value="${it.precio_unitario}" min="0" step="0.01" onchange="onPresupItemChange(${idx},'precio_unitario',this.value)" placeholder="USD" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--coral);font-size:12px;font-family:var(--mono);text-align:right">
-      <input type="number" value="${it.costo_estimado||''}" min="0" step="0.01" onchange="onPresupItemChange(${idx},'costo_estimado',this.value)" placeholder="costo" title="Costo unitario estimado" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text2);font-size:12px;font-family:var(--mono);text-align:right">
-      <span style="text-align:right"><span id="presup-item-sub-${idx}" class="mono" style="font-size:12px;color:var(--green)">${fmtUSD(it.subtotal)}</span><br><span id="presup-item-margen-${idx}" class="mono" style="font-size:9px"></span></span>
+      ${conCostos?`<input type="number" value="${it.costo_estimado||''}" min="0" step="0.01" onchange="onPresupItemChange(${idx},'costo_estimado',this.value)" placeholder="costo" title="Costo unitario estimado" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text2);font-size:12px;font-family:var(--mono);text-align:right">`:''}
+      <span style="text-align:right"><span id="presup-item-sub-${idx}" class="mono" style="font-size:12px;color:var(--green)">${fmtUSD(it.subtotal)}</span>${conCostos?`<br><span id="presup-item-margen-${idx}" class="mono" style="font-size:9px"></span>`:''}</span>
       <button class="btn btn-danger btn-sm" onclick="removePresupItem(${idx})" style="padding:4px 8px"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button>
     </div>`;
   }).join('');
@@ -10363,6 +10387,12 @@ function computeCostoPT(pt){
 
 function renderCostos(filter=''){
   if(!document.getElementById('costos-tbody'))return;
+  if(!puedeVerCostos()){
+    document.getElementById('costos-stats').innerHTML='';
+    document.getElementById('costos-tbody').innerHTML='<tr><td colspan="10" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div><div class="empty-title">Sin permiso para ver costos</div><div class="empty-msg">Pedile a un administrador que te habilite "ver costos" en Config → Usuarios y permisos.</div></div></td></tr>';
+    const mc=document.getElementById('costos-margen-cot');if(mc)mc.innerHTML='';
+    return;
+  }
   document.getElementById('cfg-tarifa-op').value=currentEmpresa?.tarifa_operario_usd_h||18;
   document.getElementById('cfg-overhead').value=currentEmpresa?.overhead_pct||15;
   const f=filter.toLowerCase();

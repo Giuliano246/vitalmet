@@ -7,7 +7,7 @@
 -- id uuid PK, nombre text, slug text, codigo_invitacion text UNIQUE, created_at timestamptz
 
 -- usuarios  
--- id uuid PK (= auth.uid()), empresa_id uuid, nombre text, email text, rol text, es_admin bool, created_at timestamptz
+-- id uuid PK (= auth.uid()), empresa_id uuid, nombre text, email text, rol text, es_admin bool, ver_costos bool DEFAULT false, created_at timestamptz
 
 -- certificados
 -- id uuid PK, empresa_id uuid, nro text, proveedor text, material text, colada text, fecha date, metros numeric(14,3), file_data text, file_name text, created_at timestamptz
