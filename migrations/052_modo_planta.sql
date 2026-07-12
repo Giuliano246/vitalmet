@@ -110,28 +110,33 @@ BEGIN
   RETURN NEW;
 END $$;
 
--- ─── 7. Planta no firma calidad ──────────────────────────────────────
--- El signoff de hold/witness points es exclusivo del ERP de escritorio
--- (spec: "la firma sigue siendo desde el ERP"). Sin esto, el token
--- planta podría auto-liberar un hold vía PATCH directo de signoff_at.
--- Trigger aparte para no recrear fn_op_quality_gate (041) y evitar drift.
-CREATE OR REPLACE FUNCTION public.fn_planta_no_signoff() RETURNS trigger
+-- ─── 7. Planta solo cambia estado en op_operaciones ─────────────────
+-- La UI de planta solo toca `estado` (spec). Whitelist a nivel trigger:
+-- cualquier otro cambio de columna (signoff_*, tipo_punto, secuencia,
+-- tarifa, etc.) vía API directa se rechaza. Cubre también columnas
+-- futuras sin mantenimiento. Trigger aparte para no recrear
+-- fn_op_quality_gate (041) y evitar drift.
+CREATE OR REPLACE FUNCTION public.fn_planta_solo_estado() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = public AS $$
+DECLARE tmp op_operaciones;
 BEGIN
-  IF public.es_planta()
-     AND (NEW.signoff_at IS DISTINCT FROM OLD.signoff_at
-          OR NEW.signoff_usuario_id IS DISTINCT FROM OLD.signoff_usuario_id
-          OR NEW.signoff_obs IS DISTINCT FROM OLD.signoff_obs) THEN
-    RAISE EXCEPTION 'El usuario de planta no puede firmar ni modificar puntos de calidad';
+  IF public.es_planta() THEN
+    tmp := NEW;
+    tmp.estado := OLD.estado;
+    IF tmp IS DISTINCT FROM OLD THEN
+      RAISE EXCEPTION 'El usuario de planta solo puede cambiar el estado de la operación';
+    END IF;
   END IF;
   RETURN NEW;
 END $$;
-REVOKE EXECUTE ON FUNCTION public.fn_planta_no_signoff() FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.fn_planta_solo_estado() FROM PUBLIC, anon;
 
 DROP TRIGGER IF EXISTS trg_planta_no_signoff ON op_operaciones;
-CREATE TRIGGER trg_planta_no_signoff
+DROP TRIGGER IF EXISTS trg_planta_solo_estado ON op_operaciones;
+CREATE TRIGGER trg_planta_solo_estado
   BEFORE UPDATE ON op_operaciones
-  FOR EACH ROW EXECUTE FUNCTION public.fn_planta_no_signoff();
+  FOR EACH ROW EXECUTE FUNCTION public.fn_planta_solo_estado();
+DROP FUNCTION IF EXISTS public.fn_planta_no_signoff();
 
 COMMIT;
 
@@ -156,5 +161,5 @@ COMMIT;
 --     WHERE policyname IN ('planta_no_ins','planta_no_del');           -- 3 filas
 -- 6) Guard extendido:
 --    SELECT prosrc LIKE '%es_planta%' FROM pg_proc WHERE proname='usuarios_guard';  -- true
--- 7) Planta no firma:
---    SELECT tgname FROM pg_trigger WHERE tgname='trg_planta_no_signoff';  -- 1 fila
+-- 7) Planta solo cambia estado:
+--    SELECT tgname FROM pg_trigger WHERE tgname='trg_planta_solo_estado';  -- 1 fila
