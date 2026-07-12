@@ -58,6 +58,19 @@ DROP POLICY IF EXISTS planta_ro_del ON ordenes_produccion;
 CREATE POLICY planta_ro_del ON ordenes_produccion AS RESTRICTIVE FOR DELETE
   TO authenticated USING (NOT public.es_planta());
 
+-- ─── 5. op_operaciones / op_time_entries: recorte fino para planta ──
+-- Whitelist del spec: op_operaciones SELECT+UPDATE,
+-- op_time_entries SELECT+INSERT+UPDATE. Bloquear el resto.
+DROP POLICY IF EXISTS planta_no_ins ON op_operaciones;
+CREATE POLICY planta_no_ins ON op_operaciones AS RESTRICTIVE FOR INSERT
+  TO authenticated WITH CHECK (NOT public.es_planta());
+DROP POLICY IF EXISTS planta_no_del ON op_operaciones;
+CREATE POLICY planta_no_del ON op_operaciones AS RESTRICTIVE FOR DELETE
+  TO authenticated USING (NOT public.es_planta());
+DROP POLICY IF EXISTS planta_no_del ON op_time_entries;
+CREATE POLICY planta_no_del ON op_time_entries AS RESTRICTIVE FOR DELETE
+  TO authenticated USING (NOT public.es_planta());
+
 COMMIT;
 
 -- Verificación:
@@ -76,3 +89,6 @@ COMMIT;
 -- 4) Las policies restrictivas quedaron como tales:
 --    SELECT tablename, permissive FROM pg_policies
 --     WHERE policyname='planta_lockdown' LIMIT 3;                     -- 'RESTRICTIVE'
+-- 5) Recorte fino en tablas op_*:
+--    SELECT tablename, policyname FROM pg_policies
+--     WHERE policyname IN ('planta_no_ins','planta_no_del');           -- 3 filas
