@@ -11,6 +11,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 <style>
 :root{--bg:#100e0b;--surface:#1b1814;--surface2:#262019;--border:#352d23;--border2:#463c2e;--accent:#e3a142;--accent2:#c4882c;--teal:#36b09e;--blue:#5a9ec9;--purple:#a07fc9;--red:#df5a4a;--green:#5aaa78;--coral:#e0764a;--text:#ece7dd;--text2:#a39a89;--text3:#98917f;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
 html[data-theme="light"]{--bg:#f6f1e8;--surface:#fffefb;--surface2:#ede5d6;--border:#e0d7c4;--border2:#cabb9e;--accent:#8b5e34;--accent2:#6f4a28;--teal:#2a7d70;--blue:#36678f;--purple:#715299;--red:#b23b2e;--green:#2f7d57;--coral:#b75a36;--text:#2a241c;--text2:#5c5141;--text3:#6f6552}
@@ -1876,6 +1877,7 @@ body.no-costos .solo-costos{display:none!important}
   <div class="modal" style="width:980px;max-width:95vw">
     <div class="modal-header">
       <div class="modal-title"><span style="display:inline-flex;vertical-align:-3px;width:16px;height:16px;margin-right:6px"><svg viewBox="0 0 24 24" style="width:100%;height:100%;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>Captura de tiempos <span id="tiempos-op-nro" style="color:var(--accent);font-weight:400;margin-left:8px"></span></div>
+      <button class="btn btn-ghost btn-sm" onclick="openQRPlanta()" style="margin-left:auto;margin-right:10px;border-color:var(--accent);color:var(--accent)">📱 QR planta</button>
       <button class="modal-close" onclick="closeTiempos()">×</button>
     </div>
     <div class="modal-body" style="padding:0">
@@ -1912,6 +1914,18 @@ body.no-costos .solo-costos{display:none!important}
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: QR planta -->
+<div class="modal-overlay" id="modal-qr-planta">
+  <div class="modal" style="width:340px">
+    <div class="modal-header"><div class="modal-title">QR planta <span id="qr-planta-nro" style="color:var(--accent);font-weight:400;margin-left:8px"></span></div><button class="modal-close" onclick="closeModal('modal-qr-planta')">×</button></div>
+    <div class="modal-body" style="text-align:center">
+      <div id="qr-planta-canvas" style="display:inline-block;background:#fff;padding:14px;border-radius:8px"></div>
+      <p style="margin:12px 0 4px;font-size:12px;color:var(--text3)">Escaneá con la cámara del celular para abrir los timers de esta OP.</p>
+      <button class="btn btn-primary" id="btn-qr-pdf" onclick="descargarQRPDF()" style="margin-top:10px;width:100%">Descargar PDF para imprimir</button>
     </div>
   </div>
 </div>
@@ -8629,6 +8643,38 @@ function renderTiemposMetrics(){
   document.getElementById('tiempos-m-pause').textContent=fmtHMfromMin(pauseMin);
   document.getElementById('tiempos-m-eff').textContent=eff?eff+'%':'—';
   document.getElementById('tiempos-m-cost').textContent='$'+cost.toFixed(0);
+}
+
+// ─── QR planta: link móvil a los timers de la OP (Modo Planta) ─────
+const PLANTA_BASE='https://erp.vitalmetsa.com/planta.html';
+function plantaURL(opId){return PLANTA_BASE+'?op='+opId;}
+
+function openQRPlanta(){
+  if(!currentTiempoOpId)return;
+  const o=ops.find(x=>x.id===currentTiempoOpId);
+  document.getElementById('qr-planta-nro').textContent=o?o.nro:'';
+  const cont=document.getElementById('qr-planta-canvas');
+  cont.innerHTML='';
+  if(typeof QRCode==='undefined'){notify('La librería de QR no cargó — recargá la página','err');return;}
+  new QRCode(cont,{text:plantaURL(currentTiempoOpId),width:220,height:220,correctLevel:QRCode.CorrectLevel.M});
+  openModal('modal-qr-planta');
+}
+
+function descargarQRPDF(){
+  const o=ops.find(x=>x.id===currentTiempoOpId);if(!o)return;
+  const img=document.querySelector('#qr-planta-canvas img,#qr-planta-canvas canvas');
+  if(!img){notify('Generá el QR primero','err');return;}
+  const dataURL=img.tagName==='CANVAS'?img.toDataURL('image/png'):img.src;
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  doc.setFontSize(18);doc.setFont(undefined,'bold');
+  doc.text('Timers de producción — escaneá con el celular',105,30,{align:'center'});
+  doc.setFontSize(14);doc.setFont(undefined,'normal');
+  doc.text(`${o.nro} · ${o.pieza}`,105,42,{align:'center'});
+  doc.addImage(dataURL,'PNG',65,55,80,80);
+  doc.setFontSize(10);doc.setTextColor(120);
+  doc.text(plantaURL(currentTiempoOpId),105,145,{align:'center'});
+  doc.save(`QR-planta-${o.nro}.pdf`);
 }
 
 async function startTiempoOp(pasoId){
