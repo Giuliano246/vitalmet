@@ -71,6 +71,45 @@ DROP POLICY IF EXISTS planta_no_del ON op_time_entries;
 CREATE POLICY planta_no_del ON op_time_entries AS RESTRICTIVE FOR DELETE
   TO authenticated USING (NOT public.es_planta());
 
+-- ─── 6. usuarios_guard: es_planta solo lo cambia un admin ───────────
+-- Sin esto, cualquier usuario no-admin podría apagar el lockdown
+-- (PATCH usuarios {es_planta:false}). Recrea la función de 050
+-- agregando la misma regla que es_admin/ver_costos. El alta manual
+-- desde el SQL Editor no se ve afectada (auth.uid() IS NULL → confiado).
+CREATE OR REPLACE FUNCTION public.usuarios_guard() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE caller_admin boolean;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RETURN NEW; -- postgres / service_role: confiado
+  END IF;
+  SELECT es_admin INTO caller_admin FROM usuarios WHERE id = auth.uid();
+  IF TG_OP = 'INSERT' THEN
+    NEW.es_admin := false;
+    NEW.ver_costos := false;
+    NEW.es_planta := false;
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF NEW.es_admin IS DISTINCT FROM OLD.es_admin
+       AND NOT COALESCE(caller_admin, false) THEN
+      RAISE EXCEPTION 'Solo un administrador puede cambiar es_admin';
+    END IF;
+    IF NEW.ver_costos IS DISTINCT FROM OLD.ver_costos
+       AND NOT COALESCE(caller_admin, false) THEN
+      RAISE EXCEPTION 'Solo un administrador puede cambiar ver_costos';
+    END IF;
+    IF NEW.es_planta IS DISTINCT FROM OLD.es_planta
+       AND NOT COALESCE(caller_admin, false) THEN
+      RAISE EXCEPTION 'Solo un administrador puede cambiar es_planta';
+    END IF;
+    IF NEW.empresa_id IS DISTINCT FROM OLD.empresa_id
+       AND OLD.empresa_id IS NOT NULL
+       AND NOT COALESCE(caller_admin, false) THEN
+      RAISE EXCEPTION 'No autorizado a cambiar de empresa';
+    END IF;
+  END IF;
+  RETURN NEW;
+END $$;
+
 COMMIT;
 
 -- Verificación:
@@ -92,3 +131,5 @@ COMMIT;
 -- 5) Recorte fino en tablas op_*:
 --    SELECT tablename, policyname FROM pg_policies
 --     WHERE policyname IN ('planta_no_ins','planta_no_del');           -- 3 filas
+-- 6) Guard extendido:
+--    SELECT prosrc LIKE '%es_planta%' FROM pg_proc WHERE proname='usuarios_guard';  -- true
