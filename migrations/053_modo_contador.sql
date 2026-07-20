@@ -28,7 +28,9 @@ REVOKE ALL ON FUNCTION public.es_contador() FROM public;
 REVOKE EXECUTE ON FUNCTION public.es_contador() FROM anon;
 GRANT EXECUTE ON FUNCTION public.es_contador() TO authenticated;
 
--- ─── 3. Trigger guard: frena escrituras incluso vía SECURITY DEFINER ─
+-- ─── 3. Trigger guard: frena escrituras (INSERT/UPDATE/DELETE/TRUNCATE) incluso vía SECURITY DEFINER ─
+-- Nota: RLS nunca gobierna TRUNCATE en PostgreSQL, así que el trigger como statement-level
+-- es la única barrera que tiene el contador para ese comando.
 CREATE OR REPLACE FUNCTION public.fn_contador_guard() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = public AS $$
 BEGIN
@@ -64,7 +66,7 @@ BEGIN
       'TO authenticated USING (NOT public.es_contador())', t);
     EXECUTE format('DROP TRIGGER IF EXISTS contador_guard ON %I', t);
     EXECUTE format(
-      'CREATE TRIGGER contador_guard BEFORE INSERT OR UPDATE OR DELETE ON %I '
+      'CREATE TRIGGER contador_guard BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON %I '
       'FOR EACH STATEMENT EXECUTE FUNCTION public.fn_contador_guard()', t);
   END LOOP;
 END $$;
