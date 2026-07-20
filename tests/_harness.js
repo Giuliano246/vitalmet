@@ -81,6 +81,10 @@ function load() {
     console,
     URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} },
     Blob: function () {},
+    TextEncoder,
+    TextDecoder,
+    Uint8Array,
+    DataView,
   };
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;

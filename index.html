@@ -2338,6 +2338,76 @@ const DEL  =(t,p)=>db('DELETE',t,null,p);
 // RPCs transaccionales (migración 023): una operación = una transacción en la DB
 const RPC  =(fn,args)=>db('POST','rpc/'+fn,args||{});
 
+// ─── EXPORTABLES: utilidades puras (testeadas en tests/contador-export.test.js) ───
+function periodoRango(mes){ // 'AAAA-MM' → {desde,hasta} (fechas ISO del mes)
+  const m=/^(\d{4})-(\d{2})$/.exec(String(mes||''));
+  if(!m)return null;
+  const a=+m[1],mm=+m[2];
+  if(mm<1||mm>12)return null;
+  const ult=new Date(Date.UTC(a,mm,0)).getUTCDate();
+  const p=n=>String(n).padStart(2,'0');
+  return {desde:`${a}-${p(mm)}-01`,hasta:`${a}-${p(mm)}-${p(ult)}`};
+}
+function csvCampo(v){
+  if(v===null||v===undefined)v='';
+  v=String(v);
+  return /[;"\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
+}
+function csvArmar(filas){return '﻿'+filas.map(f=>f.map(csvCampo).join(';')).join('\r\n')+'\r\n';}
+function csvNum(n){return Number(n||0).toFixed(2).replace('.',',');}
+function csvFecha(iso){
+  if(!iso)return'';
+  const s=String(iso).slice(0,10).split('-');
+  return s.length===3?`${s[2]}/${s[1]}/${s[0]}`:String(iso);
+}
+const _CRC_TABLA=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[n]=c>>>0;}return t;})();
+function crc32(bytes){let c=0xFFFFFFFF;for(let i=0;i<bytes.length;i++)c=_CRC_TABLA[(c^bytes[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+// ZIP formato "store" (sin compresión): suficiente para CSVs chicos, cero dependencias.
+function zipStore(archivos){
+  const enc=new TextEncoder();
+  const partes=[],centrales=[];let offset=0;
+  const FECHA_DOS=0x2100,HORA_DOS=0; // fecha DOS fija (determinístico para tests)
+  for(const a of archivos){
+    const nombre=enc.encode(a.nombre);
+    const data=typeof a.contenido==='string'?enc.encode(a.contenido):a.contenido;
+    const crc=crc32(data);
+    const local=new Uint8Array(30+nombre.length);
+    const dv=new DataView(local.buffer);
+    dv.setUint32(0,0x04034b50,true);dv.setUint16(4,20,true);dv.setUint16(6,0x0800,true); // flag UTF-8
+    dv.setUint16(8,0,true);dv.setUint16(10,HORA_DOS,true);dv.setUint16(12,FECHA_DOS,true);
+    dv.setUint32(14,crc,true);dv.setUint32(18,data.length,true);dv.setUint32(22,data.length,true);
+    dv.setUint16(26,nombre.length,true);dv.setUint16(28,0,true);
+    local.set(nombre,30);
+    partes.push(local,data);
+    const cen=new Uint8Array(46+nombre.length);
+    const dc=new DataView(cen.buffer);
+    dc.setUint32(0,0x02014b50,true);dc.setUint16(4,20,true);dc.setUint16(6,20,true);
+    dc.setUint16(8,0x0800,true);dc.setUint16(10,0,true);
+    dc.setUint16(12,HORA_DOS,true);dc.setUint16(14,FECHA_DOS,true);
+    dc.setUint32(16,crc,true);dc.setUint32(20,data.length,true);dc.setUint32(24,data.length,true);
+    dc.setUint16(28,nombre.length,true);
+    dc.setUint32(42,offset,true);
+    cen.set(nombre,46);
+    centrales.push(cen);
+    offset+=local.length+data.length;
+  }
+  let cdSize=0;centrales.forEach(c=>cdSize+=c.length);
+  const eocd=new Uint8Array(22);const de=new DataView(eocd.buffer);
+  de.setUint32(0,0x06054b50,true);
+  de.setUint16(8,archivos.length,true);de.setUint16(10,archivos.length,true);
+  de.setUint32(12,cdSize,true);de.setUint32(16,offset,true);
+  const out=new Uint8Array(offset+cdSize+22);let p=0;
+  for(const parte of [...partes,...centrales,eocd]){out.set(parte,p);p+=parte.length;}
+  return out;
+}
+function descargarBytes(nombre,bytes,mime){
+  const blob=new Blob([bytes],{type:mime||'application/octet-stream'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=nombre;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+function descargarTexto(nombre,texto){descargarBytes(nombre,new TextEncoder().encode(texto),'text/csv;charset=utf-8');}
+
 // ─── AUTH UI ──────────────────────────────────────────────────────
 function switchAuthTab(tab){
   document.querySelectorAll('.auth-tab').forEach((t,i)=>t.classList.toggle('active',(tab==='login'&&i===0)||(tab==='register'&&i===1)||(tab==='join'&&i===2)));
