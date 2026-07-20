@@ -2241,6 +2241,10 @@ body.no-costos .solo-costos{display:none!important}
         <input type="checkbox" id="permisos-vercostos" style="width:15px;height:15px;accent-color:var(--accent)">
         <span>Puede ver costos y márgenes<br><span style="font-size:11px;color:var(--text3)">Por defecto los empleados no ven costos, márgenes ni rentabilidad. Los administradores siempre los ven.</span></span>
       </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:5px;cursor:pointer;font-size:13px;margin-top:4px">
+        <input type="checkbox" id="permisos-escontador" onchange="onContadorToggle(this)" style="width:15px;height:15px;accent-color:var(--accent)">
+        <span>Contador (solo lectura)<br><span style="font-size:11px;color:var(--text3)">Puede ver pero no modificar nada — pensado para el contador del estudio. Al tildarlo se sugieren Contabilidad, Ventas, Compras y ver costos.</span></span>
+      </label>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-permisos')">Cancelar</button>
@@ -7443,7 +7447,7 @@ async function saveConfigContable(){
 }
 
 // ─── USUARIOS Y PERMISOS ──────────────────────────────────────────
-const MODULOS_LABELS={dash:'Dashboard',mp:'Materia prima',pt:'Prod. terminados',cert:'Certificados MTC',op:'Órdenes producción',ventas:'Ventas',trace:'Trazabilidad'};
+const MODULOS_LABELS={dash:'Dashboard',mp:'Materia prima',pt:'Prod. terminados',cert:'Certificados MTC',op:'Órdenes producción',compras:'Compras',ventas:'Ventas',trace:'Trazabilidad',cuentas:'Contabilidad'};
 
 function renderUsuarios(){
   // Mostrar código de invitación
@@ -7457,7 +7461,7 @@ function renderUsuarios(){
     return`<tr>
       <td class="mono td-primary">${esc(u.email||'—')}</td>
       <td>${esc(u.nombre||'—')}</td>
-      <td>${esAdmin?'<span class="badge badge-purple">ADMIN</span>':'<span class="badge badge-blue">EMPLEADO</span>'}</td>
+      <td>${esAdmin?'<span class="badge badge-purple">ADMIN</span>':u.es_contador?'<span class="badge badge-amber">CONTADOR</span>':'<span class="badge badge-blue">EMPLEADO</span>'}</td>
       <td style="font-size:11px;color:var(--text2)">${esAdmin?'Acceso total':(misPermisos.length?misPermisos.join(', '):'Sin módulos asignados')+(u.ver_costos?' · <span style="color:var(--green)">ve costos</span>':' · <span style="color:var(--text3)">sin costos</span>')}</td>
       <td>${u.id!==currentUser.id?`<button class="btn btn-ghost btn-sm" onclick="openPermisos('${u.id}')">Permisos</button>`:'<span style="color:var(--text3);font-size:11px">Vos</span>'}</td>
     </tr>`;
@@ -7483,6 +7487,7 @@ function openPermisos(userId){
   document.getElementById('permisos-titulo').textContent='Permisos — '+(u.nombre||u.email);
   document.getElementById('permisos-esadmin').value=String(u.es_admin||false);
   document.getElementById('permisos-vercostos').checked=u.ver_costos===true;
+  document.getElementById('permisos-escontador').checked=u.es_contador===true;
   const misPermisos=permisosUsuario.filter(p=>p.usuario_id===userId).map(p=>p.modulo);
   document.getElementById('permisos-checks').innerHTML=Object.entries(MODULOS_LABELS).map(([mod,label])=>`
     <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:5px;cursor:pointer;font-size:13px">
@@ -7492,13 +7497,26 @@ function openPermisos(userId){
   document.getElementById('modal-permisos').classList.add('open');
 }
 
+function onContadorToggle(el){
+  if(!el.checked)return;
+  // Sugerencias al marcar contador (editables antes de guardar)
+  document.getElementById('permisos-esadmin').value='false';
+  document.getElementById('permisos-vercostos').checked=true;
+  for(const mod of ['cuentas','ventas','compras']){
+    const c=document.getElementById('perm-'+mod);
+    if(c)c.checked=true;
+  }
+}
+
 async function savePermisos(){
   const userId=document.getElementById('permisos-user-id').value;
   const esAdmin=document.getElementById('permisos-esadmin').value==='true';
   const verCostos=document.getElementById('permisos-vercostos').checked;
+  const esContador=document.getElementById('permisos-escontador').checked;
+  if(esContador&&esAdmin){notify('Un contador no puede ser administrador','err');return;}
   setBusy('btn-save-permisos',true);
   try{
-    await PATCH('usuarios',{es_admin:esAdmin,ver_costos:verCostos},`?id=eq.${userId}`);
+    await PATCH('usuarios',{es_admin:esAdmin,ver_costos:verCostos,es_contador:esContador},`?id=eq.${userId}`);
     await DEL('permisos_usuario',`?usuario_id=eq.${userId}`);
     if(!esAdmin){
       const checks=document.querySelectorAll('#permisos-checks input[type=checkbox]:checked');
