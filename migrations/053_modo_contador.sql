@@ -55,15 +55,15 @@ BEGIN
     EXECUTE format('DROP POLICY IF EXISTS contador_no_ins ON %I', t);
     EXECUTE format(
       'CREATE POLICY contador_no_ins ON %I AS RESTRICTIVE FOR INSERT '
-      'TO authenticated WITH CHECK (NOT public.es_contador())', t);
+      'TO authenticated WITH CHECK ((SELECT NOT public.es_contador()))', t);
     EXECUTE format('DROP POLICY IF EXISTS contador_no_upd ON %I', t);
     EXECUTE format(
       'CREATE POLICY contador_no_upd ON %I AS RESTRICTIVE FOR UPDATE '
-      'TO authenticated USING (NOT public.es_contador())', t);
+      'TO authenticated USING ((SELECT NOT public.es_contador()))', t);
     EXECUTE format('DROP POLICY IF EXISTS contador_no_del ON %I', t);
     EXECUTE format(
       'CREATE POLICY contador_no_del ON %I AS RESTRICTIVE FOR DELETE '
-      'TO authenticated USING (NOT public.es_contador())', t);
+      'TO authenticated USING ((SELECT NOT public.es_contador()))', t);
     EXECUTE format('DROP TRIGGER IF EXISTS contador_guard ON %I', t);
     EXECUTE format(
       'CREATE TRIGGER contador_guard BEFORE INSERT OR UPDATE OR DELETE OR TRUNCATE ON %I '

@@ -2342,7 +2342,7 @@ async function authFetch(path,method='GET',body,token){
 }
 
 async function db(method,table,body,params='',token){
-  if(window._modoContador&&method!=='GET'){throw new Error('Modo contador: acceso de solo lectura');}
+  if(window._modoContador&&method!=='GET'&&table!=='rpc/get_usuarios_empresa'){throw new Error('Modo contador: acceso de solo lectura');}
   let r=await fetch(`${SUPA_URL}/rest/v1/${table}${params}`,{method,headers:authH(token||currentSession?.access_token),body:body?JSON.stringify(body):undefined});
   // Si da 401 (token expirado), intentar refresh y reintentar una vez
   if(r.status===401&&currentSession?.refresh_token&&!token){
@@ -2539,7 +2539,7 @@ async function exportarUno(idx){
 function renderExportables(){
   const mesEl=document.getElementById('exp-mes');
   if(mesEl&&!mesEl.value){
-    const hoy=new Date();hoy.setMonth(hoy.getMonth()-1); // mes anterior por defecto
+    const hoy=new Date();hoy.setDate(1);hoy.setMonth(hoy.getMonth()-1); // mes anterior por defecto
     mesEl.value=`${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
   }
   document.getElementById('exportables-lista').innerHTML=EXPORT_BUILDERS.map((b,i)=>
@@ -7461,7 +7461,7 @@ function renderUsuarios(){
     return`<tr>
       <td class="mono td-primary">${esc(u.email||'—')}</td>
       <td>${esc(u.nombre||'—')}</td>
-      <td>${esAdmin?'<span class="badge badge-purple">ADMIN</span>':u.es_contador?'<span class="badge badge-amber">CONTADOR</span>':'<span class="badge badge-blue">EMPLEADO</span>'}</td>
+      <td>${esAdmin?'<span class="badge badge-purple">ADMIN</span>':u.es_contador?'<span class="badge badge-warn">CONTADOR</span>':'<span class="badge badge-blue">EMPLEADO</span>'}</td>
       <td style="font-size:11px;color:var(--text2)">${esAdmin?'Acceso total':(misPermisos.length?misPermisos.join(', '):'Sin módulos asignados')+(u.ver_costos?' · <span style="color:var(--green)">ve costos</span>':' · <span style="color:var(--text3)">sin costos</span>')}</td>
       <td>${u.id!==currentUser.id?`<button class="btn btn-ghost btn-sm" onclick="openPermisos('${u.id}')">Permisos</button>`:'<span style="color:var(--text3);font-size:11px">Vos</span>'}</td>
     </tr>`;
@@ -8485,6 +8485,7 @@ const SEED_TEMPLATES=[
 ];
 
 async function generarRecordatoriosAuto(){
+  if(window._modoContador)return;
   const hoy=hoyLocal();
   if(localStorage.getItem('lastMailGen')===hoy)return;
   try{
