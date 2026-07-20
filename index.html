@@ -228,6 +228,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
 .mobile-menu-btn svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round}
 .mobile-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:140}
 .kpi-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+body.modo-contador #contador-banner{display:block!important}
 @media (max-width:768px){
   .mobile-menu-btn{display:flex}
   .mobile-backdrop.show{display:block}
@@ -361,6 +362,9 @@ body.no-costos .solo-costos{display:none!important}
 <!-- ═══════════════════════════════════════════════════════════
      APP SCREEN
 ════════════════════════════════════════════════════════════ -->
+<div id="contador-banner" style="display:none;position:sticky;top:0;z-index:1500;background:var(--accent);color:#fff;font-size:12.5px;font-weight:600;padding:7px 14px;text-align:center">
+  👁 Modo contador — solo lectura · <span id="contador-banner-empresa"></span>
+</div>
 <div id="app-screen">
 <div class="mobile-menu-btn" onclick="toggleMobileNav()" title="Menú"><svg viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg></div>
 <div class="mobile-backdrop" id="mobile-backdrop" onclick="toggleMobileNav(false)"></div>
@@ -2332,6 +2336,7 @@ async function authFetch(path,method='GET',body,token){
 }
 
 async function db(method,table,body,params='',token){
+  if(window._modoContador&&method!=='GET'){throw new Error('Modo contador: acceso de solo lectura');}
   let r=await fetch(`${SUPA_URL}/rest/v1/${table}${params}`,{method,headers:authH(token||currentSession?.access_token),body:body?JSON.stringify(body):undefined});
   // Si da 401 (token expirado), intentar refresh y reintentar una vez
   if(r.status===401&&currentSession?.refresh_token&&!token){
@@ -2740,6 +2745,8 @@ async function doLogout(){
   try{await authFetch('/auth/v1/logout','POST',{},currentSession?.access_token);}catch(e){}
   localStorage.removeItem('sb_session');
   currentSession=null;currentUser=null;currentEmpresa=null;
+  window._modoContador=false;
+  document.body.classList.remove('modo-contador');
   document.getElementById('auth-screen').style.display='flex';
   document.getElementById('app-screen').style.display='none';
 }
@@ -2762,6 +2769,10 @@ async function loadEmpresaAndStart(){
     await loadAll();
     // Cargar datos del usuario actual
     currentUserData=usuariosEmpresa.find(u=>u.id===currentUser.id)||null;
+    // Modo contador: solo lectura (la garantía real es el RLS; esto es UX)
+    window._modoContador=currentUserData?.es_contador===true;
+    document.body.classList.toggle('modo-contador',window._modoContador);
+    if(window._modoContador)document.getElementById('contador-banner-empresa').textContent=currentEmpresa.nombre;
     aplicarPermisos();
     renderAll();
     // Cotizacion USD oficial — fetch inicial + refresh cada 5min
@@ -8092,7 +8103,7 @@ function aplicarPermisos(){
   });
   // Si no tiene dash, ir a la primera página permitida
   if(!misPermisos.includes('dash')){
-    const first=['mp','pt','cert','op','compras','presupuestos','ventas','clientes','costos','trace'].find(m=>misPermisos.includes(m));
+    const first=['mp','pt','cert','op','compras','presupuestos','ventas','clientes','costos','trace','cuentas'].find(m=>misPermisos.includes(m));
     if(first)showPage(first);
   }
 }
