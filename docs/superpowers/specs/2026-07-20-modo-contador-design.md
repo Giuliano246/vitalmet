@@ -54,21 +54,25 @@ comentada al pie.
    `es_contador` reciba el mismo tratamiento que `es_admin` / `ver_costos` /
    `es_planta`: solo un admin lo cambia; en INSERT se fuerza a `false`;
    si `auth.uid() IS NULL` (SQL Editor / service_role) confía.
-5. **RPCs de escritura — el bypass a cerrar:** las RPCs atómicas de la
-   migración 023 (`guardar_venta`, `anular_venta`, `crear_asiento`,
-   `consumir_barra`, `upsert_cliente`) y cualquier otra RPC que escriba:
-   si son `SECURITY DEFINER`, **bypassean el RLS** y un contador podría
-   escribir llamándolas por REST directo aunque las policies lo bloqueen.
-   La 053 audita todas las funciones de escritura expuestas a
-   `authenticated` y les antepone el guard:
-   `IF public.es_contador() THEN RETURN jsonb_build_object('ok', false,
-   'error', 'Modo contador: solo lectura'); END IF;`
-   (Las que resulten `SECURITY INVOKER` ya quedan cubiertas por las
-   policies y no necesitan cambio — se documenta cuáles en la
-   verificación al pie.)
+5. **RPCs de escritura — el bypass a cerrar con triggers:** las RPCs
+   atómicas de la migración 023 (`guardar_venta`, `anular_venta`,
+   `crear_asiento`, `consumir_barra`, `upsert_cliente`) y cualquier otra
+   función `SECURITY DEFINER` que escriba **bypassean el RLS**: un contador
+   podría escribir llamándolas por REST directo aunque las policies lo
+   bloqueen. En lugar de auditar y editar cada RPC (frágil: cualquier RPC
+   futura reabre el agujero), la 053 crea una función de trigger
+   `fn_contador_guard()` que hace `RAISE EXCEPTION 'Modo contador: solo
+   lectura'` si `es_contador()`, y el mismo DO-loop de las policies le
+   cuelga a cada tabla un trigger
+   `contador_guard BEFORE INSERT OR UPDATE OR DELETE … FOR EACH STATEMENT`.
+   Los triggers se disparan también dentro de funciones SECURITY DEFINER,
+   así que cubren todas las RPCs presentes y futuras sin tocarles el
+   cuerpo. Costo: una llamada barata por statement de escritura.
+   Las policies RESTRICTIVE del punto 3 se mantienen igual (defensa en
+   profundidad y 403 limpio en el REST directo).
 6. **Regla nueva para el CLAUDE.md del repo:** toda tabla nueva con RLS
-   necesita `planta_lockdown` **y** las tres `contador_no_ins/upd/del`;
-   toda RPC nueva de escritura lleva el guard `es_contador()` al inicio.
+   necesita `planta_lockdown`, las tres `contador_no_ins/upd/del` **y** el
+   trigger `contador_guard`.
 
 ## Frontend (`index.html`)
 
