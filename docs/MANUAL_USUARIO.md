@@ -234,6 +234,8 @@ Una OP convierte **materia prima en producto terminado**. Registra qué barra se
 - Se **genera el producto terminado** (PT) con su lote.
 - Queda armada la cadena de trazabilidad: certificado → colada → barra → OP → PT.
 
+**Si eliminás una OP:** los metros consumidos **vuelven a la barra** automáticamente. Y si la OP ya generó PT, tiene registros de calidad, no conformidades, tratamientos o puntos de control firmados, **no se puede eliminar** (retención de evidencia del SGC) — corregila o suspendela en vez de borrarla.
+
 ### 6.1 Pasos de producción, tiempos y puntos de control (PQP)
 
 El botón **Tiempos** de cada OP abre la **captura de tiempos por pasos**: la OP se divide en operaciones (torneado, roscado, control…) y se cronometra cada una.
@@ -324,6 +326,8 @@ borrador → enviada → confirmada → recibida_parcial → recibida → factur
 
 > Cuando la OC tiene recepción **y** factura, su estado pasa a `facturada`.
 
+> **Protecciones:** una OC **con mercadería recibida no se puede eliminar** (para darla de baja, pasala a `anulada`) y al editarla **solo se actualiza la cabecera** — los ítems quedan como están, para no romper la trazabilidad de recepciones e inspecciones. Además, **el mismo comprobante del mismo proveedor no se puede registrar dos veces** (el sistema lo rechaza con aviso).
+
 ### 7.3 Inspección de entrada (cuarentena)
 
 Acá vive el control de recepción (ISO 8.4 / API Q1 5.7.1.4): **toda recepción de OC aparece en esta tabla**, y la materia prima queda **en cuarentena** hasta que alguien de Calidad la libere.
@@ -365,7 +369,10 @@ Presupuesto → (aprobado) → Venta → (entregado) → Facturar (AFIP) → Cob
 
 ### 8.1 Clientes
 
-**Para cargar:** **+ Nuevo cliente** → **Razón social** *, **CUIT**, **Contacto**, **Teléfono**, **Email**, **Dirección**, **Notas**. Guardá.
+**Para cargar:** **+ Nuevo cliente** → **Razón social** *, **CUIT**, **Condición fiscal**, **Contacto**, **Teléfono**, **Email**, **Dirección**, **Notas**. Guardá.
+
+- El **CUIT se valida** (dígito verificador): si está mal tipeado, no deja guardar.
+- La **condición fiscal** (Responsable Inscripto, Monotributista, Exento, Consumidor final) define **qué letra de factura recibe** el cliente al facturarle (A o B). Cargala antes de facturar: si el cliente tiene CUIT y no tiene condición definida, el botón Facturar te la va a pedir.
 
 - **Importar Excel:** para cargar muchos de una. Detecta duplicados por CUIT (o por nombre).
 - **Ficha del cliente:** tocá el nombre para ver su historial completo (presupuestos, ventas, facturas, pagos).
@@ -415,6 +422,9 @@ pendiente entrega → entregado → facturado
 - **Remito** 🚚 — genera el remito (PDF) para despachar.
 - **Certificado** ✔ — genera el certificado de conformidad (PDF), con los MTC que respaldan el material.
 - **Facturar** ⚡ (botón verde) — **emite la factura electrónica en AFIP**. Llama al servicio de facturación, obtiene el **CAE** (Código de Autorización Electrónica) y devuelve la factura en PDF. La venta pasa a `facturado` y se genera el asiento de venta automáticamente.
+  - La **letra sale sola** de la condición fiscal del cliente: RI y monotributistas reciben **Factura A**, exentos y consumidor final reciben **B**. Factura A exige el CUIT del cliente.
+  - La venta está en USD y **se factura en pesos al tipo de cambio vendedor BNA del día** (el TC usado se muestra al emitir).
+  - El **punto de venta** se configura en Configuración → Imputación contable.
 - **CAE** — una vez facturada, este botón te deja ver/descargar la factura.
 - **Anular** — da de baja la venta (queda registro de auditoría).
 - **Excel** — exporta el listado.
@@ -625,7 +635,7 @@ El catálogo de tipos de acero / normas que después elegís en barras y certifi
 ### 12.2 Usuarios y permisos (admin)
 
 - Ves y podés **cambiar el código de empresa** (el que usan los nuevos para unirse).
-- Listás usuarios, editás su **rol** y **habilitás/deshabilitás módulos** por usuario.
+- Listás usuarios, editás su **rol** y **habilitás/deshabilitás módulos** por usuario. La lista cubre todos los módulos del sistema (inventario, producción, compras, ventas, calidad, análisis y contabilidad).
 
 > **Nota técnica:** los permisos por módulo hoy son **visuales** (esconden secciones del menú). No los uses como barrera de seguridad fuerte.
 
@@ -633,7 +643,7 @@ El catálogo de tipos de acero / normas que después elegís en barras y certifi
 
 **Clave para que los asientos automáticos funcionen.** Acá decís qué cuenta contable usar para cada tipo de operación:
 
-- **Ventas:** cuenta de venta, deudores por ventas, IVA débito fiscal, **alícuota de IVA** (21% por defecto), y si los precios **incluyen IVA**.
+- **Ventas:** cuenta de venta, deudores por ventas, IVA débito fiscal, **alícuota de IVA** (21% por defecto), si los precios **incluyen IVA**, y el **punto de venta AFIP** para la facturación electrónica.
 - **Compras:** IVA crédito fiscal, proveedores, compra de materia prima / insumos / herramientas, servicios de terceros, y la cuenta puente **GR/IR** (facturas a recibir).
 - **Caja y banco:** cuenta de caja (efectivo) y cuenta de banco (transferencias).
 

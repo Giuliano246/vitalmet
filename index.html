@@ -1115,6 +1115,7 @@ body.no-costos .solo-costos{display:none!important}
             <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--blue);font-weight:600;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Ventas</div>
             <div class="form-row"><div class="form-group"><label>Cuenta de Venta (default)</label><select id="cfg-cta-ventas"></select></div><div class="form-group"><label>Deudores por Ventas</label><select id="cfg-cta-deudores"></select></div></div>
             <div class="form-row"><div class="form-group"><label>IVA Débito Fiscal</label><select id="cfg-cta-iva-debito"></select></div><div class="form-group"><label>Alícuota de IVA (%)</label><input type="number" id="cfg-iva-alicuota" step="0.01" min="0" max="100" placeholder="21"></div></div>
+            <div class="form-row"><div class="form-group"><label>Punto de venta AFIP</label><input type="number" id="cfg-punto-venta" step="1" min="1" max="99999" placeholder="1"></div><div class="form-group"></div></div>
             <div class="form-row single"><div class="form-group" style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" id="cfg-precios-con-iva" style="margin:0"><label for="cfg-precios-con-iva" style="cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text2)">Los precios cargados en presupuestos / ventas <b>incluyen</b> IVA (desactivado = precios netos)</label></div></div>
           </div>
 
@@ -1461,6 +1462,9 @@ body.no-costos .solo-costos{display:none!important}
       <div class="form-row">
         <div class="form-group"><label>Nombre / Razón social *</label><input type="text" id="cliente-nombre" placeholder="Nombre del cliente"></div>
         <div class="form-group"><label>CUIT</label><input type="text" id="cliente-cuit" placeholder="20-12345678-9"></div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group"><label>Condición fiscal <span style="color:var(--text3);font-weight:400">(define la letra al facturar)</span></label><select id="cliente-cond-fiscal"><option value="">— sin definir —</option><option value="RI">Responsable Inscripto</option><option value="monotributo">Monotributista</option><option value="exento">Exento</option><option value="consumidor_final">Consumidor final</option></select></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Contacto</label><input type="text" id="cliente-contacto" placeholder="Persona de contacto"></div>
@@ -3387,15 +3391,25 @@ async function emitirFactura(ventaId,skipConfirm){
   const vList=await GET('ventas',`?id=eq.${ventaId}&select=*,venta_items(*)`).catch(()=>[]);
   const venta=vList[0];
   if(!venta){notify('Venta no encontrada','err');return;}
-  const items=(venta.venta_items||[]).map(i=>({descripcion:(i.pieza||i.material||'Producto').toString().slice(0,200),cantidad:Number(i.cantidad)||0,precio_unit:Number(i.precio_unitario)||0,iva_pct:21}));
-  if(items.length===0){notify('La venta no tiene items','err');return;}
+  if(!(venta.venta_items||[]).length){notify('La venta no tiene items','err');return;}
   // Doc: si hay CUIT (11 dígitos) → 80=CUIT; si no → 99=Consumidor Final
   const cuit=(venta.cuit||venta.cuit_cliente||'').toString().replace(/\D/g,'');
+  // Letra según condición fiscal del cliente (RG 5003)
+  const cli=clientes.find(c=>c.id===venta.cliente_id)||clientes.find(c=>c.nombre===venta.cliente);
+  const cbte=tipoComprobanteVentaAFIP(cli?.condicion_fiscal||null,cuit.length===11);
+  if(!cbte){notify(`Definí la condición fiscal de "${venta.cliente}" (Clientes → Editar) antes de facturar`,'err');return;}
+  if(cbte.tipo===1&&cuit.length!==11){notify('Factura A requiere el CUIT del cliente en la venta','err');return;}
+  // La venta está en USD: se factura en pesos al TC vendedor BNA del día
+  await fetchCotizacion();
+  const tc=Number(cotizacion?.venta)||0;
+  if(!tc){notify('Sin cotización del dólar para convertir a pesos — reintentá en unos minutos','err');return;}
+  const ivaPct=configContable?.iva_alicuota!=null?Math.round(Number(configContable.iva_alicuota)*10000)/100:21;
+  const items=buildItemsFactura(venta.venta_items,{tc,ivaPct,incluyenIva:!!configContable?.precios_incluyen_iva});
   const docTipo=cuit.length===11?80:99;
   const docNro=cuit.length===11?cuit:'0';
   const payload={
-    punto_venta:1,
-    tipo_comprobante:6, // Factura B; cambiar a 1 (FacA) cuando cliente sea RI
+    punto_venta:Number(configContable?.punto_venta)||1,
+    tipo_comprobante:cbte.tipo,
     concepto:1,
     doc_tipo:docTipo,
     doc_nro:docNro,
@@ -3450,7 +3464,7 @@ async function emitirFactura(ventaId,skipConfirm){
       await generarAsientoFactura(facturaEmitidaId,data,venta).catch(e=>console.warn('Asiento de factura no generado:',e));
     }
     await reload('ventas','asientos','asiento_lineas');renderVentas(document.querySelector('#page-ventas .search-box input')?.value||'');
-    notify(`✓ CAE ${data.cae} — Factura ${data.tipo_comprobante}-${String(data.punto_venta).padStart(5,'0')}-${String(data.numero).padStart(8,'0')}`,'ok');
+    notify(`✓ CAE ${data.cae} — Factura ${cbte.letra} ${String(data.punto_venta).padStart(5,'0')}-${String(data.numero).padStart(8,'0')} · TC $${tc}`,'ok');
     return true;
   }catch(e){
     notify(`Error al facturar: ${e.message}`,'err');
@@ -6890,40 +6904,6 @@ function renderRatios(){
     `<div style="margin-top:24px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text3);line-height:1.6"><b style="color:var(--text2)">Notas metodológicas:</b><br>• Activo Corriente = cuentas con código 1.1, 1.2 y 1.3. Activo No Corriente = código 1.4. Pasivo Corriente = 2.1.x (excepto préstamos 2.1.08).<br>• Para ratios de actividad (días, rotación) se usan los flujos del rango "Período desde / hasta".<br>• Para ratios patrimoniales (liquidez, endeudamiento) se usan saldos acumulados hasta "Saldos hasta".<br>• Si dejás los filtros vacíos, el cálculo toma todo el histórico.</div>`;
 }
 
-// ─── ASIENTO AUTOMÁTICO DESDE VENTA ───────────────────────────
-async function generarAsientoVenta(ventaId,total,cliente,fecha,nroRemito){
-  try{
-    if(!configContable){console.warn('Asiento de venta no generado: falta configuración contable (Configuración → Imputación contable)');return;}
-    const ctaDeudores=cuentasContables.find(c=>c.id===configContable.cta_deudores);
-    const ctaVentas=cuentasContables.find(c=>c.id===configContable.cta_ventas_default);
-    const ctaIvaDeb=cuentasContables.find(c=>c.id===configContable.cta_iva_debito);
-    if(!ctaDeudores||!ctaVentas){console.warn('Asiento de venta no generado: faltan cuentas de Deudores o Ventas en Imputación contable');return;}
-    const tot=parseFloat(total||0);
-    if(tot<=0)return;
-    // Desagregar IVA según configuración
-    const ivaPct=Number(configContable.iva_alicuota)||0;
-    const aplicaIVA=ctaIvaDeb&&ivaPct>0;
-    let neto,iva,bruto;
-    if(!aplicaIVA){neto=tot;iva=0;bruto=tot;}
-    else if(configContable.precios_incluyen_iva){bruto=tot;neto=tot/(1+ivaPct);iva=bruto-neto;}
-    else {neto=tot;iva=tot*ivaPct;bruto=neto+iva;}
-    // Buscar asiento existente para esta venta (idempotencia)
-    const existingArr=await GET('asientos',`?origen_tipo=eq.venta&origen_id=eq.${ventaId}`);
-    const existing=existingArr&&existingArr[0];
-    // Auto-asiento desde venta: la venta está en USD (cobranza→TC comprador del banco)
-    await fetchCotizacion();
-    const tcAuto=cotizacion.compra||cotizacion.venta||1;
-    const cabecera={fecha:fecha||hoyLocal(),descripcion:`Venta a ${cliente||'cliente'}`+(aplicaIVA?` (IVA ${(ivaPct*100).toFixed(0)}%)`:''),comprobante_nro:nroRemito||null,tipo:'auto-venta',origen_tipo:'venta',origen_id:ventaId,estado:'confirmado',moneda:'USD',tipo_cambio:tcAuto,tc_tipo:'compra'};
-    const lineas=[
-      {cuenta_id:ctaDeudores.id,debe:bruto,haber:0,descripcion:`Deuda cliente ${cliente||''}`,orden:0},
-      {cuenta_id:ctaVentas.id,debe:0,haber:neto,descripcion:`Venta ${nroRemito||''}`,orden:1},
-    ];
-    if(aplicaIVA)lineas.push({cuenta_id:ctaIvaDeb.id,debe:0,haber:iva,descripcion:`IVA Débito ${(ivaPct*100).toFixed(0)}% s/ ${nroRemito||''}`,orden:2});
-    // Atómico (RPC): cabecera + líneas juntas, numeración en la DB.
-    await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas,p_asiento_id:existing?existing.id:null});
-  }catch(e){console.warn('Error generando asiento automático de venta:',e);}
-}
-
 // ─── ASIENTO AUTOMÁTICO DESDE COMPRA (recepción de OC) ────────
 // Se invoca desde saveRecepcion con la lista de ítems recibidos en la sesión.
 // Genera UN asiento por sesión agrupando montos por cuenta según tipo de ítem.
@@ -7365,9 +7345,14 @@ async function saveEditOP(){
   setBusy('btn-save-edit-op',false,'Guardar cambios');
 }
 async function deleteOP(id){
-  if(!confirm('¿Eliminar esta orden de producción?'))return;
-  try{await DEL('ordenes_produccion',`?id=eq.${id}`);await reload('ordenes_produccion','barras','productos_terminados');renderAll();notify('Orden eliminada');}
-  catch(e){notify(e.message,'err');}
+  if(!confirm('¿Eliminar esta orden de producción?\n\nSi consumió material, los metros vuelven a la barra. Si ya generó PT o tiene registros de calidad, no se puede eliminar.'))return;
+  // RPC atómica (mig 055): repone kg a la barra y bloquea si hay PT,
+  // registros de calidad, NC, tratamientos o signoffs (evidencia API Q1).
+  try{
+    const r=await RPC('eliminar_op',{p_op_id:id});
+    await reload('ordenes_produccion','barras','productos_terminados');renderAll();
+    notify(r?.kg_devueltos>0?`Orden eliminada — ${r.kg_devueltos} mts devueltos a ${r.lote||'la barra'}`:'Orden eliminada');
+  }catch(e){notify(e.message,'err');}
 }
 
 // ── VENTAS ──
@@ -7488,6 +7473,7 @@ function renderImputacionContable(){
   _llenarSelectCuentas('cfg-cta-caja',['activo'],c.cta_caja_default);
   _llenarSelectCuentas('cfg-cta-banco',['activo'],c.cta_banco_default);
   document.getElementById('cfg-iva-alicuota').value=c.iva_alicuota!=null?(Number(c.iva_alicuota)*100).toFixed(2).replace(/\.?0+$/,''):'21';
+  document.getElementById('cfg-punto-venta').value=c.punto_venta||1;
   document.getElementById('cfg-precios-con-iva').checked=c.precios_incluyen_iva===true;
   document.getElementById('cfg-status').textContent=c.updated_at?`Última actualización: ${new Date(c.updated_at).toLocaleString('es-AR')}`:'Sin configurar';
 }
@@ -7503,6 +7489,7 @@ async function saveConfigContable(){
     cta_iva_debito:v('cfg-cta-iva-debito'),
     precios_incluyen_iva:document.getElementById('cfg-precios-con-iva').checked,
     iva_alicuota:ivaPct/100,
+    punto_venta:parseInt(document.getElementById('cfg-punto-venta').value)||1,
     cta_iva_credito:v('cfg-cta-iva-credito'),
     cta_proveedores:v('cfg-cta-proveedores'),
     cta_compra_insumos:v('cfg-cta-compra-insumos'),
@@ -7528,7 +7515,9 @@ async function saveConfigContable(){
 }
 
 // ─── USUARIOS Y PERMISOS ──────────────────────────────────────────
-const MODULOS_LABELS={dash:'Dashboard',mp:'Materia prima',pt:'Prod. terminados',cert:'Certificados MTC',op:'Órdenes producción',compras:'Compras',ventas:'Ventas',trace:'Trazabilidad',cuentas:'Contabilidad'};
+// Un módulo por página raíz de cada grupo (debe cubrir groupMods de
+// aplicarPermisos — si un módulo no está acá, es inasignable en la UI).
+const MODULOS_LABELS={dash:'Dashboard',mp:'Materia prima',pt:'Prod. terminados',cert:'Certificados MTC',insumos:'Insumos',herramientas:'Herramientas',op:'Órdenes producción',eficiencia:'Eficiencia',compras:'Compras',presupuestos:'Presupuestos',ventas:'Ventas',clientes:'Clientes',ctacte:'Cta. corriente',mailings:'Mailings',precios:'Precios',costos:'Costos',trace:'Trazabilidad',ncr:'Calidad (NCR/CAPA)',doccontrol:'Docs controlados',pqptpl:'Planes de calidad',cuentas:'Contabilidad'};
 
 function renderUsuarios(){
   // Mostrar código de invitación
@@ -7597,14 +7586,9 @@ async function savePermisos(){
   if(esContador&&esAdmin){notify('Un contador no puede ser administrador','err');return;}
   setBusy('btn-save-permisos',true);
   try{
-    await PATCH('usuarios',{es_admin:esAdmin,ver_costos:verCostos,es_contador:esContador},`?id=eq.${userId}`);
-    await DEL('permisos_usuario',`?usuario_id=eq.${userId}`);
-    if(!esAdmin){
-      const checks=document.querySelectorAll('#permisos-checks input[type=checkbox]:checked');
-      for(const c of checks){
-        await POST('permisos_usuario',{empresa_id:currentEmpresa.id,usuario_id:userId,modulo:c.value});
-      }
-    }
+    const modulos=[...document.querySelectorAll('#permisos-checks input[type=checkbox]:checked')].map(c=>c.value);
+    // RPC atómica (mig 055): roles + módulos en una transacción
+    await RPC('guardar_permisos',{p_usuario_id:userId,p_es_admin:esAdmin,p_ver_costos:verCostos,p_es_contador:esContador,p_modulos:modulos});
     await reload('permisos_usuario','usuarios');closeModal('modal-permisos');renderUsuarios();notify('Permisos actualizados');
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-permisos',false,'Guardar permisos');
@@ -7759,6 +7743,7 @@ function openModalCliente(){
   document.getElementById('modal-cliente-title').textContent='Nuevo cliente';
   document.getElementById('cliente-edit-id').value='';
   resetF(['cliente-nombre','cliente-cuit','cliente-contacto','cliente-telefono','cliente-email','cliente-direccion','cliente-notas']);
+  document.getElementById('cliente-cond-fiscal').value='';
   document.getElementById('modal-cliente').classList.add('open');
 }
 
@@ -7768,6 +7753,7 @@ function editCliente(id){
   document.getElementById('cliente-edit-id').value=c.id;
   document.getElementById('cliente-nombre').value=c.nombre;
   document.getElementById('cliente-cuit').value=c.cuit||'';
+  document.getElementById('cliente-cond-fiscal').value=c.condicion_fiscal||'';
   document.getElementById('cliente-contacto').value=c.contacto||'';
   document.getElementById('cliente-telefono').value=c.telefono||'';
   document.getElementById('cliente-email').value=c.email||'';
@@ -7779,12 +7765,15 @@ function editCliente(id){
 async function saveCliente(){
   const nombre=document.getElementById('cliente-nombre').value.trim();
   if(!nombre)return notify('El nombre es obligatorio','err');
+  const cuitVal=document.getElementById('cliente-cuit').value.trim();
+  if(cuitVal&&!validarCuit(cuitVal)){notify('El CUIT no es válido (dígito verificador)','err');return;}
   const editId=document.getElementById('cliente-edit-id').value;
   setBusy('btn-save-cliente',true);
   try{
     const data={
       nombre,
-      cuit:document.getElementById('cliente-cuit').value.trim()||null,
+      cuit:cuitVal||null,
+      condicion_fiscal:document.getElementById('cliente-cond-fiscal').value||null,
       contacto:document.getElementById('cliente-contacto').value.trim()||null,
       telefono:document.getElementById('cliente-telefono').value.trim()||null,
       email:document.getElementById('cliente-email').value.trim()||null,
@@ -8216,7 +8205,9 @@ function aplicarPermisos(){
 let opOperaciones=[],opTimeEntries=[];
 let currentTiempoOpId=null;
 let tiempoInterval=null;
-const TARIFA_OPERARIO_USD=18; // USD/hora operario (configurable)
+// USD/hora operario: se configura en Análisis → Costos → Configuración
+// (empresas.tarifa_operario_usd_h). Misma fuente que computeCostoPT.
+function tarifaOperarioUSD(){return parseFloat(currentEmpresa?.tarifa_operario_usd_h)||18;}
 
 function fmtTimerSec(s){const h=Math.floor(s/3600);const m=Math.floor((s%3600)/60);const x=s%60;return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`;}
 function fmtHMfromMin(min){const h=Math.floor(min/60);const m=Math.round(min%60);return `${h}h ${String(m).padStart(2,'0')}m`;}
@@ -8534,8 +8525,9 @@ async function ajustarPreciosPct(){
   if(isNaN(pct)||pct===0)return;
   if(!confirm(`¿Ajustar los ${preciosBase.length} precios en ${pct>0?'+':''}${pct}%?`))return;
   try{
-    for(const p of preciosBase){await PATCH('precios_base',{precio_usd:Math.round((parseFloat(p.precio_usd)||0)*(1+pct/100)*100)/100},`?id=eq.${p.id}`);}
-    await reload('precios_base');renderPrecios();notify(`✓ ${preciosBase.length} precios ajustados ${pct>0?'+':''}${pct}%`);
+    // RPC atómica (mig 055): un UPDATE transaccional, no un PATCH por fila
+    const r=await RPC('ajustar_precios_pct',{p_pct:pct});
+    await reload('precios_base');renderPrecios();notify(`✓ ${r?.ajustados??preciosBase.length} precios ajustados ${pct>0?'+':''}${pct}%`);
   }catch(e){notify('Error: '+e.message,'err');}
 }
 async function importarPreciosDesdeStock(){
@@ -8975,7 +8967,7 @@ function renderTiemposMetrics(){
     const end=e.ended_at?new Date(e.ended_at):new Date();
     const min=Math.floor((end-new Date(e.started_at))/60000);
     if(e.tipo==='pausa')pauseMin+=min;
-    else{prodMin+=min;const p=opOperaciones.find(o=>o.id===e.operacion_id);const ratePerMin=(TARIFA_OPERARIO_USD+parseFloat(p?.tarifa_maquina_usd||0))/60;cost+=min*ratePerMin;}
+    else{prodMin+=min;const p=opOperaciones.find(o=>o.id===e.operacion_id);const ratePerMin=(tarifaOperarioUSD()+parseFloat(p?.tarifa_maquina_usd||0))/60;cost+=min*ratePerMin;}
   });
   const totalEst=opOperaciones.reduce((s,o)=>s+(o.tiempo_estimado_min||0),0);
   const eff=prodMin>0&&totalEst>0?Math.round((totalEst/prodMin)*100):0;
@@ -9725,13 +9717,17 @@ async function saveOC(){
   if(!tc||tc<=0){notify('Ingresá un tipo de cambio válido','err');return;}
   const total=ocItemsDraft.reduce((a,i)=>a+(parseFloat(i.subtotal)||0),0);
   const data={nro,proveedor_id,fecha,fecha_entrega_esperada:document.getElementById('oc-entrega').value||null,condicion_pago:document.getElementById('oc-cond').value.trim()||null,estado:document.getElementById('oc-estado').value,subtotal:total,total,moneda,tipo_cambio:tc,tc_tipo:tcTipo,observaciones:document.getElementById('oc-obs').value.trim()||null,factura_nro:document.getElementById('oc-fact-nro').value.trim()||null,factura_fecha:document.getElementById('oc-fact-fecha').value||null,factura_vto:document.getElementById('oc-fact-vto').value||null,remito_nro:document.getElementById('oc-remito-nro').value.trim()||null,certificado_id:document.getElementById('oc-cert-link').value||null};
+  // Con recepciones registradas los ítems no se reescriben: el DELETE+
+  // re-INSERT arrastraría las recepciones (FK ahora RESTRICT en DB, mig 055).
+  const tieneRecepciones=id&&ocItems.some(i=>i.oc_id===id&&(parseFloat(i.cantidad_recibida)||0)>0);
   _savingOC=true;
   try{setBusy('btn-save-oc',true);
     let ocId;
-    if(id){await PATCH('ordenes_compra',data,`?id=eq.${id}`);ocId=id;await DEL('oc_items',`?oc_id=eq.${id}`);}
+    if(id){await PATCH('ordenes_compra',data,`?id=eq.${id}`);ocId=id;if(!tieneRecepciones)await DEL('oc_items',`?oc_id=eq.${id}`);}
     else{const res=await POST('ordenes_compra',[{...data,empresa_id:currentEmpresa.id}]);ocId=res[0].id;}
     const items=ocItemsDraft.map(i=>({oc_id:ocId,tipo:i.tipo,descripcion:i.descripcion,material:i.material||null,perfil:i.perfil||null,diametro:i.diametro||null,cantidad:parseFloat(i.cantidad)||0,unidad:i.unidad,precio_unitario:parseFloat(i.precio_unitario)||0,subtotal:parseFloat(i.subtotal)||0,cantidad_recibida:parseFloat(i.cantidad_recibida)||0}));
-    if(items.length)await POST('oc_items',items);
+    if(tieneRecepciones)notify('OC con recepciones: se actualizó la cabecera, los ítems no se modifican','err');
+    else if(items.length)await POST('oc_items',items);
     await reload('ordenes_compra','oc_items','asientos','asiento_lineas');closeModal('modal-oc');renderAll();notify(id?'OC actualizada':'OC creada');
   }catch(e){notify('Error: '+e.message,'err');}
   finally{_savingOC=false;setBusy('btn-save-oc',false);}
@@ -9739,7 +9735,10 @@ async function saveOC(){
 
 async function deleteOC(id){
   const oc=ordenesCompra.find(x=>x.id===id);if(!oc)return;
-  if(!confirm(`¿Eliminar OC "${oc.nro}"? Se borran también sus ítems y recepciones.`))return;
+  if(ocItems.some(i=>i.oc_id===id&&(parseFloat(i.cantidad_recibida)||0)>0)){
+    notify('La OC tiene mercadería recibida: no se puede eliminar. Pasala a "anulada" para darla de baja.','err');return;
+  }
+  if(!confirm(`¿Eliminar OC "${oc.nro}"? Se borran también sus ítems.`))return;
   try{await DEL('ordenes_compra',`?id=eq.${id}`);await reload('ordenes_compra','oc_items','asientos','asiento_lineas');renderAll();notify('OC eliminada');}
   catch(e){notify('Error: '+e.message,'err');}
 }
@@ -11097,6 +11096,24 @@ function validarCuit(cuit){
 }
 function sugerirLetra(condicionFiscal){
   return {RI:'A',monotributo:'C',exento:'C',consumidor_final:'B'}[condicionFiscal]||'A';
+}
+// Comprobante a EMITIR (Vitalmet es RI) según condición fiscal del receptor.
+// RG 5003: RI y monotributistas reciben Factura A; exentos y consumidor
+// final reciben B. Con CUIT pero sin condición definida → null (hay que
+// cargar el dato antes de facturar); sin CUIT → B a consumidor final.
+function tipoComprobanteVentaAFIP(condicionFiscal,tieneCuit){
+  if(condicionFiscal==='RI'||condicionFiscal==='monotributo')return {tipo:1,letra:'A'};
+  if(condicionFiscal==='exento'||condicionFiscal==='consumidor_final')return {tipo:6,letra:'B'};
+  return tieneCuit?null:{tipo:6,letra:'B'};
+}
+// Items del payload de facturación: la venta está en USD, se factura en
+// pesos al TC del día. precio_unit va NETO (el microservicio calcula IVA).
+function buildItemsFactura(items,{tc,ivaPct,incluyenIva}){
+  return (items||[]).map(i=>{
+    const ars=(Number(i.precio_unitario)||0)*tc;
+    const neto=incluyenIva?ars/(1+ivaPct/100):ars;
+    return {descripcion:(i.pieza||i.material||'Producto').toString().slice(0,200),cantidad:Number(i.cantidad)||0,precio_unit:Math.round(neto*100)/100,iva_pct:ivaPct};
+  });
 }
 function validarDesgloseFactura({letra,ivas=[],totalTipeado,totales}){
   const errores=[];
