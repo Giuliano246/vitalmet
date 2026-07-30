@@ -10774,6 +10774,38 @@ function evaluarMatchFactura({ valorRecibido, neto, tolPct, tolMonto }) {
   return { ok, dif, umbral, estado: ok ? 'ok' : 'discrepancia' };
 }
 
+// ─── DESGLOSE FISCAL DE FACTURAS DE PROVEEDOR (spec 2026-07-30) ──────
+// Funciones PURAS (sin DOM ni red) espejo de la validación del RPC
+// registrar_factura_recibida v2 (migración 054).
+const ALICUOTAS_IVA=[0,2.5,5,10.5,21,27];
+function computeTotalesFactura({ivas=[],noGravado=0,exento=0,percepciones=[]}={}){
+  const r2=n=>Math.round(n*100)/100;
+  const neto=r2(ivas.reduce((a,i)=>a+(parseFloat(i.base)||0),0));
+  const iva=r2(ivas.reduce((a,i)=>a+(parseFloat(i.monto)||0),0));
+  const percep=r2(percepciones.reduce((a,p)=>a+(parseFloat(p.monto)||0),0));
+  const total=r2(neto+(parseFloat(noGravado)||0)+(parseFloat(exento)||0)+iva+percep);
+  return {neto,iva,percep,total};
+}
+function letraDiscriminaIva(letra){return letra==='A'||letra==='M';}
+function sugerirLetra(condicionFiscal){
+  return {RI:'A',monotributo:'C',exento:'C',consumidor_final:'B'}[condicionFiscal]||'A';
+}
+function validarDesgloseFactura({letra,ivas=[],totalTipeado,totales}){
+  const errores=[];
+  if(!letraDiscriminaIva(letra)&&totales.iva>0)
+    errores.push(`Una factura ${letra} no discrimina IVA — el importe va todo al neto/gasto`);
+  for(const i of ivas){
+    const base=parseFloat(i.base)||0,monto=parseFloat(i.monto)||0,ali=parseFloat(i.alicuota)||0;
+    const esperado=base*ali/100;
+    // Tolerancia: redondeos del proveedor (1% del esperado, mínimo $0.05)
+    if(Math.abs(monto-esperado)>Math.max(esperado*0.01,0.05))
+      errores.push(`IVA ${ali}%: el monto ${monto.toFixed(2)} no coincide con base ${base.toFixed(2)} (esperado ${esperado.toFixed(2)})`);
+  }
+  if(Math.abs((parseFloat(totalTipeado)||0)-totales.total)>0.01)
+    errores.push(`El total tipeado ${(parseFloat(totalTipeado)||0).toFixed(2)} no coincide con la suma de componentes ${totales.total.toFixed(2)}`);
+  return {ok:errores.length===0,errores};
+}
+
 // Parseo del extracto pegado (tab / ; como separador). Devuelve
 // [{fecha:'YYYY-MM-DD', descripcion, importe:Number}]. Puro.
 function parsearExtractoPegado(texto){
