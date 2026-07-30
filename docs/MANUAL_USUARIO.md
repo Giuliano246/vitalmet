@@ -338,7 +338,20 @@ Acá vive el control de recepción (ISO 8.4 / API Q1 5.7.1.4): **toda recepción
 
 ### 7.4 Facturas recibidas
 
-Lista de todas las facturas de proveedores. Acá ves la columna **Match** (si coincide con su recepción) y el **Asiento** generado. No se cargan sueltas: salen de una OC con recepción.
+Lista de todos los comprobantes de proveedores: facturas contra OC, facturas sin OC (gastos), y notas de crédito/débito. Acá ves la columna **Tipo** (FA/NC/ND + letra), **Match** (si coincide con su recepción) y el **Asiento** generado.
+
+#### Comprobantes de proveedor: IVA, percepciones y notas de crédito
+
+Al registrar una factura elegís **tipo** (Factura / Nota de débito / Nota de crédito) y **letra** (A/B/C/M/X). La letra se sugiere sola según la condición fiscal del proveedor (Resp. Inscripto → A, Monotributo → C).
+
+- **IVA por alícuota**: cargá una fila por alícuota (10,5% / 21% / 27%...). El IVA se calcula solo desde la base; podés corregirlo por redondeos del proveedor. Las facturas B y C no discriminan IVA (no es crédito computable).
+- **No gravado / Exento**: campos aparte, salen en el Libro IVA.
+- **Percepciones**: IVA, IIBB (con jurisdicción) y Ganancias. Se contabilizan como crédito en sus cuentas (113007 / 113010 / 113011).
+- **El total tiene que cerrar**: el sistema no deja guardar si la suma de componentes no coincide con el total del comprobante.
+- **Factura sin OC** (botón en el tab Facturas): para gastos sin orden de compra (luz, fletes, contador) — elegís la cuenta contable de imputación.
+- **NC/ND**: desde la fila de cualquier factura. La NC reduce la deuda con el proveedor y el crédito de IVA, y sale en negativo en el libro. No mueve stock: si hubo devolución física, el ajuste de inventario va por el circuito de inspección/rechazo.
+
+El exportable **IVA compras** (Contabilidad → Exportables) sale en formato libro real: una columna por alícuota, no gravado, exento, percepciones por tipo con jurisdicción de IIBB, y las NC en negativo.
 
 ---
 
