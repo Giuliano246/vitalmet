@@ -1849,6 +1849,23 @@ body.no-costos .solo-costos{display:none!important}
   </div>
 </div>
 
+<!-- MODAL: Proveedor rápido por CUIT (ocasional, sin cuenta completa) -->
+<div class="modal-overlay" id="modal-prov-rapido">
+  <div class="modal" style="width:460px">
+    <div class="modal-header"><div class="modal-title">Proveedor ocasional (alta por CUIT)</div><button class="modal-close" onclick="closeModal('modal-prov-rapido')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row" style="grid-template-columns:160px 1fr"><div class="form-group"><label>CUIT *</label><input type="text" id="pr-cuit" placeholder="30-12345678-9" oninput="prOnCuitInput()"></div><div class="form-group"><label>&nbsp;</label><div id="pr-cuit-estado" style="font-size:11px;padding:8px 0;color:var(--text3)">Se valida el dígito verificador</div></div></div>
+      <div class="form-row single"><div class="form-group"><label>Razón social *</label><input type="text" id="pr-nombre" placeholder="Ferretería El Tornillo SRL"></div></div>
+      <div class="form-row single"><div class="form-group"><label>Condición fiscal</label><select id="pr-cond-fiscal"><option value="RI">Resp. Inscripto</option><option value="monotributo">Monotributo</option><option value="exento">Exento</option><option value="consumidor_final">Cons. final</option></select></div></div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">La verificación online contra el padrón de ARCA se habilita cuando esté el certificado (misma espera que el padrón AFIP del módulo Ventas). Por ahora se valida el CUIT matemáticamente, igual que Tango sin conexión.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-prov-rapido')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-pr" onclick="saveProvRapido()">Crear y usar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Registrar comprobante de proveedor (fiscal completo + 3-way match) -->
 <div class="modal-overlay" id="modal-factura-recibida">
   <div class="modal" style="width:760px;max-width:95vw">
@@ -1858,7 +1875,7 @@ body.no-costos .solo-costos{display:none!important}
         <div class="form-group"><label>Tipo *</label><select id="fr-tipo" onchange="frOnTipoChange()"><option value="factura">Factura</option><option value="nota_debito">Nota de débito</option><option value="nota_credito">Nota de crédito</option></select></div>
         <div class="form-group"><label>Letra *</label><select id="fr-letra" onchange="frOnLetraChange()"><option>A</option><option>B</option><option>C</option><option>M</option><option>X</option></select></div>
         <div class="form-group" id="fr-prov-ro-wrap"><label>Proveedor</label><input type="text" id="fr-proveedor-nombre" readonly style="background:var(--bg);color:var(--text3)"></div>
-        <div class="form-group" id="fr-prov-sel-wrap" style="display:none"><label>Proveedor *</label><select id="fr-proveedor-select" onchange="frOnProveedorChange()"></select></div>
+        <div class="form-group" id="fr-prov-sel-wrap" style="display:none"><label>Proveedor *</label><div style="display:flex;gap:6px"><select id="fr-proveedor-select" onchange="frOnProveedorChange()" style="flex:1"></select><button type="button" class="btn btn-ghost btn-sm" onclick="openProvRapidoModal()" title="Alta rápida por CUIT (proveedor ocasional)" style="white-space:nowrap">+ CUIT</button></div></div>
         <div class="form-group" id="fr-oc-wrap"><label>OC</label><input type="text" id="fr-oc-nro" readonly style="background:var(--bg);color:var(--text3)"></div>
       </div>
       <div id="fr-letra-warn" style="display:none;font-size:11px;color:var(--coral);margin:-4px 0 8px"></div>
@@ -9573,6 +9590,8 @@ async function saveProveedor(){
   const id=document.getElementById('prov-edit-id').value;
   const nombre=document.getElementById('prov-nombre').value.trim();
   if(!nombre){notify('El nombre es obligatorio','err');return;}
+  const cuitVal=document.getElementById('prov-cuit').value.trim();
+  if(cuitVal&&!validarCuit(cuitVal)){notify('El CUIT no es válido (dígito verificador)','err');return;}
   const data={nombre,cuit:document.getElementById('prov-cuit').value.trim()||null,contacto:document.getElementById('prov-contacto').value.trim()||null,telefono:document.getElementById('prov-tel').value.trim()||null,email:document.getElementById('prov-email').value.trim()||null,condicion_pago_default:document.getElementById('prov-cond').value.trim()||null,direccion:document.getElementById('prov-dir').value.trim()||null,observaciones:document.getElementById('prov-obs').value.trim()||null,
     criticidad:document.getElementById('prov-criticidad').value,aprobado:document.getElementById('prov-aprobado').value==='true',alcance_aprobacion:document.getElementById('prov-alcance').value.trim()||null,fecha_evaluacion:document.getElementById('prov-fecha-eval').value||null,fecha_proxima_evaluacion:document.getElementById('prov-fecha-reeval').value||null,
     condicion_fiscal:document.getElementById('prov-cond-fiscal').value};
@@ -9907,6 +9926,54 @@ function openNCNDModal(facturaId){
   document.getElementById('fr-moneda').value=fa.moneda||'ARS';
   if(letraDiscriminaIva(fa.letra||'A'))frAddIvaRow(21);
   frOnLetraChange();frRender();openModal('modal-factura-recibida');
+}
+
+// ─── Proveedor ocasional: alta rápida por CUIT ───────────────────────
+function openProvRapidoModal(){
+  document.getElementById('pr-cuit').value='';
+  document.getElementById('pr-nombre').value='';
+  document.getElementById('pr-cond-fiscal').value='RI';
+  document.getElementById('pr-cuit-estado').innerHTML='Se valida el dígito verificador';
+  openModal('modal-prov-rapido');
+}
+function prOnCuitInput(){
+  const cuit=document.getElementById('pr-cuit').value;
+  const el=document.getElementById('pr-cuit-estado');
+  const norm=normalizarCuit(cuit);
+  if(norm.length<11){el.innerHTML='<span style="color:var(--text3)">Se valida el dígito verificador</span>';return;}
+  if(!validarCuit(cuit)){el.innerHTML='<span style="color:var(--coral)">✗ CUIT inválido (dígito verificador)</span>';return;}
+  const existente=proveedores.find(p=>normalizarCuit(p.cuit)===norm);
+  if(existente){el.innerHTML=`<span style="color:var(--accent)">Ya existe: ${esc(existente.nombre)} — al guardar se usa ese</span>`;
+    if(!document.getElementById('pr-nombre').value)document.getElementById('pr-nombre').value=existente.nombre;
+    return;}
+  el.innerHTML='<span style="color:var(--green)">✓ CUIT válido</span>';
+}
+async function saveProvRapido(){
+  const cuit=document.getElementById('pr-cuit').value.trim();
+  const nombre=document.getElementById('pr-nombre').value.trim();
+  if(!validarCuit(cuit)){notify('El CUIT no es válido (dígito verificador)','err');return;}
+  if(!nombre){notify('La razón social es obligatoria','err');return;}
+  const norm=normalizarCuit(cuit);
+  const existente=proveedores.find(p=>normalizarCuit(p.cuit)===norm);
+  try{
+    setBusy('btn-save-pr',true);
+    let provId;
+    if(existente){provId=existente.id;}
+    else{
+      await POST('proveedores',{empresa_id:currentEmpresa.id,nombre,
+        cuit:`${norm.slice(0,2)}-${norm.slice(2,10)}-${norm.slice(10)}`,
+        condicion_fiscal:document.getElementById('pr-cond-fiscal').value,
+        observaciones:'Proveedor ocasional (alta rápida por CUIT)',activo:true});
+      await reload('proveedores');
+      provId=proveedores.find(p=>normalizarCuit(p.cuit)===norm)?.id;
+    }
+    // Refrescar el select del modal de factura y dejarlo seleccionado
+    document.getElementById('fr-proveedor-select').innerHTML='<option value="">— elegir proveedor —</option>'+proveedores.filter(p=>p.activo!==false).map(p=>`<option value="${esc(p.id)}">${esc(p.nombre)}</option>`).join('');
+    if(provId){document.getElementById('fr-proveedor-select').value=provId;frOnProveedorChange();}
+    closeModal('modal-prov-rapido');
+    notify(existente?'Proveedor existente seleccionado':'Proveedor creado');
+  }catch(e){notify('Error: '+e.message,'err');}
+  finally{setBusy('btn-save-pr',false);}
 }
 
 function frOnTipoChange(){
@@ -11017,6 +11084,17 @@ function computeTotalesFactura({ivas=[],noGravado=0,exento=0,percepciones=[]}={}
   return {neto,iva,percep,total};
 }
 function letraDiscriminaIva(letra){return letra==='A'||letra==='M';}
+function normalizarCuit(cuit){return String(cuit||'').replace(/\D/g,'');}
+function validarCuit(cuit){
+  // Dígito verificador módulo 11 (mismo algoritmo que ARCA/Tango offline).
+  const d=normalizarCuit(cuit);
+  if(d.length!==11)return false;
+  const pesos=[5,4,3,2,7,6,5,4,3,2];
+  const suma=pesos.reduce((a,p,i)=>a+p*Number(d[i]),0);
+  let ver=11-(suma%11);
+  if(ver===11)ver=0;if(ver===10)ver=9;
+  return ver===Number(d[10]);
+}
 function sugerirLetra(condicionFiscal){
   return {RI:'A',monotributo:'C',exento:'C',consumidor_final:'B'}[condicionFiscal]||'A';
 }

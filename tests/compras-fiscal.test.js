@@ -79,3 +79,18 @@ test('letraDiscriminaIva solo A y M', () => {
   assert.strictEqual(erp.run(`letraDiscriminaIva('C')`), false);
   assert.strictEqual(erp.run(`letraDiscriminaIva('X')`), false);
 });
+
+test('validarCuit: dígito verificador módulo 11', () => {
+  assert.strictEqual(erp.run(`validarCuit('30-50001091-2')`), true);  // YPF SA
+  assert.strictEqual(erp.run(`validarCuit('30500010912')`), true);    // sin guiones
+  assert.strictEqual(erp.run(`validarCuit('20-12345678-9')`), false); // verificador incorrecto
+  assert.strictEqual(erp.run(`validarCuit('30-50001091-1')`), false); // último dígito cambiado
+  assert.strictEqual(erp.run(`validarCuit('123')`), false);           // largo inválido
+  assert.strictEqual(erp.run(`validarCuit('')`), false);
+  assert.strictEqual(erp.run(`validarCuit(null)`), false);
+});
+
+test('normalizarCuit deja solo dígitos', () => {
+  assert.strictEqual(erp.run(`normalizarCuit('30-50001091-2')`), '30500010912');
+  assert.strictEqual(erp.run(`normalizarCuit(' 30 50001091 2 ')`), '30500010912');
+});
