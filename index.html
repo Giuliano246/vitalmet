@@ -1848,28 +1848,50 @@ body.no-costos .solo-costos{display:none!important}
   </div>
 </div>
 
-<!-- MODAL: Registrar factura recibida (3-way match) -->
+<!-- MODAL: Registrar comprobante de proveedor (fiscal completo + 3-way match) -->
 <div class="modal-overlay" id="modal-factura-recibida">
-  <div class="modal" style="width:660px">
-    <div class="modal-header"><div class="modal-title">Registrar factura de proveedor</div><button class="modal-close" onclick="closeModal('modal-factura-recibida')">×</button></div>
+  <div class="modal" style="width:760px;max-width:95vw">
+    <div class="modal-header"><div class="modal-title" id="fr-modal-title">Registrar factura de proveedor</div><button class="modal-close" onclick="closeModal('modal-factura-recibida')">×</button></div>
     <div class="modal-body">
-      <div class="form-row" style="grid-template-columns:1fr 1fr">
-        <div class="form-group"><label>Proveedor</label><input type="text" id="fr-proveedor-nombre" readonly style="background:var(--bg);color:var(--text3)"></div>
-        <div class="form-group"><label>OC</label><input type="text" id="fr-oc-nro" readonly style="background:var(--bg);color:var(--text3)"></div>
+      <div class="form-row" style="grid-template-columns:150px 90px 1fr 1fr">
+        <div class="form-group"><label>Tipo *</label><select id="fr-tipo" onchange="frOnTipoChange()"><option value="factura">Factura</option><option value="nota_debito">Nota de débito</option><option value="nota_credito">Nota de crédito</option></select></div>
+        <div class="form-group"><label>Letra *</label><select id="fr-letra" onchange="frOnLetraChange()"><option>A</option><option>B</option><option>C</option><option>M</option><option>X</option></select></div>
+        <div class="form-group" id="fr-prov-ro-wrap"><label>Proveedor</label><input type="text" id="fr-proveedor-nombre" readonly style="background:var(--bg);color:var(--text3)"></div>
+        <div class="form-group" id="fr-prov-sel-wrap" style="display:none"><label>Proveedor *</label><select id="fr-proveedor-select" onchange="frOnProveedorChange()"></select></div>
+        <div class="form-group" id="fr-oc-wrap"><label>OC</label><input type="text" id="fr-oc-nro" readonly style="background:var(--bg);color:var(--text3)"></div>
       </div>
-      <div class="form-row" style="grid-template-columns:1fr 140px 140px">
-        <div class="form-group"><label>Nro de factura</label><input type="text" id="fr-nro" placeholder="A-0001-00012345"></div>
-        <div class="form-group"><label>Fecha</label><input type="date" id="fr-fecha"></div>
+      <div id="fr-letra-warn" style="display:none;font-size:11px;color:var(--coral);margin:-4px 0 8px"></div>
+      <div class="form-row" id="fr-asociada-wrap" style="display:none;grid-template-columns:1fr 1fr">
+        <div class="form-group"><label>Factura asociada *</label><select id="fr-asociada"></select></div>
+        <div class="form-group"><label>Cuenta de contrapartida *</label><select id="fr-cta-imputacion-nc"></select></div>
+      </div>
+      <div class="form-row" id="fr-cta-wrap" style="display:none;grid-template-columns:1fr">
+        <div class="form-group"><label>Cuenta de imputación (gasto) *</label><select id="fr-cta-imputacion"></select></div>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 140px 140px 100px 120px">
+        <div class="form-group"><label>Nro comprobante *</label><input type="text" id="fr-nro" placeholder="A-0001-00012345"></div>
+        <div class="form-group"><label>Fecha *</label><input type="date" id="fr-fecha"></div>
         <div class="form-group"><label>Vencimiento</label><input type="date" id="fr-fecha-vto"></div>
-      </div>
-      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 100px 120px">
-        <div class="form-group"><label>Neto</label><input type="number" id="fr-neto" step="0.01" min="0" placeholder="0.00" oninput="actualizarMatchPreview()"></div>
-        <div class="form-group"><label>IVA</label><input type="number" id="fr-iva" step="0.01" min="0" placeholder="0.00"></div>
-        <div class="form-group"><label>Total</label><input type="number" id="fr-total" step="0.01" min="0" placeholder="0.00"></div>
         <div class="form-group"><label>Moneda</label><select id="fr-moneda"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
         <div class="form-group"><label>Tipo de cambio</label><input type="number" id="fr-tc" step="0.01" min="0" placeholder="1.00"></div>
       </div>
       <hr class="form-divider">
+      <div id="fr-iva-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div class="section-label" style="margin:0">IVA por alícuota</div><button class="btn btn-ghost btn-sm" onclick="frAddIvaRow()">+ Alícuota</button></div>
+        <div id="fr-iva-rows" style="display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr;margin-top:8px">
+        <div class="form-group"><label>No gravado</label><input type="number" id="fr-no-gravado" step="0.01" min="0" placeholder="0.00" oninput="frRecalc()"></div>
+        <div class="form-group"><label>Exento</label><input type="number" id="fr-exento" step="0.01" min="0" placeholder="0.00" oninput="frRecalc()"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 6px"><div class="section-label" style="margin:0">Percepciones</div><button class="btn btn-ghost btn-sm" onclick="frAddPercepRow()">+ Percepción</button></div>
+      <div id="fr-percep-rows" style="display:flex;flex-direction:column;gap:6px"></div>
+      <hr class="form-divider">
+      <div class="form-row" style="grid-template-columns:1fr 220px;align-items:end">
+        <div id="fr-totales" style="font-size:12px;color:var(--text2);font-family:var(--mono)"></div>
+        <div class="form-group"><label>Total según el comprobante *</label><input type="number" id="fr-total" step="0.01" min="0" placeholder="0.00" oninput="frRecalc()"></div>
+      </div>
+      <div id="fr-arit-badge" style="margin-bottom:8px"></div>
       <div id="fr-match-preview" style="display:none;padding:10px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface);margin-bottom:8px">
         <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);font-weight:600;margin-bottom:8px">Verificación 3-way match</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;font-size:12px">
@@ -1886,11 +1908,10 @@ body.no-costos .solo-costos{display:none!important}
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-factura-recibida')">Cancelar</button>
-      <button class="btn btn-primary" id="btn-save-fr" onclick="registrarFacturaRecibida('btn-save-fr')">Registrar factura</button>
+      <button class="btn btn-primary" id="btn-save-fr" onclick="registrarFacturaRecibida('btn-save-fr')">Registrar</button>
     </div>
   </div>
 </div>
-
 <!-- MODAL: Captura de tiempos de producción -->
 <div class="modal-overlay" id="modal-tiempos">
   <div class="modal" style="width:980px;max-width:95vw">
@@ -9760,26 +9781,261 @@ async function saveRecepcion(){
 // Tabla: facturas_recibidas  RPC: registrar_factura_recibida
 // ═══════════════════════════════════════════════════════════
 
-let _currentFacturaOcId=null;
+let _frCtx={mode:'oc',ocId:null,provId:null,facturaAsociadaId:null};
+let frIvas=[],frPerceps=[];
+const PERCEP_TIPOS=[['percepcion_iva','Percep. IVA'],['percepcion_iibb','Percep. IIBB'],['percepcion_ganancias','Percep. Ganancias'],['otros','Otros impuestos']];
+const JURISDICCIONES=['CABA','Buenos Aires','Catamarca','Chaco','Chubut','Córdoba','Corrientes','Entre Ríos','Formosa','Jujuy','La Pampa','La Rioja','Mendoza','Misiones','Neuquén','Río Negro','Salta','San Juan','San Luis','Santa Cruz','Santa Fe','Sgo. del Estero','Tierra del Fuego','Tucumán'];
+
+function _frCuentasImputablesOpts(sel){
+  return '<option value="">— elegir cuenta —</option>'+cuentasContables
+    .filter(c=>c.imputable!==false&&c.activa!==false)
+    .map(c=>`<option value="${esc(c.id)}" ${sel===c.id?'selected':''}>${esc(c.codigo)} · ${esc(c.nombre)}</option>`).join('');
+}
+
+function _frReset(){
+  frIvas=[];frPerceps=[];
+  ['fr-nro','fr-fecha-vto','fr-no-gravado','fr-exento','fr-total','fr-tc','fr-motivo'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('fr-fecha').value=hoyLocal();
+  document.getElementById('fr-tipo').value='factura';
+  document.getElementById('fr-moneda').value='ARS';
+  document.getElementById('fr-match-preview').style.display='none';
+  document.getElementById('fr-override-section').style.display='none';
+  document.getElementById('fr-arit-badge').innerHTML='';
+  document.getElementById('fr-letra-warn').style.display='none';
+}
 
 function openFacturaRecibidaModal(ocId){
-  _currentFacturaOcId=ocId;
   const oc=ordenesCompra.find(o=>o.id===ocId);
   if(!oc){notify('OC no encontrada','err');return;}
   const prov=proveedores.find(p=>p.id===oc.proveedor_id)||oc.proveedores||null;
+  _frCtx={mode:'oc',ocId,provId:oc.proveedor_id,facturaAsociadaId:null};
+  _frReset();
+  document.getElementById('fr-modal-title').textContent='Registrar factura de proveedor';
+  document.getElementById('fr-prov-ro-wrap').style.display='';
+  document.getElementById('fr-prov-sel-wrap').style.display='none';
+  document.getElementById('fr-oc-wrap').style.display='';
+  document.getElementById('fr-asociada-wrap').style.display='none';
+  document.getElementById('fr-cta-wrap').style.display='none';
   document.getElementById('fr-proveedor-nombre').value=prov?.nombre||'—';
-  document.getElementById('fr-oc-nro').value=esc(oc.nro);
-  document.getElementById('fr-nro').value='';
-  document.getElementById('fr-fecha').value=hoyLocal();
-  document.getElementById('fr-fecha-vto').value='';
-  document.getElementById('fr-neto').value='';
-  document.getElementById('fr-iva').value='';
-  document.getElementById('fr-total').value='';
+  document.getElementById('fr-oc-nro').value=oc.nro||'';
   document.getElementById('fr-moneda').value=oc.moneda||'ARS';
   document.getElementById('fr-tc').value=oc.tipo_cambio||'';
-  document.getElementById('fr-match-preview').style.display='none';
-  document.getElementById('fr-override-section').style.display='none';
-  openModal('modal-factura-recibida');
+  document.getElementById('fr-letra').value=sugerirLetra(prov?.condicion_fiscal);
+  if(letraDiscriminaIva(document.getElementById('fr-letra').value))frAddIvaRow(21);
+  frOnLetraChange();frRender();openModal('modal-factura-recibida');
+}
+
+function openFacturaSinOCModal(){
+  _frCtx={mode:'sinoc',ocId:null,provId:null,facturaAsociadaId:null};
+  _frReset();
+  document.getElementById('fr-modal-title').textContent='Registrar comprobante sin OC (gastos)';
+  document.getElementById('fr-prov-ro-wrap').style.display='none';
+  document.getElementById('fr-prov-sel-wrap').style.display='';
+  document.getElementById('fr-oc-wrap').style.display='none';
+  document.getElementById('fr-asociada-wrap').style.display='none';
+  document.getElementById('fr-cta-wrap').style.display='';
+  document.getElementById('fr-proveedor-select').innerHTML='<option value="">— elegir proveedor —</option>'+proveedores.filter(p=>p.activo!==false).map(p=>`<option value="${esc(p.id)}">${esc(p.nombre)}</option>`).join('');
+  document.getElementById('fr-cta-imputacion').innerHTML=_frCuentasImputablesOpts(configContable?.cta_compra_servicios||'');
+  document.getElementById('fr-letra').value='A';
+  frAddIvaRow(21);frOnLetraChange();frRender();openModal('modal-factura-recibida');
+}
+
+function openNCNDModal(facturaId){
+  const fa=facturasRecibidas.find(x=>x.id===facturaId);
+  if(!fa){notify('Factura no encontrada','err');return;}
+  const prov=proveedores.find(p=>p.id===fa.proveedor_id);
+  _frCtx={mode:'ncnd',ocId:null,provId:fa.proveedor_id,facturaAsociadaId:facturaId};
+  _frReset();
+  document.getElementById('fr-modal-title').textContent='NC / ND de proveedor';
+  document.getElementById('fr-tipo').value='nota_credito';
+  document.getElementById('fr-prov-ro-wrap').style.display='';
+  document.getElementById('fr-prov-sel-wrap').style.display='none';
+  document.getElementById('fr-oc-wrap').style.display='none';
+  document.getElementById('fr-asociada-wrap').style.display='';
+  document.getElementById('fr-cta-wrap').style.display='none';
+  document.getElementById('fr-proveedor-nombre').value=prov?.nombre||'—';
+  document.getElementById('fr-asociada').innerHTML=facturasRecibidas
+    .filter(x=>x.proveedor_id===fa.proveedor_id&&(x.tipo||'factura')==='factura')
+    .map(x=>`<option value="${esc(x.id)}" ${x.id===facturaId?'selected':''}>${esc(x.nro)} · ${x.fecha}</option>`).join('');
+  document.getElementById('fr-cta-imputacion-nc').innerHTML=_frCuentasImputablesOpts(fa.cta_imputacion_id||'');
+  document.getElementById('fr-letra').value=fa.letra||'A';
+  document.getElementById('fr-moneda').value=fa.moneda||'ARS';
+  if(letraDiscriminaIva(fa.letra||'A'))frAddIvaRow(21);
+  frOnLetraChange();frRender();openModal('modal-factura-recibida');
+}
+
+function frOnTipoChange(){
+  const t=document.getElementById('fr-tipo').value;
+  if(_frCtx.mode==='ncnd'&&t==='factura'){document.getElementById('fr-tipo').value='nota_credito';return;}
+  frRecalc();
+}
+function frOnProveedorChange(){
+  const p=proveedores.find(x=>x.id===document.getElementById('fr-proveedor-select').value);
+  _frCtx.provId=p?.id||null;
+  if(p){document.getElementById('fr-letra').value=sugerirLetra(p.condicion_fiscal);frOnLetraChange();}
+}
+function frOnLetraChange(){
+  const letra=document.getElementById('fr-letra').value;
+  const discrimina=letraDiscriminaIva(letra);
+  document.getElementById('fr-iva-section').style.display=discrimina?'':'none';
+  if(!discrimina)frIvas=[];
+  const prov=proveedores.find(p=>p.id===_frCtx.provId);
+  const warn=document.getElementById('fr-letra-warn');
+  if(prov&&sugerirLetra(prov.condicion_fiscal)!==letra){
+    warn.textContent=`⚠ El proveedor es ${prov.condicion_fiscal||'RI'} — lo esperable es letra ${sugerirLetra(prov.condicion_fiscal)}.`;
+    warn.style.display='';
+  }else warn.style.display='none';
+  frRender();
+}
+
+function frAddIvaRow(alicuota){frIvas.push({alicuota:alicuota??21,base:'',monto:''});frRender();}
+function frDelIvaRow(i){frIvas.splice(i,1);frRender();}
+function frOnIvaInput(i,campo,val){
+  frIvas[i][campo]=val;
+  if(campo==='base'||campo==='alicuota'){
+    const b=parseFloat(frIvas[i].base)||0,a=parseFloat(frIvas[i].alicuota)||0;
+    frIvas[i].monto=(Math.round(b*a)/100).toFixed(2);
+    const el=document.getElementById(`fr-iva-monto-${i}`);if(el)el.value=frIvas[i].monto;
+  }
+  frRecalc();
+}
+function frAddPercepRow(){frPerceps.push({tipo:'percepcion_iibb',jurisdiccion:'Buenos Aires',monto:''});frRender();}
+function frDelPercepRow(i){frPerceps.splice(i,1);frRender();}
+function frOnPercepInput(i,campo,val){
+  frPerceps[i][campo]=val;
+  if(campo==='tipo')frRender();else frRecalc();
+}
+
+function frRender(){
+  document.getElementById('fr-iva-rows').innerHTML=frIvas.map((r,i)=>`
+    <div style="display:grid;grid-template-columns:110px 1fr 1fr 32px;gap:6px;align-items:center">
+      <select onchange="frOnIvaInput(${i},'alicuota',this.value)" style="width:100%">${ALICUOTAS_IVA.map(a=>`<option value="${a}" ${String(a)===String(r.alicuota)?'selected':''}>${a}%</option>`).join('')}</select>
+      <input type="number" step="0.01" min="0" placeholder="Base imponible" value="${esc(String(r.base??''))}" oninput="frOnIvaInput(${i},'base',this.value)">
+      <input type="number" step="0.01" min="0" placeholder="IVA" id="fr-iva-monto-${i}" value="${esc(String(r.monto??''))}" oninput="frOnIvaInput(${i},'monto',this.value)">
+      <button class="btn btn-danger btn-sm" onclick="frDelIvaRow(${i})" title="Quitar">×</button>
+    </div>`).join('')||'<div style="font-size:11px;color:var(--text3)">Sin IVA discriminado</div>';
+  document.getElementById('fr-percep-rows').innerHTML=frPerceps.map((r,i)=>`
+    <div style="display:grid;grid-template-columns:170px 1fr 1fr 32px;gap:6px;align-items:center">
+      <select onchange="frOnPercepInput(${i},'tipo',this.value)" style="width:100%">${PERCEP_TIPOS.map(([v,l])=>`<option value="${v}" ${v===r.tipo?'selected':''}>${l}</option>`).join('')}</select>
+      ${r.tipo==='percepcion_iibb'?`<select onchange="frOnPercepInput(${i},'jurisdiccion',this.value)">${JURISDICCIONES.map(j=>`<option ${j===r.jurisdiccion?'selected':''}>${j}</option>`).join('')}</select>`:'<div></div>'}
+      <input type="number" step="0.01" min="0" placeholder="Monto" value="${esc(String(r.monto??''))}" oninput="frOnPercepInput(${i},'monto',this.value)">
+      <button class="btn btn-danger btn-sm" onclick="frDelPercepRow(${i})" title="Quitar">×</button>
+    </div>`).join('')||'<div style="font-size:11px;color:var(--text3)">Sin percepciones</div>';
+  frRecalc();
+}
+
+function frTotalesDraft(){
+  return computeTotalesFactura({
+    ivas:frIvas.map(r=>({alicuota:parseFloat(r.alicuota)||0,base:parseFloat(r.base)||0,monto:parseFloat(r.monto)||0})),
+    noGravado:parseFloat(document.getElementById('fr-no-gravado').value)||0,
+    exento:parseFloat(document.getElementById('fr-exento').value)||0,
+    percepciones:frPerceps.map(r=>({tipo:r.tipo,monto:parseFloat(r.monto)||0,jurisdiccion:r.jurisdiccion||null})),
+  });
+}
+
+function frRecalc(){
+  const t=frTotalesDraft();
+  const fmt=n=>n.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('fr-totales').innerHTML=
+    `Neto ${fmt(t.neto)} · IVA ${fmt(t.iva)} · Percep ${fmt(t.percep)} · <b>Total calc. ${fmt(t.total)}</b>`;
+  const totalTipeado=parseFloat(document.getElementById('fr-total').value)||0;
+  const badge=document.getElementById('fr-arit-badge');
+  if(totalTipeado>0){
+    const v=validarDesgloseFactura({letra:document.getElementById('fr-letra').value,ivas:frIvas,totalTipeado,totales:t});
+    badge.innerHTML=v.ok?'<span class="badge badge-ok">✓ La suma cierra</span>'
+      :v.errores.map(e=>`<div style="font-size:11px;color:var(--coral)">✗ ${esc(e)}</div>`).join('');
+  }else badge.innerHTML='';
+  // Preview 3-way match — solo factura con OC
+  const preview=document.getElementById('fr-match-preview');
+  const overrideSection=document.getElementById('fr-override-section');
+  const esFacturaConOC=_frCtx.mode==='oc'&&document.getElementById('fr-tipo').value==='factura';
+  const netoTotal=t.neto+(parseFloat(document.getElementById('fr-no-gravado').value)||0)+(parseFloat(document.getElementById('fr-exento').value)||0);
+  if(!esFacturaConOC||netoTotal<=0){preview.style.display='none';overrideSection.style.display='none';return;}
+  const valorRecibido=_calcValorRecibidoOC(_frCtx.ocId);
+  const tolPct=parseFloat(configContable?.match_tolerancia_pct)||0; // ratio (ej. 0.02 = 2%), igual que el SQL
+  const tolMonto=parseFloat(configContable?.match_tolerancia_monto)||0;
+  const match=evaluarMatchFactura({valorRecibido,neto:netoTotal,tolPct,tolMonto});
+  document.getElementById('fr-match-recibido').textContent=fmt(valorRecibido);
+  document.getElementById('fr-match-neto').textContent=fmt(netoTotal);
+  document.getElementById('fr-match-dif').textContent=fmt(match.dif);
+  document.getElementById('fr-match-umbral').textContent=fmt(match.umbral);
+  const mbadge=document.getElementById('fr-match-badge');
+  if(match.ok){
+    mbadge.innerHTML='<span class="badge badge-ok" style="font-size:12px">✓ MATCH OK</span>';
+    preview.style.borderColor='var(--green)';overrideSection.style.display='none';
+  }else{
+    mbadge.innerHTML='<span class="badge badge-coral" style="font-size:12px">✗ DISCREPANCIA</span>';
+    preview.style.borderColor='var(--coral)';
+    const esAdmin=currentUserData?.es_admin===true;
+    overrideSection.style.display=esAdmin?'':'none';
+    if(!esAdmin)mbadge.innerHTML+=' <span style="font-size:11px;color:var(--text3);margin-left:8px">Se requiere un administrador para registrar con discrepancia.</span>';
+  }
+  preview.style.display='';
+}
+
+async function registrarFacturaRecibida(btnId){
+  const tipo=document.getElementById('fr-tipo').value;
+  const letra=document.getElementById('fr-letra').value;
+  const nro=document.getElementById('fr-nro').value.trim();
+  const fecha=document.getElementById('fr-fecha').value;
+  const t=frTotalesDraft();
+  const totalTipeado=parseFloat(document.getElementById('fr-total').value)||0;
+  const noGravado=parseFloat(document.getElementById('fr-no-gravado').value)||0;
+  const exento=parseFloat(document.getElementById('fr-exento').value)||0;
+  if(!nro){notify('El número de comprobante es obligatorio','err');return;}
+  if(!fecha){notify('La fecha es obligatoria','err');return;}
+  if(totalTipeado<=0){notify('El total debe ser mayor a cero','err');return;}
+  if(_frCtx.mode==='sinoc'&&!_frCtx.provId){notify('Elegí el proveedor','err');return;}
+  const v=validarDesgloseFactura({letra,ivas:frIvas,totalTipeado,totales:t});
+  if(!v.ok){notify(v.errores[0],'err');return;}
+  let ctaImputacion=null,facturaAsociada=null;
+  if(_frCtx.mode==='ncnd'){
+    facturaAsociada=document.getElementById('fr-asociada').value||null;
+    ctaImputacion=document.getElementById('fr-cta-imputacion-nc').value||null;
+    if(!facturaAsociada){notify('Elegí la factura asociada','err');return;}
+    if(!ctaImputacion){notify('Elegí la cuenta de contrapartida','err');return;}
+  }else if(_frCtx.mode==='sinoc'){
+    ctaImputacion=document.getElementById('fr-cta-imputacion').value||null;
+    if(!ctaImputacion){notify('Elegí la cuenta de imputación','err');return;}
+  }
+  // Override de match (solo factura con OC)
+  let override=false,motivo=null;
+  if(_frCtx.mode==='oc'&&tipo==='factura'){
+    const netoTotal=t.neto+noGravado+exento;
+    const valorRecibido=_calcValorRecibidoOC(_frCtx.ocId);
+    const tolPct=parseFloat(configContable?.match_tolerancia_pct)||0; // ratio (ej. 0.02 = 2%), igual que el SQL
+    const tolMonto=parseFloat(configContable?.match_tolerancia_monto)||0;
+    const match=evaluarMatchFactura({valorRecibido,neto:netoTotal,tolPct,tolMonto});
+    if(!match.ok){
+      if(currentUserData?.es_admin!==true){notify('Hay una discrepancia en el match. Solo un administrador puede registrar con override.','err');return;}
+      motivo=(document.getElementById('fr-motivo').value||'').trim();
+      if(!motivo){notify('Ingresá el motivo del override para continuar','err');return;}
+      override=true;
+    }
+  }
+  const impuestos=[
+    ...frIvas.filter(r=>(parseFloat(r.base)||0)>0||(parseFloat(r.monto)||0)>0)
+      .map(r=>({tipo:'iva',alicuota:parseFloat(r.alicuota)||0,base:parseFloat(r.base)||0,monto:parseFloat(r.monto)||0})),
+    ...frPerceps.filter(r=>(parseFloat(r.monto)||0)>0)
+      .map(r=>({tipo:r.tipo,monto:parseFloat(r.monto)||0,jurisdiccion:r.tipo==='percepcion_iibb'?r.jurisdiccion:null})),
+  ];
+  const f={
+    oc_id:_frCtx.ocId,proveedor_id:_frCtx.provId,nro,fecha,
+    fecha_vto:document.getElementById('fr-fecha-vto').value||null,
+    tipo,letra,neto:t.neto,iva:t.iva,total:totalTipeado,
+    no_gravado:noGravado,exento,
+    moneda:document.getElementById('fr-moneda').value,
+    tipo_cambio:parseFloat(document.getElementById('fr-tc').value)||null,
+    factura_asociada_id:facturaAsociada,cta_imputacion_id:ctaImputacion,
+  };
+  try{
+    setBusy(btnId,true);
+    await RPC('registrar_factura_recibida',{p_factura:f,p_impuestos:impuestos,p_override:override,p_motivo:motivo});
+    await reload('facturas_recibidas','ordenes_compra','asientos','asiento_lineas');
+    closeModal('modal-factura-recibida');renderAll();
+    notify({factura:'Factura registrada',nota_credito:'Nota de crédito registrada',nota_debito:'Nota de débito registrada'}[tipo]);
+  }catch(e){notify(e.message||'Error registrando el comprobante','err');}
+  finally{setBusy(btnId,false);}
 }
 
 function _calcValorRecibidoOC(ocId){
@@ -9797,90 +10053,6 @@ function _calcValorRecibidoOC(ocId){
   },0);
 }
 
-function actualizarMatchPreview(){
-  const neto=parseFloat(document.getElementById('fr-neto').value)||0;
-  const preview=document.getElementById('fr-match-preview');
-  const overrideSection=document.getElementById('fr-override-section');
-  if(!neto||!_currentFacturaOcId){preview.style.display='none';overrideSection.style.display='none';return;}
-  const valorRecibido=_calcValorRecibidoOC(_currentFacturaOcId);
-  const tolPct=parseFloat(configContable?.match_tolerancia_pct)||0; // ratio (ej. 0.02 = 2%), igual que el SQL
-  const tolMonto=parseFloat(configContable?.match_tolerancia_monto)||0;
-  const match=evaluarMatchFactura({valorRecibido,neto,tolPct,tolMonto});
-  const fmt=n=>n.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
-  document.getElementById('fr-match-recibido').textContent=fmt(valorRecibido);
-  document.getElementById('fr-match-neto').textContent=fmt(neto);
-  document.getElementById('fr-match-dif').textContent=fmt(match.dif);
-  document.getElementById('fr-match-umbral').textContent=fmt(match.umbral);
-  const badge=document.getElementById('fr-match-badge');
-  if(match.ok){
-    badge.innerHTML='<span class="badge badge-ok" style="font-size:12px">✓ MATCH OK</span>';
-    preview.style.background='var(--surface)';
-    preview.style.borderColor='var(--green)';
-    overrideSection.style.display='none';
-  }else{
-    badge.innerHTML='<span class="badge badge-coral" style="font-size:12px">✗ DISCREPANCIA</span>';
-    preview.style.background='var(--surface)';
-    preview.style.borderColor='var(--coral)';
-    const esAdmin=currentUserData?.es_admin===true;
-    overrideSection.style.display=esAdmin?'':'none';
-    if(!esAdmin){
-      badge.innerHTML+=' <span style="font-size:11px;color:var(--text3);margin-left:8px">Se requiere un administrador para registrar con discrepancia.</span>';
-    }
-  }
-  preview.style.display='';
-}
-
-async function registrarFacturaRecibida(btnId){
-  const ocId=_currentFacturaOcId;
-  if(!ocId){notify('No hay OC seleccionada','err');return;}
-  const oc=ordenesCompra.find(o=>o.id===ocId);
-  if(!oc){notify('OC no encontrada','err');return;}
-  const nro=document.getElementById('fr-nro').value.trim();
-  const fecha=document.getElementById('fr-fecha').value;
-  const fechaVto=document.getElementById('fr-fecha-vto').value||null;
-  const neto=parseFloat(document.getElementById('fr-neto').value)||0;
-  const iva=parseFloat(document.getElementById('fr-iva').value)||0;
-  const total=parseFloat(document.getElementById('fr-total').value)||0;
-  const moneda=document.getElementById('fr-moneda').value;
-  const tipoCambio=parseFloat(document.getElementById('fr-tc').value)||null;
-  if(!nro){notify('El número de factura es obligatorio','err');return;}
-  if(!fecha){notify('La fecha es obligatoria','err');return;}
-  if(neto<=0){notify('El neto debe ser mayor a cero','err');return;}
-  if(total<=0){notify('El total debe ser mayor a cero','err');return;}
-  // Compute match
-  const valorRecibido=_calcValorRecibidoOC(ocId);
-  const tolPct=parseFloat(configContable?.match_tolerancia_pct)||0; // ratio (ej. 0.02 = 2%), igual que el SQL
-  const tolMonto=parseFloat(configContable?.match_tolerancia_monto)||0;
-  const match=evaluarMatchFactura({valorRecibido,neto,tolPct,tolMonto});
-  let override=false;
-  let motivo=null;
-  if(!match.ok){
-    const esAdmin=currentUserData?.es_admin===true;
-    if(!esAdmin){notify('Hay una discrepancia en el match. Solo un administrador puede registrar con override.','err');return;}
-    motivo=(document.getElementById('fr-motivo').value||'').trim();
-    if(!motivo){notify('Ingresá el motivo del override para continuar','err');return;}
-    override=true;
-  }
-  const f={
-    oc_id:ocId,
-    proveedor_id:oc.proveedor_id,
-    nro,
-    fecha,
-    fecha_vto:fechaVto,
-    neto,
-    iva,
-    total,
-    moneda,
-    tipo_cambio:tipoCambio
-  };
-  try{
-    setBusy(btnId,true);
-    await RPC('registrar_factura_recibida',{p_factura:f,p_override:override,p_motivo:motivo});
-    await reload('facturas_recibidas','ordenes_compra','asientos','asiento_lineas');closeModal('modal-factura-recibida');renderAll();
-    notify('Factura registrada');
-  }catch(e){notify(e.message||'Error registrando factura','err');}
-  finally{setBusy(btnId,false);}
-}
 
 function renderFacturasRecibidas(filter=''){
   const f=(filter||'').toLowerCase();
