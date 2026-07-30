@@ -2480,25 +2480,61 @@ async function _proveedoresMap(){
 }
 async function expSubdiarioCompras(desde,hasta){
   const [fr,pm]=await Promise.all([
-    GET('facturas_recibidas',`?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha,nro&select=fecha,fecha_vto,nro,proveedor_id,neto,iva,total,moneda,tipo_cambio,estado_match`),
+    GET('facturas_recibidas',`?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha,nro&select=fecha,fecha_vto,nro,tipo,letra,proveedor_id,neto,iva,total,moneda,tipo_cambio,estado_match`),
     _proveedoresMap()]);
-  const filas=[['Fecha','Comprobante','Proveedor','CUIT','Moneda','T.C.','Total','Vencimiento','Estado']];
+  const tipoLbl={factura:'FA',nota_credito:'NC',nota_debito:'ND'};
+  const filas=[['Fecha','Tipo','Comprobante','Proveedor','CUIT','Moneda','T.C.','Total','Vencimiento','Estado']];
   for(const f of fr){const p=pm[f.proveedor_id]||{nombre:'',cuit:''};
-    filas.push([csvFecha(f.fecha),f.nro,p.nombre,p.cuit,f.moneda||'',csvNum(f.tipo_cambio),csvNum(f.total),csvFecha(f.fecha_vto),f.estado_match||'']);}
+    const s=f.tipo==='nota_credito'?-1:1;
+    filas.push([csvFecha(f.fecha),`${tipoLbl[f.tipo||'factura']}-${f.letra||'A'}`,f.nro,p.nombre,p.cuit,f.moneda||'',csvNum(f.tipo_cambio),csvNum(s*(+f.total||0)),csvFecha(f.fecha_vto),f.estado_match||'']);}
   return {nombre:`subdiario_compras_${desde}_a_${hasta}.csv`,contenido:csvArmar(filas),
           resumen:`Subdiario compras: ${fr.length} comprobantes`};
 }
 async function expIvaCompras(desde,hasta){
+  // Libro IVA Compras con desglose por alícuota (mig 054): NC en negativo,
+  // facturas históricas sin tax lines van a las columnas "s/desglose".
   const [fr,pm]=await Promise.all([
-    GET('facturas_recibidas',`?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha,nro&select=fecha,nro,proveedor_id,neto,iva,total`),
+    GET('facturas_recibidas',`?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha,nro&select=id,fecha,nro,tipo,letra,proveedor_id,neto,iva,total,no_gravado,exento`),
     _proveedoresMap()]);
-  const filas=[['Fecha','Comprobante','Proveedor','CUIT','Neto','IVA','Total']];
-  let n=0,i=0,t=0;
-  for(const f of fr){const p=pm[f.proveedor_id]||{nombre:'',cuit:''};
-    filas.push([csvFecha(f.fecha),f.nro,p.nombre,p.cuit,csvNum(f.neto),csvNum(f.iva),csvNum(f.total)]);n+=+f.neto||0;i+=+f.iva||0;t+=+f.total||0;}
-  filas.push(['','','','TOTALES',csvNum(n),csvNum(i),csvNum(t)]);
+  const ids=fr.map(f=>f.id);
+  let imps=[];
+  for(let i=0;i<ids.length;i+=80)
+    imps=imps.concat(await GET('factura_recibida_impuestos',`?factura_id=in.(${ids.slice(i,i+80).join(',')})&select=factura_id,tipo,alicuota,base,monto,jurisdiccion`));
+  const impsPorFactura={};imps.forEach(i=>{(impsPorFactura[i.factura_id]=impsPorFactura[i.factura_id]||[]).push(i);});
+  const filas=[['Fecha','Tipo','Comprobante','Proveedor','CUIT',
+    'Neto 10,5','IVA 10,5','Neto 21','IVA 21','Neto 27','IVA 27','Neto otras','IVA otras',
+    'Neto s/desglose','IVA s/desglose','No gravado','Exento',
+    'Percep IVA','Percep IIBB','Jurisd. IIBB','Percep Gcias','Otros imp','Total']];
+  const tot=new Array(18).fill(0); // acumuladores de las columnas numéricas
+  const tipoLbl={factura:'FA',nota_credito:'NC',nota_debito:'ND'};
+  for(const f of fr){
+    const p=pm[f.proveedor_id]||{nombre:'',cuit:''};
+    const s=f.tipo==='nota_credito'?-1:1;
+    const rows=impsPorFactura[f.id]||[];
+    const ivaRows=rows.filter(r=>r.tipo==='iva');
+    const bucket=ali=>ivaRows.filter(r=>Math.abs((parseFloat(r.alicuota)||0)-ali)<0.01);
+    const sum=(arr,k)=>arr.reduce((a,r)=>a+(parseFloat(r[k])||0),0);
+    const b105=bucket(10.5),b21=bucket(21),b27=bucket(27);
+    const otras=ivaRows.filter(r=>![10.5,21,27].some(a=>Math.abs((parseFloat(r.alicuota)||0)-a)<0.01));
+    const sinDesglose=ivaRows.length===0&&(parseFloat(f.iva)||0)>0;
+    const percep=t=>sum(rows.filter(r=>r.tipo===t),'monto');
+    const jur=[...new Set(rows.filter(r=>r.tipo==='percepcion_iibb'&&r.jurisdiccion).map(r=>r.jurisdiccion))].join(' / ');
+    // Índice 14 = jurisdicción (texto); el resto son montos con signo.
+    const nums=[
+      s*sum(b105,'base'),s*sum(b105,'monto'),s*sum(b21,'base'),s*sum(b21,'monto'),
+      s*sum(b27,'base'),s*sum(b27,'monto'),s*sum(otras,'base'),s*sum(otras,'monto'),
+      s*(sinDesglose?parseFloat(f.neto)||0:0),s*(sinDesglose?parseFloat(f.iva)||0:0),
+      s*(parseFloat(f.no_gravado)||0),s*(parseFloat(f.exento)||0),
+      s*percep('percepcion_iva'),s*percep('percepcion_iibb'),0,
+      s*percep('percepcion_ganancias'),s*percep('otros'),s*(parseFloat(f.total)||0),
+    ];
+    nums.forEach((n,i)=>tot[i]+=n);
+    filas.push([csvFecha(f.fecha),`${tipoLbl[f.tipo||'factura']}-${f.letra||'A'}`,f.nro,p.nombre,p.cuit,
+      ...nums.map((n,i)=>i===14?jur:csvNum(n))]);
+  }
+  filas.push(['','','','TOTALES','',...tot.map((n,i)=>i===14?'':csvNum(n))]);
   return {nombre:`iva_compras_${desde}_a_${hasta}.csv`,contenido:csvArmar(filas),
-          resumen:`IVA compras: ${fr.length} comprobantes · neto ${csvNum(n)} · IVA ${csvNum(i)}`};
+          resumen:`IVA compras: ${fr.length} comprobantes · total ${csvNum(tot[17])}`};
 }
 async function expMayores(desde,hasta){
   const as=await GET('asientos',`?fecha=gte.${desde}&fecha=lte.${hasta}&estado=eq.confirmado&order=fecha,numero&select=id,numero,fecha,descripcion`);
