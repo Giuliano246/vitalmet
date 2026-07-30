@@ -4091,16 +4091,22 @@ function computeAlertas(){
     titulo:uno(ocDemoradas.length,'OC con entrega vencida sin recibir','OCs con entrega vencida sin recibir'),
     detalle:ocDemoradas.slice(0,3).map(o=>esc((o.nro||'')+' (esperada '+o.fecha_entrega_esperada+')')).join('  —  ')+masDe(ocDemoradas)});
 
-  // Facturas de proveedor vencidas / por vencer (7 días)
+  // Facturas de proveedor vencidas / por vencer (7 días).
+  // Dos fuentes: OC.factura_vto (facturas con OC) y facturas_recibidas
+  // sin OC (gastos) — las NC no vencen.
   const en7dF=hoyLocal(7);
-  const factVencidas=ordenesCompra.filter(o=>o.factura_vto&&o.estado!=='anulada'&&o.factura_vto<hoy);
+  const vencibles=[
+    ...ordenesCompra.filter(o=>o.factura_vto&&o.estado!=='anulada').map(o=>({ref:o.nro||'',vto:o.factura_vto})),
+    ...facturasRecibidas.filter(r=>!r.oc_id&&r.fecha_vto&&(r.tipo||'factura')!=='nota_credito').map(r=>({ref:(r.nro||'')+' (s/OC)',vto:r.fecha_vto})),
+  ];
+  const factVencidas=vencibles.filter(x=>x.vto<hoy);
   if(factVencidas.length)out.push({sev:'crit',page:'compras',count:factVencidas.length,
     titulo:uno(factVencidas.length,'Factura de proveedor vencida','Facturas de proveedor vencidas'),
-    detalle:factVencidas.slice(0,3).map(o=>esc((o.nro||'')+' (vto '+o.factura_vto+')')).join('  —  ')+masDe(factVencidas)});
-  const factPorVencer=ordenesCompra.filter(o=>o.factura_vto&&o.estado!=='anulada'&&o.factura_vto>=hoy&&o.factura_vto<=en7dF);
+    detalle:factVencidas.slice(0,3).map(x=>esc(x.ref+' (vto '+x.vto+')')).join('  —  ')+masDe(factVencidas)});
+  const factPorVencer=vencibles.filter(x=>x.vto>=hoy&&x.vto<=en7dF);
   if(factPorVencer.length)out.push({sev:'warn',page:'compras',count:factPorVencer.length,
     titulo:uno(factPorVencer.length,'Factura de proveedor vence en 7 días','Facturas de proveedor vencen en 7 días'),
-    detalle:factPorVencer.slice(0,3).map(o=>esc((o.nro||'')+' (vto '+o.factura_vto+')')).join('  —  ')+masDe(factPorVencer)});
+    detalle:factPorVencer.slice(0,3).map(x=>esc(x.ref+' (vto '+x.vto+')')).join('  —  ')+masDe(factPorVencer)});
 
   // Ventas entregadas sin facturar (3+ días)
   const hace3d=hoyLocal(-3);
