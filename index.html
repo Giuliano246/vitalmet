@@ -543,8 +543,9 @@ body.no-costos .solo-costos{display:none!important}
           <div class="stats-bar" id="fr-stats"></div>
           <div class="toolbar">
             <div class="search-box"><input type="text" placeholder="Buscar por nro, proveedor..." oninput="renderFacturasRecibidas(this.value)"></div>
+            <button class="btn btn-primary btn-sm" onclick="openFacturaSinOCModal()">+ Factura sin OC</button>
           </div>
-          <div class="table-wrap"><table><thead><tr><th>OC</th><th>Proveedor</th><th>Nro factura</th><th>Fecha</th><th>Vto.</th><th>Mon.</th><th>Neto</th><th>IVA</th><th>Total</th><th>Match</th><th>Asiento</th></tr></thead><tbody id="fr-tbody"></tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>Tipo</th><th>OC</th><th>Proveedor</th><th>Nro</th><th>Fecha</th><th>Vto.</th><th>Mon.</th><th>Neto</th><th>IVA</th><th>Total</th><th>Match</th><th>Asiento</th><th></th></tr></thead><tbody id="fr-tbody"></tbody></table></div>
         </div>
       </div>
     </div>
@@ -10056,16 +10057,25 @@ function _calcValorRecibidoOC(ocId){
 
 function renderFacturasRecibidas(filter=''){
   const f=(filter||'').toLowerCase();
+  const signo=r=>(r.tipo==='nota_credito'?-1:1);
   const total=facturasRecibidas.length;
   const matchOk=facturasRecibidas.filter(r=>r.estado_match==='ok').length;
-  const matchOverride=facturasRecibidas.filter(r=>r.estado_match==='override').length;
-  const matchPend=facturasRecibidas.filter(r=>!r.estado_match||r.estado_match==='pendiente').length;
+  const ncnd=facturasRecibidas.filter(r=>(r.tipo||'factura')!=='factura').length;
+  const totalARS=facturasRecibidas.filter(r=>(r.moneda||'ARS')==='ARS').reduce((a,r)=>a+signo(r)*(parseFloat(r.total)||0),0);
+  const totalUSD=facturasRecibidas.filter(r=>r.moneda==='USD').reduce((a,r)=>a+signo(r)*(parseFloat(r.total)||0),0);
   document.getElementById('fr-stats').innerHTML=`
-    <div class="stat-card"><div class="stat-label">Total facturas</div><div class="stat-value" style="color:var(--accent)">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Comprobantes</div><div class="stat-value" style="color:var(--accent)">${total}</div></div>
     <div class="stat-card"><div class="stat-label">Match OK</div><div class="stat-value" style="color:var(--green)">${matchOk}</div></div>
-    <div class="stat-card"><div class="stat-label">Con override</div><div class="stat-value" style="color:var(--accent)">${matchOverride}</div></div>
-    <div class="stat-card"><div class="stat-label">Pendientes</div><div class="stat-value" style="color:var(--text3)">${matchPend}</div></div>`;
+    <div class="stat-card"><div class="stat-label">NC / ND</div><div class="stat-value" style="color:var(--coral)">${ncnd}</div></div>
+    <div class="stat-card solo-costos"><div class="stat-label">Total ARS (neto NC)</div><div class="stat-value" style="color:var(--green)">${fmtARS(totalARS)}</div></div>
+    <div class="stat-card solo-costos"><div class="stat-label">Total USD (neto NC)</div><div class="stat-value" style="color:var(--blue)">${fmtUSD(totalUSD)}</div></div>`;
   const matchBadges={ok:'badge-ok',override:'badge-warn',pendiente:'',discrepancia:'badge-coral'};
+  const tipoBadge=r=>{
+    const tp=r.tipo||'factura',l=r.letra||'A';
+    if(tp==='nota_credito')return `<span class="badge badge-coral">NC-${esc(l)}</span>`;
+    if(tp==='nota_debito')return `<span class="badge badge-warn">ND-${esc(l)}</span>`;
+    return `<span class="badge badge-blue">FA-${esc(l)}</span>`;
+  };
   const list=facturasRecibidas.filter(r=>{
     if(!f)return true;
     const oc=ordenesCompra.find(o=>o.id===r.oc_id);
@@ -10077,24 +10087,28 @@ function renderFacturasRecibidas(filter=''){
     const prov=proveedores.find(p=>p.id===r.proveedor_id);
     const mon=r.moneda||'ARS';
     const fmt=mon==='USD'?fmtUSD:fmtARS;
+    const s=signo(r);
     const estado=r.estado_match||'pendiente';
-    const badgeCls=matchBadges[estado]||'';
-    const badgeLabel={ok:'MATCH OK',override:'OVERRIDE',pendiente:'PENDIENTE',discrepancia:'DISCREPANCIA'}[estado]||esc(estado);
-    const asientoId=r.asiento_id;
+    const matchCell=r.oc_id&&(r.tipo||'factura')==='factura'
+      ?`<span class="badge ${matchBadges[estado]||''}">${{ok:'MATCH OK',override:'OVERRIDE',pendiente:'PENDIENTE'}[estado]||esc(estado)}</span>`
+      :`<span class="mono" style="font-size:11px;color:var(--text3)">${(r.tipo||'factura')==='factura'?'s/OC':'—'}</span>`;
+    const rojo=s<0?'color:var(--coral)':'';
     return `<tr>
-      <td class="mono">${esc(oc?.nro||r.oc_id)}</td>
+      <td>${tipoBadge(r)}</td>
+      <td class="mono">${esc(oc?.nro||'—')}</td>
       <td style="font-weight:500">${esc(prov?.nombre||'—')}</td>
       <td class="mono">${esc(r.nro||'—')}</td>
       <td>${r.fecha||'—'}</td>
       <td style="color:var(--text3)">${r.fecha_vto||'—'}</td>
       <td><span class="badge ${mon==='USD'?'badge-blue':'badge-teal'}">${esc(mon)}</span></td>
-      <td class="mono" style="text-align:right">${fmt(parseFloat(r.neto||0))}</td>
-      <td class="mono" style="text-align:right">${fmt(parseFloat(r.iva||0))}</td>
-      <td class="mono" style="text-align:right;font-weight:600">${fmt(parseFloat(r.total||0))}</td>
-      <td><span class="badge ${badgeCls}">${badgeLabel}</span></td>
-      <td class="mono" style="font-size:11px;color:var(--text3)">${asientoId?esc(asientoId):'—'}</td>
+      <td class="mono" style="text-align:right;${rojo}">${fmt(s*parseFloat(r.neto||0))}</td>
+      <td class="mono" style="text-align:right;${rojo}">${fmt(s*parseFloat(r.iva||0))}</td>
+      <td class="mono" style="text-align:right;font-weight:600;${rojo}">${fmt(s*parseFloat(r.total||0))}</td>
+      <td>${matchCell}</td>
+      <td class="mono" style="font-size:11px;color:var(--text3)">${r.asiento_id?esc(r.asiento_id):'—'}</td>
+      <td>${(r.tipo||'factura')==='factura'?`<button class="btn btn-ghost btn-sm" onclick="openNCNDModal('${r.id}')">NC/ND</button>`:''}</td>
     </tr>`;
-  }).join(''):'<tr><td colspan="11" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">Sin facturas recibidas</div><div class="empty-msg">Registrá la primera factura usando el botón <b>Factura</b> en una OC recibida.</div></div></td></tr>';
+  }).join(''):'<tr><td colspan="13" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">Sin comprobantes</div><div class="empty-msg">Registrá facturas con el botón <b>Factura</b> de una OC recibida, o <b>+ Factura sin OC</b> para gastos.</div></div></td></tr>';
 }
 
 // ═══════════════════════════════════════════════════════════
