@@ -1769,7 +1769,7 @@ body.no-costos .solo-costos{display:none!important}
     <div class="modal-header"><div class="modal-title" id="modal-prov-title">Nuevo proveedor</div><button class="modal-close" onclick="closeModal('modal-proveedor')">×</button></div>
     <div class="modal-body">
       <input type="hidden" id="prov-edit-id">
-      <div class="form-row"><div class="form-group"><label>Nombre / Razón social *</label><input type="text" id="prov-nombre" placeholder="Aceros XYZ SA"></div><div class="form-group"><label>CUIT</label><input type="text" id="prov-cuit" placeholder="30-12345678-9"></div></div>
+      <div class="form-row" style="grid-template-columns:2fr 1fr 1fr"><div class="form-group"><label>Nombre / Razón social *</label><input type="text" id="prov-nombre" placeholder="Aceros XYZ SA"></div><div class="form-group"><label>CUIT</label><input type="text" id="prov-cuit" placeholder="30-12345678-9"></div><div class="form-group"><label>Condición fiscal</label><select id="prov-cond-fiscal"><option value="RI">Resp. Inscripto</option><option value="monotributo">Monotributo</option><option value="exento">Exento</option><option value="consumidor_final">Cons. final</option></select></div></div>
       <div class="form-row"><div class="form-group"><label>Contacto</label><input type="text" id="prov-contacto" placeholder="Juan Pérez"></div><div class="form-group"><label>Teléfono</label><input type="text" id="prov-tel" placeholder="+54 11 1234-5678"></div></div>
       <div class="form-row"><div class="form-group"><label>Email</label><input type="email" id="prov-email" placeholder="ventas@aceros.com"></div><div class="form-group"><label>Condición de pago</label><input type="text" id="prov-cond" placeholder="30 días FF"></div></div>
       <div class="form-row single"><div class="form-group"><label>Dirección</label><input type="text" id="prov-dir" placeholder="Av. Industrial 1234"></div></div>
@@ -9512,6 +9512,7 @@ function openProveedorModal(id){
   const p=id?proveedores.find(x=>x.id===id):null;
   document.getElementById('prov-nombre').value=p?.nombre||'';
   document.getElementById('prov-cuit').value=p?.cuit||'';
+  document.getElementById('prov-cond-fiscal').value=p?.condicion_fiscal||'RI';
   document.getElementById('prov-contacto').value=p?.contacto||'';
   document.getElementById('prov-tel').value=p?.telefono||'';
   document.getElementById('prov-email').value=p?.email||'';
@@ -9531,7 +9532,8 @@ async function saveProveedor(){
   const nombre=document.getElementById('prov-nombre').value.trim();
   if(!nombre){notify('El nombre es obligatorio','err');return;}
   const data={nombre,cuit:document.getElementById('prov-cuit').value.trim()||null,contacto:document.getElementById('prov-contacto').value.trim()||null,telefono:document.getElementById('prov-tel').value.trim()||null,email:document.getElementById('prov-email').value.trim()||null,condicion_pago_default:document.getElementById('prov-cond').value.trim()||null,direccion:document.getElementById('prov-dir').value.trim()||null,observaciones:document.getElementById('prov-obs').value.trim()||null,
-    criticidad:document.getElementById('prov-criticidad').value,aprobado:document.getElementById('prov-aprobado').value==='true',alcance_aprobacion:document.getElementById('prov-alcance').value.trim()||null,fecha_evaluacion:document.getElementById('prov-fecha-eval').value||null,fecha_proxima_evaluacion:document.getElementById('prov-fecha-reeval').value||null};
+    criticidad:document.getElementById('prov-criticidad').value,aprobado:document.getElementById('prov-aprobado').value==='true',alcance_aprobacion:document.getElementById('prov-alcance').value.trim()||null,fecha_evaluacion:document.getElementById('prov-fecha-eval').value||null,fecha_proxima_evaluacion:document.getElementById('prov-fecha-reeval').value||null,
+    condicion_fiscal:document.getElementById('prov-cond-fiscal').value};
   try{setBusy('btn-save-prov',true);
     if(id){await PATCH('proveedores',data,`?id=eq.${id}`);}
     else{await POST('proveedores',{...data,empresa_id:currentEmpresa.id,activo:true});}
