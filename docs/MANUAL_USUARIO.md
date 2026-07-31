@@ -107,6 +107,11 @@ Es la pantalla de inicio. Te muestra de un vistazo:
 
 > Cuando hay pendientes, aparece un **globito de alerta** sobre "Métricas" en el menú (rojo si hay algo crítico). Revisalo todas las mañanas. Cada alerta tiene un botón **Ver** que te lleva directo a la pantalla donde se resuelve.
 
+Al final del tablero hay dos paneles de gestión:
+
+- **Facturación mensual (12 meses):** gráfico de barras con los pedidos registrados por mes en USD, más la comparativa **este mes vs el anterior** con su variación %.
+- **Cash-flow proyectado:** cuánto entra y cuánto sale en las ventanas **vencido / 30 / 60 / 90 días**, y la **posición neta a 90 días**. Entradas: cuenta corriente pendiente por vencimiento + cheques en cartera. Salidas: facturas de proveedor por vencimiento + cheques emitidos. Es la respuesta a "¿me alcanza la plata?" antes de que duela.
+
 ---
 
 ## 5. Inventario
@@ -249,6 +254,16 @@ Una OP convierte **materia prima en producto terminado**. Registra qué barra se
 - Se **congela el costo real** de la orden (material consumido + horas productivas de los timers × tarifas + overhead) y el lote de PT queda **valuado a ese costo** — el margen que ves en Análisis → Costos deja de ser una foto recalculable.
 
 **Si eliminás una OP:** los metros consumidos **vuelven a la barra** automáticamente. Y si la OP ya generó PT, tiene registros de calidad, no conformidades, tratamientos o puntos de control firmados, **no se puede eliminar** (retención de evidencia del SGC) — corregila o suspendela en vez de borrarla.
+
+### Planos
+
+La pestaña **Planos** (dentro de Producción) guarda el PDF o la imagen de cada plano, con su código, revisión y cliente:
+
+- Cargalo con **+ Nuevo plano** usando **el mismo código** que escribís en el campo "Código de plano" de la OP — ese texto es el vínculo.
+- En la tabla de OPs, el código de plano se vuelve **clickeable** cuando el plano está cargado: un click y lo ves.
+- **En Modo Planta**: cuando el operario escanea el QR de la OP en el celular, aparece el botón **📐 VER PLANO** — el plano de la pieza en la mano, sin ir a buscar la carpeta.
+- El tablero de Planos te avisa qué códigos usados en OPs **todavía no tienen plano cargado**.
+- Cada cambio de archivo o revisión queda auditado (es un documento controlado).
 
 ### 6.1 Pasos de producción, tiempos y puntos de control (PQP)
 

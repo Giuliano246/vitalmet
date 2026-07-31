@@ -178,6 +178,32 @@ async function route(){
   if(opId)await loadOP(opId);else await loadLista();
 }
 
+// Visor de plano (mig 060): la planta ve el plano de la pieza en el
+// celular. Mismas validaciones de data-URL que el ERP.
+async function verPlano(){
+  if(!op?.codigo_plano)return;
+  const win=window.open('','_blank');if(!win)return;
+  const wdoc=win.document;
+  wdoc.write('<!DOCTYPE html><html><head><title>Plano</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;color:#888">Cargando plano…</body></html>');
+  wdoc.close();
+  let fd=null;
+  try{
+    const r=await GET('planos',`?codigo=eq.${encodeURIComponent(op.codigo_plano)}&select=file_data,file_name`);
+    fd=r&&r[0]&&r[0].file_data;
+  }catch(e){fd=null;}
+  if(!fd){win.close();alert('El plano '+op.codigo_plano+' no está cargado en el ERP (Producción → Planos).');return;}
+  const isPDF=/^data:application\/pdf;base64,[A-Za-z0-9+/=]+$/.test(fd);
+  const isImg=/^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(fd);
+  if(!isPDF&&!isImg){win.close();alert('Archivo de plano inválido');return;}
+  wdoc.body.innerHTML='';
+  if(isPDF){
+    wdoc.body.style.cssText='margin:0';
+    const e=wdoc.createElement('embed');e.setAttribute('src',fd);e.setAttribute('type','application/pdf');e.style.width='100%';e.style.height='100vh';wdoc.body.appendChild(e);
+  }else{
+    const img=wdoc.createElement('img');img.setAttribute('src',fd);img.style.maxWidth='100%';wdoc.body.appendChild(img);
+  }
+}
+
 async function loadLista(){
   try{
     const list=await GET('ordenes_produccion','?estado=eq.en-proceso&order=created_at.desc&select=id,nro,pieza,cantidad,fecha');
@@ -194,7 +220,7 @@ async function loadLista(){
 
 async function loadOP(opId){
   try{
-    const rows=await GET('ordenes_produccion',`?id=eq.${opId}&select=id,nro,pieza,cantidad,estado,fecha`);
+    const rows=await GET('ordenes_produccion',`?id=eq.${opId}&select=id,nro,pieza,cantidad,estado,fecha,codigo_plano`);
     op=rows[0]||null;
     if(!op){showMsg('OP no encontrada.<br><br><a href="planta.html">Ver órdenes en proceso</a>');return;}
     pasos=await GET('op_operaciones',`?orden_id=eq.${opId}&order=secuencia.asc`);
@@ -207,7 +233,8 @@ function renderOP(){
   document.getElementById('op-head').innerHTML=`
     <div class="nro">${esc(op.nro)}${op.estado!=='en-proceso'?` <span class="badge ok">${esc(op.estado)}</span>`:''}</div>
     <div class="pieza">${esc(op.pieza)}</div>
-    <div class="meta">x${esc(op.cantidad)} unidades${op.fecha?' · '+esc(op.fecha):''}</div>`;
+    <div class="meta">x${esc(op.cantidad)} unidades${op.fecha?' · '+esc(op.fecha):''}</div>
+    ${op.codigo_plano?`<button class="btn" style="margin-top:10px;min-height:46px;border-color:var(--accent);color:var(--accent);width:100%" onclick="verPlano()">📐 VER PLANO ${esc(op.codigo_plano)}</button>`:''}`;
   document.getElementById('op-pasos').innerHTML=pasos.length?pasos.map(p=>{
     const prod=openOf(p.id,'productivo'),pausa=openOf(p.id,'pausa');
     const qc=p.tipo_punto==='hold'?`<span class="badge hold">HOLD${p.signoff_at?' ✓':''}</span>`
