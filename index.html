@@ -1040,8 +1040,16 @@ body.no-costos .solo-costos{display:none!important}
           <div class="form-group" style="margin:0;width:130px"><label>Moneda</label><select id="cp-moneda" onchange="onCobPagMonedaChange()"><option value="ARS">ARS</option><option value="USD" selected>USD</option></select></div>
           <div class="form-group" style="margin:0;width:120px"><label>TC</label><input type="number" id="cp-tc" step="0.01" min="0" placeholder="auto"></div>
         </div>
+        <div id="cp-ret-section" style="margin-bottom:18px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:6px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);font-weight:600">Retenciones sufridas <span style="text-transform:none;letter-spacing:0;font-weight:400">(certificados que te aplica el cliente al pagar)</span></div>
+            <button class="btn btn-ghost btn-sm" onclick="cpAddRet()">+ Retención</button>
+          </div>
+          <div id="cp-ret-rows"></div>
+          <div id="cp-ret-hint" style="font-size:11px;color:var(--text3);font-family:var(--mono)"></div>
+        </div>
         <div style="display:flex;gap:14px;align-items:end;margin-bottom:18px;flex-wrap:wrap;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:6px">
-          <div class="form-group" style="margin:0;width:180px"><label>Método de pago</label><select id="cp-metodo"><option value="caja">Caja (efectivo)</option><option value="banco">Banco (transferencia)</option></select></div>
+          <div class="form-group" style="margin:0;width:180px"><label>Método de pago</label><select id="cp-metodo"><option value="caja">Caja (efectivo)</option><option value="banco">Banco (transferencia)</option><option value="cheque">Cheque diferido</option></select></div>
           <div class="form-group" style="margin:0;flex:1;min-width:180px"><label>Comprobante / Nº recibo</label><input type="text" id="cp-comprobante" placeholder="REC-001"></div>
           <div class="form-group" style="margin:0;flex:2;min-width:200px"><label>Observaciones</label><input type="text" id="cp-obs" placeholder="Detalle adicional"></div>
           <button class="btn btn-primary" id="btn-save-cobpag" onclick="registrarCobroOPago()">Registrar</button>
@@ -1130,6 +1138,13 @@ body.no-costos .solo-costos{display:none!important}
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px;margin-bottom:14px">
             <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-weight:600;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Caja y Banco</div>
             <div class="form-row"><div class="form-group"><label>Caja (default cobros/pagos en efectivo)</label><select id="cfg-cta-caja"></select></div><div class="form-group"><label>Banco (default cobros/pagos por transferencia)</label><select id="cfg-cta-banco"></select></div></div>
+            <div class="form-row"><div class="form-group"><label>Cheques en cartera (recibidos)</label><select id="cfg-cta-cheques-cartera"></select></div><div class="form-group"><label>Cheques emitidos (a pagar)</label><select id="cfg-cta-cheques-emitidos"></select></div></div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px;margin-bottom:14px">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);font-weight:600;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Retenciones sufridas (en cobranzas)</div>
+            <div class="form-row"><div class="form-group"><label>Retención Ganancias</label><select id="cfg-cta-ret-ganancias"></select></div><div class="form-group"><label>Retención IIBB</label><select id="cfg-cta-ret-iibb"></select></div></div>
+            <div class="form-row"><div class="form-group"><label>Retención SUSS</label><select id="cfg-cta-ret-suss"></select></div><div class="form-group"><label>Retención IVA</label><select id="cfg-cta-ret-iva"></select></div></div>
           </div>
 
           <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end">
@@ -2485,14 +2500,82 @@ async function expSubdiarioVentas(desde,hasta){
   return {nombre:`subdiario_ventas_${desde}_a_${hasta}.csv`,contenido:csvArmar(filas),
           resumen:`Subdiario ventas: ${vs.length} remitos · total ${csvNum(tot)}`};
 }
+// Comprobantes AFIP → etiqueta, letra y signo (NC resta). Pura, con tests.
+const CBTE_AFIP={1:['FA','A',1],2:['ND','A',1],3:['NC','A',-1],6:['FA','B',1],7:['ND','B',1],8:['NC','B',-1],11:['FA','C',1],12:['ND','C',1],13:['NC','C',-1],51:['FA','M',1],52:['ND','M',1],53:['NC','M',-1]};
+function cbteAfipInfo(tipo){const x=CBTE_AFIP[tipo]||['FA','?',1];return {label:`${x[0]}-${x[1]}`,letra:x[1],signo:x[2]};}
+// Alícuota implícita neto/IVA contra las legales (±0,5 pp). Pura, con tests.
+function alicuotaImplicita(neto,iva){
+  const n=parseFloat(neto)||0,i=parseFloat(iva)||0;
+  if(n<=0||i<=0)return 0;
+  const pct=i/n*100;
+  for(const a of [10.5,21,27,2.5,5])if(Math.abs(pct-a)<=0.5)return a;
+  return Math.round(pct*100)/100;
+}
 async function expIvaVentas(desde,hasta){
-  const fe=await GET('facturas_emitidas',`?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha,punto_venta,numero&select=fecha,tipo_comprobante,punto_venta,numero,doc_tipo,doc_nro,imp_neto,imp_iva,imp_total,cae`);
-  const filas=[['Fecha','Tipo cbte','Pto vta','Número','Doc tipo','Doc nro','Neto','IVA','Total','CAE']];
+  // Libro IVA Ventas: NC en negativo, alícuota implícita, receptor.
+  const fe=await GET('facturas_emitidas',`?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha,punto_venta,numero&select=fecha,tipo_comprobante,punto_venta,numero,doc_tipo,doc_nro,imp_neto,imp_iva,imp_total,cae,ventas(cliente)`);
+  const filas=[['Fecha','Tipo','Comprobante','Cliente','Doc receptor','Neto','IVA','Alíc. %','Total','CAE']];
   let n=0,i=0,t=0;
-  for(const f of fe){filas.push([csvFecha(f.fecha),f.tipo_comprobante,f.punto_venta,f.numero,f.doc_tipo,f.doc_nro,csvNum(f.imp_neto),csvNum(f.imp_iva),csvNum(f.imp_total),f.cae]);n+=+f.imp_neto||0;i+=+f.imp_iva||0;t+=+f.imp_total||0;}
-  filas.push(['','','','','','TOTALES',csvNum(n),csvNum(i),csvNum(t),'']);
+  for(const f of fe){
+    const cb=cbteAfipInfo(f.tipo_comprobante);
+    const neto=cb.signo*(+f.imp_neto||0),iva=cb.signo*(+f.imp_iva||0),tot=cb.signo*(+f.imp_total||0);
+    n+=neto;i+=iva;t+=tot;
+    filas.push([csvFecha(f.fecha),cb.label,`${String(f.punto_venta).padStart(5,'0')}-${String(f.numero).padStart(8,'0')}`,
+      f.ventas?.cliente||'',f.doc_nro||'',csvNum(neto),csvNum(iva),alicuotaImplicita(f.imp_neto,f.imp_iva)||'',csvNum(tot),f.cae]);
+  }
+  filas.push(['','','','','TOTALES',csvNum(n),csvNum(i),'',csvNum(t),'']);
   return {nombre:`iva_ventas_${desde}_a_${hasta}.csv`,contenido:csvArmar(filas),
           resumen:`IVA ventas: ${fe.length} comprobantes · neto ${csvNum(n)} · IVA ${csvNum(i)}`};
+}
+async function expPosicionIva(desde,hasta){
+  // Posición mensual de IVA en ARS: DF − CF − percepciones − retenciones.
+  // Comprobantes en USD se convierten por su tipo de cambio.
+  const [fe,fr]=await Promise.all([
+    GET('facturas_emitidas',`?fecha=gte.${desde}&fecha=lte.${hasta}&select=tipo_comprobante,imp_iva`),
+    GET('facturas_recibidas',`?fecha=gte.${desde}&fecha=lte.${hasta}&select=id,tipo,iva,moneda,tipo_cambio`),
+  ]);
+  const df=fe.reduce((s,f)=>s+cbteAfipInfo(f.tipo_comprobante).signo*(+f.imp_iva||0),0);
+  const ids=fr.map(f=>f.id);
+  let imps=[];
+  for(let i=0;i<ids.length;i+=80)
+    imps=imps.concat(await GET('factura_recibida_impuestos',`?factura_id=in.(${ids.slice(i,i+80).join(',')})&tipo=in.(iva,percepcion_iva)&select=factura_id,tipo,monto`));
+  const frMap={};fr.forEach(f=>{frMap[f.id]=f;});
+  const factorDe=f=>((f?.moneda||'ARS')==='USD'?(parseFloat(f?.tipo_cambio)||1):1)*(f?.tipo==='nota_credito'?-1:1);
+  let cf=0,percepIva=0;
+  const conDesglose=new Set(imps.filter(x=>x.tipo==='iva').map(x=>x.factura_id));
+  for(const x of imps){
+    const f=frMap[x.factura_id];if(!f)continue;
+    if(x.tipo==='iva')cf+=factorDe(f)*(+x.monto||0);
+    else percepIva+=factorDe(f)*(+x.monto||0);
+  }
+  for(const f of fr)if(!conDesglose.has(f.id)&&(+f.iva||0)>0)cf+=factorDe(f)*(+f.iva||0); // históricas sin tax lines
+  const rets=await GET('retenciones_sufridas',`?fecha=gte.${desde}&fecha=lte.${hasta}&tipo=eq.iva&select=monto,moneda,tipo_cambio`).catch(()=>[]);
+  const retIva=rets.reduce((s,r)=>s+((r.moneda||'ARS')==='USD'?(parseFloat(r.tipo_cambio)||1):1)*(+r.monto||0),0);
+  const saldoTecnico=df-cf;
+  const saldo=saldoTecnico-percepIva-retIva;
+  const filas=[['Concepto','Monto ARS'],
+    ['Débito fiscal (ventas)',csvNum(df)],
+    ['Crédito fiscal (compras)',csvNum(cf)],
+    ['Saldo técnico (DF − CF)',csvNum(saldoTecnico)],
+    ['Percepciones de IVA sufridas',csvNum(percepIva)],
+    ['Retenciones de IVA sufridas',csvNum(retIva)],
+    [saldo>=0?'SALDO A PAGAR':'SALDO A FAVOR',csvNum(Math.abs(saldo))]];
+  return {nombre:`posicion_iva_${desde}_a_${hasta}.csv`,contenido:csvArmar(filas),
+          resumen:`Posición IVA: DF ${csvNum(df)} − CF ${csvNum(cf)} → ${saldo>=0?'a pagar':'a favor'} ${csvNum(Math.abs(saldo))}`};
+}
+async function expRetenciones(desde,hasta){
+  const rs=await GET('retenciones_sufridas',`?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha&select=fecha,tipo,certificado_nro,jurisdiccion,monto,moneda,tipo_cambio,clientes(nombre,cuit)`).catch(()=>[]);
+  const lbl={ganancias:'Ganancias',iibb:'IIBB',suss:'SUSS',iva:'IVA'};
+  const filas=[['Fecha','Impuesto','Certificado','Cliente','CUIT','Jurisdicción','Monto','Moneda','Monto ARS']];
+  let totArs=0;
+  for(const r of rs){
+    const ars=((r.moneda||'ARS')==='USD'?(parseFloat(r.tipo_cambio)||1):1)*(+r.monto||0);
+    totArs+=ars;
+    filas.push([csvFecha(r.fecha),lbl[r.tipo]||r.tipo,r.certificado_nro||'',r.clientes?.nombre||'',r.clientes?.cuit||'',r.jurisdiccion||'',csvNum(r.monto),r.moneda||'ARS',csvNum(ars)]);
+  }
+  filas.push(['','','','','','','','TOTAL',csvNum(totArs)]);
+  return {nombre:`retenciones_sufridas_${desde}_a_${hasta}.csv`,contenido:csvArmar(filas),
+          resumen:`Retenciones sufridas: ${rs.length} certificados · ARS ${csvNum(totArs)}`};
 }
 async function _proveedoresMap(){
   const ps=await GET('proveedores','?select=id,nombre,cuit');
@@ -2599,6 +2682,8 @@ const EXPORT_BUILDERS=[
   {titulo:'IVA ventas',fn:expIvaVentas},
   {titulo:'Subdiario de compras',fn:expSubdiarioCompras},
   {titulo:'IVA compras',fn:expIvaCompras},
+  {titulo:'Posición IVA del mes',fn:expPosicionIva},
+  {titulo:'Retenciones sufridas',fn:expRetenciones},
   {titulo:'Mayores',fn:expMayores},
   {titulo:'Plan de cuentas',fn:(d,h)=>expPlanCuentas()},
 ];
@@ -3661,9 +3746,70 @@ function estadoSelect(table,id,current,values,badgeMap){
 }
 async function cambiarEstado(table,id,nuevoEstado){
   try{
+    // El asiento del cheque depende del estado ANTERIOR (mig 056)
+    const chequePrevio=table==='cheques'?cheques.find(c=>c.id===id):null;
     await PATCH(table,{estado:nuevoEstado},`?id=eq.${id}`);
+    if(table==='cheques'&&chequePrevio)
+      await contabilizarCheque(chequePrevio,nuevoEstado).catch(e=>{console.warn('Asiento de cheque no generado:',e);notify('Estado cambiado, pero el asiento del cheque falló: '+e.message,'err');});
+    if(table==='ordenes_produccion'&&nuevoEstado==='completada')
+      await persistirCostoRealOP(id).catch(e=>console.warn('Costo real no persistido:',e));
     await reload(table);renderAll();notify('Estado actualizado');
   }catch(e){console.error('cambiarEstado',e);notify('Error: '+e.message,'err');renderAll();}
+}
+
+// ─── CHEQUES: ASIENTOS POR EVENTO (mig 056) ───────────────────
+// El alta contable del cheque la hace Cobros y Pagos (método "Cheque
+// diferido"). Acá se contabilizan los cambios de estado:
+//   recibido → depositado:  Banco / Cheques en cartera
+//   (acreditado / endosado / anulado: sin asiento automático)
+//   recibido → rechazado:   Deudores / Cartera (o Banco si ya depositó)
+//   emitido  → debitado:    Cheques emitidos / Banco
+//   emitido  → rechazado:   Cheques emitidos / Proveedores (revive deuda)
+// Idempotente por (origen_tipo, origen_id): reprocesar actualiza.
+async function contabilizarCheque(cheque,nuevoEstado){
+  if(!configContable)return;
+  const cfg=configContable;
+  const cta=idc=>cuentasContables.find(c=>c.id===idc);
+  const ctaCartera=cta(cfg.cta_cheques_cartera),ctaEmitidos=cta(cfg.cta_cheques_emitidos),
+        ctaBanco=cta(cfg.cta_banco_default),ctaDeudores=cta(cfg.cta_deudores),ctaProveedores=cta(cfg.cta_proveedores);
+  const monto=parseFloat(cheque.monto)||0;if(monto<=0)return;
+  const ref=`Cheque ${cheque.numero}${cheque.banco?' '+cheque.banco:''}`;
+  let origen=null,lineas=null,desc=null,tipoAsiento='auto-cheque';
+  if(cheque.tipo==='recibido'&&nuevoEstado==='depositado'){
+    if(!ctaBanco||!ctaCartera)throw new Error('Faltan cuentas de banco o cheques en cartera en Imputación contable');
+    origen='cheque-deposito';desc=`Depósito ${ref}`;
+    lineas=[{cuenta_id:ctaBanco.id,debe:monto,haber:0,descripcion:desc,orden:0},
+            {cuenta_id:ctaCartera.id,debe:0,haber:monto,descripcion:ref,orden:1}];
+  } else if(cheque.tipo==='recibido'&&nuevoEstado==='rechazado'){
+    if(!ctaDeudores)throw new Error('Falta cuenta de Deudores en Imputación contable');
+    const yaDepositado=['depositado','acreditado'].includes(cheque.estado);
+    const ctaOrigen=yaDepositado?ctaBanco:ctaCartera;
+    if(!ctaOrigen)throw new Error('Faltan cuentas de banco/cartera en Imputación contable');
+    origen='cheque-rechazo';desc=`Rechazo ${ref}`;tipoAsiento='auto-cheque-rechazo';
+    lineas=[{cuenta_id:ctaDeudores.id,debe:monto,haber:0,descripcion:`Deuda revivida por ${desc}`,orden:0},
+            {cuenta_id:ctaOrigen.id,debe:0,haber:monto,descripcion:ref,orden:1}];
+  } else if(cheque.tipo==='emitido'&&nuevoEstado==='debitado'){
+    if(!ctaEmitidos||!ctaBanco)throw new Error('Faltan cuentas de cheques emitidos o banco en Imputación contable');
+    origen='cheque-debito';desc=`Débito ${ref}`;
+    lineas=[{cuenta_id:ctaEmitidos.id,debe:monto,haber:0,descripcion:desc,orden:0},
+            {cuenta_id:ctaBanco.id,debe:0,haber:monto,descripcion:ref,orden:1}];
+  } else if(cheque.tipo==='emitido'&&nuevoEstado==='rechazado'){
+    if(!ctaEmitidos||!ctaProveedores)throw new Error('Faltan cuentas de cheques emitidos o Proveedores en Imputación contable');
+    origen='cheque-rechazo';desc=`Rechazo ${ref}`;
+    lineas=[{cuenta_id:ctaEmitidos.id,debe:monto,haber:0,descripcion:desc,orden:0},
+            {cuenta_id:ctaProveedores.id,debe:0,haber:monto,descripcion:`Deuda revivida por ${desc}`,orden:1}];
+  }
+  if(!lineas)return; // estado sin efecto contable
+  const existingArr=await GET('asientos',`?origen_tipo=eq.${origen}&origen_id=eq.${cheque.id}`).catch(()=>[]);
+  const existing=existingArr&&existingArr[0];
+  const cabecera={fecha:hoyLocal(),descripcion:desc,comprobante_nro:cheque.numero||null,
+    tipo:tipoAsiento,origen_tipo:origen,origen_id:cheque.id,estado:'confirmado',
+    moneda:cheque.moneda||'ARS',tipo_cambio:(cheque.moneda||'ARS')==='USD'?(parseFloat(cheque.tipo_cambio)||null):null,
+    tc_tipo:(cheque.moneda||'ARS')==='USD'?'venta':null,
+    cliente_id:cheque.cliente_id||null,proveedor_id:cheque.proveedor_id||null};
+  const r=await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas,p_asiento_id:existing?existing.id:null});
+  await reload('asientos','asiento_lineas');
+  notify(`${desc} · Asiento N° ${r.numero}`);
 }
 
 // ─── RENDER ───────────────────────────────────────────────────────
@@ -5816,7 +5962,47 @@ function switchCobPag(modo){
   document.getElementById('cp-tab-pago').style.background=modo==='pago'?'var(--accent)':'';
   document.getElementById('cp-tab-pago').style.color=modo==='pago'?'#fff':'';
   document.getElementById('cp-tercero-label').textContent=modo==='cobro'?'Cliente':'Proveedor';
+  // Retenciones sufridas: solo aplican al cobrar (el cliente nos retiene)
+  const rs=document.getElementById('cp-ret-section');
+  if(rs)rs.style.display=modo==='cobro'?'':'none';
   renderCobPagAutocomplete();
+}
+
+// ─── RETENCIONES SUFRIDAS EN COBRANZAS (mig 056) ──────────────
+// El cliente (YPF, mineras…) paga neto de retenciones y entrega
+// certificados. Cada retención es un débito a su cuenta de crédito
+// fiscal; Deudores se cancela por el total (cobrado + retenido).
+const RET_LABELS={ganancias:'Ganancias',iibb:'IIBB',suss:'SUSS',iva:'IVA'};
+let cpRets=[];
+function cpAddRet(){cpRets.push({tipo:'ganancias',certificado_nro:'',jurisdiccion:'',monto:''});renderCpRets();}
+function cpDelRet(i){cpRets.splice(i,1);renderCpRets();}
+function cpRetInput(i,campo,v){cpRets[i][campo]=v;if(campo==='tipo'&&v!=='iibb')cpRets[i].jurisdiccion='';renderCpRets();}
+function renderCpRets(){
+  const cont=document.getElementById('cp-ret-rows');if(!cont)return;
+  cont.innerHTML=cpRets.map((r,i)=>`
+    <div style="display:grid;grid-template-columns:150px 1fr 140px 130px 34px;gap:8px;margin-bottom:6px;align-items:center">
+      <select onchange="cpRetInput(${i},'tipo',this.value)">${Object.entries(RET_LABELS).map(([k,l])=>`<option value="${k}" ${r.tipo===k?'selected':''}>Ret. ${l}</option>`).join('')}</select>
+      <input type="text" placeholder="Nº certificado" value="${esc(r.certificado_nro)}" oninput="cpRets[${i}].certificado_nro=this.value">
+      ${r.tipo==='iibb'?`<select onchange="cpRetInput(${i},'jurisdiccion',this.value)"><option value="">Jurisdicción…</option>${JURISDICCIONES.map(j=>`<option ${r.jurisdiccion===j?'selected':''}>${j}</option>`).join('')}</select>`:'<div></div>'}
+      <input type="number" step="0.01" min="0" placeholder="Monto" value="${r.monto}" oninput="cpRets[${i}].monto=this.value" onchange="renderCpRets()" style="font-family:var(--mono)">
+      <button class="btn btn-danger btn-sm" onclick="cpDelRet(${i})" style="padding:4px 8px">×</button>
+    </div>`).join('');
+  const monto=parseFloat(document.getElementById('cp-monto')?.value)||0;
+  const totalRet=cpRets.reduce((s,r)=>s+(parseFloat(r.monto)||0),0);
+  document.getElementById('cp-ret-hint').textContent=totalRet>0?`Cobrado ${monto.toFixed(2)} + retenido ${totalRet.toFixed(2)} = ${(monto+totalRet).toFixed(2)} aplicado a la cta. cte. del cliente`:'';
+}
+// Líneas del asiento de cobro con retenciones (pura, con tests):
+// Debe medio + Debe cada retención / Haber Deudores por el total.
+function armarLineasCobro({monto,retenciones=[],ctaMedio,ctaDeudores,tercero}){
+  const lineas=[{cuenta_id:ctaMedio.id,debe:monto,haber:0,descripcion:`${ctaMedio.nombre} ${tercero}`,orden:0}];
+  let orden=1,totalRet=0;
+  for(const r of retenciones){
+    const m=parseFloat(r.monto)||0;if(m<=0)continue;
+    totalRet+=m;
+    lineas.push({cuenta_id:r.cuenta_id,debe:m,haber:0,descripcion:`Ret. ${RET_LABELS[r.tipo]||r.tipo}${r.certificado_nro?' cert '+r.certificado_nro:''}${r.jurisdiccion?' '+r.jurisdiccion:''}`,orden:orden++});
+  }
+  lineas.push({cuenta_id:ctaDeudores.id,debe:0,haber:Math.round((monto+totalRet)*100)/100,descripcion:`Cancelación deuda ${tercero}`,orden:orden});
+  return {lineas,totalRet,totalAplicado:Math.round((monto+totalRet)*100)/100};
 }
 
 function renderCobPagAutocomplete(){
@@ -5891,9 +6077,14 @@ async function registrarCobroOPago(){
   ]))return;
   if(!configContable)return notify('Falta configurar la imputación contable (Configuración → Imputación contable)','err');
   const cfg=configContable;
-  // Cuentas según método
-  const ctaMedio=cuentasContables.find(c=>c.id===(metodo==='caja'?cfg.cta_caja_default:cfg.cta_banco_default));
-  if(!ctaMedio)return notify(`Falta cuenta de ${metodo} en Imputación contable`,'err');
+  // Cuentas según método. Cheque diferido (mig 056): al cobrar entra a
+  // cartera (111006 activo); al pagar sale por cheques emitidos (212003
+  // pasivo). El depósito/débito/rechazo se contabiliza desde Cheques.
+  const ctaMedioId=metodo==='cheque'
+    ?(cobPagModo==='cobro'?cfg.cta_cheques_cartera:cfg.cta_cheques_emitidos)
+    :(metodo==='caja'?cfg.cta_caja_default:cfg.cta_banco_default);
+  const ctaMedio=cuentasContables.find(c=>c.id===ctaMedioId);
+  if(!ctaMedio)return notify(`Falta cuenta de ${metodo==='cheque'?'cheques':metodo} en Imputación contable`,'err');
   // Cuenta contraparte según modo
   const ctaCtraparte=cuentasContables.find(c=>c.id===(cobPagModo==='cobro'?cfg.cta_deudores:cfg.cta_proveedores));
   if(!ctaCtraparte)return notify(`Falta cuenta de ${cobPagModo==='cobro'?'Deudores':'Proveedores'} en Imputación contable`,'err');
@@ -5919,24 +6110,56 @@ async function registrarCobroOPago(){
       cliente_id:clienteMatch?.id||null,
       proveedor_id:proveedorMatch?.id||null,
     };
-    // Para cobro: Medio (Caja/Banco) debe / Deudores haber
+    // Para cobro: Medio (Caja/Banco) + retenciones debe / Deudores haber
     // Para pago: Proveedores debe / Medio (Caja/Banco) haber
-    const lineas=cobPagModo==='cobro'?[
-      {cuenta_id:ctaMedio.id,debe:monto,haber:0,descripcion:`${ctaMedio.nombre} ${tercero}`,orden:0},
-      {cuenta_id:ctaCtraparte.id,debe:0,haber:monto,descripcion:`Cancelación deuda ${tercero}`,orden:1},
-    ]:[
-      {cuenta_id:ctaCtraparte.id,debe:monto,haber:0,descripcion:`Cancelación deuda ${tercero}`,orden:0},
-      {cuenta_id:ctaMedio.id,debe:0,haber:monto,descripcion:`${ctaMedio.nombre} ${tercero}`,orden:1},
-    ];
+    let lineas,retsValidas=[];
+    if(cobPagModo==='cobro'){
+      // Resolver cuenta contable de cada retención cargada (mig 056)
+      const ctaRetCfg={ganancias:cfg.cta_ret_ganancias,iibb:cfg.cta_ret_iibb,suss:cfg.cta_ret_suss,iva:cfg.cta_ret_iva};
+      for(const ret of cpRets){
+        const m=parseFloat(ret.monto)||0;if(m<=0)continue;
+        const cta=cuentasContables.find(c=>c.id===ctaRetCfg[ret.tipo]);
+        if(!cta)return notify(`Falta la cuenta de Retención ${RET_LABELS[ret.tipo]} en Imputación contable`,'err');
+        if(ret.tipo==='iibb'&&!ret.jurisdiccion)return notify('Elegí la jurisdicción de la retención de IIBB','err');
+        retsValidas.push({...ret,monto:m,cuenta_id:cta.id});
+      }
+      lineas=armarLineasCobro({monto,retenciones:retsValidas,ctaMedio,ctaDeudores:ctaCtraparte,tercero}).lineas;
+    } else {
+      lineas=[
+        {cuenta_id:ctaCtraparte.id,debe:monto,haber:0,descripcion:`Cancelación deuda ${tercero}`,orden:0},
+        {cuenta_id:ctaMedio.id,debe:0,haber:monto,descripcion:`${ctaMedio.nombre} ${tercero}`,orden:1},
+      ];
+    }
     // Atómico (RPC): cabecera + líneas juntas, numeración en la DB.
     const r=await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas});
+    // Registrar los certificados de retención (para el contador / SICORE)
+    if(retsValidas.length){
+      await POST('retenciones_sufridas',retsValidas.map(ret=>({
+        empresa_id:currentEmpresa.id,cliente_id:clienteMatch?.id||null,fecha,
+        tipo:ret.tipo,certificado_nro:ret.certificado_nro.trim()||null,
+        jurisdiccion:ret.jurisdiccion||null,monto:ret.monto,moneda,
+        tipo_cambio:moneda==='USD'?tc:null,asiento_id:r.id,created_by:currentUser?.id||null,
+      })));
+    }
     await reload('asientos','asiento_lineas','cheques');
-    notify(`✓ ${cobPagModo==='cobro'?'Cobro':'Pago'} registrado · Asiento N° ${r.numero}`);
+    notify(`✓ ${cobPagModo==='cobro'?'Cobro':'Pago'} registrado · Asiento N° ${r.numero}${retsValidas.length?` · ${retsValidas.length} retención${retsValidas.length>1?'es':''}`:''}`);
     // limpiar form (mantener fecha/método/tercero por si hay varios)
     document.getElementById('cp-monto').value='';
     document.getElementById('cp-comprobante').value='';
     document.getElementById('cp-obs').value='';
+    cpRets=[];renderCpRets();
     renderCobPag();
+    // Método cheque: dejar el cheque registrado en cartera con sus datos
+    if(metodo==='cheque'){
+      openChequeModal();
+      document.getElementById('cheque-tipo').value=cobPagModo==='cobro'?'recibido':'emitido';
+      onChequeTipoChange();
+      document.getElementById('cheque-tercero').value=tercero;
+      document.getElementById('cheque-monto').value=monto;
+      document.getElementById('cheque-moneda').value=moneda;
+      if(moneda==='USD')document.getElementById('cheque-tc').value=tc;
+      notify('Cobro registrado — completá número, banco y fecha de pago del cheque');
+    }
   }catch(e){notify(e.message||'Error','err');}
   setBusy('btn-save-cobpag',false,'Registrar');
 }
@@ -5984,6 +6207,12 @@ function computeCtaCte(){
       if(!nombre||!byName[nombre.toLowerCase()])return; // sin vínculo posible
     }
     cuentaDe(a.cliente_id,nombre).pagos.push({fecha:a.fecha,monto,ref:a.comprobante_nro||('#'+(a.numero||'')),tipo:'Cobro'});
+  });
+  // Cheques rechazados (mig 056): el cobro quedó registrado pero el valor
+  // volvió — la deuda revive como cargo vencido desde el rechazo.
+  asientos.filter(a=>a.tipo==='auto-cheque-rechazo'&&a.estado==='confirmado'&&a.cliente_id).forEach(a=>{
+    const monto=_cobroEnUSD(a);if(monto<=0)return;
+    cuentaDe(a.cliente_id,null).cargos.push({fecha:a.fecha,venc:a.fecha,monto,ref:a.comprobante_nro||('#'+(a.numero||'')),tipo:'Cheque rechazado'});
   });
   const res=Object.values(cuentas).map(c=>{
     c.cargos.sort((a,b)=>(a.venc||a.fecha||'').localeCompare(b.venc||b.fecha||''));
@@ -7340,6 +7569,9 @@ async function saveEditOP(){
     } else {
       notify('Orden actualizada');
     }
+    // Al completar, congelar el costo real de la OP (mig 056)
+    if(nuevoEstado==='completada'&&estadoAnterior!=='completada')
+      await persistirCostoRealOP(id).catch(e=>console.warn('Costo real no persistido:',e));
     await reload('ordenes_produccion','barras','productos_terminados');closeModal('modal-edit-op');renderAll();
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-edit-op',false,'Guardar cambios');
@@ -7472,6 +7704,12 @@ function renderImputacionContable(){
   _llenarSelectCuentas('cfg-cta-gr-ir',['pasivo'],c.cta_gr_ir);
   _llenarSelectCuentas('cfg-cta-caja',['activo'],c.cta_caja_default);
   _llenarSelectCuentas('cfg-cta-banco',['activo'],c.cta_banco_default);
+  _llenarSelectCuentas('cfg-cta-cheques-cartera',['activo'],c.cta_cheques_cartera);
+  _llenarSelectCuentas('cfg-cta-cheques-emitidos',['pasivo'],c.cta_cheques_emitidos);
+  _llenarSelectCuentas('cfg-cta-ret-ganancias',['activo'],c.cta_ret_ganancias);
+  _llenarSelectCuentas('cfg-cta-ret-iibb',['activo'],c.cta_ret_iibb);
+  _llenarSelectCuentas('cfg-cta-ret-suss',['activo'],c.cta_ret_suss);
+  _llenarSelectCuentas('cfg-cta-ret-iva',['activo'],c.cta_ret_iva);
   document.getElementById('cfg-iva-alicuota').value=c.iva_alicuota!=null?(Number(c.iva_alicuota)*100).toFixed(2).replace(/\.?0+$/,''):'21';
   document.getElementById('cfg-punto-venta').value=c.punto_venta||1;
   document.getElementById('cfg-precios-con-iva').checked=c.precios_incluyen_iva===true;
@@ -7499,6 +7737,12 @@ async function saveConfigContable(){
     cta_gr_ir:v('cfg-cta-gr-ir'),
     cta_caja_default:v('cfg-cta-caja'),
     cta_banco_default:v('cfg-cta-banco'),
+    cta_cheques_cartera:v('cfg-cta-cheques-cartera'),
+    cta_cheques_emitidos:v('cfg-cta-cheques-emitidos'),
+    cta_ret_ganancias:v('cfg-cta-ret-ganancias'),
+    cta_ret_iibb:v('cfg-cta-ret-iibb'),
+    cta_ret_suss:v('cfg-cta-ret-suss'),
+    cta_ret_iva:v('cfg-cta-ret-iva'),
     updated_at:new Date().toISOString(),
   };
   setBusy('btn-save-cfg-imputacion',true);
@@ -10947,6 +11191,41 @@ function generateOCPDF(id){
 // ═══════════════════════════════════════════════════════════
 // 💰 COSTOS Y RENTABILIDAD
 // ═══════════════════════════════════════════════════════════
+
+// ─── COSTO REAL DE OP AL CIERRE (mig 056) ─────────────────────
+// Congela el costo al completar la OP: MP consumida + minutos productivos
+// cerrados × tarifas + overhead. El PT del lote queda valuado al costo
+// real por unidad (antes quedaba al precio de venta tipeado a mano).
+function computeCostoRealOP({op,barra,pasos=[],entries=[],tarifaOp=18,overheadPct=15}){
+  const cant=parseInt(op.cantidad||0)||1;
+  const costoMP=(barra&&barra.costo_usd_unidad)?(parseFloat(op.kg_usados)||0)*parseFloat(barra.costo_usd_unidad):0;
+  let costoTiempo=0;
+  for(const paso of pasos){
+    const min=entries.filter(e=>e.operacion_id===paso.id&&e.tipo==='productivo'&&e.ended_at)
+      .reduce((s,e)=>s+(new Date(e.ended_at)-new Date(e.started_at))/60000,0);
+    costoTiempo+=(min/60)*(tarifaOp+(parseFloat(paso.tarifa_maquina_usd)||0));
+  }
+  const overhead=(costoMP+costoTiempo)*(overheadPct/100);
+  const totalOP=costoMP+costoTiempo+overhead;
+  return {costoMP,costoTiempo,overhead,totalOP,totalUnidad:Math.round(totalOP/cant*100)/100};
+}
+async function persistirCostoRealOP(opId){
+  const op=ops.find(o=>o.id===opId)||(await GET('ordenes_produccion',`?id=eq.${opId}`).catch(()=>[]))[0];
+  if(!op)return;
+  const [pasos,barra]=await Promise.all([
+    GET('op_operaciones',`?orden_id=eq.${opId}`).catch(()=>[]),
+    op.barra_id?GET('barras',`?id=eq.${op.barra_id}&select=id,costo_usd_unidad`).then(r=>r[0]).catch(()=>null):Promise.resolve(null),
+  ]);
+  let entries=[];
+  if(pasos.length)entries=await GET('op_time_entries',`?operacion_id=in.(${pasos.map(p=>p.id).join(',')})`).catch(()=>[]);
+  const r=computeCostoRealOP({op,barra,pasos,entries,tarifaOp:tarifaOperarioUSD(),overheadPct:parseFloat(currentEmpresa?.overhead_pct)||15});
+  await PATCH('ordenes_produccion',{costo_real_usd:r.totalUnidad,costeado_at:new Date().toISOString()},`?id=eq.${opId}`);
+  // Valuar el PT del lote al costo real (si hubo costo medible)
+  if(r.totalUnidad>0){
+    await PATCH('productos_terminados',{costo_unitario:r.totalUnidad},`?orden_id=eq.${opId}`).catch(()=>{});
+    notify(`Costo real congelado: ${fmtUSD(r.totalUnidad)}/unidad`);
+  }
+}
 
 function computeCostoPT(pt){
   const op=ops.find(o=>o.id===pt.orden_id);

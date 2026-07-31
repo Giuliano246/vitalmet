@@ -233,6 +233,7 @@ Una OP convierte **materia prima en producto terminado**. Registra qué barra se
 - Se **descuenta** la materia prima consumida.
 - Se **genera el producto terminado** (PT) con su lote.
 - Queda armada la cadena de trazabilidad: certificado → colada → barra → OP → PT.
+- Se **congela el costo real** de la orden (material consumido + horas productivas de los timers × tarifas + overhead) y el lote de PT queda **valuado a ese costo** — el margen que ves en Análisis → Costos deja de ser una foto recalculable.
 
 **Si eliminás una OP:** los metros consumidos **vuelven a la barra** automáticamente. Y si la OP ya generó PT, tiene registros de calidad, no conformidades, tratamientos o puntos de control firmados, **no se puede eliminar** (retención de evidencia del SGC) — corregila o suspendela en vez de borrarla.
 
@@ -579,14 +580,31 @@ Lista de todos los asientos (debe = haber).
 El lugar para registrar **plata que entra o sale**.
 
 1. Elegí la pestaña: **Cobro de cliente** o **Pago a proveedor**.
-2. Completá **Fecha**, **Tercero** (cliente/proveedor), **Monto**, **Moneda** (y **TC** si es en pesos), **Método** (caja / banco), **Comprobante / recibo**, **Observaciones**.
+2. Completá **Fecha**, **Tercero** (cliente/proveedor), **Monto**, **Moneda** (y **TC** si es en pesos), **Método** (caja / banco / cheque diferido), **Comprobante / recibo**, **Observaciones**.
 3. **Registrar.**
 
 El asiento se arma **automáticamente** (caja/banco contra deudores o proveedores) y el cobro se imputa **FIFO** a las facturas más viejas.
 
+**Retenciones sufridas (clave con clientes grandes):** si el cliente te paga **neto de retenciones** (Ganancias, IIBB, SUSS, IVA — YPF y las mineras lo hacen siempre), cargá el **monto cobrado** en Monto y agregá cada certificado con **+ Retención** (impuesto, Nº de certificado, jurisdicción si es IIBB, y monto retenido). El sistema:
+- arma el asiento completo: banco + cada retención al debe, deudores por el **total** al haber — la cta. cte. del cliente queda saldada de verdad;
+- guarda cada certificado en el registro de **Retenciones sufridas** (exportable para el contador desde Exportables).
+
+**Método "Cheque diferido":** el cobro entra a la cuenta **Cheques en cartera** (no a caja/banco) y se abre el modal para completar número, banco y fecha de pago del cheque. En un pago, sale por **Cheques emitidos**.
+
 ### 11.4 Cheques
 
 Cartera de cheques diferidos (propios y de terceros), en ARS o USD. Aparecen en el panel "Para hoy" cuando se acerca la fecha de depósito o pago.
+
+**Ahora los cheques mueven la contabilidad solos** al cambiar el estado:
+
+| Evento | Asiento automático |
+|--------|--------------------|
+| Recibido → **depositado** | Banco / Cheques en cartera |
+| Recibido → **rechazado** | Deudores / Cartera (o Banco si ya estaba depositado) — **la deuda del cliente revive** en la cta. cte. desde la fecha del rechazo |
+| Emitido → **debitado** | Cheques emitidos / Banco |
+| Emitido → **rechazado** | Cheques emitidos / Proveedores (la deuda al proveedor revive) |
+
+> Para que el circuito cierre, el **alta** contable del cheque la hace **Cobros y pagos** con método "Cheque diferido". Los estados `acreditado`, `endosado` y `anulado` no generan asiento.
 
 ### 11.5 Libros y estados contables
 
@@ -603,6 +621,8 @@ Todo de **consulta** (elegís un rango de fechas y mirás):
 | **Bimonetario** | Balance en doble columna ARS / USD |
 | **Histórico vs Ajustado** | Balance reexpresado por inflación (sin tocar asientos) |
 | **Comparativo entre ejercicios** | Saldos de dos fechas y su variación |
+
+En **Exportables** (elegís un mes y descargás CSV, o toda la **carpeta del período** en ZIP): subdiarios de ventas y compras, **IVA ventas** (letra por comprobante, NC en negativo, alícuota), **IVA compras** (formato libro real), **Posición IVA del mes** (débito − crédito − percepciones − retenciones → saldo a pagar o a favor), **Retenciones sufridas** (los certificados del mes, para el contador), mayores y plan de cuentas.
 
 ### 11.6 Correlatividad
 
@@ -645,7 +665,8 @@ El catálogo de tipos de acero / normas que después elegís en barras y certifi
 
 - **Ventas:** cuenta de venta, deudores por ventas, IVA débito fiscal, **alícuota de IVA** (21% por defecto), si los precios **incluyen IVA**, y el **punto de venta AFIP** para la facturación electrónica.
 - **Compras:** IVA crédito fiscal, proveedores, compra de materia prima / insumos / herramientas, servicios de terceros, y la cuenta puente **GR/IR** (facturas a recibir).
-- **Caja y banco:** cuenta de caja (efectivo) y cuenta de banco (transferencias).
+- **Caja y banco:** cuenta de caja (efectivo), cuenta de banco (transferencias), **cheques en cartera** (recibidos) y **cheques emitidos** (a pagar).
+- **Retenciones sufridas:** las cuentas de crédito fiscal donde van las retenciones que te aplican los clientes (Ganancias, IIBB, SUSS, IVA). Vienen preconfiguradas con las cuentas del plan de Vitalmet.
 
 Completá y tocá **Guardar configuración**. Si dejás un campo en blanco, ese tipo de asiento automático queda desactivado.
 
