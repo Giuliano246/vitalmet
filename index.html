@@ -415,6 +415,7 @@ body.no-costos .solo-costos{display:none!important}
         <div id="mp-alert" class="alert-bar">⚠ Hay barras con stock bajo el mínimo configurado</div>
         <div class="toolbar">
           <div class="search-box"><input type="text" placeholder="Buscar por tipo, OC, lote..." oninput="renderMP(this.value)"></div>
+          <button class="btn btn-ghost" onclick="abrirConteo()" style="border-color:var(--teal);color:var(--teal)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>Conteo físico</button>
           <button class="btn btn-ghost" onclick="openModal('modal-mp')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva barra</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Lote</th><th>Material</th><th>Perfil / Ø</th><th>Colada</th><th>Certificado</th><th>Mts disp.</th><th>Unid.</th><th>Estado</th><th></th></tr></thead><tbody id="mp-tbody"></tbody></table></div>
@@ -1147,6 +1148,12 @@ body.no-costos .solo-costos{display:none!important}
             <div class="form-row"><div class="form-group"><label>Retención SUSS</label><select id="cfg-cta-ret-suss"></select></div><div class="form-group"><label>Retención IVA</label><select id="cfg-cta-ret-iva"></select></div></div>
           </div>
 
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:18px;margin-bottom:14px">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--purple);font-weight:600;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Stock y ajustes de inventario</div>
+            <div class="form-row"><div class="form-group"><label>Stock materia prima</label><select id="cfg-cta-stock-mp"></select></div><div class="form-group"><label>Stock producto terminado</label><select id="cfg-cta-stock-pt"></select></div></div>
+            <div class="form-row"><div class="form-group"><label>Stock insumos</label><select id="cfg-cta-stock-insumos"></select></div><div class="form-group"><label>Ajustes de inventario (resultado)</label><select id="cfg-cta-ajuste-inventario"></select></div></div>
+          </div>
+
           <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end">
             <div id="cfg-status" style="flex:1;font-size:11px;color:var(--text3);font-family:var(--mono)"></div>
             <button class="btn btn-primary" id="btn-save-cfg-imputacion" onclick="saveConfigContable()">Guardar configuración</button>
@@ -1624,6 +1631,29 @@ body.no-costos .solo-costos{display:none!important}
 </div>
 
 <!-- MODAL: Editar barra -->
+<div class="modal-overlay" id="modal-kardex">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-header"><div class="modal-title" id="kardex-title">Kardex</div><button class="modal-close" onclick="closeModal('modal-kardex')">×</button></div>
+    <div class="modal-body" id="kardex-body"></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-kardex')">Cerrar</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-conteo">
+  <div class="modal" style="max-width:860px">
+    <div class="modal-header"><div class="modal-title" id="conteo-title">Conteo físico</div><button class="modal-close" onclick="closeModal('modal-conteo')">×</button></div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Contá lo que hay físicamente y cargalo en la columna <b>Físico</b> (se guarda solo). Lo que dejes vacío no se toca. Al cerrar, cada diferencia genera un ajuste de stock con asiento.</div>
+      <div class="search-box" style="margin-bottom:8px"><input type="text" id="conteo-filtro" placeholder="Filtrar por lote, material, nombre..." oninput="renderConteoModal(this.value)"></div>
+      <div id="conteo-body" style="max-height:55vh;overflow-y:auto"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-conteo')">Seguir después</button>
+      <button class="btn btn-primary" id="btn-cerrar-conteo" onclick="cerrarConteo()">Cerrar conteo y aplicar diferencias</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-edit-barra">
   <div class="modal">
     <div class="modal-header"><div class="modal-title">Editar barra</div><button class="modal-close" onclick="closeModal('modal-edit-barra')">×</button></div>
@@ -2686,8 +2716,35 @@ const EXPORT_BUILDERS=[
   {titulo:'Posición IVA del mes',fn:expPosicionIva},
   {titulo:'Retenciones sufridas',fn:expRetenciones},
   {titulo:'Mayores',fn:expMayores},
+  {titulo:'Valuación de inventario',fn:(d,h)=>expValuacionInventario()},
   {titulo:'Plan de cuentas',fn:(d,h)=>expPlanCuentas()},
 ];
+// Foto valorizada del stock a HOY (no depende del mes elegido)
+async function expValuacionInventario(){
+  const filas=[['Sección','Material / Pieza','Lote','Cantidad','Unidad','Costo unit. USD','Valor USD']];
+  let totMP=0,totPT=0,totIns=0;
+  barras.filter(b=>(parseFloat(b.kg_disponibles)||0)>0).forEach(b=>{
+    const kg=parseFloat(b.kg_disponibles)||0,c=parseFloat(b.costo_usd_unidad)||0,v=kg*c;totMP+=v;
+    filas.push(['Materia prima',b.material||'',b.lote||'',csvNum(kg),'mts',c?csvNum(c):'sin costo',csvNum(v)]);
+  });
+  computeValuacionMP(barras).forEach(x=>{
+    filas.push(['Materia prima — PPP',x.material,'(promedio ponderado)',csvNum(x.kg),'mts',csvNum(x.ppp),csvNum(x.valor)]);
+  });
+  pts.filter(p=>(parseInt(p.cantidad)||0)>0).forEach(p=>{
+    const q=parseInt(p.cantidad)||0,c=parseFloat(p.costo_unitario||p.precio_unitario)||0,v=q*c;totPT+=v;
+    filas.push(['Producto terminado',p.pieza||'',p.lote||'',String(q),'un',c?csvNum(c):'sin costo',csvNum(v)]);
+  });
+  insumos.filter(i=>(parseFloat(i.cantidad)||0)>0).forEach(i=>{
+    const q=parseFloat(i.cantidad)||0,c=parseFloat(i.ultimo_precio)||0,v=q*c;totIns+=v;
+    filas.push(['Insumo',i.nombre||'',i.codigo||'',csvNum(q),i.unidad||'un',c?csvNum(c):'sin costo',csvNum(v)]);
+  });
+  filas.push(['','','','','','TOTAL MP',csvNum(totMP)]);
+  filas.push(['','','','','','TOTAL PT',csvNum(totPT)]);
+  filas.push(['','','','','','TOTAL INSUMOS',csvNum(totIns)]);
+  filas.push(['','','','','','TOTAL INVENTARIO',csvNum(totMP+totPT+totIns)]);
+  return {nombre:`valuacion_inventario_${hoyLocal()}.csv`,contenido:csvArmar(filas),
+          resumen:`Inventario valuado: ${fmtUSD(totMP+totPT+totIns)} (MP ${fmtUSD(totMP)} · PT ${fmtUSD(totPT)} · Insumos ${fmtUSD(totIns)})`};
+}
 async function exportarUno(idx){
   const btns=document.querySelectorAll('#exportables-lista button');
   const mes=document.getElementById('exp-mes').value;
@@ -3847,6 +3904,34 @@ function leadTimesMaterial(nombre){
   return muestras;
 }
 // Cálculo de reposición para un material (todo en metros/mes).
+// ─── Valuación de inventario (tests/inventario.test.js) ─────────────
+// MP por material: kg, valor a costo por lote específico y PPP
+// informativo (promedio ponderado de los kg que tienen costo).
+function computeValuacionMP(barrasArr){
+  const por={};
+  (barrasArr||[]).forEach(b=>{
+    const kg=parseFloat(b.kg_disponibles)||0;if(kg<=0)return;
+    const m=b.material||'—';
+    if(!por[m])por[m]={material:m,kg:0,valor:0,kgSinCosto:0};
+    const c=parseFloat(b.costo_usd_unidad)||0;
+    por[m].kg+=kg;
+    if(c>0)por[m].valor+=kg*c;else por[m].kgSinCosto+=kg;
+  });
+  return Object.values(por)
+    .map(x=>({...x,ppp:(x.kg-x.kgSinCosto)>0?x.valor/(x.kg-x.kgSinCosto):0}))
+    .sort((a,b)=>b.valor-a.valor);
+}
+function computeValuacionPT(ptsArr){
+  let valor=0,unidades=0,sinCosto=0;
+  (ptsArr||[]).forEach(p=>{
+    const q=parseInt(p.cantidad)||0;if(q<=0)return;
+    const c=parseFloat(p.costo_unitario||p.precio_unitario)||0;
+    unidades+=q;
+    if(c>0)valor+=q*c;else sinCosto+=q;
+  });
+  return {unidades,valor,sinCosto};
+}
+
 // ─── Compras en tránsito + última compra (tests/automatizacion.test.js) ──
 const OC_ESTADOS_TRANSITO=['enviada','confirmada','recibida_parcial'];
 function enTransitoMaterial(nombre,items,ocs){
@@ -3956,8 +4041,9 @@ function renderMP(filter=''){
     <div class="stat-card"><div class="stat-label">Lotes en stock</div><div class="stat-value" style="color:var(--blue)">${barras.length}</div></div>
     <div class="stat-card"><div class="stat-label">Metros totales</div><div class="stat-value" style="color:var(--accent)">${totalKg.toFixed(0)}<span style="font-size:11px;color:var(--text3)"> mts</span></div></div>
     <div class="stat-card"><div class="stat-label">Stock bajo mínimo</div><div class="stat-value" style="color:${low.length?'var(--red)':'var(--text)'}">${low.length}</div></div>
-    <div class="stat-card"><div class="stat-label">Materiales distintos</div><div class="stat-value">${[...new Set(barras.map(b=>b.material))].length}</div></div>`;
-  document.getElementById('mp-tbody').innerHTML=list.length?list.map(b=>{const cert=b.certificados;const isLow=b.kg_minimo>0&&b.kg_disponibles<=b.kg_minimo;return`<tr data-id="${b.id}"><td class="mono td-primary">${esc(b.lote)}</td><td>${esc(b.material)}</td><td>${b.perfil||''} ${esc(b.diametro||'')}</td><td class="mono">${b.nro_colada||'—'}</td><td>${cert?`<span class="badge badge-purple">${esc(cert.nro)}</span>`:'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:${isLow?'var(--red)':'var(--text)'}">${parseFloat(b.kg_disponibles).toFixed(1)}</td><td>${b.unidades||'—'}</td><td>${b.estado_calidad==='cuarentena'?'<span class="badge badge-amber">CUARENTENA</span> ':b.estado_calidad==='rechazado'?'<span class="badge badge-coral">RECHAZADO</span> ':''}${isLow?'<span class="badge badge-warn">STOCK BAJO</span>':'<span class="badge badge-ok">OK</span>'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editBarra('${b.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-ghost btn-sm" onclick="showTrace('barra','${b.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg></span>Trazar</button><button class="btn btn-danger btn-sm" onclick="deleteBarra('${b.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;}):( `<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div><div class="empty-title">Sin barras registradas</div><div class="empty-msg">Agregá la primera con el botón <b>+ Nueva barra</b> arriba.</div></div></td></tr>`);
+    <div class="stat-card"><div class="stat-label">Materiales distintos</div><div class="stat-value">${[...new Set(barras.map(b=>b.material))].length}</div></div>
+    ${puedeVerCostos()?(()=>{const val=computeValuacionMP(barras);const tot=val.reduce((a,x)=>a+x.valor,0);const sc=val.reduce((a,x)=>a+x.kgSinCosto,0);return`<div class="stat-card"><div class="stat-label">Valor stock (costo)</div><div class="stat-value" style="color:var(--green);font-size:13px">${fmtUSD(tot)}${sc>0?`<div style="font-size:9px;color:var(--text3);font-weight:400">${sc.toFixed(0)} mts sin costo cargado</div>`:''}</div></div>`;})():''}`;
+  document.getElementById('mp-tbody').innerHTML=list.length?list.map(b=>{const cert=b.certificados;const isLow=b.kg_minimo>0&&b.kg_disponibles<=b.kg_minimo;return`<tr data-id="${b.id}"><td class="mono td-primary">${esc(b.lote)}</td><td>${esc(b.material)}</td><td>${b.perfil||''} ${esc(b.diametro||'')}</td><td class="mono">${b.nro_colada||'—'}</td><td>${cert?`<span class="badge badge-purple">${esc(cert.nro)}</span>`:'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:${isLow?'var(--red)':'var(--text)'}">${parseFloat(b.kg_disponibles).toFixed(1)}</td><td>${b.unidades||'—'}</td><td>${b.estado_calidad==='cuarentena'?'<span class="badge badge-amber">CUARENTENA</span> ':b.estado_calidad==='rechazado'?'<span class="badge badge-coral">RECHAZADO</span> ':''}${isLow?'<span class="badge badge-warn">STOCK BAJO</span>':'<span class="badge badge-ok">OK</span>'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editBarra('${b.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-ghost btn-sm" onclick="showTrace('barra','${b.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg></span>Trazar</button><button class="btn btn-ghost btn-sm" onclick="showKardex('barra','${b.id}')" title="Historial de movimientos de stock"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg></span>Kardex</button><button class="btn btn-danger btn-sm" onclick="deleteBarra('${b.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;}):( `<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div><div class="empty-title">Sin barras registradas</div><div class="empty-msg">Agregá la primera con el botón <b>+ Nueva barra</b> arriba.</div></div></td></tr>`);
 }
 
 function getPTReservado(ptId){
@@ -3982,7 +4068,7 @@ function renderPT(filter=''){
     <div class="stat-card"><div class="stat-label">Reservado</div><div class="stat-value" style="color:${totalReservado?'var(--accent)':'var(--text)'}">${totalReservado}</div></div>
     <div class="stat-card"><div class="stat-label">Disponible</div><div class="stat-value" style="color:var(--green)">${totalDisponible}</div></div>
     ${puedeVerCostos()?`<div class="stat-card"><div class="stat-label">Valor stock (costo)</div><div class="stat-value" style="color:var(--green);font-size:13px">${fmtUSD(valorCosto)}</div></div>`:''}`;
-  document.getElementById('pt-tbody').innerHTML=list.length?list.map(p=>{const b=p.barras;const cert=b?.certificados;const op=p.ordenes_produccion;const reserv=getPTReservado(p.id);const disp=parseInt(p.cantidad||0)-reserv;const cStock=p.cantidad<=0?'var(--red)':p.cantidad<=3?'var(--accent)':'var(--text)';const cDisp=disp<=0?'var(--red)':disp<=3?'var(--accent)':'var(--green)';return`<tr data-id="${p.id}"><td class="mono td-primary">${esc(p.lote)}</td><td style="color:var(--teal);font-weight:500">${esc(p.pieza)}</td><td>${esc(p.descripcion)||'—'}</td><td class="mono" style="color:${cStock}">${p.cantidad}<span style="color:var(--text3);font-size:10px"> total</span>${reserv>0?`<div style="font-size:10px;color:var(--accent);font-family:var(--mono)">${reserv} reserv.</div><div style="font-size:10px;color:${cDisp};font-weight:700;font-family:var(--mono)">${disp} disp.</div>`:''}</td><td>${b?`<span class="badge badge-blue">${esc(b.lote)}</span>`:'—'}</td><td class="mono">${esc(b?.nro_colada)||'—'}</td><td>${cert?`<span class="badge badge-purple">${esc(cert.nro)}</span>`:'—'}</td><td class="mono">${esc(op?.nro)||'—'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editPT('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-ghost btn-sm" onclick="showTrace('pt','${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg></span>Trazar</button><button class="btn btn-danger btn-sm" onclick="deletePT('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;}):(`<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div><div class="empty-title">Sin productos terminados</div><div class="empty-msg">Los PT se generan al completar una orden de producción. Cargá una con <b>+ Nueva orden</b>.</div></div></td></tr>`);
+  document.getElementById('pt-tbody').innerHTML=list.length?list.map(p=>{const b=p.barras;const cert=b?.certificados;const op=p.ordenes_produccion;const reserv=getPTReservado(p.id);const disp=parseInt(p.cantidad||0)-reserv;const cStock=p.cantidad<=0?'var(--red)':p.cantidad<=3?'var(--accent)':'var(--text)';const cDisp=disp<=0?'var(--red)':disp<=3?'var(--accent)':'var(--green)';return`<tr data-id="${p.id}"><td class="mono td-primary">${esc(p.lote)}</td><td style="color:var(--teal);font-weight:500">${esc(p.pieza)}</td><td>${esc(p.descripcion)||'—'}</td><td class="mono" style="color:${cStock}">${p.cantidad}<span style="color:var(--text3);font-size:10px"> total</span>${reserv>0?`<div style="font-size:10px;color:var(--accent);font-family:var(--mono)">${reserv} reserv.</div><div style="font-size:10px;color:${cDisp};font-weight:700;font-family:var(--mono)">${disp} disp.</div>`:''}</td><td>${b?`<span class="badge badge-blue">${esc(b.lote)}</span>`:'—'}</td><td class="mono">${esc(b?.nro_colada)||'—'}</td><td>${cert?`<span class="badge badge-purple">${esc(cert.nro)}</span>`:'—'}</td><td class="mono">${esc(op?.nro)||'—'}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editPT('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-ghost btn-sm" onclick="showTrace('pt','${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></svg></span>Trazar</button><button class="btn btn-ghost btn-sm" onclick="showKardex('pt','${p.id}')" title="Historial de movimientos de stock"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg></span>Kardex</button><button class="btn btn-danger btn-sm" onclick="deletePT('${p.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;}):(`<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></div><div class="empty-title">Sin productos terminados</div><div class="empty-msg">Los PT se generan al completar una orden de producción. Cargá una con <b>+ Nueva orden</b>.</div></div></td></tr>`);
 }
 
 function renderCert(filter=''){
@@ -4015,7 +4101,7 @@ function renderInsumos(filter=''){
     ${puedeVerCostos()?`<div class="stat-card"><div class="stat-label">Valor total stock</div><div class="stat-value" style="color:var(--green);font-size:13px">${fmtUSD(valorTotal)}</div></div>`:''}`;
   document.getElementById('insumos-tbody').innerHTML=list.length?list.map(i=>{
     const isLow=parseFloat(i.stock_minimo||0)>0&&parseFloat(i.cantidad||0)<=parseFloat(i.stock_minimo||0);
-    return`<tr><td class="mono" style="font-size:11px">${esc(i.codigo||'—')}</td><td class="td-primary">${esc(i.nombre)}</td><td>${i.categoria?`<span class="badge badge-teal">${esc(i.categoria)}</span>`:'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:${isLow?'var(--red)':'var(--text)'}">${parseFloat(i.cantidad||0).toFixed(2)}</td><td class="mono" style="font-size:11px">${esc(i.unidad||'—')}</td><td class="mono" style="color:var(--text3);font-size:11px">${parseFloat(i.stock_minimo||0).toFixed(2)}</td><td class="mono solo-costos" style="color:var(--green)">${i.ultimo_precio?fmtUSD(parseFloat(i.ultimo_precio)):'—'}</td><td style="font-size:11px">${esc(i.proveedores?.nombre||'—')}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editInsumo('${i.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteInsumo('${i.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+    return`<tr><td class="mono" style="font-size:11px">${esc(i.codigo||'—')}</td><td class="td-primary">${esc(i.nombre)}</td><td>${i.categoria?`<span class="badge badge-teal">${esc(i.categoria)}</span>`:'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:${isLow?'var(--red)':'var(--text)'}">${parseFloat(i.cantidad||0).toFixed(2)}</td><td class="mono" style="font-size:11px">${esc(i.unidad||'—')}</td><td class="mono" style="color:var(--text3);font-size:11px">${parseFloat(i.stock_minimo||0).toFixed(2)}</td><td class="mono solo-costos" style="color:var(--green)">${i.ultimo_precio?fmtUSD(parseFloat(i.ultimo_precio)):'—'}</td><td style="font-size:11px">${esc(i.proveedores?.nombre||'—')}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="showKardex('insumo','${i.id}')" title="Historial de movimientos de stock"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg></span>Kardex</button><button class="btn btn-ghost btn-sm" onclick="editInsumo('${i.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteInsumo('${i.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
   }).join(''):`<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M5 8h14"/><path d="M5 8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2"/><rect x="3" y="8" width="18" height="14" rx="1"/><path d="M10 12h4"/></svg></div><div class="empty-title">Sin insumos cargados</div><div class="empty-msg">Cargá el primero con <b>+ Nuevo insumo</b>. Los insumos se suman automáticamente al recibir órdenes de compra del tipo "insumo".</div></div></td></tr>`;
 }
 function openModalInsumo(id){
@@ -4047,7 +4133,14 @@ async function saveInsumo(){
   setBusy('btn-save-insumo',true);
   try{
     const data={empresa_id:currentEmpresa.id,codigo:g('insumo-codigo')||null,nombre:g('insumo-nombre'),categoria:g('insumo-categoria')||null,descripcion:g('insumo-descripcion')||null,cantidad:parseFloat(g('insumo-cantidad'))||0,unidad:g('insumo-unidad')||'un',stock_minimo:parseFloat(g('insumo-minimo'))||0,ultimo_precio:parseFloat(g('insumo-precio'))||null,proveedor_id:g('insumo-proveedor')||null,observaciones:g('insumo-observaciones')||null};
-    if(id)await PATCH('insumos',data,`?id=eq.${id}`);else await POST('insumos',data);
+    if(id){
+      const ins=insumos.find(x=>x.id===id);
+      if(!await ajustarStockSiCambio('insumo',id,ins?.cantidad,data.cantidad,data.nombre)){
+        setBusy('btn-save-insumo',false,'Guardar');return;
+      }
+      delete data.cantidad;
+      await PATCH('insumos',data,`?id=eq.${id}`);
+    }else await POST('insumos',data);
     await reload('insumos');closeModal('modal-insumo');renderAll();notify(id?'Insumo actualizado':'Insumo creado');
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-insumo',false,'Guardar');
@@ -7449,14 +7542,117 @@ function editBarra(id){
   sel.innerHTML='<option value="">Sin certificado</option>'+certs.map(c=>`<option value="${c.id}" ${b.certificado_id===c.id?'selected':''}>${esc(c.nro)} — ${esc(c.material)}</option>`).join('');
   document.getElementById('modal-edit-barra').classList.add('open');
 }
+// ═══ KARDEX + CONTEO FÍSICO (mig 058) ═══════════════════════════════
+const KARDEX_LABELS={alta:'Alta',baja:'Baja',edicion:'Edición manual',ajuste:'Ajuste',conteo:'Conteo físico','consumo-op':'Consumo OP','devolucion-op':'Devolución OP',venta:'Venta','devolucion-venta':'Devolución venta','entrega-venta':'Entrega venta','anulacion-venta':'Anulación venta'};
+async function showKardex(tipo,id){
+  try{
+    const movs=await GET('movimientos_stock',`?tipo_item=eq.${tipo}&item_id=eq.${id}&order=created_at.desc&limit=200`);
+    const nombreU=uid=>{const u=(usuarios||[]).find(x=>x.id===uid);return u?esc((u.nombre||u.email||'').split('@')[0]):'—';};
+    const unidad=tipo==='barra'?' mts':'';
+    document.getElementById('kardex-title').textContent='Kardex — '+(movs[0]?.detalle||'sin movimientos');
+    document.getElementById('kardex-body').innerHTML=movs.length?
+      `<div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Fecha</th><th>Movimiento</th><th>Referencia</th><th style="text-align:right">Delta</th><th style="text-align:right">Saldo</th><th>Usuario</th></tr></thead><tbody>`+
+      movs.map(m=>{const d=parseFloat(m.delta)||0;return`<tr>
+        <td class="mono" style="font-size:11px">${(m.created_at||'').slice(0,16).replace('T',' ')}</td>
+        <td><span class="badge ${d<0?'badge-warn':'badge-ok'}">${esc(KARDEX_LABELS[m.tipo_mov]||m.tipo_mov)}</span></td>
+        <td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(m.referencia||'')}">${esc(m.referencia||'—')}</td>
+        <td class="mono" style="text-align:right;color:${d<0?'var(--red)':'var(--green)'}">${d>0?'+':''}${d.toFixed(2)}${unidad}</td>
+        <td class="mono" style="text-align:right;font-weight:600">${(parseFloat(m.saldo_posterior)||0).toFixed(2)}${unidad}</td>
+        <td style="font-size:11px">${nombreU(m.usuario_id)}</td></tr>`;}).join('')+
+      `</tbody></table></div>`:
+      '<div style="padding:24px;text-align:center;color:var(--text3)">Sin movimientos registrados todavía. El kardex arranca a registrar desde la puesta en marcha de la migración 058 — los saldos previos son el punto de partida.</div>';
+    openModal('modal-kardex');
+  }catch(e){notify('Error al cargar el kardex: '+e.message,'err');}
+}
+
+let conteoActual=null,conteoItemsActual=[];
+async function abrirConteo(){
+  try{
+    const abiertos=await GET('conteos_stock','?estado=eq.abierto&order=created_at.desc&limit=1');
+    if(abiertos.length){
+      conteoActual=abiertos[0];
+      conteoItemsActual=await GET('conteo_items',`?conteo_id=eq.${conteoActual.id}&order=tipo_item.asc,detalle.asc`);
+    }else{
+      if(!confirm('¿Iniciar un conteo físico nuevo?\n\nSe toma una foto del stock actual (barras, PT e insumos) para contar contra ella. Podés cargarlo en varias sesiones; nada se ajusta hasta que cierres el conteo.'))return;
+      const res=await POST('conteos_stock',[{empresa_id:currentEmpresa.id,created_by:currentUser.id}]);
+      conteoActual=res[0];
+      const mk=(tipo,items)=>items.map(x=>({empresa_id:currentEmpresa.id,conteo_id:conteoActual.id,tipo_item:tipo,item_id:x.id,detalle:tipo==='insumo'?x.nombre:x.lote,material:tipo==='barra'?x.material:tipo==='pt'?x.pieza:(x.categoria||''),cantidad_sistema:parseFloat(tipo==='barra'?x.kg_disponibles:x.cantidad)||0}));
+      const items=[...mk('barra',barras),...mk('pt',pts),...mk('insumo',insumos)];
+      conteoItemsActual=items.length?await POST('conteo_items',items):[];
+    }
+    document.getElementById('conteo-title').textContent=`Conteo físico ${conteoActual.nro||''} — ${conteoActual.fecha||''}`;
+    renderConteoModal();openModal('modal-conteo');
+  }catch(e){notify('Error: '+e.message,'err');}
+}
+function renderConteoModal(filtro=''){
+  const f=(filtro||'').toLowerCase();
+  const tipos={barra:'Materia prima (mts)',pt:'Producto terminado (un)',insumo:'Insumos'};
+  const list=conteoItemsActual.filter(i=>!f||(i.detalle||'').toLowerCase().includes(f)||(i.material||'').toLowerCase().includes(f));
+  const contados=conteoItemsActual.filter(i=>i.cantidad_fisica!=null).length;
+  let html=`<div style="font-size:12px;color:var(--text2);margin-bottom:8px">${contados} de ${conteoItemsActual.length} ítems contados</div>`;
+  ['barra','pt','insumo'].forEach(t=>{
+    const rows=list.filter(i=>i.tipo_item===t);
+    if(!rows.length)return;
+    html+=`<div style="font-weight:600;font-size:12px;color:var(--accent);margin:10px 0 4px">${tipos[t]}</div>
+    <div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Ítem</th><th>Material / Pieza</th><th style="text-align:right">Sistema</th><th style="text-align:right;width:110px">Físico</th><th style="text-align:right">Dif.</th></tr></thead><tbody>`+
+    rows.map(i=>{
+      const dif=i.cantidad_fisica!=null?(parseFloat(i.cantidad_fisica)-parseFloat(i.cantidad_sistema)):null;
+      return`<tr><td class="mono td-primary" style="font-size:11px">${esc(i.detalle||'')}</td><td style="font-size:11px">${esc(i.material||'')}</td>
+      <td class="mono" style="text-align:right">${(parseFloat(i.cantidad_sistema)||0).toFixed(2)}</td>
+      <td style="text-align:right"><input type="number" min="0" step="0.01" value="${i.cantidad_fisica!=null?i.cantidad_fisica:''}" onchange="guardarConteoItem(this.dataset.id,this.value)" data-id="${i.id}" style="width:100px;text-align:right;background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:4px 6px;color:var(--text);font-family:var(--mono)"></td>
+      <td class="mono" style="text-align:right;color:${dif===null?'var(--text3)':Math.abs(dif)<0.005?'var(--green)':'var(--red)'};font-weight:600">${dif===null?'—':(dif>0?'+':'')+dif.toFixed(2)}</td></tr>`;
+    }).join('')+`</tbody></table></div>`;
+  });
+  document.getElementById('conteo-body').innerHTML=html;
+}
+async function guardarConteoItem(id,val){
+  const v=val===''?null:(parseFloat(val)||0);
+  try{
+    await PATCH('conteo_items',{cantidad_fisica:v},`?id=eq.${id}`);
+    const it=conteoItemsActual.find(x=>x.id===id);if(it)it.cantidad_fisica=v;
+    renderConteoModal(document.getElementById('conteo-filtro').value);
+  }catch(e){notify('No se guardó el conteo del ítem: '+e.message,'err');}
+}
+async function cerrarConteo(){
+  if(!conteoActual)return;
+  const contados=conteoItemsActual.filter(i=>i.cantidad_fisica!=null);
+  if(!contados.length){notify('No contaste ningún ítem todavía','err');return;}
+  const difs=contados.filter(i=>Math.abs(parseFloat(i.cantidad_fisica)-parseFloat(i.cantidad_sistema))>=0.005);
+  if(!confirm(`Cerrar ${conteoActual.nro}:\n\n• ${contados.length} ítems contados\n• ${difs.length} con diferencia contra el sistema\n\nCada diferencia genera un ajuste de stock documentado (kardex + asiento contable). ¿Confirmar?`))return;
+  try{setBusy('btn-cerrar-conteo',true);
+    const r=await RPC('cerrar_conteo',{p_conteo_id:conteoActual.id});
+    closeModal('modal-conteo');conteoActual=null;conteoItemsActual=[];
+    await reload('barras','productos_terminados','insumos','asientos','asiento_lineas');renderAll();
+    notify(`✓ Conteo ${r.nro} cerrado — ${r.ajustes} ajuste${r.ajustes===1?'':'s'} aplicado${r.ajustes===1?'':'s'}${r.saltados?` (${r.saltados} ítem(s) ya no existían)`:''}`);
+  }catch(e){notify('Error al cerrar el conteo: '+e.message,'err');}
+  finally{setBusy('btn-cerrar-conteo',false,'Cerrar conteo y aplicar diferencias');}
+}
+
+// Si la cantidad cambió al editar, el cambio va por la RPC ajustar_stock
+// (motivo obligatorio → kardex etiquetado + asiento contra AJUSTES DE
+// INVENTARIO). Devuelve false si el usuario canceló.
+async function ajustarStockSiCambio(tipo,itemId,actual,nueva,nombre){
+  actual=parseFloat(actual)||0;nueva=parseFloat(nueva)||0;
+  if(nueva===actual)return true;
+  const motivo=prompt(`Estás cambiando la cantidad de "${nombre}": ${actual} → ${nueva}.\n\nMotivo del ajuste (obligatorio — queda en el kardex y genera asiento):`);
+  if(motivo===null)return false;
+  if(!motivo.trim()){notify('El motivo es obligatorio para ajustar stock','err');return false;}
+  await RPC('ajustar_stock',{p_tipo:tipo,p_item_id:itemId,p_cantidad_nueva:nueva,p_motivo:motivo.trim()});
+  return true;
+}
+
 async function saveEditBarra(){
   const id=document.getElementById('edit-barra-id').value;
   setBusy('btn-save-edit-barra',true);
   try{
+    const b=barras.find(x=>x.id===id);
+    const nuevaKg=parseFloat(document.getElementById('edit-barra-kg').value)||0;
+    if(!await ajustarStockSiCambio('barra',id,b?.kg_disponibles,nuevaKg,b?.lote||'barra')){
+      setBusy('btn-save-edit-barra',false,'Guardar cambios');return;
+    }
     await PATCH('barras',{
       material:document.getElementById('edit-barra-mat').value,
       diametro:document.getElementById('edit-barra-diam').value,
-      kg_disponibles:parseFloat(document.getElementById('edit-barra-kg').value)||0,
       unidades:parseInt(document.getElementById('edit-barra-unid').value)||0,
       kg_minimo:parseFloat(document.getElementById('edit-barra-min').value)||0,
       nro_colada:document.getElementById('edit-barra-colada').value,
@@ -7579,6 +7775,11 @@ async function savePT(){
       barra_id:barraId,
     };
     if(editId){
+      const p=pts.find(x=>x.id===editId);
+      if(!await ajustarStockSiCambio('pt',editId,p?.cantidad,cant,p?.pieza||'PT')){
+        setBusy('btn-save-pt',false,'Guardar');return;
+      }
+      delete payload.cantidad;
       await PATCH('productos_terminados',payload,`?id=eq.${editId}`);
       notify('Producto actualizado');
     } else {
@@ -7817,6 +8018,10 @@ function renderImputacionContable(){
   _llenarSelectCuentas('cfg-cta-ret-iibb',['activo'],c.cta_ret_iibb);
   _llenarSelectCuentas('cfg-cta-ret-suss',['activo'],c.cta_ret_suss);
   _llenarSelectCuentas('cfg-cta-ret-iva',['activo'],c.cta_ret_iva);
+  _llenarSelectCuentas('cfg-cta-stock-mp',['activo'],c.cta_stock_mp);
+  _llenarSelectCuentas('cfg-cta-stock-pt',['activo'],c.cta_stock_pt);
+  _llenarSelectCuentas('cfg-cta-stock-insumos',['activo'],c.cta_stock_insumos);
+  _llenarSelectCuentas('cfg-cta-ajuste-inventario',['egreso'],c.cta_ajuste_inventario);
   document.getElementById('cfg-iva-alicuota').value=c.iva_alicuota!=null?(Number(c.iva_alicuota)*100).toFixed(2).replace(/\.?0+$/,''):'21';
   document.getElementById('cfg-punto-venta').value=c.punto_venta||1;
   document.getElementById('cfg-precios-con-iva').checked=c.precios_incluyen_iva===true;
@@ -7850,6 +8055,10 @@ async function saveConfigContable(){
     cta_ret_iibb:v('cfg-cta-ret-iibb'),
     cta_ret_suss:v('cfg-cta-ret-suss'),
     cta_ret_iva:v('cfg-cta-ret-iva'),
+    cta_stock_mp:v('cfg-cta-stock-mp'),
+    cta_stock_pt:v('cfg-cta-stock-pt'),
+    cta_stock_insumos:v('cfg-cta-stock-insumos'),
+    cta_ajuste_inventario:v('cfg-cta-ajuste-inventario'),
     updated_at:new Date().toISOString(),
   };
   setBusy('btn-save-cfg-imputacion',true);
@@ -10203,7 +10412,10 @@ async function saveRecepcion(){
       // Materia prima → crear barra en stock
       if(r.it.tipo==='materia_prima'){
         const lote=`${oc.nro}-${r.it.descripcion.slice(0,8).replace(/\s/g,'')}-${Date.now().toString().slice(-4)}`;
-        const barraData={empresa_id:currentEmpresa.id,lote,material:r.it.material||r.it.descripcion,perfil:r.it.perfil||'',diametro:r.it.diametro||'',kg_disponibles:r.it.unidad==='kg'?r.qty:0,unidades:r.it.unidad==='un'?r.qty:0,nro_colada:colada,certificado_id:certId,kg_minimo:0,proveedor_id:oc.proveedor_id,oc_id:currentOCId,observaciones:`Recepción OC ${oc.nro}`};
+        // Costo USD del ítem de la OC → la barra nace valuada (antes se perdía)
+        const tcOC=parseFloat(oc.tipo_cambio)||0;
+        const costoUSD=oc.moneda==='ARS'&&tcOC>0?(parseFloat(r.it.precio_unitario)||0)/tcOC:(parseFloat(r.it.precio_unitario)||0);
+        const barraData={empresa_id:currentEmpresa.id,lote,material:r.it.material||r.it.descripcion,perfil:r.it.perfil||'',diametro:r.it.diametro||'',kg_disponibles:['kg','mts'].includes(r.it.unidad)?r.qty:0,unidades:r.it.unidad==='un'?r.qty:0,nro_colada:colada,certificado_id:certId,kg_minimo:0,proveedor_id:oc.proveedor_id,oc_id:currentOCId,costo_usd_unidad:costoUSD>0?costoUSD:null,observaciones:`Recepción OC ${oc.nro}`};
         const bres=await POST('barras',[barraData]);
         if(bres&&bres[0])barraId=bres[0].id;
       }

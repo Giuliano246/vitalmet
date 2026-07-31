@@ -135,6 +135,8 @@ Stock de barras de acero que se consumen en producción.
 
 > **Importante:** vinculá siempre el **certificado MTC**, la **OC** y la **colada**. Eso es lo que permite la trazabilidad y los reclamos de calidad.
 
+> **Valuación:** las barras que entran por recepción de OC **nacen valuadas** con el precio del ítem de la OC (convertido a USD si la OC era en pesos). Con eso el stock de MP tiene valor contable real: lo ves en la tarjeta **Valor stock (costo)** y en el exportable **Valuación de inventario** (por lote y con promedio ponderado por material).
+
 **Estado de calidad de la barra:** en la tabla, además del stock, vas a ver un badge:
 - **CUARENTENA** (ámbar): la barra llegó por una recepción de OC y **todavía no pasó la inspección de entrada**. No se puede consumir en producción hasta que Calidad la acepte (Compras → Inspección de entrada).
 - **RECHAZADO** (rojo): la inspección la rechazó. Queda bloqueada; correspondería devolución al proveedor y su no conformidad.
@@ -148,6 +150,12 @@ Stock de barras de acero que se consumen en producción.
 
 - La columna **En tránsito** muestra lo que ya está pedido en OC enviadas/confirmadas y todavía no se recibió — el "A pedir" **ya lo descuenta**, así no pedís dos veces lo mismo.
 - El botón **Generar OC** arma una orden de compra borrador pre-cargada con la sugerencia: cantidad a pedir, y el **proveedor, precio y medida de la última compra** de ese material. Revisá proveedor y precio, y guardá — es una OC normal desde ahí en adelante.
+
+**Kardex (historial de movimientos):** cada barra, producto terminado e insumo tiene un botón **Kardex** que muestra todos sus movimientos de stock: qué entró, qué salió, cuándo, cuánto quedó y quién lo hizo. Los movimientos se etiquetan solos (Consumo OP, Venta, Entrega, Ajuste, Conteo físico, etc.). Nada se mueve sin dejar rastro.
+
+**Ajustes de stock:** si al editar una barra / PT / insumo cambiás la **cantidad**, el sistema te pide un **motivo obligatorio**. El ajuste queda en el kardex y, si el ítem tiene costo, genera automáticamente el **asiento contable** (cuenta de stock contra AJUSTES DE INVENTARIO). Corregir stock ya no es "pisar el número": queda documentado como en cualquier ERP serio.
+
+**Conteo físico:** el botón **Conteo físico** (arriba de la tabla de barras) inicia un inventario: el sistema saca una foto del stock (barras, PT e insumos) y te da una planilla para cargar lo que contaste físicamente. Podés cargarla en varias sesiones — se guarda sola. Al **cerrar el conteo**, cada diferencia genera su ajuste documentado con asiento. Recomendado: un conteo por trimestre, o cíclico por familia de material.
 
 ### 5.2 Productos terminados (PT)
 
@@ -650,7 +658,7 @@ Todo de **consulta** (elegís un rango de fechas y mirás):
 | **Histórico vs Ajustado** | Balance reexpresado por inflación (sin tocar asientos) |
 | **Comparativo entre ejercicios** | Saldos de dos fechas y su variación |
 
-En **Exportables** (elegís un mes y descargás CSV, o toda la **carpeta del período** en ZIP): subdiarios de ventas y compras, **IVA ventas** (letra por comprobante, NC en negativo, alícuota), **IVA compras** (formato libro real), **Posición IVA del mes** (débito − crédito − percepciones − retenciones → saldo a pagar o a favor), **Retenciones sufridas** (los certificados del mes, para el contador), mayores y plan de cuentas.
+En **Exportables** (elegís un mes y descargás CSV, o toda la **carpeta del período** en ZIP): subdiarios de ventas y compras, **IVA ventas** (letra por comprobante, NC en negativo, alícuota), **IVA compras** (formato libro real), **Posición IVA del mes** (débito − crédito − percepciones − retenciones → saldo a pagar o a favor), **Retenciones sufridas** (los certificados del mes, para el contador), mayores, **Valuación de inventario** (foto valorizada del stock a hoy: MP por lote y por material con promedio ponderado, PT e insumos — respaldo de Bienes de Cambio del balance) y plan de cuentas.
 
 ### 11.6 Correlatividad
 
@@ -695,6 +703,7 @@ El catálogo de tipos de acero / normas que después elegís en barras y certifi
 - **Compras:** IVA crédito fiscal, proveedores, compra de materia prima / insumos / herramientas, servicios de terceros, y la cuenta puente **GR/IR** (facturas a recibir).
 - **Caja y banco:** cuenta de caja (efectivo), cuenta de banco (transferencias), **cheques en cartera** (recibidos) y **cheques emitidos** (a pagar).
 - **Retenciones sufridas:** las cuentas de crédito fiscal donde van las retenciones que te aplican los clientes (Ganancias, IIBB, SUSS, IVA). Vienen preconfiguradas con las cuentas del plan de Vitalmet.
+- **Stock y ajustes de inventario:** las cuentas de stock (materia prima, producto terminado, insumos) y la cuenta de resultado **AJUSTES DE INVENTARIO** contra la que se asientan las diferencias de ajustes y conteos físicos. Vienen preconfiguradas (114002 / 114001 / 114003 / 421099).
 
 Completá y tocá **Guardar configuración**. Si dejás un campo en blanco, ese tipo de asiento automático queda desactivado.
 
