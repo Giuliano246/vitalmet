@@ -1478,8 +1478,9 @@ body.no-costos .solo-costos{display:none!important}
         <div class="form-group"><label>Nombre / Razón social *</label><input type="text" id="cliente-nombre" placeholder="Nombre del cliente"></div>
         <div class="form-group"><label>CUIT</label><input type="text" id="cliente-cuit" placeholder="20-12345678-9"></div>
       </div>
-      <div class="form-row single">
+      <div class="form-row">
         <div class="form-group"><label>Condición fiscal <span style="color:var(--text3);font-weight:400">(define la letra al facturar)</span></label><select id="cliente-cond-fiscal"><option value="">— sin definir —</option><option value="RI">Responsable Inscripto</option><option value="monotributo">Monotributista</option><option value="exento">Exento</option><option value="consumidor_final">Consumidor final</option></select></div>
+        <div class="form-group"><label>Límite de crédito (USD) <span style="color:var(--text3);font-weight:400">(vacío = sin límite)</span></label><input type="number" id="cliente-limite" min="0" step="100" placeholder="Sin límite"></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label>Contacto</label><input type="text" id="cliente-contacto" placeholder="Persona de contacto"></div>
@@ -3432,6 +3433,9 @@ async function saveVenta(){
     const bonifCab=parseFloat(g('v-bonif1'))||0;
     const totalBruto=ventaItemsList.reduce((a,i)=>{const sub=i.cant*(i.precio||0);const bi=parseFloat(i.bonif||0);return a+sub*(1-bi/100);},0);
     const totalVenta=totalBruto*(1-bonifCab/100);
+    // Semáforo de crédito: mora vencida y/o límite excedido → confirmar antes de tomar el pedido
+    const avisosCred=avisosCreditoCliente(g('v-cliente'),isEdit?0:totalVenta);
+    if(avisosCred&&!confirm(`⚠ ${g('v-cliente')}:\n\n• ${avisosCred.join('\n• ')}\n\n¿Registrar el pedido igual?`))return;
     // Cliente + cabecera + items + descuento de stock en UNA transacción (RPC).
     // Si el stock no alcanza al momento de guardar, no queda nada a medias.
     await RPC('guardar_venta',{
@@ -3753,6 +3757,8 @@ async function cambiarEstado(table,id,nuevoEstado){
       await contabilizarCheque(chequePrevio,nuevoEstado).catch(e=>{console.warn('Asiento de cheque no generado:',e);notify('Estado cambiado, pero el asiento del cheque falló: '+e.message,'err');});
     if(table==='ordenes_produccion'&&nuevoEstado==='completada')
       await persistirCostoRealOP(id).catch(e=>console.warn('Costo real no persistido:',e));
+    if(table==='ventas'&&nuevoEstado==='entregado')
+      await encolarEmailEstadoVenta(id,'pedido_despachado');
     await reload(table);renderAll();notify('Estado actualizado');
   }catch(e){console.error('cambiarEstado',e);notify('Error: '+e.message,'err');renderAll();}
 }
@@ -3841,6 +3847,25 @@ function leadTimesMaterial(nombre){
   return muestras;
 }
 // Cálculo de reposición para un material (todo en metros/mes).
+// ─── Compras en tránsito + última compra (tests/automatizacion.test.js) ──
+const OC_ESTADOS_TRANSITO=['enviada','confirmada','recibida_parcial'];
+function enTransitoMaterial(nombre,items,ocs){
+  return (items||[]).filter(i=>i.material===nombre).reduce((a,i)=>{
+    const oc=(ocs||[]).find(o=>o.id===i.oc_id);
+    if(!oc||!OC_ESTADOS_TRANSITO.includes(oc.estado))return a;
+    return a+Math.max(0,(parseFloat(i.cantidad)||0)-(parseFloat(i.cantidad_recibida)||0));
+  },0);
+}
+function ultimaCompraMaterial(nombre,items,ocs){
+  let best=null,bestFecha='';
+  (items||[]).forEach(i=>{
+    if(i.material!==nombre)return;
+    const oc=(ocs||[]).find(o=>o.id===i.oc_id);
+    if(!oc||oc.estado==='anulada'||!oc.fecha)return;
+    if(oc.fecha>=bestFecha){bestFecha=oc.fecha;best={proveedor_id:oc.proveedor_id,fecha:oc.fecha,descripcion:i.descripcion||'',perfil:i.perfil||'',diametro:i.diametro||'',unidad:i.unidad||'mts',precio_unitario:parseFloat(i.precio_unitario)||0};}
+  });
+  return best;
+}
 function calcReordenMaterial(nombre){
   const mat=(materiales||[]).find(m=>m.nombre===nombre);
   const porMes={};
@@ -3862,8 +3887,10 @@ function calcReordenMaterial(nombre){
   const ss=z*Math.sqrt(ltM*sigmaD*sigmaD + dProm*dProm*sLtM*sLtM);
   const rop=dProm*ltM+ss;
   const disponible=(barras||[]).filter(b=>b.material===nombre).reduce((a,b)=>a+(parseFloat(b.kg_disponibles)||0),0);
+  // OC en tránsito (enviada/confirmada/recibida_parcial): ya está pedido, no volver a pedirlo
+  const enTransito=enTransitoMaterial(nombre,ocItems,ordenesCompra);
   const sinDatos=nMeses===0||dProm===0;
-  return {nombre,nMeses,dProm,sigmaD,ltDias,sigmaLtDias,fuenteLT,z,ss,rop,disponible,aPedir:Math.max(0,rop-disponible),sinDatos,bajo:!sinDatos&&disponible<=rop};
+  return {nombre,nMeses,dProm,sigmaD,ltDias,sigmaLtDias,fuenteLT,z,ss,rop,disponible,enTransito,aPedir:Math.max(0,rop-disponible-enTransito),sinDatos,bajo:!sinDatos&&(disponible+enTransito)<=rop};
 }
 function calcReordenTodos(){
   const nombres=new Set();
@@ -3886,19 +3913,37 @@ function renderReposicion(){
     <div class="table-wrap"><table style="font-size:12px"><thead><tr>
       <th>Material</th><th style="text-align:right">Consumo/mes</th><th style="text-align:right">Lead time</th>
       <th style="text-align:right">Punto reorden</th><th style="text-align:right">Disponible</th>
-      <th style="text-align:right">A pedir</th><th>Estado</th></tr></thead><tbody>`+
+      <th style="text-align:right">En tránsito</th>
+      <th style="text-align:right">A pedir</th><th>Estado</th><th></th></tr></thead><tbody>`+
     rows.map(r=>`<tr>
       <td class="td-primary">${esc(r.nombre)}</td>
       <td class="mono" style="text-align:right">${r.dProm.toFixed(0)} mts${r.nMeses<3?' <span style="color:var(--text3)" title="pocos meses de historial, baja confianza">⚠</span>':''}</td>
       <td class="mono" style="text-align:right" title="fuente: ${fuente[r.fuenteLT]}">${r.ltDias.toFixed(0)} d${r.fuenteLT==='default'?' *':''}</td>
       <td class="mono" style="text-align:right">${r.rop.toFixed(0)} mts</td>
       <td class="mono" style="text-align:right;color:${r.bajo?'var(--red)':'var(--text)'}">${r.disponible.toFixed(0)} mts</td>
+      <td class="mono" style="text-align:right;color:${r.enTransito>0?'var(--blue)':'var(--text3)'}" title="pedido en OC enviada/confirmada, todavía sin recibir">${r.enTransito>0?r.enTransito.toFixed(0)+' mts':'—'}</td>
       <td class="mono" style="text-align:right;font-weight:700;color:${r.aPedir>0?'var(--accent)':'var(--text3)'}">${r.aPedir>0?r.aPedir.toFixed(0)+' mts':'—'}</td>
       <td>${r.bajo?'<span class="badge badge-warn">REPONER</span>':'<span class="badge badge-ok">OK</span>'}</td>
+      <td>${r.aPedir>0?`<button class="btn btn-ghost btn-sm" onclick="generarOCDesdeReposicion(this.dataset.m)" data-m="${esc(r.nombre)}" style="border-color:var(--accent);color:var(--accent)">Generar OC</button>`:''}</td>
     </tr>`).join('')+
     `</tbody></table></div>
-    <div style="font-size:11px;color:var(--text3);margin-top:8px">Punto de reorden = consumo durante el lead time + safety stock <span class="mono">Z·√(LT·σ²consumo + consumo²·σ²LT)</span>. Configurá lead time y nivel de servicio en Configuración → Materiales. <b>*</b> = lead time por defecto (30 d), conviene cargarlo. <b>⚠</b> = poco historial.</div>
+    <div style="font-size:11px;color:var(--text3);margin-top:8px">Punto de reorden = consumo durante el lead time + safety stock <span class="mono">Z·√(LT·σ²consumo + consumo²·σ²LT)</span>. "A pedir" ya descuenta lo que viene en camino (OC enviadas/confirmadas). Configurá lead time y nivel de servicio en Configuración → Materiales. <b>*</b> = lead time por defecto (30 d), conviene cargarlo. <b>⚠</b> = poco historial.</div>
   </div>`;
+}
+
+// Pre-carga una OC borrador con la sugerencia de reposición y los datos
+// de la última compra del material (proveedor, precio, perfil/diámetro).
+function generarOCDesdeReposicion(nombre){
+  const r=calcReordenMaterial(nombre);
+  const u=ultimaCompraMaterial(nombre,ocItems,ordenesCompra);
+  openOCModal(null);
+  if(u?.proveedor_id&&proveedores.some(p=>p.id===u.proveedor_id))
+    document.getElementById('oc-proveedor').value=u.proveedor_id;
+  const cant=Math.ceil(r.aPedir||0)||1;
+  const precio=u?.precio_unitario||0;
+  ocItemsDraft=[{tipo:'materia_prima',descripcion:u?.descripcion||nombre,material:nombre,perfil:u?.perfil||'',diametro:u?.diametro||'',cantidad:cant,unidad:u?.unidad||'mts',precio_unitario:precio,subtotal:cant*precio,cantidad_recibida:0}];
+  renderOCItems();calcOCTotal();
+  notify(u?`OC pre-cargada con la última compra de ${nombre} (${u.fecha}) — revisá proveedor y precio`:`OC pre-cargada — ${nombre} no tiene compras previas, completá proveedor y precio`);
 }
 
 function renderMP(filter=''){
@@ -4190,6 +4235,58 @@ function renderVentas(filter=''){
 // Consolida todo lo accionable en un panel arriba del dashboard y un
 // contador en el sidebar. Severidad: crit (rojo) = plata o entregas
 // comprometidas; warn (ámbar) = conviene mirarlo esta semana.
+// ─── Crédito y clientes inactivos (tests/automatizacion.test.js) ─────
+function chequearCredito({limite,saldo,vencido,totalNuevo}){
+  limite=parseFloat(limite)||0;
+  saldo=Math.max(0,parseFloat(saldo)||0);
+  vencido=parseFloat(vencido)||0;
+  totalNuevo=parseFloat(totalNuevo)||0;
+  const expuesto=saldo+totalNuevo;
+  return {
+    excedeLimite:limite>0&&expuesto>limite,
+    disponible:limite>0?Math.max(0,limite-saldo):null,
+    tieneMora:vencido>0.005,
+    vencido,expuesto
+  };
+}
+// Avisos de crédito para un cliente antes de tomarle un pedido nuevo.
+// Devuelve array de mensajes o null si está limpio. No bloquea: la
+// decisión final es de quien vende (confirm en saveVenta/convertir).
+function avisosCreditoCliente(nombreCliente,totalNuevo){
+  const cli=clientes.find(c=>(c.nombre||'').toLowerCase()===(nombreCliente||'').toLowerCase());
+  if(!cli)return null;
+  const cc=computeCtaCte().find(c=>c.cliente?.id===cli.id);
+  const chk=chequearCredito({
+    limite:cli.limite_credito,
+    saldo:cc?.saldo||0,
+    vencido:cc?(cc.buckets.d30+cc.buckets.d60+cc.buckets.d90+cc.buckets.mas90):0,
+    totalNuevo
+  });
+  const avisos=[];
+  if(chk.tieneMora)avisos.push(`Tiene ${fmtUSD(chk.vencido)} VENCIDOS en cuenta corriente.`);
+  if(chk.excedeLimite)avisos.push(`Supera su límite de crédito: quedaría expuesto en ${fmtUSD(chk.expuesto)} sobre un límite de ${fmtUSD(parseFloat(cli.limite_credito))}.`);
+  return avisos.length?avisos:null;
+}
+// Clientes con historial de compras cuya última venta quedó a 90+ días.
+// Los que nunca compraron no cuentan (son prospectos, no inactivos).
+function clientesInactivos(clientesArr,ventasArr,hoy){
+  const ultima={};
+  (ventasArr||[]).forEach(v=>{
+    if(v.estado==='anulada')return;
+    const f=v.fecha||(v.created_at||'').slice(0,10);if(!f)return;
+    if(v.cliente_id&&(!ultima[v.cliente_id]||f>ultima[v.cliente_id]))ultima[v.cliente_id]=f;
+    const kn='n:'+(v.cliente||'').toLowerCase();
+    if(v.cliente&&(!ultima[kn]||f>ultima[kn]))ultima[kn]=f;
+  });
+  const hoyMs=new Date(hoy+'T00:00:00').getTime();
+  return (clientesArr||[]).map(c=>{
+    const f=ultima[c.id]||ultima['n:'+(c.nombre||'').toLowerCase()];
+    if(!f)return null;
+    const dias=Math.floor((hoyMs-new Date(f+'T00:00:00').getTime())/86400000);
+    return dias>=90?{id:c.id,nombre:c.nombre,email:c.email||null,ultimaVenta:f,dias}:null;
+  }).filter(Boolean).sort((a,b)=>b.dias-a.dias);
+}
+
 function computeAlertas(){
   const hoy=hoyLocal();
   const en3d=hoyLocal(3);
@@ -4237,6 +4334,16 @@ function computeAlertas(){
   if(presVenc.length)out.push({sev:'warn',page:'presupuestos',count:presVenc.length,
     titulo:uno(presVenc.length,'Presupuesto enviado ya vencido — renegociar o cerrar','Presupuestos enviados ya vencidos — renegociar o cerrar'),
     detalle:presVenc.slice(0,3).map(p=>esc((p.nro||'')+' · '+(p.cliente||''))).join('  —  ')+masDe(presVenc)});
+
+  const inactivos=clientesInactivos(clientes,ventas,hoy);
+  const dormidos=inactivos.filter(c=>c.dias>=180);
+  const enfriandose=inactivos.filter(c=>c.dias<180);
+  if(dormidos.length)out.push({sev:'warn',page:'clientes',count:dormidos.length,
+    titulo:uno(dormidos.length,'Cliente sin comprar hace 180+ días — reactivar o dar por perdido','Clientes sin comprar hace 180+ días — reactivar o dar por perdidos'),
+    detalle:dormidos.slice(0,3).map(c=>esc(c.nombre)+` (${c.dias} d)`).join('  —  ')+masDe(dormidos)});
+  if(enfriandose.length)out.push({sev:'warn',page:'clientes',count:enfriandose.length,
+    titulo:uno(enfriandose.length,'Cliente sin comprar hace 90+ días — momento de llamar','Clientes sin comprar hace 90+ días — momento de llamar'),
+    detalle:enfriandose.slice(0,3).map(c=>esc(c.nombre)+` (${c.dias} d)`).join('  —  ')+masDe(enfriandose)});
 
   const insBajo=insumos.filter(i=>parseFloat(i.stock_minimo||0)>0&&parseFloat(i.cantidad||0)<=parseFloat(i.stock_minimo||0));
   if(insBajo.length)out.push({sev:'warn',page:'insumos',count:insBajo.length,
@@ -7986,7 +8093,7 @@ function renderClientes(filter=''){
 function openModalCliente(){
   document.getElementById('modal-cliente-title').textContent='Nuevo cliente';
   document.getElementById('cliente-edit-id').value='';
-  resetF(['cliente-nombre','cliente-cuit','cliente-contacto','cliente-telefono','cliente-email','cliente-direccion','cliente-notas']);
+  resetF(['cliente-nombre','cliente-cuit','cliente-contacto','cliente-telefono','cliente-email','cliente-direccion','cliente-notas','cliente-limite']);
   document.getElementById('cliente-cond-fiscal').value='';
   document.getElementById('modal-cliente').classList.add('open');
 }
@@ -7998,6 +8105,7 @@ function editCliente(id){
   document.getElementById('cliente-nombre').value=c.nombre;
   document.getElementById('cliente-cuit').value=c.cuit||'';
   document.getElementById('cliente-cond-fiscal').value=c.condicion_fiscal||'';
+  document.getElementById('cliente-limite').value=c.limite_credito!=null?c.limite_credito:'';
   document.getElementById('cliente-contacto').value=c.contacto||'';
   document.getElementById('cliente-telefono').value=c.telefono||'';
   document.getElementById('cliente-email').value=c.email||'';
@@ -8018,6 +8126,7 @@ async function saveCliente(){
       nombre,
       cuit:cuitVal||null,
       condicion_fiscal:document.getElementById('cliente-cond-fiscal').value||null,
+      limite_credito:parseFloat(document.getElementById('cliente-limite').value)||null,
       contacto:document.getElementById('cliente-contacto').value.trim()||null,
       telefono:document.getElementById('cliente-telefono').value.trim()||null,
       email:document.getElementById('cliente-email').value.trim()||null,
@@ -8798,7 +8907,13 @@ const SEED_TEMPLATES=[
  {tipo:'cobranza',nombre:'Recordatorio de cobranza',subject:'Vitalmet SA — Recordatorio de saldo pendiente',
   body_html:'<p>Estimado/a {cliente}:</p><p>Le recordamos que registra un saldo vencido de <b>{monto}</b> con hasta {dias} días de atraso.</p><p>Comprobantes: {detalle}</p><p>Si el pago ya fue realizado, por favor desestime este correo y avísenos para conciliarlo.</p><p>Saludos cordiales,<br>Vitalmet SA — Administración</p>'},
  {tipo:'seguimiento_presupuesto',nombre:'Seguimiento de presupuesto',subject:'Vitalmet SA — Seguimiento presupuesto {nro}',
-  body_html:'<p>Estimado/a {cliente}:</p><p>Le escribimos para hacer seguimiento del presupuesto <b>{nro}</b> enviado hace {dias} días.</p><p>Quedamos a disposición por cualquier consulta técnica o comercial, o para ajustar la propuesta si hiciera falta.</p><p>Saludos cordiales,<br>Vitalmet SA — Ventas</p>'}
+  body_html:'<p>Estimado/a {cliente}:</p><p>Le escribimos para hacer seguimiento del presupuesto <b>{nro}</b> enviado hace {dias} días.</p><p>Quedamos a disposición por cualquier consulta técnica o comercial, o para ajustar la propuesta si hiciera falta.</p><p>Saludos cordiales,<br>Vitalmet SA — Ventas</p>'},
+ {tipo:'reactivacion',nombre:'Reactivación de cliente inactivo',subject:'Vitalmet SA — ¿Los ayudamos con algún repuesto?',
+  body_html:'<p>Estimado/a {cliente}:</p><p>Hace un tiempo que no recibimos pedidos suyos y queríamos saber si podemos ayudarlos con repuestos, mecanizados a plano o algún desarrollo pendiente.</p><p>Seguimos trabajando con los mismos estándares de calidad certificada (ISO 9001) y plazos de entrega que conocen.</p><p>Quedamos a disposición.</p><p>Saludos cordiales,<br>Vitalmet SA — Ventas</p>'},
+ {tipo:'pedido_confirmado',nombre:'Pedido confirmado',subject:'Vitalmet SA — Pedido {nro} confirmado',
+  body_html:'<p>Estimado/a {cliente}:</p><p>Confirmamos el ingreso de su pedido <b>{nro}</b> con fecha {fecha}.</p><p>Fecha de entrega estimada: <b>{entrega}</b>.</p><p>Le avisaremos cuando el material esté despachado.</p><p>Saludos cordiales,<br>Vitalmet SA — Ventas</p>'},
+ {tipo:'pedido_despachado',nombre:'Pedido despachado',subject:'Vitalmet SA — Pedido {nro} despachado',
+  body_html:'<p>Estimado/a {cliente}:</p><p>Le informamos que su pedido <b>{nro}</b> fue despachado el {fecha}.</p><p>El remito acompaña la mercadería. Ante cualquier diferencia en la recepción, avísenos dentro de las 48 hs.</p><p>Gracias por confiar en nosotros.</p><p>Saludos cordiales,<br>Vitalmet SA — Expedición</p>'}
 ];
 
 async function generarRecordatoriosAuto(){
@@ -8818,18 +8933,26 @@ async function generarRecordatoriosAuto(){
     if(seeded)await ensureMailingsData(true);
     const tplCob=emailTemplates.find(t=>t.tipo==='cobranza'&&t.activo!==false);
     const tplSeg=emailTemplates.find(t=>t.tipo==='seguimiento_presupuesto'&&t.activo!==false);
+    const tplRea=emailTemplates.find(t=>t.tipo==='reactivacion'&&t.activo!==false);
     const nuevos=[];const sinEmail=[];
-    const hace7dIso=new Date(Date.now()-7*86400000).toISOString();
     const yaEncolado=(clienteId,marca)=>emailQueue.some(e=>
       ((clienteId&&e.cliente_id===clienteId)||(marca&&(e.subject||'').includes(marca)))&&
-      (['pendiente_aprobacion','aprobado'].includes(e.estado)||(e.estado==='enviado'&&e.enviado_at&&e.enviado_at>hace7dIso)));
+      ['pendiente_aprobacion','aprobado'].includes(e.estado));
+    // La cola no trae los 'enviado' (filtro de ensureMailingsData): el
+    // anti-re-spam de enviados recientes se mira en email_log.
+    const enviadoReciente=(clienteId,ventanaDias)=>{
+      const desde=new Date(Date.now()-ventanaDias*86400000).toISOString();
+      return emailLog.some(l=>l.cliente_id===clienteId&&(l.sent_at||l.created_at||'')>desde);
+    };
+    const ctacte=computeCtaCte();
+    const conDeudaVencida=new Set(ctacte.filter(c=>c.cliente&&(c.buckets.d30+c.buckets.d60+c.buckets.d90+c.buckets.mas90)>0.005).map(c=>c.cliente.id));
     // 1) Cobranzas vencidas (aging FIFO de la cta cte)
     if(tplCob){
       const hoyMs=Date.now();
-      computeCtaCte().filter(c=>c.cliente&&(c.buckets.d30+c.buckets.d60+c.buckets.d90+c.buckets.mas90)>0.005).forEach(c=>{
+      ctacte.filter(c=>c.cliente&&(c.buckets.d30+c.buckets.d60+c.buckets.d90+c.buckets.mas90)>0.005).forEach(c=>{
         const cli=c.cliente;
         if(!cli.email){sinEmail.push(c.nombre);return;}
-        if(yaEncolado(cli.id,null))return;
+        if(yaEncolado(cli.id,null)||enviadoReciente(cli.id,7))return;
         const vencido=c.buckets.d30+c.buckets.d60+c.buckets.d90+c.buckets.mas90;
         const atrasos=c.cargos.filter(x=>x.venc&&x.venc<hoy).map(x=>Math.floor((hoyMs-new Date(x.venc+'T00:00:00').getTime())/86400000));
         const diasMax=atrasos.length?Math.max(...atrasos):0;
@@ -8850,6 +8973,16 @@ async function generarRecordatoriosAuto(){
         nuevos.push({empresa_id:currentEmpresa.id,cliente_id:cli.id,template_id:tplSeg.id,to_email:cli.email,to_nombre:cli.nombre,subject,body_html:body,scheduled_at:new Date().toISOString(),created_by:currentUser.id});
       });
     }
+    // 3) Clientes inactivos 90+ días (reactivación comercial)
+    if(tplRea){
+      clientesInactivos(clientes,ventas,hoy).forEach(ci=>{
+        if(!ci.email){sinEmail.push(ci.nombre);return;}
+        if(conDeudaVencida.has(ci.id))return; // primero la cobranza, después venderle de nuevo
+        if(yaEncolado(ci.id,null)||enviadoReciente(ci.id,60))return; // no insistir más de 1 vez cada 60 días
+        const {subject,body}=resolverTemplate(tplRea,{cliente:ci.nombre,dias:String(ci.dias)});
+        nuevos.push({empresa_id:currentEmpresa.id,cliente_id:ci.id,template_id:tplRea.id,to_email:ci.email,to_nombre:ci.nombre,subject,body_html:body,scheduled_at:new Date().toISOString(),created_by:currentUser.id});
+      });
+    }
     if(nuevos.length){
       await POST('email_queue',nuevos);
       await ensureMailingsData(true);
@@ -8858,6 +8991,30 @@ async function generarRecordatoriosAuto(){
     if(sinEmail.length)console.warn('Clientes sin email para recordatorios:',[...new Set(sinEmail)]);
     localStorage.setItem('lastMailGen',hoy);
   }catch(e){console.error('generarRecordatoriosAuto:',e);}
+}
+
+// Encola un aviso de estado de pedido (confirmado / despachado) para el
+// cliente de la venta. Va a la cola con aprobación: nada sale solo.
+async function encolarEmailEstadoVenta(ventaId,tipo){
+  try{
+    if(window._modoContador)return;
+    await ensureMailingsData();
+    let tpl=emailTemplates.find(t=>t.tipo===tipo&&t.activo!==false);
+    if(!tpl){
+      const seed=SEED_TEMPLATES.find(s=>s.tipo===tipo);if(!seed)return;
+      const r=await POST('email_templates',{empresa_id:currentEmpresa.id,...seed,activo:true});
+      tpl=r[0];await ensureMailingsData(true);
+    }
+    const v=ventas.find(x=>x.id===ventaId)||(await GET('ventas',`?id=eq.${ventaId}`))[0];
+    if(!v)return;
+    const cli=clientes.find(c=>c.id===v.cliente_id)||clientes.find(c=>(c.nombre||'').toLowerCase()===(v.cliente||'').toLowerCase());
+    if(!cli?.email)return; // sin email no hay aviso (se ve en consola de recordatorios)
+    if(emailQueue.some(e=>e.venta_id===ventaId&&e.template_id===tpl.id&&e.estado!=='cancelado'))return;
+    const {subject,body}=resolverTemplate(tpl,{cliente:cli.nombre,nro:v.nro_remito||'',fecha:v.fecha||hoyLocal(),entrega:v.fecha_entrega_hasta||'a coordinar'});
+    await POST('email_queue',{empresa_id:currentEmpresa.id,venta_id:ventaId,cliente_id:cli.id,template_id:tpl.id,to_email:cli.email,to_nombre:cli.nombre,subject,body_html:body,scheduled_at:new Date().toISOString(),created_by:currentUser.id});
+    await ensureMailingsData(true);
+    notify('✉ Aviso al cliente encolado — aprobalo en Ventas → Mailings');
+  }catch(e){console.warn('encolarEmailEstadoVenta:',e);}
 }
 
 // ═══ MAILINGS — cola de aprobación, templates, historial ═══
@@ -8896,7 +9053,7 @@ async function renderMailings(){
     ['Enviados (histórico)',emailLog.length,'var(--green)']
   ].map(([l,v,c])=>`<div class="stat-card"><div class="stat-label">${l}</div><div class="stat-value" style="color:${c}">${v}</div></div>`).join('');
   const badge=e=>e.estado==='pendiente_aprobacion'?'<span class="badge badge-warn">PENDIENTE</span>':e.estado==='aprobado'?'<span class="badge badge-blue">APROBADO</span>':`<span class="badge badge-coral" title="${esc(e.error_texto||'')}">FALLIDO</span>`;
-  document.getElementById('mail-cola-tbody').innerHTML=emailQueue.length?emailQueue.map(e=>`<tr data-id="${e.id}"><td>${esc(e.to_nombre||'')} <span class="mono" style="color:var(--text3);font-size:10px">${esc(e.to_email)}</span></td><td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(e.subject)}">${esc(e.subject)}</td><td class="mono" style="font-size:10px;color:var(--text3)">${e.venta_id?'venta':e.cliente_id?'cliente':'—'}</td><td class="mono" style="font-size:11px">${(e.created_at||'').slice(0,10)}</td><td>${badge(e)}</td><td style="display:flex;gap:4px">${e.estado!=='aprobado'?`<button class="btn btn-ghost btn-sm" onclick="openEmailPreview('${e.id}')">Ver / Editar</button><button class="btn btn-sm" style="background:var(--green);color:white" onclick="aprobarEmail('${e.id}')" title="Aprobar">✓</button>`:''}<button class="btn btn-danger btn-sm" onclick="cancelarEmail('${e.id}')" title="Cancelar">✗</button></td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">Sin emails en cola. Los recordatorios se generan solos cada mañana al abrir el ERP.</td></tr>';
+  document.getElementById('mail-cola-tbody').innerHTML=emailQueue.length?emailQueue.map(e=>`<tr data-id="${e.id}"><td>${esc(e.to_nombre||'')} <span class="mono" style="color:var(--text3);font-size:10px">${esc(e.to_email)}</span></td><td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(e.subject)}">${esc(e.subject)}</td><td class="mono" style="font-size:10px;color:var(--text3)">${e.venta_id?'venta':e.cliente_id?'cliente':'—'}</td><td class="mono" style="font-size:11px">${(e.created_at||'').slice(0,10)}</td><td>${badge(e)}</td><td style="display:flex;gap:4px">${e.estado!=='aprobado'?`<button class="btn btn-ghost btn-sm" onclick="openEmailPreview('${e.id}')">Ver / Editar</button><button class="btn btn-sm" style="background:var(--green);color:white" onclick="aprobarEmail('${e.id}')" title="Aprobar">✓</button>`:''}<button class="btn btn-danger btn-sm" onclick="cancelarEmail('${e.id}')" title="Cancelar">✗</button></td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">Sin emails en cola. Los recordatorios se generan solos cada mañana al abrir el ERP; los aprobados salen automáticamente cada 15 minutos en horario laboral.</td></tr>';
   document.getElementById('mail-templates-tbody').innerHTML=emailTemplates.length?emailTemplates.map(t=>`<tr><td style="font-weight:500">${esc(t.nombre)}</td><td><span class="badge badge-blue">${esc(t.tipo)}</span></td><td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.subject)}</td><td>${t.activo!==false?'<span class="badge badge-ok">Sí</span>':'<span class="badge">No</span>'}</td><td><button class="btn btn-ghost btn-sm" onclick="openTemplateEdit('${t.id}')">Editar</button></td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:24px">Sin templates — se crean solos con el primer ciclo de recordatorios</td></tr>';
   document.getElementById('mail-log-tbody').innerHTML=emailLog.length?emailLog.map(l=>`<tr><td class="mono" style="font-size:11px">${(l.created_at||'').slice(0,16).replace('T',' ')}</td><td>${esc(l.to_email)}</td><td>${esc(l.subject)}</td></tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:var(--text3);padding:24px">Sin envíos todavía</td></tr>';
 }
@@ -10692,12 +10849,15 @@ async function deletePresupuesto(id){
 }
 async function convertirPresupuesto(id){
   const p=presupuestos.find(x=>x.id===id);if(!p)return;
+  const avisosCred=avisosCreditoCliente(p.cliente,parseFloat(p.total)||0);
+  if(avisosCred&&!confirm(`⚠ ${p.cliente}:\n\n• ${avisosCred.join('\n• ')}\n\n¿Convertir el presupuesto igual?`))return;
   if(!confirm(`¿Convertir presupuesto "${p.nro}" en venta?\nCliente: ${p.cliente}\nTotal: ${fmtUSD(p.total)}`))return;
   try{
     // Atómico en la DB: numera V-xxxxx bajo lock (sin duplicados), upsertea
     // el cliente, crea venta + items y marca el presupuesto como convertido.
     const r=await RPC('convertir_presupuesto',{p_presupuesto_id:id});
     await loadAll();renderAll();notify(`✓ Venta ${r.nro} creada desde presupuesto`);
+    if(r?.id)await encolarEmailEstadoVenta(r.id,'pedido_confirmado');
   }catch(e){console.error('convertirPresupuesto error',e);notify('Error al convertir: '+(e.message||'ver consola'),'err');}
 }
 

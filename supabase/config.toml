@@ -1,0 +1,8 @@
+# Config de Supabase CLI para deployar la Edge Function del mailer.
+# La autenticación de invocación es por header x-mailer-secret (la
+# valida la propia función), no por JWT: el caller es pg_net desde la
+# base (cron 'vitalmet-mailer', migración 057).
+project_id = "dqvlqhaxgvtilhiuatpv"
+
+[functions.vitalmet-mailer]
+verify_jwt = false

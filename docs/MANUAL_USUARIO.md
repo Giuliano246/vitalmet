@@ -144,6 +144,11 @@ Stock de barras de acero que se consumen en producción.
 
 **Buscar:** por tipo, OC o lote. Las barras por debajo del mínimo aparecen marcadas.
 
+**Reposición sugerida:** abajo de la tabla, el sistema calcula por material el **punto de reorden** (consumo promedio durante el lead time + safety stock) y cuánto conviene pedir:
+
+- La columna **En tránsito** muestra lo que ya está pedido en OC enviadas/confirmadas y todavía no se recibió — el "A pedir" **ya lo descuenta**, así no pedís dos veces lo mismo.
+- El botón **Generar OC** arma una orden de compra borrador pre-cargada con la sugerencia: cantidad a pedir, y el **proveedor, precio y medida de la última compra** de ese material. Revisá proveedor y precio, y guardá — es una OC normal desde ahí en adelante.
+
 ### 5.2 Productos terminados (PT)
 
 Stock de piezas listas para vender.
@@ -370,10 +375,12 @@ Presupuesto → (aprobado) → Venta → (entregado) → Facturar (AFIP) → Cob
 
 ### 8.1 Clientes
 
-**Para cargar:** **+ Nuevo cliente** → **Razón social** *, **CUIT**, **Condición fiscal**, **Contacto**, **Teléfono**, **Email**, **Dirección**, **Notas**. Guardá.
+**Para cargar:** **+ Nuevo cliente** → **Razón social** *, **CUIT**, **Condición fiscal**, **Límite de crédito**, **Contacto**, **Teléfono**, **Email**, **Dirección**, **Notas**. Guardá.
 
 - El **CUIT se valida** (dígito verificador): si está mal tipeado, no deja guardar.
 - La **condición fiscal** (Responsable Inscripto, Monotributista, Exento, Consumidor final) define **qué letra de factura recibe** el cliente al facturarle (A o B). Cargala antes de facturar: si el cliente tiene CUIT y no tiene condición definida, el botón Facturar te la va a pedir.
+- El **límite de crédito** (USD, vacío = sin límite) arma un **semáforo al vender**: si al registrar un pedido o convertir un presupuesto el cliente queda expuesto por encima del límite, o **tiene saldo vencido** en cuenta corriente, el sistema te lo avisa y te pide confirmación. No bloquea — la decisión final es tuya — pero no vendés a ciegas.
+- Si un cliente con historial pasa **90 días sin comprar**, salta una alerta en el tablero ("momento de llamar"); a los **180 días** se marca como dormido. Además, el generador de recordatorios le encola un **mail de reactivación** (con tu aprobación previa, máximo uno cada 60 días).
 
 - **Importar Excel:** para cargar muchos de una. Detecta duplicados por CUIT (o por nombre).
 - **Ficha del cliente:** tocá el nombre para ver su historial completo (presupuestos, ventas, facturas, pagos).
@@ -430,6 +437,8 @@ pendiente entrega → entregado → facturado
 - **Anular** — da de baja la venta (queda registro de auditoría).
 - **Excel** — exporta el listado.
 
+Al pasar una venta a **entregado**, el sistema encola un mail de **"pedido despachado"** para el cliente (si tiene email cargado) — lo aprobás en Ventas → Mailings antes de que salga. Lo mismo con **"pedido confirmado"** al convertir un presupuesto.
+
 > **Ojo:** una vez que la venta tiene **CAE**, no se puede editar (lo bloquea el sistema). Revisá bien **antes** de facturar.
 
 ### 8.4 Cuenta corriente
@@ -442,6 +451,25 @@ Muestra cuánto te debe cada cliente y desde hace cuánto.
 - La imputación es **FIFO**: los cobros se aplican primero a las facturas más viejas.
 
 Tocá un cliente para ver el detalle por factura. Exportás con **Excel**.
+
+### 8.5 Mailings (recordatorios y avisos automáticos)
+
+El ERP genera mails solos, pero **nada sale sin tu aprobación**: todo pasa por la cola de **Ventas → Mailings**.
+
+**Qué se genera automáticamente (una vez por día, al abrir el ERP):**
+- **Recordatorio de cobranza** — clientes con saldo vencido en cuenta corriente (con detalle de comprobantes y días de atraso).
+- **Seguimiento de presupuesto** — presupuestos enviados hace 7+ días sin respuesta.
+- **Reactivación** — clientes con historial que llevan 90+ días sin comprar (máximo un mail cada 60 días; si además deben plata, primero va la cobranza).
+
+**Qué se genera por evento:**
+- **Pedido confirmado** — al convertir un presupuesto en venta.
+- **Pedido despachado** — al pasar una venta a `entregado`.
+
+**Cómo funciona la cola:** cada mail queda **PENDIENTE** hasta que lo apruebes (podés editarlo antes con **Ver / Editar**, o cancelarlo). Los aprobados **salen solos**: un proceso del servidor los despacha **cada 15 minutos en horario laboral** (configurable), aunque nadie tenga el ERP abierto. Lo enviado queda en el **historial**.
+
+Los textos salen de **plantillas editables** (pestaña Templates) con variables como `{cliente}`, `{monto}`, `{nro}`.
+
+> **Requisito para el envío real:** la casilla de Office 365 tiene que estar conectada (integración con Microsoft, se configura una sola vez). Hasta entonces los mails aprobados quedan esperando en la cola, no se pierden.
 
 ---
 
