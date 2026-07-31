@@ -571,7 +571,18 @@ El **Product Quality Plan** es el routing modelo de cada producto crítico (uni�
 
 **Cómo se usa:** al fabricar ese producto, en la OP → **Tiempos** → botón **PQP** elegís la plantilla y el sistema instancia todos los pasos de una (ver [6.1](#61-pasos-de-producción-tiempos-y-puntos-de-control-pqp)). Así todas las OPs del mismo producto siguen el mismo plan, siempre.
 
-### 10.5 Retención de evidencia
+### 10.5 SGC — Tablero, revisión por dirección, auditorías y competencias
+
+La pestaña **SGC** (dentro de Calidad) junta los rituales que pide ISO 9001 / API Q1 para certificar:
+
+- **Tablero:** KPIs de calidad del período (OTD, NC nuevas y abiertas, CAPA abiertas/vencidas, calibraciones vencidas, auditorías) más el **registro de certificados de conformidad emitidos**. Cada certificado que generás desde Ventas queda numerado correlativamente (**CC-0001, CC-0002…**) y registrado con su snapshot de piezas y coladas; reimprimir usa el mismo número.
+- **Revisión por la dirección** (§9.3): tocá **Nueva revisión**, elegí el período y el sistema **congela los KPIs automáticamente** — vos cargás asistentes, decisiones y acciones. Al **cerrarla** queda inmutable (no se puede editar ni borrar: es un registro del SGC). Mínimo una por año.
+- **Auditorías internas** (§9.2): cargá el programa anual (fecha planificada) y ejecutá cada auditoría cargando **hallazgos** tipificados (conforme, observación, NC menor/mayor, oportunidad) con su cláusula. Desde un hallazgo NC, el botón **Generar NC** crea la No Conformidad en NCR/CAPA con origen "auditoría" y las deja vinculadas. Las planificadas vencidas saltan en las alertas del tablero.
+- **Competencias** (§7.2): matriz persona × habilidad con nivel (en formación / calificado / experto), fecha, vencimiento y evidencia. Es lo que respalda ante el auditor que quien firmó un signoff estaba calificado. Las calificaciones vencidas o por vencer (30 días) saltan en alertas.
+
+**Modo auditor:** en Configuración → Usuarios podés marcar a un usuario como **Auditor (solo lectura)** — ideal para el auditor de certificación: ve todo el SGC, producción e inventario pero no puede tocar nada (mismo cerrojo doble del Modo Contador, garantizado por la base de datos).
+
+### 10.6 Retención de evidencia
 
 Los registros de calidad —NC, CAPA, documentos controlados, ensayos, calibraciones— **no se pueden borrar** (retención de 10 años, API Q1 4.5). Si algo quedó mal cargado:
 - Corregilo editándolo, o

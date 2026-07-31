@@ -739,6 +739,48 @@ body.no-costos .solo-costos{display:none!important}
       </div>
     </div>
 
+    <!-- SGC: tablero KPIs de calidad + certificados emitidos -->
+    <div class="page" id="page-kpiscalidad">
+      <div class="page-header"><div class="page-title">SGC — Tablero</div><div class="page-sub">// KPIs de calidad + registro de certificados emitidos</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div class="toolbar"><label style="font-size:12px;color:var(--text3)">Período:</label><input type="date" id="kpi-desde" onchange="renderKpisCalidad()" style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--text)"><input type="date" id="kpi-hasta" onchange="renderKpisCalidad()" style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:6px 8px;color:var(--text)"></div>
+        <div class="stats-bar" id="kpical-stats"></div>
+        <div class="dash-card" style="margin-top:14px">
+          <div class="dash-card-title">Certificados de conformidad emitidos</div>
+          <div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Nº</th><th>Fecha</th><th>Cliente</th><th>Remito</th><th>Piezas</th><th></th></tr></thead><tbody id="certemit-tbody"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SGC: revisión por la dirección -->
+    <div class="page" id="page-revdir">
+      <div class="page-header"><div class="page-title">Revisión por la dirección</div><div class="page-sub">// ISO 9001 §9.3 · API Q1 §5.1.3 — KPIs congelados + decisiones</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div class="toolbar"><div style="flex:1"></div><button class="btn btn-ghost" onclick="openRevDirModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva revisión</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Nº</th><th>Fecha</th><th>Período revisado</th><th>Asistentes</th><th>Estado</th><th></th></tr></thead><tbody id="revdir-tbody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- SGC: auditorías internas -->
+    <div class="page" id="page-auditorias">
+      <div class="page-header"><div class="page-title">Auditorías internas</div><div class="page-sub">// ISO 9001 §9.2 · API Q1 §5.9 — programa, hallazgos y NC</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="audit-stats"></div>
+        <div class="toolbar"><div style="flex:1"></div><button class="btn btn-ghost" onclick="openAuditoriaModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva auditoría</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Nº</th><th>Alcance</th><th>Auditor</th><th>Planificada</th><th>Realizada</th><th>Hallazgos</th><th>Estado</th><th></th></tr></thead><tbody id="auditorias-tbody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- SGC: matriz de competencias -->
+    <div class="page" id="page-competencias">
+      <div class="page-header"><div class="page-title">Matriz de competencias</div><div class="page-sub">// ISO 9001 §7.2 · API Q1 §5.3 — quién está calificado para qué</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="comp-stats"></div>
+        <div class="toolbar"><div class="search-box"><input type="text" placeholder="Buscar por persona o habilidad..." oninput="renderCompetencias(this.value)"></div><button class="btn btn-ghost" onclick="openCompetenciaModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva calificación</button></div>
+        <div id="competencias-body"></div>
+      </div>
+    </div>
+
     <!-- CONTABILIDAD: Plan de cuentas -->
     <div class="page" id="page-cuentas">
       <div class="page-header"><div class="page-title">Plan de cuentas</div><div class="page-sub">// estructura jerárquica · partida doble</div><div class="tabs"><div class="tab active">Todas</div></div></div>
@@ -1631,6 +1673,95 @@ body.no-costos .solo-costos{display:none!important}
 </div>
 
 <!-- MODAL: Editar barra -->
+<div class="modal-overlay" id="modal-revdir">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-header"><div class="modal-title" id="revdir-modal-title">Revisión por la dirección</div><button class="modal-close" onclick="closeModal('modal-revdir')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="revdir-edit-id">
+      <div class="form-row">
+        <div class="form-group"><label>Fecha de la revisión *</label><input type="date" id="revdir-fecha"></div>
+        <div class="form-group"><label>Asistentes</label><input type="text" id="revdir-asistentes" placeholder="Giuliano Vitale (Dirección), ..."></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Período revisado desde *</label><input type="date" id="revdir-desde" onchange="revdirRefrescarKpis()"></div>
+        <div class="form-group"><label>hasta *</label><input type="date" id="revdir-hasta" onchange="revdirRefrescarKpis()"></div>
+      </div>
+      <div id="revdir-kpis" style="background:var(--surface2);border-radius:6px;padding:12px;font-size:12px;margin-bottom:12px"></div>
+      <div class="form-row single"><div class="form-group"><label>Otras entradas revisadas</label><textarea id="revdir-temas" placeholder="Satisfacción de clientes, desempeño de proveedores, cambios que afectan al SGC, recursos..."></textarea></div></div>
+      <div class="form-row single"><div class="form-group"><label>Decisiones</label><textarea id="revdir-decisiones" placeholder="Qué se decidió sobre la mejora del SGC, los productos y los recursos..."></textarea></div></div>
+      <div class="form-row single"><div class="form-group"><label>Acciones (responsable y plazo)</label><textarea id="revdir-acciones" placeholder="1. Acción — responsable — fecha límite..."></textarea></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-revdir')">Cancelar</button>
+      <button class="btn btn-ghost" id="btn-save-revdir" onclick="saveRevDir(false)">Guardar borrador</button>
+      <button class="btn btn-primary" id="btn-cerrar-revdir" onclick="saveRevDir(true)">Cerrar revisión (inmutable)</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-auditoria">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-header"><div class="modal-title" id="auditoria-modal-title">Auditoría interna</div><button class="modal-close" onclick="closeModal('modal-auditoria')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="audit-edit-id">
+      <div class="form-row">
+        <div class="form-group"><label>Alcance (proceso / área) *</label><input type="text" id="audit-alcance" placeholder="Compras y evaluación de proveedores"></div>
+        <div class="form-group"><label>Auditor</label><input type="text" id="audit-auditor" placeholder="Nombre del auditor"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Criterios</label><input type="text" id="audit-criterios" placeholder="ISO 9001 §8.4 · PG-07"></div>
+        <div class="form-group"><label>Estado</label><select id="audit-estado"><option value="planificada">Planificada</option><option value="en_curso">En curso</option><option value="cerrada">Cerrada</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Fecha planificada</label><input type="date" id="audit-fecha-plan"></div>
+        <div class="form-group"><label>Fecha realizada</label><input type="date" id="audit-fecha-real"></div>
+      </div>
+      <div class="form-row single"><div class="form-group"><label>Conclusiones</label><textarea id="audit-conclusiones" placeholder="Conclusión general de la auditoría..."></textarea></div></div>
+      <div id="audit-hallazgos-section" style="display:none">
+        <div style="font-weight:600;font-size:12px;color:var(--accent);margin:8px 0 6px">Hallazgos</div>
+        <div id="audit-hallazgos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+        <div style="display:grid;grid-template-columns:150px 110px 1fr auto;gap:6px">
+          <select id="hallazgo-tipo" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:6px;color:var(--text);font-size:12px"><option value="conforme">Conforme</option><option value="observacion">Observación</option><option value="nc_menor">NC menor</option><option value="nc_mayor">NC mayor</option><option value="oportunidad">Oportunidad</option></select>
+          <input type="text" id="hallazgo-clausula" placeholder="§7.1.5" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:6px;color:var(--text);font-size:12px">
+          <input type="text" id="hallazgo-desc" placeholder="Descripción del hallazgo" style="background:var(--surface);border:1px solid var(--border);border-radius:3px;padding:6px;color:var(--text);font-size:12px">
+          <button class="btn btn-ghost btn-sm" onclick="addHallazgo()">+ Agregar</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-auditoria')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-auditoria" onclick="saveAuditoria()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-competencia">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="comp-modal-title">Calificación de competencia</div><button class="modal-close" onclick="closeModal('modal-competencia')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="comp-edit-id">
+      <div class="form-row">
+        <div class="form-group"><label>Persona *</label><input type="text" id="comp-persona" placeholder="Nombre y apellido" list="comp-personas-list"><datalist id="comp-personas-list"></datalist></div>
+        <div class="form-group"><label>Puesto</label><input type="text" id="comp-puesto" placeholder="Operario de torno"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Habilidad *</label><input type="text" id="comp-habilidad" placeholder="Torno CNC / Inspección dimensional" list="comp-habilidades-list"><datalist id="comp-habilidades-list"></datalist></div>
+        <div class="form-group"><label>Nivel</label><select id="comp-nivel"><option value="en_formacion">En formación</option><option value="calificado" selected>Calificado</option><option value="experto">Experto</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Fecha de calificación</label><input type="date" id="comp-fecha"></div>
+        <div class="form-group"><label>Vence <span style="color:var(--text3);font-weight:400">(vacío = no vence)</span></label><input type="date" id="comp-vence"></div>
+      </div>
+      <div class="form-row single"><div class="form-group"><label>Evidencia</label><input type="text" id="comp-evidencia" placeholder="Curso, certificado, evaluación interna, años de experiencia..."></div></div>
+      <div class="form-row single"><div class="form-group"><label>Observaciones</label><textarea id="comp-obs"></textarea></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-competencia')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-comp" onclick="saveCompetencia()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-kardex">
   <div class="modal" style="max-width:760px">
     <div class="modal-header"><div class="modal-title" id="kardex-title">Kardex</div><button class="modal-close" onclick="closeModal('modal-kardex')">×</button></div>
@@ -2334,6 +2465,10 @@ body.no-costos .solo-costos{display:none!important}
         <input type="checkbox" id="permisos-escontador" onchange="onContadorToggle(this)" style="width:15px;height:15px;accent-color:var(--accent)">
         <span>Contador (solo lectura)<br><span style="font-size:11px;color:var(--text3)">Puede ver pero no modificar nada — pensado para el contador del estudio. Al tildarlo se sugieren Contabilidad, Ventas, Compras y ver costos.</span></span>
       </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:5px;cursor:pointer;font-size:13px;margin-top:4px">
+        <input type="checkbox" id="permisos-esauditor" onchange="onAuditorToggle(this)" style="width:15px;height:15px;accent-color:var(--accent)">
+        <span>Auditor (solo lectura)<br><span style="font-size:11px;color:var(--text3)">Para el auditor de certificación ISO/API Q1: ve todo el SGC (calidad, producción, inventario) pero no puede modificar nada. Al tildarlo se sugieren los módulos de calidad.</span></span>
+      </label>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-permisos')">Cancelar</button>
@@ -2418,6 +2553,7 @@ let periodosContables=[];
 let correlatividad=[];
 let cuentasBancarias=[],extractoBancario=[];
 let documentosControlados=[],pqpPlantillas=[],pqpPlantillaOps=[],calibraciones=[],registrosCalidad=[],noConformidades=[],accionesCapa=[];
+let certEmitidos=[],revisionesDir=[],auditoriasInt=[],auditoriaHallazgos=[],competenciasList=[];
 let presupuestos=[],presupItemsList=[],presupItemsDraft=[];
 let certFileData=null,certFileName=null;
 
@@ -2997,10 +3133,14 @@ async function loadEmpresaAndStart(){
     await loadAll();
     // Cargar datos del usuario actual
     currentUserData=usuariosEmpresa.find(u=>u.id===currentUser.id)||null;
-    // Modo contador: solo lectura (la garantía real es el RLS; esto es UX)
-    window._modoContador=currentUserData?.es_contador===true;
+    // Modo contador / auditor: solo lectura (la garantía real es el RLS; esto es UX)
+    window._modoAuditor=currentUserData?.es_auditor===true;
+    window._modoContador=currentUserData?.es_contador===true||window._modoAuditor;
     document.body.classList.toggle('modo-contador',window._modoContador);
-    if(window._modoContador)document.getElementById('contador-banner-empresa').textContent=currentEmpresa.nombre;
+    if(window._modoContador){
+      document.getElementById('contador-banner-empresa').textContent=currentEmpresa.nombre;
+      if(window._modoAuditor)document.getElementById('contador-banner').firstChild.textContent='👁 Modo auditor — solo lectura · ';
+    }
     aplicarPermisos();
     renderAll();
     // Cotizacion USD oficial — fetch inicial + refresh cada 5min
@@ -3086,6 +3226,11 @@ const TBL={
   registros_calidad:{label:'Registros de calidad',q:'?order=created_at.desc&select=id,empresa_id,orden_id,operacion_id,recepcion_id,tipo,herramienta_id,datos,resultado,observaciones,firmado_por,file_name,created_at',set:r=>{registrosCalidad=r||[];}},
   no_conformidades:{label:'No conformidades',q:'?order=numero.desc',set:r=>{noConformidades=r||[];}},
   acciones_capa:{label:'Acciones CAPA',q:'?order=numero.desc',set:r=>{accionesCapa=r||[];}},
+  certificados_emitidos:{label:'Certificados emitidos',q:'?order=numero.desc',set:r=>{certEmitidos=r||[];}},
+  revisiones_direccion:{label:'Revisiones dirección',q:'?order=created_at.desc',set:r=>{revisionesDir=r||[];}},
+  auditorias_internas:{label:'Auditorías internas',q:'?order=created_at.desc',set:r=>{auditoriasInt=r||[];}},
+  auditoria_hallazgos:{label:'Hallazgos de auditoría',q:'?order=created_at.asc',set:r=>{auditoriaHallazgos=r||[];}},
+  competencias:{label:'Competencias',q:'?order=persona.asc,habilidad.asc',set:r=>{competenciasList=r||[];}},
   precios_base:{label:'Precios base',q:'?order=pieza.asc',set:r=>{preciosBase=r||[];}},
 };
 let _lastLoadAllAt=0;
@@ -3111,7 +3256,7 @@ async function loadAll(){
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',mailings:'ventas',precios:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',exportables:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',mailings:'ventas',precios:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',kpiscalidad:'calidad',revdir:'calidad',auditorias:'calidad',competencias:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',exportables:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
   produccion:[{k:'op',l:'Órdenes'},{k:'eficiencia',l:'Eficiencia'}],
@@ -3130,10 +3275,11 @@ const GROUP_TABS={
   ],
   ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'},{k:'ctacte',l:'Cta. corriente'},{k:'mailings',l:'Mailings'},{k:'precios',l:'Precios'}],
   analisis:[{k:'costos',l:'Costos y rentabilidad'},{k:'trace',l:'Trazabilidad'}],
-  calidad:[{k:'ncr',l:'NCR / CAPA'},{k:'doccontrol',l:'Documentos'},{k:'pqptpl',l:'Plantillas PQP'}],
+  calidad:[{k:'ncr',l:'NCR / CAPA'},{k:'doccontrol',l:'Documentos'},{k:'pqptpl',l:'Plantillas PQP'},{k:'sgc',l:'SGC',sub:[{k:'kpiscalidad',l:'Tablero'},{k:'revdir',l:'Revisión dirección'},{k:'auditorias',l:'Auditorías'},{k:'competencias',l:'Competencias'}]}],
 };
 // Mapa sub-página → tab-padre (para resaltar la tab principal cuando se está en una sub-página)
 const PAGE_TO_PARENT={
+  kpiscalidad:'sgc',revdir:'sgc',auditorias:'sgc',competencias:'sgc',
   librodiario:'libros',libromayor:'libros',
   balance:'estados',estado:'estados',balgral:'estados',
   ratios:'analisis',bimon:'analisis',compha:'analisis',compej:'analisis',
@@ -4455,6 +4601,16 @@ function computeAlertas(){
     titulo:uno(calProx.length,'Calibración vence en los próximos 30 días','Calibraciones vencen en los próximos 30 días'),
     detalle:calProx.slice(0,3).map(h=>esc(h.nombre||'')+` (${h.vencimiento_calibracion})`).join('  —  ')+masDe(calProx)});
 
+  const compVencidas=competenciasList.filter(c=>c.vence&&c.vence<hoy);
+  if(compVencidas.length)out.push({sev:'warn',page:'competencias',count:compVencidas.length,
+    titulo:uno(compVencidas.length,'Calificación de competencia vencida — recalificar','Calificaciones de competencia vencidas — recalificar'),
+    detalle:compVencidas.slice(0,3).map(c=>esc(c.persona)+' · '+esc(c.habilidad)).join('  —  ')+masDe(compVencidas)});
+
+  const audAtrasadas=auditoriasInt.filter(a=>a.estado==='planificada'&&a.fecha_planificada&&a.fecha_planificada<hoy);
+  if(audAtrasadas.length)out.push({sev:'warn',page:'auditorias',count:audAtrasadas.length,
+    titulo:uno(audAtrasadas.length,'Auditoría interna planificada sin realizar','Auditorías internas planificadas sin realizar'),
+    detalle:audAtrasadas.slice(0,3).map(a=>esc(a.nro||'')+' · '+esc(a.alcance||'')).join('  —  ')+masDe(audAtrasadas)});
+
   const cuarentena=recepciones.filter(r=>r.estado_inspeccion==='cuarentena');
   if(cuarentena.length)out.push({sev:'warn',page:'compras',count:cuarentena.length,
     titulo:uno(cuarentena.length,'Recepción en cuarentena esperando inspección de entrada','Recepciones en cuarentena esperando inspección de entrada'),
@@ -4814,6 +4970,10 @@ const PAGE_RENDERS={
   ncr:[renderNCR],
   doccontrol:[renderDocumentos],
   pqptpl:[renderPQPPlantillas],
+  kpiscalidad:[renderKpisCalidad],
+  revdir:[renderRevDir],
+  auditorias:[renderAuditorias],
+  competencias:[renderCompetencias],
   cuentas:[renderCuentas],
   asientosp:[renderAsientos],
   cobpag:[renderCobPag],
@@ -7542,12 +7702,303 @@ function editBarra(id){
   sel.innerHTML='<option value="">Sin certificado</option>'+certs.map(c=>`<option value="${c.id}" ${b.certificado_id===c.id?'selected':''}>${esc(c.nro)} — ${esc(c.material)}</option>`).join('');
   document.getElementById('modal-edit-barra').classList.add('open');
 }
+// ═══ SGC — KPIs, revisión por dirección, auditorías, competencias (mig 059) ═══
+
+// KPIs de calidad del período (pura, tests/sgc.test.js)
+function computeKpisCalidad({ventas=[],ncs=[],capas=[],herramientas=[],auditorias=[]},desde,hasta,hoy){
+  const en=(f)=>f&&f>=desde&&f<=hasta;
+  // Mismo criterio que el semáforo OTD de Ventas: fecha_entregado vs compromiso
+  const entregadas=ventas.filter(v=>v.fecha_entregado&&v.fecha_entrega_hasta&&en(v.fecha_entregado));
+  const conCompromiso=entregadas.length;
+  const aTiempo=entregadas.filter(v=>v.fecha_entregado<=v.fecha_entrega_hasta).length;
+  const ncNuevas=ncs.filter(n=>en(n.fecha)).length;
+  const ncAbiertas=ncs.filter(n=>n.estado!=='cerrada').length;
+  const capaAbiertas=capas.filter(c=>c.estado!=='cerrada').length;
+  const capaVencidas=capas.filter(c=>c.estado!=='cerrada'&&c.fecha_compromiso&&c.fecha_compromiso<hoy).length;
+  const calibVencidas=herramientas.filter(h=>h.requiere_calibracion&&h.estado!=='dada-de-baja'&&(!h.vencimiento_calibracion||h.vencimiento_calibracion<hoy)).length;
+  const audPlan=auditorias.filter(a=>en(a.fecha_planificada||a.fecha_realizada)).length;
+  const audCerradas=auditorias.filter(a=>a.estado==='cerrada'&&en(a.fecha_realizada||a.fecha_planificada)).length;
+  return {
+    otdPct:conCompromiso?Math.round(aTiempo/conCompromiso*1000)/10:null,
+    entregas:conCompromiso,entregasATiempo:aTiempo,
+    ncNuevas,ncAbiertas,capaAbiertas,capaVencidas,calibVencidas,
+    auditoriasPlanificadas:audPlan,auditoriasCerradas:audCerradas
+  };
+}
+function _kpisAhora(desde,hasta){
+  return computeKpisCalidad({ventas,ncs:noConformidades,capas:accionesCapa,herramientas,auditorias:auditoriasInt},desde,hasta,hoyLocal());
+}
+function _kpiCards(k){
+  const otdColor=k.otdPct===null?'var(--text3)':k.otdPct>=95?'var(--green)':k.otdPct>=85?'var(--accent)':'var(--red)';
+  return[
+    ['OTD (entregas a tiempo)',k.otdPct===null?'s/d':k.otdPct+'%',otdColor,`${k.entregasATiempo}/${k.entregas} entregas`],
+    ['NC nuevas en el período',k.ncNuevas,k.ncNuevas?'var(--accent)':'var(--green)',''],
+    ['NC abiertas (total)',k.ncAbiertas,k.ncAbiertas?'var(--accent)':'var(--green)',''],
+    ['CAPA abiertas / vencidas',`${k.capaAbiertas} / ${k.capaVencidas}`,k.capaVencidas?'var(--red)':'var(--text)',''],
+    ['Calibraciones vencidas',k.calibVencidas,k.calibVencidas?'var(--red)':'var(--green)',''],
+    ['Auditorías (plan / cerradas)',`${k.auditoriasPlanificadas} / ${k.auditoriasCerradas}`,'var(--blue)','']
+  ].map(([l,v,c,s])=>`<div class="stat-card"><div class="stat-label">${l}</div><div class="stat-value" style="color:${c}">${v}</div>${s?`<div style="font-size:10px;color:var(--text3)">${s}</div>`:''}</div>`).join('');
+}
+function renderKpisCalidad(){
+  const dEl=document.getElementById('kpi-desde'),hEl=document.getElementById('kpi-hasta');
+  if(!dEl)return;
+  if(!dEl.value){const h=new Date();dEl.value=`${h.getFullYear()}-01-01`;hEl.value=hoyLocal();}
+  const k=_kpisAhora(dEl.value,hEl.value);
+  document.getElementById('kpical-stats').innerHTML=_kpiCards(k);
+  document.getElementById('certemit-tbody').innerHTML=certEmitidos.length?certEmitidos.map(c=>{
+    const piezas=(c.items_resumen||[]).map(i=>i.pieza).filter(Boolean).join(', ');
+    return`<tr><td class="mono td-primary">CC-${String(c.numero).padStart(4,'0')}</td><td class="mono">${c.fecha||''}</td><td>${esc(c.cliente||'')}</td><td class="mono">${esc(c.remito||'')}</td><td style="font-size:11px;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(piezas)}</td><td>${c.venta_id?`<button class="btn btn-ghost btn-sm" onclick="generateCertConformidadPDF('${c.venta_id}')">Reimprimir</button>`:''}</td></tr>`;
+  }).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:20px">Sin certificados emitidos todavía — se registran solos al generar el PDF desde Ventas</td></tr>';
+}
+
+// Registro correlativo del certificado de conformidad (CC-nnnn)
+async function registrarCertEmitido(v){
+  let reg=certEmitidos.find(c=>c.venta_id===v.id);
+  if(reg)return reg;
+  const resumen=(v.venta_items||[]).map(it=>{const t=_trazaItemVenta(it);return{pieza:it.pieza,cantidad:it.cantidad,lote:t.pt?.lote||null,colada:t.barra?.nro_colada||null,mtc:t.cert?.nro||null};});
+  const res=await POST('certificados_emitidos',[{empresa_id:currentEmpresa.id,venta_id:v.id,cliente:v.cliente||null,remito:v.nro_remito||null,fecha:hoyLocal(),items_resumen:resumen,emitido_por:currentUser.id}]);
+  reg=res[0];
+  await reload('certificados_emitidos');
+  return reg;
+}
+
+// ─── Revisión por la dirección ─────────────────────────────────────
+function renderRevDir(){
+  const tbody=document.getElementById('revdir-tbody');if(!tbody)return;
+  const badge=e=>e==='cerrada'?'<span class="badge badge-ok">CERRADA</span>':'<span class="badge badge-warn">ABIERTA</span>';
+  tbody.innerHTML=revisionesDir.length?revisionesDir.map(r=>`<tr>
+    <td class="mono td-primary">${esc(r.nro||'')}</td><td class="mono">${r.fecha||''}</td>
+    <td class="mono" style="font-size:11px">${r.periodo_desde||''} → ${r.periodo_hasta||''}</td>
+    <td style="font-size:11px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.asistentes||'—')}</td>
+    <td>${badge(r.estado)}</td>
+    <td><button class="btn btn-ghost btn-sm" onclick="openRevDirModal('${r.id}')">${r.estado==='cerrada'?'Ver':'Editar'}</button></td></tr>`).join(''):
+    '<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:24px">Sin revisiones registradas. ISO 9001 pide al menos una por año — el sistema arma los KPIs solo, vos cargás las decisiones.</td></tr>';
+}
+function revdirRefrescarKpis(){
+  const d=document.getElementById('revdir-desde').value,h=document.getElementById('revdir-hasta').value;
+  if(!d||!h)return;
+  document.getElementById('revdir-kpis').innerHTML='<div style="font-weight:600;margin-bottom:6px;color:var(--text2)">KPIs del período (se congelan al guardar)</div><div class="stats-bar">'+_kpiCards(_kpisAhora(d,h))+'</div>';
+}
+function openRevDirModal(id){
+  const r=id?revisionesDir.find(x=>x.id===id):null;
+  document.getElementById('revdir-edit-id').value=id||'';
+  document.getElementById('revdir-modal-title').textContent=r?`Revisión ${r.nro}${r.estado==='cerrada'?' (cerrada)':''}`:'Nueva revisión por la dirección';
+  document.getElementById('revdir-fecha').value=r?.fecha||hoyLocal();
+  document.getElementById('revdir-asistentes').value=r?.asistentes||'';
+  const h=new Date();
+  document.getElementById('revdir-desde').value=r?.periodo_desde||`${h.getFullYear()}-01-01`;
+  document.getElementById('revdir-hasta').value=r?.periodo_hasta||hoyLocal();
+  document.getElementById('revdir-temas').value=r?.temas||'';
+  document.getElementById('revdir-decisiones').value=r?.decisiones||'';
+  document.getElementById('revdir-acciones').value=r?.acciones||'';
+  if(r?.kpis){
+    document.getElementById('revdir-kpis').innerHTML='<div style="font-weight:600;margin-bottom:6px;color:var(--text2)">KPIs congelados al momento de la revisión</div><div class="stats-bar">'+_kpiCards(r.kpis)+'</div>';
+  }else revdirRefrescarKpis();
+  const cerrada=r?.estado==='cerrada';
+  ['revdir-fecha','revdir-asistentes','revdir-desde','revdir-hasta','revdir-temas','revdir-decisiones','revdir-acciones'].forEach(i=>document.getElementById(i).disabled=cerrada);
+  document.getElementById('btn-save-revdir').style.display=cerrada?'none':'';
+  document.getElementById('btn-cerrar-revdir').style.display=cerrada?'none':'';
+  openModal('modal-revdir');
+}
+async function saveRevDir(cerrar){
+  const id=document.getElementById('revdir-edit-id').value;
+  const d=document.getElementById('revdir-desde').value,h=document.getElementById('revdir-hasta').value;
+  if(!d||!h){notify('Completá el período revisado','err');return;}
+  if(cerrar&&!confirm('Cerrar la revisión la vuelve INMUTABLE (registro del SGC). ¿Confirmar?'))return;
+  const data={
+    fecha:document.getElementById('revdir-fecha').value||hoyLocal(),
+    periodo_desde:d,periodo_hasta:h,
+    kpis:_kpisAhora(d,h),
+    asistentes:document.getElementById('revdir-asistentes').value.trim()||null,
+    temas:document.getElementById('revdir-temas').value.trim()||null,
+    decisiones:document.getElementById('revdir-decisiones').value.trim()||null,
+    acciones:document.getElementById('revdir-acciones').value.trim()||null,
+    estado:cerrar?'cerrada':'abierta'
+  };
+  try{setBusy(cerrar?'btn-cerrar-revdir':'btn-save-revdir',true);
+    if(id)await PATCH('revisiones_direccion',data,`?id=eq.${id}`);
+    else await POST('revisiones_direccion',{...data,empresa_id:currentEmpresa.id,created_by:currentUser.id});
+    await reload('revisiones_direccion');closeModal('modal-revdir');renderRevDir();
+    notify(cerrar?'✓ Revisión cerrada — quedó como registro inmutable del SGC':'Borrador guardado');
+  }catch(e){notify('Error: '+e.message,'err');}
+  finally{setBusy('btn-save-revdir',false,'Guardar borrador');setBusy('btn-cerrar-revdir',false,'Cerrar revisión (inmutable)');}
+}
+
+// ─── Auditorías internas ───────────────────────────────────────────
+const HALLAZGO_LABELS={conforme:['Conforme','badge-ok'],observacion:['Observación','badge-blue'],nc_menor:['NC menor','badge-amber'],nc_mayor:['NC MAYOR','badge-coral'],oportunidad:['Oportunidad','badge-teal']};
+function renderAuditorias(){
+  const tbody=document.getElementById('auditorias-tbody');if(!tbody)return;
+  const hoy=hoyLocal();
+  const abiertas=auditoriasInt.filter(a=>a.estado!=='cerrada').length;
+  const atrasadas=auditoriasInt.filter(a=>a.estado==='planificada'&&a.fecha_planificada&&a.fecha_planificada<hoy).length;
+  const anio=hoy.slice(0,4);
+  const delAnio=auditoriasInt.filter(a=>(a.fecha_planificada||a.fecha_realizada||'').startsWith(anio));
+  document.getElementById('audit-stats').innerHTML=[
+    ['Programa '+anio,delAnio.length,'var(--blue)'],
+    ['Abiertas',abiertas,abiertas?'var(--accent)':'var(--text)'],
+    ['Planificadas atrasadas',atrasadas,atrasadas?'var(--red)':'var(--green)'],
+    ['Hallazgos NC sin tratar',auditoriaHallazgos.filter(x=>['nc_menor','nc_mayor'].includes(x.tipo)&&!x.nc_id).length,'var(--accent)']
+  ].map(([l,v,c])=>`<div class="stat-card"><div class="stat-label">${l}</div><div class="stat-value" style="color:${c}">${v}</div></div>`).join('');
+  const badge={planificada:'<span class="badge badge-blue">PLANIFICADA</span>',en_curso:'<span class="badge badge-warn">EN CURSO</span>',cerrada:'<span class="badge badge-ok">CERRADA</span>'};
+  tbody.innerHTML=auditoriasInt.length?auditoriasInt.map(a=>{
+    const hs=auditoriaHallazgos.filter(x=>x.auditoria_id===a.id);
+    const ncCount=hs.filter(x=>['nc_menor','nc_mayor'].includes(x.tipo)).length;
+    return`<tr><td class="mono td-primary">${esc(a.nro||'')}</td><td>${esc(a.alcance)}</td><td style="font-size:11px">${esc(a.auditor||'—')}</td>
+    <td class="mono" style="font-size:11px;color:${a.estado==='planificada'&&a.fecha_planificada&&a.fecha_planificada<hoy?'var(--red)':'var(--text)'}">${a.fecha_planificada||'—'}</td>
+    <td class="mono" style="font-size:11px">${a.fecha_realizada||'—'}</td>
+    <td class="mono">${hs.length}${ncCount?` <span class="badge badge-coral">${ncCount} NC</span>`:''}</td>
+    <td>${badge[a.estado]||''}</td>
+    <td><button class="btn btn-ghost btn-sm" onclick="openAuditoriaModal('${a.id}')">Abrir</button></td></tr>`;
+  }).join(''):'<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">Sin auditorías. Cargá el programa anual con <b>+ Nueva auditoría</b> (fecha planificada) y ejecutalas cuando toque.</td></tr>';
+}
+function openAuditoriaModal(id){
+  const a=id?auditoriasInt.find(x=>x.id===id):null;
+  document.getElementById('audit-edit-id').value=id||'';
+  document.getElementById('auditoria-modal-title').textContent=a?`Auditoría ${a.nro}`:'Nueva auditoría interna';
+  document.getElementById('audit-alcance').value=a?.alcance||'';
+  document.getElementById('audit-auditor').value=a?.auditor||'';
+  document.getElementById('audit-criterios').value=a?.criterios||'';
+  document.getElementById('audit-estado').value=a?.estado||'planificada';
+  document.getElementById('audit-fecha-plan').value=a?.fecha_planificada||'';
+  document.getElementById('audit-fecha-real').value=a?.fecha_realizada||'';
+  document.getElementById('audit-conclusiones').value=a?.conclusiones||'';
+  document.getElementById('audit-hallazgos-section').style.display=a?'':'none';
+  if(a)renderHallazgos(a.id);
+  openModal('modal-auditoria');
+}
+function renderHallazgos(auditoriaId){
+  const hs=auditoriaHallazgos.filter(x=>x.auditoria_id===auditoriaId);
+  document.getElementById('audit-hallazgos-list').innerHTML=hs.length?hs.map(h=>{
+    const[l,cls]=HALLAZGO_LABELS[h.tipo]||[h.tipo,'badge'];
+    const nc=h.nc_id?noConformidades.find(n=>n.id===h.nc_id):null;
+    return`<div style="display:flex;gap:8px;align-items:center;padding:6px 8px;background:var(--surface2);border-radius:4px;font-size:12px">
+      <span class="badge ${cls}">${l}</span>
+      ${h.clausula?`<span class="mono" style="color:var(--text3);font-size:11px">${esc(h.clausula)}</span>`:''}
+      <span style="flex:1">${esc(h.descripcion)}</span>
+      ${nc?`<span class="badge badge-purple">NC-${String(nc.numero).padStart(4,'0')}</span>`:
+        (['nc_menor','nc_mayor'].includes(h.tipo)?`<button class="btn btn-ghost btn-sm" onclick="generarNCDesdeHallazgo('${h.id}')" style="border-color:var(--coral);color:var(--coral)">Generar NC</button>`:'')}
+    </div>`;
+  }).join(''):'<div style="font-size:12px;color:var(--text3);padding:6px">Sin hallazgos cargados</div>';
+}
+async function addHallazgo(){
+  const id=document.getElementById('audit-edit-id').value;
+  if(!id){notify('Guardá la auditoría primero para cargar hallazgos','err');return;}
+  const desc=document.getElementById('hallazgo-desc').value.trim();
+  if(!desc){notify('Escribí la descripción del hallazgo','err');return;}
+  try{
+    await POST('auditoria_hallazgos',{empresa_id:currentEmpresa.id,auditoria_id:id,tipo:document.getElementById('hallazgo-tipo').value,clausula:document.getElementById('hallazgo-clausula').value.trim()||null,descripcion:desc});
+    document.getElementById('hallazgo-desc').value='';document.getElementById('hallazgo-clausula').value='';
+    await reload('auditoria_hallazgos');renderHallazgos(id);renderAuditorias();
+  }catch(e){notify('Error: '+e.message,'err');}
+}
+async function generarNCDesdeHallazgo(hallazgoId){
+  const h=auditoriaHallazgos.find(x=>x.id===hallazgoId);if(!h)return;
+  const a=auditoriasInt.find(x=>x.id===h.auditoria_id);
+  if(!confirm(`Generar una No Conformidad desde este hallazgo de ${a?.nro||'la auditoría'}?`))return;
+  try{
+    const res=await POST('no_conformidades',{empresa_id:currentEmpresa.id,fecha:hoyLocal(),origen_tipo:'auditoria',descripcion:`[${a?.nro||'Auditoría'}${h.clausula?' · '+h.clausula:''}] ${h.descripcion}`});
+    await PATCH('auditoria_hallazgos',{nc_id:res[0].id},`?id=eq.${hallazgoId}`);
+    await reload('no_conformidades','auditoria_hallazgos');
+    renderHallazgos(h.auditoria_id);renderAuditorias();
+    notify('✓ NC generada — tratala en Calidad → NCR / CAPA');
+  }catch(e){notify('Error: '+e.message,'err');}
+}
+async function saveAuditoria(){
+  const id=document.getElementById('audit-edit-id').value;
+  const alcance=document.getElementById('audit-alcance').value.trim();
+  if(!alcance){notify('El alcance es obligatorio','err');return;}
+  const data={alcance,auditor:document.getElementById('audit-auditor').value.trim()||null,
+    criterios:document.getElementById('audit-criterios').value.trim()||null,
+    estado:document.getElementById('audit-estado').value,
+    fecha_planificada:document.getElementById('audit-fecha-plan').value||null,
+    fecha_realizada:document.getElementById('audit-fecha-real').value||null,
+    conclusiones:document.getElementById('audit-conclusiones').value.trim()||null};
+  try{setBusy('btn-save-auditoria',true);
+    if(id)await PATCH('auditorias_internas',data,`?id=eq.${id}`);
+    else{
+      const res=await POST('auditorias_internas',[{...data,empresa_id:currentEmpresa.id,created_by:currentUser.id}]);
+      document.getElementById('audit-edit-id').value=res[0].id;
+    }
+    await reload('auditorias_internas');renderAuditorias();
+    if(!id){document.getElementById('audit-hallazgos-section').style.display='';renderHallazgos(document.getElementById('audit-edit-id').value);notify('Auditoría creada — ya podés cargar hallazgos');}
+    else{closeModal('modal-auditoria');notify('Auditoría actualizada');}
+  }catch(e){notify('Error: '+e.message,'err');}
+  finally{setBusy('btn-save-auditoria',false,'Guardar');}
+}
+
+// ─── Matriz de competencias ────────────────────────────────────────
+const NIVEL_LABELS={en_formacion:['En formación','badge-amber'],calificado:['Calificado','badge-ok'],experto:['Experto','badge-purple']};
+function renderCompetencias(filtro=''){
+  const cont=document.getElementById('competencias-body');if(!cont)return;
+  const hoy=hoyLocal(),en30=hoyLocal(30);
+  const f=(filtro||'').toLowerCase();
+  const list=competenciasList.filter(c=>!f||(c.persona||'').toLowerCase().includes(f)||(c.habilidad||'').toLowerCase().includes(f));
+  const vencidas=competenciasList.filter(c=>c.vence&&c.vence<hoy).length;
+  const porVencer=competenciasList.filter(c=>c.vence&&c.vence>=hoy&&c.vence<=en30).length;
+  document.getElementById('comp-stats').innerHTML=[
+    ['Personas',[...new Set(competenciasList.map(c=>c.persona))].length,'var(--blue)'],
+    ['Calificaciones',competenciasList.length,'var(--text)'],
+    ['Vencidas',vencidas,vencidas?'var(--red)':'var(--green)'],
+    ['Vencen en 30 días',porVencer,porVencer?'var(--accent)':'var(--green)']
+  ].map(([l,v,c])=>`<div class="stat-card"><div class="stat-label">${l}</div><div class="stat-value" style="color:${c}">${v}</div></div>`).join('');
+  const porPersona={};
+  list.forEach(c=>{const k=c.persona||'—';(porPersona[k]=porPersona[k]||[]).push(c);});
+  cont.innerHTML=Object.keys(porPersona).length?Object.entries(porPersona).map(([p,rows])=>`
+    <div class="dash-card" style="margin-bottom:10px">
+      <div class="dash-card-title">${esc(p)}${rows[0].puesto?` <span style="font-weight:400;color:var(--text3)">· ${esc(rows[0].puesto)}</span>`:''}</div>
+      <div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Habilidad</th><th>Nivel</th><th>Calificado</th><th>Vence</th><th>Evidencia</th><th></th></tr></thead><tbody>`+
+      rows.map(c=>{const[l,cls]=NIVEL_LABELS[c.nivel]||[c.nivel,'badge'];
+        const vc=!c.vence?'<span style="color:var(--text3)">no vence</span>':c.vence<hoy?`<span class="badge badge-coral">VENCIDA ${c.vence}</span>`:c.vence<=en30?`<span class="badge badge-amber">${c.vence}</span>`:`<span class="mono" style="font-size:11px">${c.vence}</span>`;
+        return`<tr><td class="td-primary">${esc(c.habilidad)}</td><td><span class="badge ${cls}">${l}</span></td><td class="mono" style="font-size:11px">${c.fecha_calificacion||'—'}</td><td>${vc}</td><td style="font-size:11px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.evidencia||'—')}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="openCompetenciaModal('${c.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="deleteCompetencia('${c.id}')">✗</button></td></tr>`;}).join('')+
+      `</tbody></table></div></div>`).join(''):
+    '<div class="dash-card" style="text-align:center;color:var(--text3);padding:32px">Sin calificaciones. Cargá quién sabe operar qué con <b>+ Nueva calificación</b> — es lo que respalda los signoffs de calidad ante un auditor.</div>';
+}
+function openCompetenciaModal(id){
+  const c=id?competenciasList.find(x=>x.id===id):null;
+  document.getElementById('comp-edit-id').value=id||'';
+  document.getElementById('comp-modal-title').textContent=c?'Editar calificación':'Nueva calificación';
+  document.getElementById('comp-persona').value=c?.persona||'';
+  document.getElementById('comp-puesto').value=c?.puesto||'';
+  document.getElementById('comp-habilidad').value=c?.habilidad||'';
+  document.getElementById('comp-nivel').value=c?.nivel||'calificado';
+  document.getElementById('comp-fecha').value=c?.fecha_calificacion||hoyLocal();
+  document.getElementById('comp-vence').value=c?.vence||'';
+  document.getElementById('comp-evidencia').value=c?.evidencia||'';
+  document.getElementById('comp-obs').value=c?.observaciones||'';
+  document.getElementById('comp-personas-list').innerHTML=[...new Set(competenciasList.map(x=>x.persona))].map(p=>`<option value="${esc(p)}">`).join('');
+  document.getElementById('comp-habilidades-list').innerHTML=[...new Set(competenciasList.map(x=>x.habilidad))].map(h=>`<option value="${esc(h)}">`).join('');
+  openModal('modal-competencia');
+}
+async function saveCompetencia(){
+  const id=document.getElementById('comp-edit-id').value;
+  const persona=document.getElementById('comp-persona').value.trim();
+  const habilidad=document.getElementById('comp-habilidad').value.trim();
+  if(!persona||!habilidad){notify('Persona y habilidad son obligatorias','err');return;}
+  const data={persona,puesto:document.getElementById('comp-puesto').value.trim()||null,habilidad,
+    nivel:document.getElementById('comp-nivel').value,
+    fecha_calificacion:document.getElementById('comp-fecha').value||null,
+    vence:document.getElementById('comp-vence').value||null,
+    evidencia:document.getElementById('comp-evidencia').value.trim()||null,
+    observaciones:document.getElementById('comp-obs').value.trim()||null};
+  try{setBusy('btn-save-comp',true);
+    if(id)await PATCH('competencias',data,`?id=eq.${id}`);
+    else await POST('competencias',{...data,empresa_id:currentEmpresa.id,created_by:currentUser.id});
+    await reload('competencias');closeModal('modal-competencia');renderCompetencias();notify(id?'Calificación actualizada':'Calificación registrada');
+  }catch(e){notify('Error: '+e.message,'err');}
+  finally{setBusy('btn-save-comp',false,'Guardar');}
+}
+async function deleteCompetencia(id){
+  if(!confirm('¿Eliminar esta calificación?'))return;
+  try{await DEL('competencias',`?id=eq.${id}`);await reload('competencias');renderCompetencias();notify('Eliminada');}
+  catch(e){notify(e.message,'err');}
+}
+
 // ═══ KARDEX + CONTEO FÍSICO (mig 058) ═══════════════════════════════
 const KARDEX_LABELS={alta:'Alta',baja:'Baja',edicion:'Edición manual',ajuste:'Ajuste',conteo:'Conteo físico','consumo-op':'Consumo OP','devolucion-op':'Devolución OP',venta:'Venta','devolucion-venta':'Devolución venta','entrega-venta':'Entrega venta','anulacion-venta':'Anulación venta'};
 async function showKardex(tipo,id){
   try{
     const movs=await GET('movimientos_stock',`?tipo_item=eq.${tipo}&item_id=eq.${id}&order=created_at.desc&limit=200`);
-    const nombreU=uid=>{const u=(usuarios||[]).find(x=>x.id===uid);return u?esc((u.nombre||u.email||'').split('@')[0]):'—';};
+    const nombreU=uid=>{const u=(usuariosEmpresa||[]).find(x=>x.id===uid);return u?esc((u.nombre||u.email||'').split('@')[0]):'—';};
     const unidad=tipo==='barra'?' mts':'';
     document.getElementById('kardex-title').textContent='Kardex — '+(movs[0]?.detalle||'sin movimientos');
     document.getElementById('kardex-body').innerHTML=movs.length?
@@ -8077,7 +8528,7 @@ async function saveConfigContable(){
 // ─── USUARIOS Y PERMISOS ──────────────────────────────────────────
 // Un módulo por página raíz de cada grupo (debe cubrir groupMods de
 // aplicarPermisos — si un módulo no está acá, es inasignable en la UI).
-const MODULOS_LABELS={dash:'Dashboard',mp:'Materia prima',pt:'Prod. terminados',cert:'Certificados MTC',insumos:'Insumos',herramientas:'Herramientas',op:'Órdenes producción',eficiencia:'Eficiencia',compras:'Compras',presupuestos:'Presupuestos',ventas:'Ventas',clientes:'Clientes',ctacte:'Cta. corriente',mailings:'Mailings',precios:'Precios',costos:'Costos',trace:'Trazabilidad',ncr:'Calidad (NCR/CAPA)',doccontrol:'Docs controlados',pqptpl:'Planes de calidad',cuentas:'Contabilidad'};
+const MODULOS_LABELS={dash:'Dashboard',mp:'Materia prima',pt:'Prod. terminados',cert:'Certificados MTC',insumos:'Insumos',herramientas:'Herramientas',op:'Órdenes producción',eficiencia:'Eficiencia',compras:'Compras',presupuestos:'Presupuestos',ventas:'Ventas',clientes:'Clientes',ctacte:'Cta. corriente',mailings:'Mailings',precios:'Precios',costos:'Costos',trace:'Trazabilidad',ncr:'Calidad (NCR/CAPA)',doccontrol:'Docs controlados',pqptpl:'Planes de calidad',sgc:'SGC (auditorías/KPIs)',cuentas:'Contabilidad'};
 
 function renderUsuarios(){
   // Mostrar código de invitación
@@ -8091,7 +8542,7 @@ function renderUsuarios(){
     return`<tr>
       <td class="mono td-primary">${esc(u.email||'—')}</td>
       <td>${esc(u.nombre||'—')}</td>
-      <td>${esAdmin?'<span class="badge badge-purple">ADMIN</span>':u.es_contador?'<span class="badge badge-warn">CONTADOR</span>':'<span class="badge badge-blue">EMPLEADO</span>'}</td>
+      <td>${esAdmin?'<span class="badge badge-purple">ADMIN</span>':u.es_contador?'<span class="badge badge-warn">CONTADOR</span>':u.es_auditor?'<span class="badge badge-teal">AUDITOR</span>':'<span class="badge badge-blue">EMPLEADO</span>'}</td>
       <td style="font-size:11px;color:var(--text2)">${esAdmin?'Acceso total':(misPermisos.length?misPermisos.join(', '):'Sin módulos asignados')+(u.ver_costos?' · <span style="color:var(--green)">ve costos</span>':' · <span style="color:var(--text3)">sin costos</span>')}</td>
       <td>${u.id!==currentUser.id?`<button class="btn btn-ghost btn-sm" onclick="openPermisos('${u.id}')">Permisos</button>`:'<span style="color:var(--text3);font-size:11px">Vos</span>'}</td>
     </tr>`;
@@ -8118,6 +8569,7 @@ function openPermisos(userId){
   document.getElementById('permisos-esadmin').value=String(u.es_admin||false);
   document.getElementById('permisos-vercostos').checked=u.ver_costos===true;
   document.getElementById('permisos-escontador').checked=u.es_contador===true;
+  document.getElementById('permisos-esauditor').checked=u.es_auditor===true;
   const misPermisos=permisosUsuario.filter(p=>p.usuario_id===userId).map(p=>p.modulo);
   document.getElementById('permisos-checks').innerHTML=Object.entries(MODULOS_LABELS).map(([mod,label])=>`
     <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:5px;cursor:pointer;font-size:13px">
@@ -8127,6 +8579,14 @@ function openPermisos(userId){
   document.getElementById('modal-permisos').classList.add('open');
 }
 
+function onAuditorToggle(el){
+  if(!el.checked)return;
+  document.getElementById('permisos-esadmin').value='false';
+  for(const mod of ['ncr','doccontrol','pqptpl','sgc','mp','pt','cert','op','herramientas','trace']){
+    const c=document.getElementById('perm-'+mod);
+    if(c)c.checked=true;
+  }
+}
 function onContadorToggle(el){
   if(!el.checked)return;
   // Sugerencias al marcar contador (editables antes de guardar)
@@ -8143,12 +8603,13 @@ async function savePermisos(){
   const esAdmin=document.getElementById('permisos-esadmin').value==='true';
   const verCostos=document.getElementById('permisos-vercostos').checked;
   const esContador=document.getElementById('permisos-escontador').checked;
-  if(esContador&&esAdmin){notify('Un contador no puede ser administrador','err');return;}
+  const esAuditor=document.getElementById('permisos-esauditor').checked;
+  if((esContador||esAuditor)&&esAdmin){notify('Un usuario de solo lectura (contador/auditor) no puede ser administrador','err');return;}
   setBusy('btn-save-permisos',true);
   try{
     const modulos=[...document.querySelectorAll('#permisos-checks input[type=checkbox]:checked')].map(c=>c.value);
     // RPC atómica (mig 055): roles + módulos en una transacción
-    await RPC('guardar_permisos',{p_usuario_id:userId,p_es_admin:esAdmin,p_ver_costos:verCostos,p_es_contador:esContador,p_modulos:modulos});
+    await RPC('guardar_permisos',{p_usuario_id:userId,p_es_admin:esAdmin,p_ver_costos:verCostos,p_es_contador:esContador,p_es_auditor:esAuditor,p_modulos:modulos});
     await reload('permisos_usuario','usuarios');closeModal('modal-permisos');renderUsuarios();notify('Permisos actualizados');
   }catch(e){notify(e.message,'err');}
   setBusy('btn-save-permisos',false,'Guardar permisos');
@@ -8746,7 +9207,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op','eficiencia'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte','mailings','precios'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl'],contabilidad:['cuentas','asientosp','cobpag','cheques','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre','periodos','correlatividad','conciliacion','exportables']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op','eficiencia'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte','mailings','precios'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl','sgc'],contabilidad:['cuentas','asientosp','cobpag','cheques','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre','periodos','correlatividad','conciliacion','exportables']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
@@ -11323,10 +11784,15 @@ function generateRemitoPDF(ventaId){
 }
 
 // ─── PDF DE CERTIFICADO DE CONFORMIDAD (trazabilidad completa) ─────
-function generateCertConformidadPDF(ventaId){
+async function generateCertConformidadPDF(ventaId){
   const v=ventas.find(x=>x.id===ventaId);
   if(!v){notify('Venta no encontrada','err');return;}
   if(!window.jspdf){notify('Librería PDF no cargada. Recargá la página.','err');return;}
+  // Registro correlativo CC-nnnn (mig 059): primera emisión numera,
+  // las siguientes reimprimen con el mismo número.
+  let certReg=null;
+  try{certReg=await registrarCertEmitido(v);}
+  catch(e){console.warn('No se pudo registrar el certificado:',e);notify('Ojo: el certificado se genera pero no quedó registrado ('+e.message+')','err');}
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:'mm',format:'a4',orientation:'landscape'});
   const items=v.venta_items||[];
@@ -11340,7 +11806,7 @@ function generateCertConformidadPDF(ventaId){
   doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(40,40,40);
   doc.text('CERTIFICADO DE CONFORMIDAD',283,20,{align:'right'});
   doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(60,130,90);
-  doc.text(`Nº CC-${v.nro_remito||'—'}`,283,28,{align:'right'});
+  doc.text(certReg?`Nº CC-${String(certReg.numero).padStart(4,'0')} · Remito ${v.nro_remito||'—'}`:`Nº CC-${v.nro_remito||'—'}`,283,28,{align:'right'});
   doc.setDrawColor(220,220,220);doc.line(14,40,283,40);
 
   let y=48;
