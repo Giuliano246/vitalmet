@@ -2073,7 +2073,8 @@ body.no-costos .solo-costos{display:none!important}
 </div>
 
 <!-- MODAL: Proveedor rápido por CUIT (ocasional, sin cuenta completa) -->
-<div class="modal-overlay" id="modal-prov-rapido">
+<!-- z-index alto: se abre ENCIMA del modal de factura/OC que lo invoca -->
+<div class="modal-overlay" id="modal-prov-rapido" style="z-index:120">
   <div class="modal" style="width:460px">
     <div class="modal-header"><div class="modal-title">Proveedor ocasional (alta por CUIT)</div><button class="modal-close" onclick="closeModal('modal-prov-rapido')">×</button></div>
     <div class="modal-body">
