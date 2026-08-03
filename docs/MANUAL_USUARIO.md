@@ -350,10 +350,16 @@ borrador → enviada → confirmada → recibida_parcial → recibida → factur
 
 **Registrar la factura del proveedor:**
 1. Tocá **Factura** sobre la OC (o cargala desde "Facturas recibidas").
-2. Completá **Nº factura** (ej.: `A-0001-00012345`), **Fecha**, **Vencimiento**, **Moneda**, **Neto**, **IVA** (el **Total** se calcula solo).
+2. Completá **Nº factura** (ej.: `A-0001-00012345`), **Fecha de emisión** (la impresa en el comprobante), **Fecha contable**, **Vencimiento**, **Moneda**, **Neto**, **IVA** (el **Total** se calcula solo).
 3. El sistema **concilia** la factura contra la recepción (3-way match) y arma el asiento que cancela el GR/IR.
 
-> **El orden importa: primero Recibir, después Factura.** El match compara la factura contra lo que **recepcionaste en el sistema**. Si la OC no tiene recepciones cargadas, el panel avisa **SIN RECEPCIONES** y no deja registrar (aunque el estado de la OC diga "recibida"): cerrá el modal, registrá la recepción con **Recibir** y volvé. Un administrador puede registrar igual justificando el override (para material que entró antes de usar el sistema).
+> **Las dos fechas:** la **de emisión** es la del papel; la **contable** (viene propuesta con la fecha de hoy) es cuándo impacta en los libros — el asiento, el libro IVA Compras y la posición IVA van por la contable. Ejemplo típico: factura emitida en junio que te llega en agosto → emisión junio, contable agosto.
+
+> **El orden importa: primero Recibir, después Factura.** El match compara la factura contra lo que **recepcionaste en el sistema**. Si la OC no tiene recepciones cargadas, el panel avisa **SIN RECEPCIONES**: registrá la recepción con **Recibir** y volvé... **o usá el atajo**: si el material llegó junto con la factura, tildá **"Recibí todo el material con esta factura"** en el mismo modal — el sistema registra la recepción completa de la OC (stock, kardex y asiento GR/IR) y recién después la factura, con el match cerrando solo. Un administrador puede registrar igual justificando el override (para material que entró antes de usar el sistema).
+
+> **¿Te equivocaste en algo?** En la tabla de Facturas recibidas cada comprobante tiene **Corregir** (lo anula y te reabre el formulario precargado para que cambies lo que estaba mal y lo registres de nuevo) y **Anular** (pide motivo y lo elimina; el asiento contable queda en estado *anulado* — nunca se borra — y el motivo va al registro de auditoría). Si la factura tiene una NC/ND asociada, primero anulá la NC/ND. Las recepciones de la OC no se tocan al anular: el material entró igual.
+
+> **Proveedor nuevo sin cargar:** tanto el modal de **nueva OC** como el de **factura sin OC** tienen el botón **+ CUIT** al lado del selector de proveedor: alta rápida de proveedor ocasional con CUIT validado, sin salir del formulario.
 
 > **Monedas distintas:** si la OC está en USD y la factura en ARS (o al revés), el sistema convierte lo recibido a la moneda de la factura con el **tipo de cambio de la factura** (o el de la OC si no cargaste uno) y te lo muestra en el panel. Sin tipo de cambio no hay comparación posible y no deja registrar.
 
