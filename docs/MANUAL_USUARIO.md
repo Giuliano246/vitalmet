@@ -353,6 +353,10 @@ borrador → enviada → confirmada → recibida_parcial → recibida → factur
 2. Completá **Nº factura** (ej.: `A-0001-00012345`), **Fecha**, **Vencimiento**, **Moneda**, **Neto**, **IVA** (el **Total** se calcula solo).
 3. El sistema **concilia** la factura contra la recepción (3-way match) y arma el asiento que cancela el GR/IR.
 
+> **El orden importa: primero Recibir, después Factura.** El match compara la factura contra lo que **recepcionaste en el sistema**. Si la OC no tiene recepciones cargadas, el panel avisa **SIN RECEPCIONES** y no deja registrar (aunque el estado de la OC diga "recibida"): cerrá el modal, registrá la recepción con **Recibir** y volvé. Un administrador puede registrar igual justificando el override (para material que entró antes de usar el sistema).
+
+> **Monedas distintas:** si la OC está en USD y la factura en ARS (o al revés), el sistema convierte lo recibido a la moneda de la factura con el **tipo de cambio de la factura** (o el de la OC si no cargaste uno) y te lo muestra en el panel. Sin tipo de cambio no hay comparación posible y no deja registrar.
+
 > Cuando la OC tiene recepción **y** factura, su estado pasa a `facturada`.
 
 > **Protecciones:** una OC **con mercadería recibida no se puede eliminar** (para darla de baja, pasala a `anulada`) y al editarla **solo se actualiza la cabecera** — los ítems quedan como están, para no romper la trazabilidad de recepciones e inspecciones. Además, **el mismo comprobante del mismo proveedor no se puede registrar dos veces** (el sistema lo rechaza con aviso).

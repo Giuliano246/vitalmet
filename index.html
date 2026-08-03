@@ -2113,8 +2113,8 @@ body.no-costos .solo-costos{display:none!important}
         <div class="form-group"><label>Nro comprobante *</label><input type="text" id="fr-nro" placeholder="A-0001-00012345"></div>
         <div class="form-group"><label>Fecha *</label><input type="date" id="fr-fecha"></div>
         <div class="form-group"><label>Vencimiento</label><input type="date" id="fr-fecha-vto"></div>
-        <div class="form-group"><label>Moneda</label><select id="fr-moneda"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
-        <div class="form-group"><label>Tipo de cambio</label><input type="number" id="fr-tc" step="0.01" min="0" placeholder="1.00"></div>
+        <div class="form-group"><label>Moneda</label><select id="fr-moneda" onchange="frRecalc()"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
+        <div class="form-group"><label>Tipo de cambio</label><input type="number" id="fr-tc" step="0.01" min="0" placeholder="1.00" oninput="frRecalc()"></div>
       </div>
       <hr class="form-divider">
       <div id="fr-iva-section">
@@ -2141,6 +2141,7 @@ body.no-costos .solo-costos{display:none!important}
           <div><div style="color:var(--text3);margin-bottom:2px">Diferencia</div><div class="mono" id="fr-match-dif">—</div></div>
           <div><div style="color:var(--text3);margin-bottom:2px">Umbral</div><div class="mono" id="fr-match-umbral">—</div></div>
         </div>
+        <div id="fr-match-nota" style="margin-top:6px;font-size:10px;color:var(--text3);font-family:var(--mono)"></div>
         <div style="margin-top:10px" id="fr-match-badge"></div>
       </div>
       <div id="fr-override-section" style="display:none">
@@ -11349,26 +11350,49 @@ function frRecalc(){
   const esFacturaConOC=_frCtx.mode==='oc'&&document.getElementById('fr-tipo').value==='factura';
   const netoTotal=t.neto+(parseFloat(document.getElementById('fr-no-gravado').value)||0)+(parseFloat(document.getElementById('fr-exento').value)||0);
   if(!esFacturaConOC||netoTotal<=0){preview.style.display='none';overrideSection.style.display='none';return;}
-  const valorRecibido=_calcValorRecibidoOC(_frCtx.ocId);
-  const tolPct=parseFloat(configContable?.match_tolerancia_pct)||0; // ratio (ej. 0.02 = 2%), igual que el SQL
-  const tolMonto=parseFloat(configContable?.match_tolerancia_monto)||0;
-  const match=evaluarMatchFactura({valorRecibido,neto:netoTotal,tolPct,tolMonto});
-  document.getElementById('fr-match-recibido').textContent=fmt(valorRecibido);
+  const info=_frMatchInfo(_frCtx.ocId,netoTotal);
+  document.getElementById('fr-match-recibido').textContent=info.conv.valor===null?'—':fmt(info.conv.valor);
   document.getElementById('fr-match-neto').textContent=fmt(netoTotal);
-  document.getElementById('fr-match-dif').textContent=fmt(match.dif);
-  document.getElementById('fr-match-umbral').textContent=fmt(match.umbral);
+  document.getElementById('fr-match-dif').textContent=info.match?fmt(info.match.dif):'—';
+  document.getElementById('fr-match-umbral').textContent=info.match?fmt(info.match.umbral):'—';
+  document.getElementById('fr-match-nota').textContent=info.conv.tc
+    ?`Recibido convertido de ${info.monOC} a ${info.monFact} al TC ${info.conv.tc.toFixed(2)}`:'';
   const mbadge=document.getElementById('fr-match-badge');
-  if(match.ok){
+  const esAdmin=currentUserData?.es_admin===true;
+  if(info.conv.error){
+    mbadge.innerHTML=`<span class="badge badge-coral" style="font-size:12px">✗ FALTA TC</span> <span style="font-size:11px;color:var(--coral);margin-left:8px">${esc(info.conv.error)}.</span>`;
+    preview.style.borderColor='var(--coral)';overrideSection.style.display='none';
+  }else if(info.sinRecepciones){
+    mbadge.innerHTML=`<span class="badge badge-coral" style="font-size:12px">✗ SIN RECEPCIONES</span> <span style="font-size:11px;color:var(--text2);margin-left:8px">Esta OC no tiene recepciones registradas: cerrá este modal y usá el botón <b>Recibir</b> antes de facturar.${esAdmin?' Si el material ya entró y no se cargó, podés registrar igual justificando el override.':''}</span>`;
+    preview.style.borderColor='var(--coral)';
+    overrideSection.style.display=esAdmin?'':'none';
+  }else if(info.match.ok){
     mbadge.innerHTML='<span class="badge badge-ok" style="font-size:12px">✓ MATCH OK</span>';
     preview.style.borderColor='var(--green)';overrideSection.style.display='none';
   }else{
     mbadge.innerHTML='<span class="badge badge-coral" style="font-size:12px">✗ DISCREPANCIA</span>';
     preview.style.borderColor='var(--coral)';
-    const esAdmin=currentUserData?.es_admin===true;
     overrideSection.style.display=esAdmin?'':'none';
     if(!esAdmin)mbadge.innerHTML+=' <span style="font-size:11px;color:var(--text3);margin-left:8px">Se requiere un administrador para registrar con discrepancia.</span>';
   }
   preview.style.display='';
+}
+
+// Contexto completo del 3-way match para el modal de factura: recepciones,
+// conversión de moneda OC→factura y evaluación contra las tolerancias.
+function _frMatchInfo(ocId,netoTotal){
+  const oc=ordenesCompra.find(o=>o.id===ocId);
+  const sinRecepciones=!ocItems.some(i=>i.oc_id===ocId&&(parseFloat(i.cantidad_recibida)||0)>0);
+  const monFact=document.getElementById('fr-moneda').value||'ARS';
+  const conv=convertirRecibidoAFactura({
+    recibido:_calcValorRecibidoOC(ocId),
+    monOC:oc?.moneda,monFact,
+    tcFact:document.getElementById('fr-tc').value,tcOC:oc?.tipo_cambio,
+  });
+  const tolPct=parseFloat(configContable?.match_tolerancia_pct)||0; // ratio (ej. 0.02 = 2%), igual que el SQL
+  const tolMonto=parseFloat(configContable?.match_tolerancia_monto)||0;
+  const match=conv.valor===null?null:evaluarMatchFactura({valorRecibido:conv.valor,neto:netoTotal,tolPct,tolMonto});
+  return {sinRecepciones,conv,match,monOC:oc?.moneda||'ARS',monFact};
 }
 
 async function registrarFacturaRecibida(btnId){
@@ -11400,12 +11424,15 @@ async function registrarFacturaRecibida(btnId){
   let override=false,motivo=null;
   if(_frCtx.mode==='oc'&&tipo==='factura'){
     const netoTotal=t.neto+noGravado+exento;
-    const valorRecibido=_calcValorRecibidoOC(_frCtx.ocId);
-    const tolPct=parseFloat(configContable?.match_tolerancia_pct)||0; // ratio (ej. 0.02 = 2%), igual que el SQL
-    const tolMonto=parseFloat(configContable?.match_tolerancia_monto)||0;
-    const match=evaluarMatchFactura({valorRecibido,neto:netoTotal,tolPct,tolMonto});
-    if(!match.ok){
-      if(currentUserData?.es_admin!==true){notify('Hay una discrepancia en el match. Solo un administrador puede registrar con override.','err');return;}
+    const info=_frMatchInfo(_frCtx.ocId,netoTotal);
+    if(info.conv.error){notify(info.conv.error,'err');return;}
+    if(info.sinRecepciones||!info.match.ok){
+      if(currentUserData?.es_admin!==true){
+        notify(info.sinRecepciones
+          ?'La OC no tiene recepciones registradas. Usá el botón Recibir antes de facturar, o pedile el override a un administrador.'
+          :'Hay una discrepancia en el match. Solo un administrador puede registrar con override.','err');
+        return;
+      }
       motivo=(document.getElementById('fr-motivo').value||'').trim();
       if(!motivo){notify('Ingresá el motivo del override para continuar','err');return;}
       override=true;
@@ -12398,6 +12425,19 @@ function evaluarMatchFactura({ valorRecibido, neto, tolPct, tolMonto }) {
   const umbral = Math.min(valorRecibido * tolPct, tolMonto);
   const ok = dif <= umbral;
   return { ok, dif, umbral, estado: ok ? 'ok' : 'discrepancia' };
+}
+
+// Lleva el valor recibido (que está en la moneda de la OC) a la moneda
+// de la factura para que el match compare peras con peras. PURA, espejo
+// del RPC registrar_factura_recibida (migración 061): prioriza el TC de
+// la factura y cae al de la OC. Monedas distintas sin TC ⇒ error (el
+// servidor tampoco lo deja pasar, ni con override).
+function convertirRecibidoAFactura({ recibido, monOC, monFact, tcFact, tcOC }) {
+  monOC = monOC || 'ARS'; monFact = monFact || 'ARS';
+  if (monOC === monFact) return { valor: recibido };
+  const tc = (parseFloat(tcFact) || 0) > 0 ? parseFloat(tcFact) : (parseFloat(tcOC) || 0);
+  if (!(tc > 0)) return { valor: null, error: `La OC está en ${monOC} y la factura en ${monFact}: cargá el tipo de cambio para comparar el match` };
+  return { valor: monOC === 'USD' ? recibido * tc : recibido / tc, tc };
 }
 
 // ─── DESGLOSE FISCAL DE FACTURAS DE PROVEEDOR (spec 2026-07-30) ──────

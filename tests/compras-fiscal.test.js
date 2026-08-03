@@ -94,3 +94,40 @@ test('normalizarCuit deja solo dígitos', () => {
   assert.strictEqual(erp.run(`normalizarCuit('30-50001091-2')`), '30500010912');
   assert.strictEqual(erp.run(`normalizarCuit(' 30 50001091 2 ')`), '30500010912');
 });
+
+// ── convertirRecibidoAFactura (migración 061) ─────────────────────
+// El valor recibido está en la moneda de la OC; el match compara en la
+// moneda de la factura.
+
+function conv(args) { return erp.run(`convertirRecibidoAFactura(${JSON.stringify(args)})`); }
+
+test('convertirRecibidoAFactura: misma moneda pasa sin tocar', () => {
+  assert.strictEqual(conv({recibido: 1000, monOC: 'ARS', monFact: 'ARS'}).valor, 1000);
+  assert.strictEqual(conv({recibido: 500, monOC: 'USD', monFact: 'USD', tcFact: 1479}).valor, 500);
+});
+
+test('convertirRecibidoAFactura: OC USD → factura ARS multiplica por TC', () => {
+  const r = conv({recibido: 139, monOC: 'USD', monFact: 'ARS', tcFact: 1479});
+  assert.strictEqual(r.valor, 139 * 1479);
+  assert.strictEqual(r.tc, 1479);
+});
+
+test('convertirRecibidoAFactura: OC ARS → factura USD divide por TC', () => {
+  const r = conv({recibido: 147900, monOC: 'ARS', monFact: 'USD', tcFact: 1479});
+  assert.strictEqual(r.valor, 100);
+});
+
+test('convertirRecibidoAFactura: prioriza TC factura y cae al de la OC', () => {
+  assert.strictEqual(conv({recibido: 10, monOC: 'USD', monFact: 'ARS', tcFact: 1500, tcOC: 1400}).valor, 15000);
+  assert.strictEqual(conv({recibido: 10, monOC: 'USD', monFact: 'ARS', tcFact: '', tcOC: 1400}).valor, 14000);
+});
+
+test('convertirRecibidoAFactura: monedas distintas sin TC ⇒ error, no compara', () => {
+  const r = conv({recibido: 10, monOC: 'USD', monFact: 'ARS'});
+  assert.strictEqual(r.valor, null);
+  assert.ok(/tipo de cambio/.test(r.error));
+});
+
+test('convertirRecibidoAFactura: moneda ausente defaultea a ARS', () => {
+  assert.strictEqual(conv({recibido: 1000, monFact: 'ARS'}).valor, 1000);
+});
