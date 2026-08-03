@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VitalPulse v2 — Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    color: #0f172a;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .layout { display: flex; flex-direction: column; align-items: center; padding: 40px 20px; min-height: 100vh; }
+  .title { color: #e2e8f0; font-size: 14px; font-weight: 500; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; opacity: .7; }
+  .subtitle { color: #64748b; font-size: 12px; margin-bottom: 20px; }
+  .nav-screens { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; justify-content: center; }
+  .nav-btn {
+    background: rgba(255,255,255,.08); color: #e2e8f0; border: 1px solid rgba(255,255,255,.12);
+    padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500;
+    font-family: inherit; transition: all .15s;
+  }
+  .nav-btn:hover { background: rgba(255,255,255,.15); }
+  .nav-btn.active { background: #2563eb; border-color: #2563eb; color: #fff; }
+
+  /* Phone frame */
+  .phone { width: 390px; height: 844px; background: #000; border-radius: 48px; padding: 10px;
+    box-shadow: 0 40px 80px rgba(0,0,0,.4), 0 0 0 2px #27272a; position: relative; }
+  .phone::before { content: ''; position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+    width: 110px; height: 30px; background: #000; border-radius: 20px; z-index: 10; }
+  .phone-screen { width: 100%; height: 100%; background: #f4f4f5; border-radius: 38px; overflow: hidden;
+    position: relative; display: flex; flex-direction: column; }
+
+  .status-bar { height: 48px; display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 32px 0; font-size: 15px; font-weight: 600; color: #000; flex-shrink: 0; }
+  .status-right { display: flex; gap: 5px; align-items: center; font-size: 14px; }
+
+  /* App header */
+  .header { padding: 8px 20px 12px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  .brand { display: flex; align-items: center; gap: 8px; }
+  .brand-pulse { width: 26px; height: 26px; border-radius: 8px; background: #2563eb; display: flex;
+    align-items: center; justify-content: center; }
+  .brand-pulse svg { width: 16px; height: 16px; stroke: #fff; }
+  .brand-name { font-size: 19px; font-weight: 800; letter-spacing: -.5px; }
+  .brand-name span { color: #2563eb; }
+  .header-sub { font-size: 12px; color: #64748b; margin-top: 1px; }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; background: #1e293b; color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+
+  /* Screens */
+  .screens { flex: 1; overflow: hidden; position: relative; }
+  .screen { position: absolute; inset: 0; overflow-y: auto; padding: 0 16px 90px; display: none; }
+  .screen.active { display: block; }
+  .screen::-webkit-scrollbar { display: none; }
+
+  .page-title { font-size: 24px; font-weight: 800; letter-spacing: -.5px; margin: 6px 2px 2px; }
+  .page-sub { font-size: 13px; color: #64748b; margin: 0 2px 14px; }
+
+  /* Alert banner */
+  .alerts { background: #fffbeb; border: 1px solid #fde68a; border-radius: 16px; padding: 12px 14px; margin-bottom: 14px; }
+  .alerts-head { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; color: #92400e; }
+  .alerts-head .dot { width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; animation: blink 1.6s infinite; }
+  @keyframes blink { 50% { opacity: .3; } }
+  .alert-item { display: flex; gap: 8px; font-size: 13px; color: #78350f; padding: 6px 0 0 16px; }
+  .alert-item b { font-weight: 600; }
+
+  /* Cards */
+  .card { background: #fff; border-radius: 18px; padding: 16px; margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(15,23,42,.06); cursor: pointer; }
+  .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .card-title { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #64748b;
+    display: flex; align-items: center; gap: 7px; }
+  .card-title svg { width: 15px; height: 15px; stroke: #2563eb; }
+  .chev { color: #cbd5e1; font-size: 18px; font-weight: 600; }
+
+  .card.hero { background: linear-gradient(135deg, #1e293b, #0f172a); color: #fff; }
+  .card.hero .card-title { color: #94a3b8; }
+  .card.hero .chev { color: #475569; }
+
+  .big { font-size: 30px; font-weight: 800; letter-spacing: -1px; }
+  .big small { font-size: 15px; font-weight: 600; color: #64748b; }
+  .hero .big small { color: #94a3b8; }
+  .row2 { display: flex; gap: 10px; margin-top: 12px; }
+  .mini { flex: 1; background: rgba(255,255,255,.07); border-radius: 12px; padding: 10px 12px; }
+  .card:not(.hero) .mini { background: #f8fafc; }
+  .mini-label { font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+  .card:not(.hero) .mini-label { color: #64748b; }
+  .mini-val { font-size: 16px; font-weight: 700; margin-top: 2px; }
+  .pos { color: #34d399; } .neg { color: #f87171; }
+  .card:not(.hero) .pos { color: #059669; } .card:not(.hero) .neg { color: #dc2626; }
+  .warn { color: #d97706; }
+
+  .trend { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 700;
+    padding: 3px 9px; border-radius: 20px; background: #ecfdf5; color: #059669; }
+  .trend.down { background: #fef2f2; color: #dc2626; }
+  .hero .trend { background: rgba(52,211,153,.15); }
+
+  /* Sparkline bars */
+  .bars { display: flex; align-items: flex-end; gap: 6px; height: 56px; margin-top: 12px; }
+  .bar { flex: 1; border-radius: 5px 5px 2px 2px; background: #dbeafe; position: relative; }
+  .bar.hot { background: #2563eb; }
+  .bar-label { position: absolute; bottom: -16px; left: 0; right: 0; text-align: center;
+    font-size: 9px; color: #94a3b8; font-weight: 600; }
+  .bars-wrap { padding-bottom: 18px; }
+
+  /* Lists */
+  .list-row { display: flex; justify-content: space-between; align-items: center; padding: 11px 2px;
+    border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+  .list-row:last-child { border-bottom: 0; }
+  .list-main { font-weight: 600; }
+  .list-sub { font-size: 12px; color: #64748b; margin-top: 1px; }
+  .list-amt { font-weight: 700; text-align: right; }
+  .list-amt .list-sub { text-align: right; }
+
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; }
+  .b-green { background: #ecfdf5; color: #059669; }
+  .b-amber { background: #fffbeb; color: #d97706; }
+  .b-red { background: #fef2f2; color: #dc2626; }
+  .b-blue { background: #eff6ff; color: #2563eb; }
+  .b-gray { background: #f1f5f9; color: #64748b; }
+
+  /* Aging bars */
+  .aging { display: flex; gap: 6px; margin-top: 12px; }
+  .aging div { border-radius: 8px; padding: 8px 10px; flex-grow: 1; }
+  .aging .a1 { background: #ecfdf5; } .aging .a2 { background: #fffbeb; } .aging .a3 { background: #fef2f2; }
+  .aging b { display: block; font-size: 14px; }
+  .aging span { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #64748b; }
+  .a1 b { color: #059669; } .a2 b { color: #d97706; } .a3 b { color: #dc2626; }
+
+  /* Progress */
+  .prog { height: 6px; background: #f1f5f9; border-radius: 4px; margin-top: 8px; overflow: hidden; }
+  .prog i { display: block; height: 100%; border-radius: 4px; background: #2563eb; }
+  .prog i.g { background: #059669; } .prog i.a { background: #f59e0b; }
+
+  .timer-chip { display: inline-flex; align-items: center; gap: 6px; background: #eff6ff; color: #1d4ed8;
+    font-size: 12px; font-weight: 700; border-radius: 20px; padding: 4px 10px; margin-top: 8px; }
+  .timer-chip .dot { width: 7px; height: 7px; border-radius: 50%; background: #2563eb; animation: blink 1.2s infinite; }
+
+  /* Tab bar */
+  .tabbar { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,.92);
+    backdrop-filter: blur(12px); border-top: 1px solid #e2e8f0; display: flex; padding: 8px 6px 22px; z-index: 5; }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer;
+    color: #94a3b8; font-size: 10px; font-weight: 600; }
+  .tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+  .tab.active { color: #2563eb; }
+
+  /* Detail screen extras */
+  .back { display: inline-flex; align-items: center; gap: 5px; color: #2563eb; font-size: 14px;
+    font-weight: 600; cursor: pointer; margin: 8px 0 4px; }
+  .kv { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+  .kv:last-child { border-bottom: 0; }
+  .kv span { color: #64748b; }
+  .kv b { font-weight: 600; }
+  .section-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+    color: #64748b; margin: 18px 2px 8px; }
+
+  .foot-note { color: #475569; font-size: 12px; margin-top: 22px; max-width: 420px; text-align: center; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <div class="title">VitalPulse — Mockup v2</div>
+  <div class="subtitle">El pulso del negocio en el bolsillo del dueño · jul 2026</div>
+  <div class="nav-screens">
+    <button class="nav-btn active" data-s="hoy" onclick="go('hoy',this)">1 · Hoy</button>
+    <button class="nav-btn" data-s="plata" onclick="go('plata',this)">2 · Plata</button>
+    <button class="nav-btn" data-s="ventas" onclick="go('ventas',this)">3 · Ventas</button>
+    <button class="nav-btn" data-s="venta-det" onclick="go('venta-det',this)">3b · Detalle venta</button>
+    <button class="nav-btn" data-s="taller" onclick="go('taller',this)">4 · Taller</button>
+    <button class="nav-btn" data-s="stock" onclick="go('stock',this)">5 · Stock</button>
+  </div>
+
+  <div class="phone"><div class="phone-screen">
+    <div class="status-bar"><span>9:41</span><span class="status-right">📶 🔋</span></div>
+
+    <div class="header">
+      <div>
+        <div class="brand">
+          <div class="brand-pulse"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg></div>
+          <div class="brand-name">Vital<span>Pulse</span></div>
+        </div>
+        <div class="header-sub">miércoles 9 de julio · Vitalmet SA</div>
+      </div>
+      <div class="avatar">G</div>
+    </div>
+
+    <div class="screens">
+
+      <!-- ═══════════ HOY ═══════════ -->
+      <div class="screen active" id="s-hoy">
+        <div class="alerts">
+          <div class="alerts-head"><span class="dot"></span> Para hoy · 3 alertas</div>
+          <div class="alert-item">🏦 <div>Cheque de <b>YPF SA</b> vence hoy — <b>USD 8.200</b> a depositar</div></div>
+          <div class="alert-item">📦 <div><b>2 barras</b> bajo stock mínimo (SAE 4140 Ø 3½")</div></div>
+          <div class="alert-item">🚚 <div>Entrega comprometida mañana: <b>OP-0148</b> · Anillos BX-156 · Tenaris</div></div>
+        </div>
+
+        <div class="card hero" onclick="go('plata')">
+          <div class="card-head">
+            <div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg> La plata</div>
+            <span class="chev">›</span>
+          </div>
+          <div class="big">USD 48.230 <small>caja y bancos</small></div>
+          <div class="row2">
+            <div class="mini"><div class="mini-label">A cobrar</div><div class="mini-val">61.400 <span class="neg" style="font-size:12px">12.8k vencido</span></div></div>
+            <div class="mini"><div class="mini-label">Cheques 7 días</div><div class="mini-val"><span class="pos">+8.200</span> / <span class="neg">−3.100</span></div></div>
+          </div>
+        </div>
+
+        <div class="card" onclick="go('ventas')">
+          <div class="card-head">
+            <div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18M7 14l4-4 3 3 5-6"/></svg> Ventas · julio</div>
+            <span class="chev">›</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="big">USD 32.450</div>
+            <span class="trend">▲ 18% vs jun</span>
+          </div>
+          <div class="bars-wrap"><div class="bars">
+            <div class="bar" style="height:45%"><span class="bar-label">feb</span></div>
+            <div class="bar" style="height:60%"><span class="bar-label">mar</span></div>
+            <div class="bar" style="height:38%"><span class="bar-label">abr</span></div>
+            <div class="bar" style="height:70%"><span class="bar-label">may</span></div>
+            <div class="bar" style="height:58%"><span class="bar-label">jun</span></div>
+            <div class="bar hot" style="height:82%"><span class="bar-label">jul</span></div>
+          </div></div>
+          <div class="row2" style="margin-top:6px">
+            <div class="mini"><div class="mini-label">Pedidos a entregar</div><div class="mini-val">3</div></div>
+            <div class="mini"><div class="mini-label">Presup. abiertos</div><div class="mini-val">5 <span class="warn" style="font-size:12px">2 sin resp.</span></div></div>
+          </div>
+        </div>
+
+        <div class="card" onclick="go('taller')">
+          <div class="card-head">
+            <div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 105.4 5.4L17 14.8l-7.8-7.8 3.5-3.1a4 4 0 001.9 2.4zM3 21l6-6"/></svg> Taller</div>
+            <span class="chev">›</span>
+          </div>
+          <div class="row2" style="margin-top:0">
+            <div class="mini"><div class="mini-label">OPs en curso</div><div class="mini-val">4</div></div>
+            <div class="mini"><div class="mini-label">Entregas semana</div><div class="mini-val">2</div></div>
+            <div class="mini"><div class="mini-label">OTD mes</div><div class="mini-val pos">92%</div></div>
+          </div>
+          <div class="timer-chip"><span class="dot"></span> OP-0148 · torneado en curso · R. Gómez · 2h 14m</div>
+        </div>
+
+        <div class="card" onclick="go('stock')">
+          <div class="card-head">
+            <div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5m0 0l9-5m-9 5v9"/></svg> Stock</div>
+            <span class="chev">›</span>
+          </div>
+          <div class="row2" style="margin-top:0">
+            <div class="mini"><div class="mini-label">Bajo mínimo</div><div class="mini-val neg">3 ítems</div></div>
+            <div class="mini"><div class="mini-label">OCs abiertas</div><div class="mini-val">2</div></div>
+            <div class="mini"><div class="mini-label">Stock PT</div><div class="mini-val">21.3k</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ PLATA ═══════════ -->
+      <div class="screen" id="s-plata">
+        <div class="page-title">La plata</div>
+        <div class="page-sub">Posición al 9 de julio</div>
+
+        <div class="card">
+          <div class="card-title" style="margin-bottom:10px">Caja y bancos</div>
+          <div class="list-row"><div><div class="list-main">Banco Galicia USD</div><div class="list-sub">Cta 4092-1</div></div><div class="list-amt">USD 31.480</div></div>
+          <div class="list-row"><div><div class="list-main">Banco Galicia ARS</div><div class="list-sub">≈ USD 14.250 · TC 1.485</div></div><div class="list-amt">$ 21.160.000</div></div>
+          <div class="list-row"><div><div class="list-main">Caja</div><div class="list-sub">Efectivo</div></div><div class="list-amt">USD 2.500</div></div>
+          <div class="list-row" style="border-top:2px solid #f1f5f9"><div class="list-main">Total</div><div class="list-amt" style="font-size:16px">USD 48.230</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div class="card-title">A cobrar · USD 61.400</div></div>
+          <div class="aging">
+            <div class="a1"><span>0–30 días</span><b>38.100</b></div>
+            <div class="a2"><span>31–60</span><b>10.450</b></div>
+            <div class="a3"><span>+60</span><b>12.850</b></div>
+          </div>
+          <div class="section-label" style="margin-top:14px">Top deudores</div>
+          <div class="list-row"><div><div class="list-main">YPF SA</div><div class="list-sub">2 facturas · +45 días</div></div><div class="list-amt neg">18.900</div></div>
+          <div class="list-row"><div><div class="list-main">Tenaris Siderca</div><div class="list-sub">1 factura · 12 días</div></div><div class="list-amt">14.300</div></div>
+          <div class="list-row"><div><div class="list-main">SACME SA</div><div class="list-sub">3 facturas · 28 días</div></div><div class="list-amt">9.750</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="margin-bottom:10px">Cheques diferidos</div>
+          <div class="list-row"><div><div class="list-main">YPF SA</div><div class="list-sub">Vence HOY · a depositar</div></div><div class="list-amt pos">+8.200</div></div>
+          <div class="list-row"><div><div class="list-main">Aceros Bragado (prov.)</div><div class="list-sub">Vence 14 jul · emitido</div></div><div class="list-amt neg">−3.100</div></div>
+          <div class="list-row"><div><div class="list-main">SACME SA</div><div class="list-sub">Vence 28 jul · en cartera</div></div><div class="list-amt pos">+5.400</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="margin-bottom:10px">Últimos movimientos</div>
+          <div class="list-row"><div><div class="list-main">Cobro Tenaris</div><div class="list-sub">8 jul · transferencia</div></div><div class="list-amt pos">+11.200</div></div>
+          <div class="list-row"><div><div class="list-main">Pago Aceros Bragado</div><div class="list-sub">7 jul · OC-0092</div></div><div class="list-amt neg">−6.850</div></div>
+          <div class="list-row"><div><div class="list-main">Sueldos taller</div><div class="list-sub">5 jul</div></div><div class="list-amt neg">−9.400</div></div>
+        </div>
+      </div>
+
+      <!-- ═══════════ VENTAS ═══════════ -->
+      <div class="screen" id="s-ventas">
+        <div class="page-title">Ventas</div>
+        <div class="page-sub">Julio 2026</div>
+
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="big">USD 32.450</div>
+            <span class="trend">▲ 18% vs jun</span>
+          </div>
+          <div class="bars-wrap"><div class="bars">
+            <div class="bar" style="height:45%"><span class="bar-label">feb</span></div>
+            <div class="bar" style="height:60%"><span class="bar-label">mar</span></div>
+            <div class="bar" style="height:38%"><span class="bar-label">abr</span></div>
+            <div class="bar" style="height:70%"><span class="bar-label">may</span></div>
+            <div class="bar" style="height:58%"><span class="bar-label">jun</span></div>
+            <div class="bar hot" style="height:82%"><span class="bar-label">jul</span></div>
+          </div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="margin-bottom:10px">Pendientes de entrega</div>
+          <div class="list-row"><div><div class="list-main">Tenaris · Anillos BX-156 ×20</div><div class="list-sub">PED-0231 · entrega 10 jul</div></div><span class="badge b-amber">mañana</span></div>
+          <div class="list-row"><div><div class="list-main">YPF · Uniones 2" ×50</div><div class="list-sub">PED-0229 · entrega 18 jul</div></div><span class="badge b-blue">en fecha</span></div>
+          <div class="list-row"><div><div class="list-main">SACME · Codos 90° ×12</div><div class="list-sub">PED-0225 · entrega 25 jul</div></div><span class="badge b-blue">en fecha</span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="margin-bottom:10px">Presupuestos abiertos</div>
+          <div class="list-row"><div><div class="list-main">Pan American Energy</div><div class="list-sub">PRE-0087 · USD 14.600 · enviado 1 jul</div></div><span class="badge b-red">sin resp. 8d</span></div>
+          <div class="list-row"><div><div class="list-main">Tenaris Siderca</div><div class="list-sub">PRE-0089 · USD 6.200 · enviado 4 jul</div></div><span class="badge b-amber">negociación</span></div>
+          <div class="list-row"><div><div class="list-main">Metalúrgica Sur</div><div class="list-sub">PRE-0090 · USD 3.850 · enviado 7 jul</div></div><span class="badge b-blue">enviado</span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="margin-bottom:10px">Últimas ventas <span style="text-transform:none;letter-spacing:0;font-weight:500;color:#94a3b8">· tocá para ver</span></div>
+          <div class="list-row" onclick="go('venta-det')" style="cursor:pointer"><div><div class="list-main">REM-0412 · Tenaris</div><div class="list-sub">8 jul · Anillos BX-155 ×16</div></div><div class="list-amt">11.200 <span class="chev">›</span></div></div>
+          <div class="list-row"><div><div class="list-main">REM-0411 · SACME</div><div class="list-sub">4 jul · Válvulas 1½" ×8</div></div><div class="list-amt">6.400 <span class="chev">›</span></div></div>
+          <div class="list-row"><div><div class="list-main">REM-0410 · YPF</div><div class="list-sub">2 jul · Campanas ×4</div></div><div class="list-amt">9.850 <span class="chev">›</span></div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="margin-bottom:10px">Top clientes · julio</div>
+          <div class="list-row"><div class="list-main">1 · Tenaris Siderca</div><div class="list-amt">14.300</div></div>
+          <div class="list-row"><div class="list-main">2 · YPF SA</div><div class="list-amt">9.850</div></div>
+          <div class="list-row"><div class="list-main">3 · SACME SA</div><div class="list-amt">6.400</div></div>
+        </div>
+      </div>
+
+      <!-- ═══════════ DETALLE VENTA ═══════════ -->
+      <div class="screen" id="s-venta-det">
+        <div class="back" onclick="go('ventas')">‹ Ventas</div>
+        <div class="page-title">REM-0412</div>
+        <div class="page-sub">Tenaris Siderca · 8 de julio</div>
+
+        <div class="card" style="cursor:default">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="big">USD 11.200</div>
+            <span class="badge b-green">entregado</span>
+          </div>
+          <div class="kv" style="margin-top:10px"><span>Pedido</span><b>PED-0228</b></div>
+          <div class="kv"><span>Condición</span><b>Cta. cte. 30 días</b></div>
+          <div class="kv"><span>Vence</span><b>7 de agosto</b></div>
+          <div class="kv"><span>Factura</span><b>FC-A 0003-0891 · CAE OK</b></div>
+        </div>
+
+        <div class="card" style="cursor:default">
+          <div class="card-title" style="margin-bottom:10px">Ítems</div>
+          <div class="list-row"><div><div class="list-main">Anillo BX-155</div><div class="list-sub">×16 · USD 620 c/u</div></div><div class="list-amt">9.920</div></div>
+          <div class="list-row"><div><div class="list-main">Junta lente 2"</div><div class="list-sub">×8 · USD 160 c/u</div></div><div class="list-amt">1.280</div></div>
+        </div>
+
+        <div class="card" style="cursor:default">
+          <div class="card-title" style="margin-bottom:10px">Trazabilidad</div>
+          <div class="kv"><span>Lote PT</span><b>PT-0304</b></div>
+          <div class="kv"><span>OP</span><b>OP-0141 · terminada 5 jul</b></div>
+          <div class="kv"><span>Material</span><b>AISI 410 · colada H2214</b></div>
+          <div class="kv"><span>Cert. MTC</span><b>CERT-0188 ✓</b></div>
+        </div>
+      </div>
+
+      <!-- ═══════════ TALLER ═══════════ -->
+      <div class="screen" id="s-taller">
+        <div class="page-title">Taller</div>
+        <div class="page-sub">4 OPs en curso · OTD 92%</div>
+
+        <div class="card" style="cursor:default">
+          <div class="card-head">
+            <div><div class="list-main" style="font-size:15px">OP-0148 · Anillos BX-156 ×20</div><div class="list-sub">Tenaris · entrega 10 jul</div></div>
+            <span class="badge b-amber">mañana</span>
+          </div>
+          <div class="prog"><i class="a" style="width:75%"></i></div>
+          <div class="timer-chip"><span class="dot"></span> torneado en curso · R. Gómez · 2h 14m</div>
+        </div>
+
+        <div class="card" style="cursor:default">
+          <div class="card-head">
+            <div><div class="list-main" style="font-size:15px">OP-0149 · Uniones 2" ×50</div><div class="list-sub">YPF · entrega 18 jul</div></div>
+            <span class="badge b-blue">en fecha</span>
+          </div>
+          <div class="prog"><i style="width:40%"></i></div>
+          <div class="list-sub" style="margin-top:8px">Fresado · M. Duarte · sin timer activo</div>
+        </div>
+
+        <div class="card" style="cursor:default">
+          <div class="card-head">
+            <div><div class="list-main" style="font-size:15px">OP-0150 · Codos 90° ×12</div><div class="list-sub">SACME · entrega 25 jul</div></div>
+            <span class="badge b-blue">en fecha</span>
+          </div>
+          <div class="prog"><i style="width:15%"></i></div>
+          <div class="list-sub" style="margin-top:8px">Corte de material · esperando cuarentena AVL</div>
+        </div>
+
+        <div class="card" style="cursor:default">
+          <div class="card-head">
+            <div><div class="list-main" style="font-size:15px">OP-0147 · Campanas ×6</div><div class="list-sub">Pan American · entrega 30 jul</div></div>
+            <span class="badge b-gray">pausada</span>
+          </div>
+          <div class="prog"><i class="g" style="width:60%"></i></div>
+          <div class="list-sub" style="margin-top:8px">Esperando tratamiento térmico · prov. Termacor</div>
+        </div>
+
+        <div class="card" style="cursor:default">
+          <div class="card-title" style="margin-bottom:10px">Semana</div>
+          <div class="row2" style="margin-top:0">
+            <div class="mini"><div class="mini-label">Horas cargadas</div><div class="mini-val">86h</div></div>
+            <div class="mini"><div class="mini-label">OPs terminadas</div><div class="mini-val">3</div></div>
+            <div class="mini"><div class="mini-label">Merma prom.</div><div class="mini-val">4,1%</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ STOCK ═══════════ -->
+      <div class="screen" id="s-stock">
+        <div class="page-title">Stock</div>
+        <div class="page-sub">Materia prima · insumos · PT</div>
+
+        <div class="card" style="cursor:default">
+          <div class="card-title" style="margin-bottom:10px;color:#dc2626">⚠ Bajo mínimo · reponer</div>
+          <div class="list-row"><div><div class="list-main">SAE 4140 Ø 3½"</div><div class="list-sub">Quedan 48 kg · mínimo 120 kg</div></div><span class="badge b-red">crítico</span></div>
+          <div class="list-row"><div><div class="list-main">AISI 410 Ø 2"</div><div class="list-sub">Quedan 95 kg · mínimo 100 kg</div></div><span class="badge b-amber">justo</span></div>
+          <div class="list-row"><div><div class="list-main">Inserto CNMG 12 (insumo)</div><div class="list-sub">Quedan 4 u · mínimo 10 u</div></div><span class="badge b-red">crítico</span></div>
+        </div>
+
+        <div class="card" style="cursor:default">
+          <div class="card-title" style="margin-bottom:10px">OCs abiertas</div>
+          <div class="list-row"><div><div class="list-main">OC-0094 · Aceros Bragado</div><div class="list-sub">SAE 4140 · 300 kg · pedida 7 jul</div></div><span class="badge b-blue">en tránsito</span></div>
+          <div class="list-row"><div><div class="list-main">OC-0095 · Ferretería Central</div><div class="list-sub">Insertos + fresas · pedida 8 jul</div></div><span class="badge b-gray">confirmada</span></div>
+        </div>
+
+        <div class="card" style="cursor:default">
+          <div class="card-title" style="margin-bottom:10px">Valor del stock</div>
+          <div class="row2" style="margin-top:0">
+            <div class="mini"><div class="mini-label">Materia prima</div><div class="mini-val">USD 18.700</div></div>
+            <div class="mini"><div class="mini-label">Prod. terminado</div><div class="mini-val">USD 21.300</div></div>
+            <div class="mini"><div class="mini-label">Insumos</div><div class="mini-val">USD 3.900</div></div>
+          </div>
+        </div>
+
+        <div class="card" style="cursor:default">
+          <div class="card-title" style="margin-bottom:10px">PT disponible para vender</div>
+          <div class="list-row"><div><div class="list-main">Anillos BX-155</div><div class="list-sub">Lote PT-0304</div></div><div class="list-amt">6 u</div></div>
+          <div class="list-row"><div><div class="list-main">Uniones 2" HP</div><div class="list-sub">Lote PT-0301</div></div><div class="list-amt">22 u</div></div>
+          <div class="list-row"><div><div class="list-main">Válvulas 1½"</div><div class="list-sub">Lote PT-0298</div></div><div class="list-amt">4 u</div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Tab bar -->
+    <div class="tabbar">
+      <div class="tab active" data-s="hoy" onclick="go('hoy')">
+        <svg viewBox="0 0 24 24"><path d="M2 12h4l3-8 4 16 3-8h6"/></svg>Hoy</div>
+      <div class="tab" data-s="plata" onclick="go('plata')">
+        <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Plata</div>
+      <div class="tab" data-s="ventas" onclick="go('ventas')">
+        <svg viewBox="0 0 24 24"><path d="M3 3v18h18M7 14l4-4 3 3 5-6"/></svg>Ventas</div>
+      <div class="tab" data-s="taller" onclick="go('taller')">
+        <svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 105.4 5.4L17 14.8l-7.8-7.8 3.5-3.1a4 4 0 001.9 2.4zM3 21l6-6"/></svg>Taller</div>
+      <div class="tab" data-s="stock" onclick="go('stock')">
+        <svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5m0 0l9-5m-9 5v9"/></svg>Stock</div>
+    </div>
+
+  </div></div>
+
+  <div class="foot-note">
+    Mockup navegable: usá los botones de arriba o la tab bar del teléfono.<br>
+    Solo lectura · misma base Supabase del ERP · PWA instalable · los datos son de ejemplo.
+  </div>
+</div>
+
+<script>
+function go(s, btn) {
+  document.querySelectorAll('.screen').forEach(e => e.classList.remove('active'));
+  document.getElementById('s-' + s).classList.add('active');
+  const tabTarget = s === 'venta-det' ? 'ventas' : s;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.s === tabTarget));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.s === s));
+  document.getElementById('s-' + s).scrollTop = 0;
+}
+</script>
+</body>
+</html>

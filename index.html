@@ -2109,9 +2109,10 @@ body.no-costos .solo-costos{display:none!important}
       <div class="form-row" id="fr-cta-wrap" style="display:none;grid-template-columns:1fr">
         <div class="form-group"><label>Cuenta de imputación (gasto) *</label><select id="fr-cta-imputacion"></select></div>
       </div>
-      <div class="form-row" style="grid-template-columns:1fr 140px 140px 100px 120px">
+      <div class="form-row" style="grid-template-columns:1fr 130px 130px 130px 90px 110px">
         <div class="form-group"><label>Nro comprobante *</label><input type="text" id="fr-nro" placeholder="A-0001-00012345"></div>
-        <div class="form-group"><label>Fecha *</label><input type="date" id="fr-fecha"></div>
+        <div class="form-group"><label>Fecha de emisión *</label><input type="date" id="fr-fecha" title="La fecha impresa en el comprobante"></div>
+        <div class="form-group"><label>Fecha contable *</label><input type="date" id="fr-fecha-contable" title="Cuándo impacta en libros: asiento, libro IVA y posición IVA van por esta fecha"></div>
         <div class="form-group"><label>Vencimiento</label><input type="date" id="fr-fecha-vto"></div>
         <div class="form-group"><label>Moneda</label><select id="fr-moneda" onchange="frRecalc()"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
         <div class="form-group"><label>Tipo de cambio</label><input type="number" id="fr-tc" step="0.01" min="0" placeholder="1.00" oninput="frRecalc()"></div>
@@ -11147,6 +11148,8 @@ function _frReset(){
   frIvas=[];frPerceps=[];
   ['fr-nro','fr-fecha-vto','fr-no-gravado','fr-exento','fr-total','fr-tc','fr-motivo'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('fr-fecha').value=hoyLocal();
+  document.getElementById('fr-fecha-contable').value=hoyLocal();
+  const rt=document.getElementById('fr-recibir-todo');if(rt)rt.checked=false;
   document.getElementById('fr-tipo').value='factura';
   document.getElementById('fr-moneda').value='ARS';
   document.getElementById('fr-match-preview').style.display='none';
@@ -12438,6 +12441,43 @@ function convertirRecibidoAFactura({ recibido, monOC, monFact, tcFact, tcOC }) {
   const tc = (parseFloat(tcFact) || 0) > 0 ? parseFloat(tcFact) : (parseFloat(tcOC) || 0);
   if (!(tc > 0)) return { valor: null, error: `La OC está en ${monOC} y la factura en ${monFact}: cargá el tipo de cambio para comparar el match` };
   return { valor: monOC === 'USD' ? recibido * tc : recibido / tc, tc };
+}
+
+// ─── Doble fecha, recepción integrada y corrección (migración 062) ───
+// PURAS (sin DOM ni red), con tests en tests/compras-fiscal.test.js.
+
+// La fecha contable puede ser posterior a la emisión (factura de junio
+// que llega en agosto: libros de agosto). Anterior es raro ⇒ warning.
+function validarFechasFactura({emision, contable}){
+  if(!emision || !contable) return {ok:false, warning:null};
+  return {ok:true, warning: contable < emision
+    ? `La fecha contable (${contable}) es anterior a la emisión (${emision}) — verificá que sea intencional`
+    : null};
+}
+
+// Ítems de la OC con cantidad pendiente de recibir, en el formato que
+// consume registrarRecepcionOC ({itemId, qty, it}).
+function itemsPendientesOC(items){
+  return (items||[]).map(i=>{
+    const qty=(parseFloat(i.cantidad)||0)-(parseFloat(i.cantidad_recibida)||0);
+    return qty>0?{itemId:i.id,qty,it:i}:null;
+  }).filter(Boolean);
+}
+
+// Estado del modal a partir de una factura registrada + sus tax lines,
+// para reabrirlo precargado al corregir (anular + recargar).
+function armarDraftCorreccion(f, impuestos){
+  return {
+    ivas:(impuestos||[]).filter(i=>i.tipo==='iva')
+      .map(i=>({alicuota:parseFloat(i.alicuota)||0,base:parseFloat(i.base)||0,monto:parseFloat(i.monto)||0})),
+    perceps:(impuestos||[]).filter(i=>i.tipo!=='iva')
+      .map(i=>({tipo:i.tipo,monto:parseFloat(i.monto)||0,jurisdiccion:i.jurisdiccion||null})),
+    campos:{nro:f.nro||'',fecha:f.fecha||'',fechaContable:f.fecha_contable||f.fecha||'',
+      fechaVto:f.fecha_vto||'',tipo:f.tipo||'factura',letra:f.letra||'A',
+      moneda:f.moneda||'ARS',tc:parseFloat(f.tipo_cambio)||null,
+      noGravado:parseFloat(f.no_gravado)||0,exento:parseFloat(f.exento)||0,
+      total:parseFloat(f.total)||0},
+  };
 }
 
 // ─── DESGLOSE FISCAL DE FACTURAS DE PROVEEDOR (spec 2026-07-30) ──────

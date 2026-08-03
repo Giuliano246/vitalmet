@@ -131,3 +131,67 @@ test('convertirRecibidoAFactura: monedas distintas sin TC ⇒ error, no compara'
 test('convertirRecibidoAFactura: moneda ausente defaultea a ARS', () => {
   assert.strictEqual(conv({recibido: 1000, monFact: 'ARS'}).valor, 1000);
 });
+
+// ── validarFechasFactura (migración 062: doble fecha) ─────────────
+
+// Los valores nacen en el realm del vm: JSON round-trip para comparar
+// estructuras sin chocar con los prototipos (ver calculos.test.js:149).
+const J = x => JSON.parse(JSON.stringify(x));
+
+test('validarFechasFactura: contable posterior a emisión es el caso normal', () => {
+  const r = erp.run(`validarFechasFactura({emision:'2026-06-09',contable:'2026-08-03'})`);
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(r.warning, null);
+});
+
+test('validarFechasFactura: contable anterior a emisión advierte pero no bloquea', () => {
+  const r = erp.run(`validarFechasFactura({emision:'2026-08-03',contable:'2026-06-09'})`);
+  assert.strictEqual(r.ok, true);
+  assert.ok(/anterior a la emisión/.test(r.warning));
+});
+
+test('validarFechasFactura: falta cualquiera de las dos ⇒ inválido', () => {
+  assert.strictEqual(erp.run(`validarFechasFactura({emision:'',contable:'2026-08-03'})`).ok, false);
+  assert.strictEqual(erp.run(`validarFechasFactura({emision:'2026-08-03',contable:''})`).ok, false);
+});
+
+// ── itemsPendientesOC (recepción completa desde la factura) ───────
+
+test('itemsPendientesOC: devuelve solo lo pendiente con la cantidad que falta', () => {
+  const r = erp.run(`itemsPendientesOC([
+    {id:'a', cantidad:10, cantidad_recibida:4},
+    {id:'b', cantidad:5,  cantidad_recibida:5},
+    {id:'c', cantidad:3,  cantidad_recibida:null},
+  ])`);
+  assert.deepEqual(J(r).map(x => ({id: x.itemId, qty: x.qty})),
+    [{id: 'a', qty: 6}, {id: 'c', qty: 3}]);
+  assert.strictEqual(r[0].it.id, 'a');
+});
+
+test('itemsPendientesOC: OC completa o vacía ⇒ lista vacía', () => {
+  assert.deepEqual(J(erp.run(`itemsPendientesOC([{id:'a',cantidad:2,cantidad_recibida:2}])`)), []);
+  assert.deepEqual(J(erp.run(`itemsPendientesOC([])`)), []);
+  assert.deepEqual(J(erp.run(`itemsPendientesOC(null)`)), []);
+});
+
+// ── armarDraftCorreccion (anular + recargar precargado) ───────────
+
+test('armarDraftCorreccion: separa IVAs de percepciones y arma los campos', () => {
+  const r = erp.run(`armarDraftCorreccion(
+    {nro:'A-1', fecha:'2026-07-01', fecha_contable:'2026-08-01', fecha_vto:'2026-08-15',
+     tipo:'factura', letra:'A', moneda:'ARS', tipo_cambio:1480, no_gravado:10, exento:0, total:1210},
+    [{tipo:'iva', alicuota:21, base:1000, monto:210},
+     {tipo:'percepcion_iibb', monto:15, jurisdiccion:'CABA'}])`);
+  assert.deepEqual(J(r.ivas), [{alicuota: 21, base: 1000, monto: 210}]);
+  assert.deepEqual(J(r.perceps), [{tipo: 'percepcion_iibb', monto: 15, jurisdiccion: 'CABA'}]);
+  assert.strictEqual(r.campos.fechaContable, '2026-08-01');
+  assert.strictEqual(r.campos.tc, 1480);
+  assert.strictEqual(r.campos.noGravado, 10);
+});
+
+test('armarDraftCorreccion: factura vieja sin fecha_contable cae a la de emisión', () => {
+  const r = erp.run(`armarDraftCorreccion({nro:'B-2', fecha:'2026-07-10', total:100}, [])`);
+  assert.strictEqual(r.campos.fechaContable, '2026-07-10');
+  assert.deepEqual(J(r.ivas), []);
+  assert.strictEqual(r.campos.letra, 'A');
+});
