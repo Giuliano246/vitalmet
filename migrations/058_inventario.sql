@@ -132,8 +132,8 @@ ALTER TABLE public.config_contable
   ADD COLUMN IF NOT EXISTS cta_ajuste_inventario uuid REFERENCES public.cuentas_contables(id) ON DELETE SET NULL;
 
 -- Cuenta de resultado para diferencias de inventario (no existía)
-INSERT INTO public.cuentas_contables (empresa_id, codigo, nombre, tipo, activo)
-SELECT c.empresa_id, '421099', 'AJUSTES DE INVENTARIO', 'egreso', true
+INSERT INTO public.cuentas_contables (empresa_id, codigo, nombre, tipo, imputable, activa)
+SELECT c.empresa_id, '421099', 'AJUSTES DE INVENTARIO', 'egreso', true, true
 FROM public.config_contable c
 WHERE NOT EXISTS (SELECT 1 FROM public.cuentas_contables x
                   WHERE x.empresa_id = c.empresa_id AND x.codigo = '421099');
