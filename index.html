@@ -2018,7 +2018,7 @@ body.no-costos .solo-costos{display:none!important}
       <div class="section-label">Cabecera</div>
       <div class="form-row" style="grid-template-columns:120px 1fr 130px 130px 130px">
         <div class="form-group"><label>Nro OC *</label><input type="text" id="oc-nro" placeholder="OC-0001"></div>
-        <div class="form-group"><label>Proveedor *</label><select id="oc-proveedor"></select></div>
+        <div class="form-group"><label>Proveedor *</label><div style="display:flex;gap:6px"><select id="oc-proveedor" style="flex:1"></select><button type="button" class="btn btn-ghost btn-sm" onclick="openProvRapidoModal('oc')" title="Alta rápida por CUIT (proveedor ocasional)" style="white-space:nowrap">+ CUIT</button></div></div>
         <div class="form-group"><label>Fecha *</label><input type="date" id="oc-fecha"></div>
         <div class="form-group"><label>Entrega esperada</label><input type="date" id="oc-entrega"></div>
         <div class="form-group"><label>Estado</label><select id="oc-estado"><option value="borrador">Borrador</option><option value="enviada">Enviada</option><option value="confirmada">Confirmada</option><option value="recibida_parcial">Recibida parcial</option><option value="recibida">Recibida</option><option value="facturada">Facturada</option><option value="anulada">Anulada</option></select></div>
@@ -2098,7 +2098,7 @@ body.no-costos .solo-costos{display:none!important}
         <div class="form-group"><label>Tipo *</label><select id="fr-tipo" onchange="frOnTipoChange()"><option value="factura">Factura</option><option value="nota_debito">Nota de débito</option><option value="nota_credito">Nota de crédito</option></select></div>
         <div class="form-group"><label>Letra *</label><select id="fr-letra" onchange="frOnLetraChange()"><option>A</option><option>B</option><option>C</option><option>M</option><option>X</option></select></div>
         <div class="form-group" id="fr-prov-ro-wrap"><label>Proveedor</label><input type="text" id="fr-proveedor-nombre" readonly style="background:var(--bg);color:var(--text3)"></div>
-        <div class="form-group" id="fr-prov-sel-wrap" style="display:none"><label>Proveedor *</label><div style="display:flex;gap:6px"><select id="fr-proveedor-select" onchange="frOnProveedorChange()" style="flex:1"></select><button type="button" class="btn btn-ghost btn-sm" onclick="openProvRapidoModal()" title="Alta rápida por CUIT (proveedor ocasional)" style="white-space:nowrap">+ CUIT</button></div></div>
+        <div class="form-group" id="fr-prov-sel-wrap" style="display:none"><label>Proveedor *</label><div style="display:flex;gap:6px"><select id="fr-proveedor-select" onchange="frOnProveedorChange()" style="flex:1"></select><button type="button" class="btn btn-ghost btn-sm" onclick="openProvRapidoModal('fr')" title="Alta rápida por CUIT (proveedor ocasional)" style="white-space:nowrap">+ CUIT</button></div></div>
         <div class="form-group" id="fr-oc-wrap"><label>OC</label><input type="text" id="fr-oc-nro" readonly style="background:var(--bg);color:var(--text3)"></div>
       </div>
       <div id="fr-letra-warn" style="display:none;font-size:11px;color:var(--coral);margin:-4px 0 8px"></div>
@@ -11232,7 +11232,9 @@ function openNCNDModal(facturaId){
 }
 
 // ─── Proveedor ocasional: alta rápida por CUIT ───────────────────────
-function openProvRapidoModal(){
+let _prDestino='fr'; // desde qué modal se abrió el alta rápida: 'fr' (factura) u 'oc'
+function openProvRapidoModal(destino='fr'){
+  _prDestino=destino;
   document.getElementById('pr-cuit').value='';
   document.getElementById('pr-nombre').value='';
   document.getElementById('pr-cond-fiscal').value='RI';
@@ -11270,9 +11272,15 @@ async function saveProvRapido(){
       await reload('proveedores');
       provId=proveedores.find(p=>normalizarCuit(p.cuit)===norm)?.id;
     }
-    // Refrescar el select del modal de factura y dejarlo seleccionado
-    document.getElementById('fr-proveedor-select').innerHTML='<option value="">— elegir proveedor —</option>'+proveedores.filter(p=>p.activo!==false).map(p=>`<option value="${esc(p.id)}">${esc(p.nombre)}</option>`).join('');
-    if(provId){document.getElementById('fr-proveedor-select').value=provId;frOnProveedorChange();}
+    // Refrescar el select del modal que lo invocó y dejarlo seleccionado
+    if(_prDestino==='oc'){
+      const ocSel=document.getElementById('oc-proveedor');
+      ocSel.innerHTML='<option value="">— seleccionar —</option>'+proveedores.map(p=>`<option value="${p.id}">${esc(p.nombre)}</option>`).join('');
+      if(provId)ocSel.value=provId;
+    }else{
+      document.getElementById('fr-proveedor-select').innerHTML='<option value="">— elegir proveedor —</option>'+proveedores.filter(p=>p.activo!==false).map(p=>`<option value="${esc(p.id)}">${esc(p.nombre)}</option>`).join('');
+      if(provId){document.getElementById('fr-proveedor-select').value=provId;frOnProveedorChange();}
+    }
     closeModal('modal-prov-rapido');
     notify(existente?'Proveedor existente seleccionado':'Proveedor creado');
   }catch(e){notify('Error: '+e.message,'err');}
@@ -11550,7 +11558,7 @@ function renderFacturasRecibidas(filter=''){
       <td class="mono">${esc(oc?.nro||'—')}</td>
       <td style="font-weight:500">${esc(prov?.nombre||'—')}</td>
       <td class="mono">${esc(r.nro||'—')}</td>
-      <td>${r.fecha||'—'}</td>
+      <td>${r.fecha||'—'}${r.fecha_contable&&r.fecha_contable!==r.fecha?`<div style="font-size:10px;color:var(--text3);font-family:var(--mono)">cont. ${r.fecha_contable}</div>`:''}</td>
       <td style="color:var(--text3)">${r.fecha_vto||'—'}</td>
       <td><span class="badge ${mon==='USD'?'badge-blue':'badge-teal'}">${esc(mon)}</span></td>
       <td class="mono" style="text-align:right;${rojo}">${fmt(s*parseFloat(r.neto||0))}</td>
@@ -11558,7 +11566,7 @@ function renderFacturasRecibidas(filter=''){
       <td class="mono" style="text-align:right;font-weight:600;${rojo}">${fmt(s*parseFloat(r.total||0))}</td>
       <td>${matchCell}</td>
       <td class="mono" style="font-size:11px;color:var(--text3)">${r.asiento_id?esc(r.asiento_id):'—'}</td>
-      <td>${(r.tipo||'factura')==='factura'?`<button class="btn btn-ghost btn-sm" onclick="openNCNDModal('${r.id}')">NC/ND</button>`:''}</td>
+      <td style="display:flex;gap:4px">${(r.tipo||'factura')==='factura'?`<button class="btn btn-ghost btn-sm" onclick="openNCNDModal('${r.id}')">NC/ND</button>`:''}<button class="btn btn-ghost btn-sm" onclick="corregirFacturaRecibida('${r.id}')" title="Anula este comprobante y reabre el formulario precargado para corregirlo">Corregir</button><button class="btn btn-danger btn-sm" onclick="anularFacturaRecibida('${r.id}')" title="Anula el comprobante (el asiento queda anulado, el motivo va al audit log)">Anular</button></td>
     </tr>`;
   }).join(''):'<tr><td colspan="13" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">Sin comprobantes</div><div class="empty-msg">Registrá facturas con el botón <b>Factura</b> de una OC recibida, o <b>+ Factura sin OC</b> para gastos.</div></div></td></tr>';
 }
@@ -12503,6 +12511,62 @@ function armarDraftCorreccion(f, impuestos){
       noGravado:parseFloat(f.no_gravado)||0,exento:parseFloat(f.exento)||0,
       total:parseFloat(f.total)||0},
   };
+}
+
+async function anularFacturaRecibida(id){
+  const f=facturasRecibidas.find(x=>x.id===id);
+  if(!f){notify('Factura no encontrada','err');return;}
+  const lbl={factura:'la factura',nota_credito:'la NC',nota_debito:'la ND'}[f.tipo||'factura'];
+  const motivo=(prompt(`Vas a anular ${lbl} ${f.nro}.\n\nEl asiento contable queda ANULADO (no se borra) y el comprobante se elimina para que puedas recargarlo. Motivo (obligatorio):`)||'').trim();
+  if(!motivo)return;
+  try{
+    const r=await RPC('anular_factura_recibida',{p_factura_id:id,p_motivo:motivo});
+    await reload('facturas_recibidas','asientos','asiento_lineas');renderAll();
+    notify(`✓ ${r.nro} anulada — el asiento quedó en estado anulado`);
+  }catch(e){notify(e.message||'Error anulando el comprobante','err');}
+}
+
+// Corregir = anular + reabrir el modal precargado con los datos del
+// comprobante (cabecera + tax lines) para registrarlo de nuevo.
+async function corregirFacturaRecibida(id){
+  const f=facturasRecibidas.find(x=>x.id===id);
+  if(!f){notify('Factura no encontrada','err');return;}
+  if(!confirm(`Corregir ${f.nro}: se anula el comprobante (asiento anulado, motivo al audit log) y se reabre el formulario precargado para que lo registres de nuevo con los datos corregidos.\n\n¿Continuar?`))return;
+  try{
+    const imp=await GET('factura_recibida_impuestos',`?factura_id=eq.${id}&select=tipo,alicuota,base,monto,jurisdiccion`);
+    const draft=armarDraftCorreccion(f,imp);
+    await RPC('anular_factura_recibida',{p_factura_id:id,p_motivo:'Corrección: se anula para recargar'});
+    await reload('facturas_recibidas','asientos','asiento_lineas');renderAll();
+    // Reabrir el modal según el origen del comprobante
+    if((f.tipo||'factura')!=='factura'&&f.factura_asociada_id)openNCNDModal(f.factura_asociada_id);
+    else if(f.oc_id)openFacturaRecibidaModal(f.oc_id);
+    else{
+      openFacturaSinOCModal();
+      document.getElementById('fr-proveedor-select').value=f.proveedor_id||'';
+      _frCtx.provId=f.proveedor_id||null;
+      if(f.cta_imputacion_id)document.getElementById('fr-cta-imputacion').value=f.cta_imputacion_id;
+    }
+    _frAplicarDraft(draft);
+    notify('Comprobante anulado — revisá los datos y registralo de nuevo');
+  }catch(e){notify(e.message||'Error preparando la corrección','err');}
+}
+
+// Pisa los campos del modal (ya abierto) con el draft de la corrección.
+function _frAplicarDraft(d){
+  document.getElementById('fr-tipo').value=d.campos.tipo;
+  document.getElementById('fr-letra').value=d.campos.letra;
+  document.getElementById('fr-nro').value=d.campos.nro;
+  document.getElementById('fr-fecha').value=d.campos.fecha;
+  document.getElementById('fr-fecha-contable').value=d.campos.fechaContable;
+  document.getElementById('fr-fecha-vto').value=d.campos.fechaVto;
+  document.getElementById('fr-moneda').value=d.campos.moneda;
+  document.getElementById('fr-tc').value=d.campos.tc??'';
+  document.getElementById('fr-no-gravado').value=d.campos.noGravado||'';
+  document.getElementById('fr-exento').value=d.campos.exento||'';
+  document.getElementById('fr-total').value=d.campos.total||'';
+  frIvas=d.ivas.map(x=>({...x}));
+  frPerceps=d.perceps.map(x=>({...x,jurisdiccion:x.jurisdiccion||''}));
+  frOnLetraChange();frRender();frRecalc();
 }
 
 // ─── DESGLOSE FISCAL DE FACTURAS DE PROVEEDOR (spec 2026-07-30) ──────
