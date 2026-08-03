@@ -2134,6 +2134,7 @@ body.no-costos .solo-costos{display:none!important}
         <div class="form-group"><label>Total según el comprobante *</label><input type="number" id="fr-total" step="0.01" min="0" placeholder="0.00" oninput="frRecalc()"></div>
       </div>
       <div id="fr-arit-badge" style="margin-bottom:8px"></div>
+      <div id="fr-recibir-todo-wrap" style="display:none;margin-bottom:8px"><label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;padding:8px 10px;border:1px dashed var(--teal);border-radius:6px;color:var(--text2)"><input type="checkbox" id="fr-recibir-todo" onchange="frRecalc()" style="accent-color:var(--teal)"> Recibí todo el material con esta factura <span style="color:var(--text3)">— registra la recepción completa de la OC en este paso (stock, kardex y asiento de recepción)</span></label></div>
       <div id="fr-match-preview" style="display:none;padding:10px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface);margin-bottom:8px">
         <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);font-weight:600;margin-bottom:8px">Verificación 3-way match</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;font-size:12px">
@@ -2744,7 +2745,7 @@ async function expPosicionIva(desde,hasta){
   // Comprobantes en USD se convierten por su tipo de cambio.
   const [fe,fr]=await Promise.all([
     GET('facturas_emitidas',`?fecha=gte.${desde}&fecha=lte.${hasta}&select=tipo_comprobante,imp_iva`),
-    GET('facturas_recibidas',`?fecha=gte.${desde}&fecha=lte.${hasta}&select=id,tipo,iva,moneda,tipo_cambio`),
+    GET('facturas_recibidas',`?fecha_contable=gte.${desde}&fecha_contable=lte.${hasta}&select=id,tipo,iva,moneda,tipo_cambio`),
   ]);
   const df=fe.reduce((s,f)=>s+cbteAfipInfo(f.tipo_comprobante).signo*(+f.imp_iva||0),0);
   const ids=fr.map(f=>f.id);
@@ -2796,7 +2797,7 @@ async function _proveedoresMap(){
 }
 async function expSubdiarioCompras(desde,hasta){
   const [fr,pm]=await Promise.all([
-    GET('facturas_recibidas',`?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha,nro&select=fecha,fecha_vto,nro,tipo,letra,proveedor_id,neto,iva,total,moneda,tipo_cambio,estado_match`),
+    GET('facturas_recibidas',`?fecha_contable=gte.${desde}&fecha_contable=lte.${hasta}&order=fecha_contable,nro&select=fecha,fecha_contable,fecha_vto,nro,tipo,letra,proveedor_id,neto,iva,total,moneda,tipo_cambio,estado_match`),
     _proveedoresMap()]);
   const tipoLbl={factura:'FA',nota_credito:'NC',nota_debito:'ND'};
   const filas=[['Fecha','Tipo','Comprobante','Proveedor','CUIT','Moneda','T.C.','Total','Vencimiento','Estado']];
@@ -2810,7 +2811,7 @@ async function expIvaCompras(desde,hasta){
   // Libro IVA Compras con desglose por alícuota (mig 054): NC en negativo,
   // facturas históricas sin tax lines van a las columnas "s/desglose".
   const [fr,pm]=await Promise.all([
-    GET('facturas_recibidas',`?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha,nro&select=id,fecha,nro,tipo,letra,proveedor_id,neto,iva,total,no_gravado,exento`),
+    GET('facturas_recibidas',`?fecha_contable=gte.${desde}&fecha_contable=lte.${hasta}&order=fecha_contable,nro&select=id,fecha,fecha_contable,nro,tipo,letra,proveedor_id,neto,iva,total,no_gravado,exento`),
     _proveedoresMap()]);
   const ids=fr.map(f=>f.id);
   let imps=[];
@@ -11063,6 +11064,52 @@ function recepCertColada(){
   const c=certId?certs.find(x=>x.id===certId):null;
   document.getElementById('recep-colada').value=c?.colada||'';
 }
+// Núcleo de la recepción de OC (extraído de saveRecepcion en 062): lo
+// usan el modal Recibir y el tilde "recibí todo" del modal de factura.
+// items = [{itemId, qty, it}] (formato de itemsPendientesOC).
+async function registrarRecepcionOC(oc,items,{fecha,certId=null,colada='',remitoNro=null,obs=null}={}){
+  for(const r of items){
+    let barraId=null;
+    // Materia prima → crear barra en stock
+    if(r.it.tipo==='materia_prima'){
+      const lote=`${oc.nro}-${r.it.descripcion.slice(0,8).replace(/\s/g,'')}-${Date.now().toString().slice(-4)}`;
+      // Costo USD del ítem de la OC → la barra nace valuada (antes se perdía)
+      const tcOC=parseFloat(oc.tipo_cambio)||0;
+      const costoUSD=oc.moneda==='ARS'&&tcOC>0?(parseFloat(r.it.precio_unitario)||0)/tcOC:(parseFloat(r.it.precio_unitario)||0);
+      const barraData={empresa_id:currentEmpresa.id,lote,material:r.it.material||r.it.descripcion,perfil:r.it.perfil||'',diametro:r.it.diametro||'',kg_disponibles:['kg','mts'].includes(r.it.unidad)?r.qty:0,unidades:r.it.unidad==='un'?r.qty:0,nro_colada:colada,certificado_id:certId,kg_minimo:0,proveedor_id:oc.proveedor_id,oc_id:oc.id,costo_usd_unidad:costoUSD>0?costoUSD:null,observaciones:`Recepción OC ${oc.nro}`};
+      const bres=await POST('barras',[barraData]);
+      if(bres&&bres[0])barraId=bres[0].id;
+    }
+    // Insumo → buscar duplicado por nombre/código y sumar; si no existe, crear
+    else if(r.it.tipo==='insumo'){
+      const nombre=(r.it.descripcion||'').trim();
+      const existente=insumos.find(x=>(x.nombre||'').toLowerCase()===nombre.toLowerCase());
+      if(existente){
+        await PATCH('insumos',{cantidad:parseFloat(existente.cantidad||0)+r.qty,ultimo_precio:parseFloat(r.it.precio_unitario)||existente.ultimo_precio,proveedor_id:oc.proveedor_id||existente.proveedor_id,updated_at:new Date().toISOString()},`?id=eq.${existente.id}`);
+      }else{
+        await POST('insumos',{empresa_id:currentEmpresa.id,nombre,descripcion:r.it.descripcion||null,cantidad:r.qty,unidad:r.it.unidad||'un',ultimo_precio:parseFloat(r.it.precio_unitario)||null,proveedor_id:oc.proveedor_id,observaciones:`Recibido en OC ${oc.nro}`});
+      }
+    }
+    // Herramienta → siempre crear nueva (cada una es individual)
+    else if(r.it.tipo==='herramienta'){
+      await POST('herramientas',{empresa_id:currentEmpresa.id,nombre:(r.it.descripcion||'').trim(),descripcion:r.it.descripcion||null,cantidad:r.qty,estado:'nueva',precio_compra:parseFloat(r.it.precio_unitario)||null,fecha_compra:fecha,proveedor_id:oc.proveedor_id,observaciones:`Recibida en OC ${oc.nro}`});
+    }
+    await POST('recepciones_oc',[{empresa_id:currentEmpresa.id,oc_item_id:r.itemId,fecha,cantidad_recibida:r.qty,certificado_id:certId,barra_id:barraId,remito_nro:remitoNro,observaciones:obs}]);
+    // actualizar cantidad_recibida del item
+    const nuevaRecibida=(parseFloat(r.it.cantidad_recibida)||0)+r.qty;
+    await PATCH('oc_items',{cantidad_recibida:nuevaRecibida},`?id=eq.${r.itemId}`);
+  }
+  // Actualizar estado de la OC
+  const ocItemsReload=await GET('oc_items',`?oc_id=eq.${oc.id}`);
+  const allComplete=ocItemsReload.every(i=>parseFloat(i.cantidad_recibida||0)>=parseFloat(i.cantidad||0));
+  const anyReceived=ocItemsReload.some(i=>parseFloat(i.cantidad_recibida||0)>0);
+  const nuevoEstado=allComplete?'recibida':(anyReceived?'recibida_parcial':oc.estado);
+  await PATCH('ordenes_compra',{estado:nuevoEstado},`?id=eq.${oc.id}`);
+  // Asiento contable automático de compra
+  await generarAsientoCompra(items,oc,fecha);
+  return {allComplete};
+}
+
 async function saveRecepcion(){
   const fecha=document.getElementById('recep-fecha').value;
   const certId=document.getElementById('recep-cert').value||null;
@@ -11083,45 +11130,7 @@ async function saveRecepcion(){
   if(!recepcionesNuevas.length){notify('Marcá al menos un ítem recibido','err');return;}
   try{setBusy('btn-save-recep',true);
     const oc=ordenesCompra.find(x=>x.id===currentOCId);
-    for(const r of recepcionesNuevas){
-      let barraId=null;
-      // Materia prima → crear barra en stock
-      if(r.it.tipo==='materia_prima'){
-        const lote=`${oc.nro}-${r.it.descripcion.slice(0,8).replace(/\s/g,'')}-${Date.now().toString().slice(-4)}`;
-        // Costo USD del ítem de la OC → la barra nace valuada (antes se perdía)
-        const tcOC=parseFloat(oc.tipo_cambio)||0;
-        const costoUSD=oc.moneda==='ARS'&&tcOC>0?(parseFloat(r.it.precio_unitario)||0)/tcOC:(parseFloat(r.it.precio_unitario)||0);
-        const barraData={empresa_id:currentEmpresa.id,lote,material:r.it.material||r.it.descripcion,perfil:r.it.perfil||'',diametro:r.it.diametro||'',kg_disponibles:['kg','mts'].includes(r.it.unidad)?r.qty:0,unidades:r.it.unidad==='un'?r.qty:0,nro_colada:colada,certificado_id:certId,kg_minimo:0,proveedor_id:oc.proveedor_id,oc_id:currentOCId,costo_usd_unidad:costoUSD>0?costoUSD:null,observaciones:`Recepción OC ${oc.nro}`};
-        const bres=await POST('barras',[barraData]);
-        if(bres&&bres[0])barraId=bres[0].id;
-      }
-      // Insumo → buscar duplicado por nombre/código y sumar; si no existe, crear
-      else if(r.it.tipo==='insumo'){
-        const nombre=(r.it.descripcion||'').trim();
-        const existente=insumos.find(x=>(x.nombre||'').toLowerCase()===nombre.toLowerCase());
-        if(existente){
-          await PATCH('insumos',{cantidad:parseFloat(existente.cantidad||0)+r.qty,ultimo_precio:parseFloat(r.it.precio_unitario)||existente.ultimo_precio,proveedor_id:oc.proveedor_id||existente.proveedor_id,updated_at:new Date().toISOString()},`?id=eq.${existente.id}`);
-        }else{
-          await POST('insumos',{empresa_id:currentEmpresa.id,nombre,descripcion:r.it.descripcion||null,cantidad:r.qty,unidad:r.it.unidad||'un',ultimo_precio:parseFloat(r.it.precio_unitario)||null,proveedor_id:oc.proveedor_id,observaciones:`Recibido en OC ${oc.nro}`});
-        }
-      }
-      // Herramienta → siempre crear nueva (cada una es individual)
-      else if(r.it.tipo==='herramienta'){
-        await POST('herramientas',{empresa_id:currentEmpresa.id,nombre:(r.it.descripcion||'').trim(),descripcion:r.it.descripcion||null,cantidad:r.qty,estado:'nueva',precio_compra:parseFloat(r.it.precio_unitario)||null,fecha_compra:fecha,proveedor_id:oc.proveedor_id,observaciones:`Recibida en OC ${oc.nro}`});
-      }
-      await POST('recepciones_oc',[{empresa_id:currentEmpresa.id,oc_item_id:r.itemId,fecha,cantidad_recibida:r.qty,certificado_id:certId,barra_id:barraId,remito_nro:remitoNro,observaciones:obs}]);
-      // actualizar cantidad_recibida del item
-      const nuevaRecibida=(parseFloat(r.it.cantidad_recibida)||0)+r.qty;
-      await PATCH('oc_items',{cantidad_recibida:nuevaRecibida},`?id=eq.${r.itemId}`);
-    }
-    // Actualizar estado de la OC
-    const ocItemsReload=await GET('oc_items',`?oc_id=eq.${currentOCId}`);
-    const allComplete=ocItemsReload.every(i=>parseFloat(i.cantidad_recibida||0)>=parseFloat(i.cantidad||0));
-    const anyReceived=ocItemsReload.some(i=>parseFloat(i.cantidad_recibida||0)>0);
-    const nuevoEstado=allComplete?'recibida':(anyReceived?'recibida_parcial':oc.estado);
-    await PATCH('ordenes_compra',{estado:nuevoEstado},`?id=eq.${currentOCId}`);
-    // Asiento contable automático de compra
-    await generarAsientoCompra(recepcionesNuevas,oc,fecha);
+    const {allComplete}=await registrarRecepcionOC(oc,recepcionesNuevas,{fecha,certId,colada,remitoNro,obs});
     await reload('recepciones_oc','ordenes_compra','oc_items','barras','insumos','herramientas','certificados');closeModal('modal-recepcion');renderAll();
     notify(allComplete?'✓ Recepción completa registrada':'Recepción parcial registrada');
   }catch(e){notify('Error: '+e.message,'err');console.error(e);}
@@ -11172,6 +11181,8 @@ function openFacturaRecibidaModal(ocId){
   document.getElementById('fr-cta-wrap').style.display='none';
   document.getElementById('fr-proveedor-nombre').value=prov?.nombre||'—';
   document.getElementById('fr-oc-nro').value=oc.nro||'';
+  document.getElementById('fr-recibir-todo-wrap').style.display=
+    itemsPendientesOC(ocItems.filter(i=>i.oc_id===ocId)).length?'':'none';
   document.getElementById('fr-moneda').value=oc.moneda||'ARS';
   document.getElementById('fr-tc').value=oc.tipo_cambio||'';
   document.getElementById('fr-letra').value=sugerirLetra(prov?.condicion_fiscal);
@@ -11182,6 +11193,7 @@ function openFacturaRecibidaModal(ocId){
 function openFacturaSinOCModal(){
   _frCtx={mode:'sinoc',ocId:null,provId:null,facturaAsociadaId:null};
   _frReset();
+  document.getElementById('fr-recibir-todo-wrap').style.display='none';
   document.getElementById('fr-modal-title').textContent='Registrar comprobante sin OC (gastos)';
   document.getElementById('fr-prov-ro-wrap').style.display='none';
   document.getElementById('fr-prov-sel-wrap').style.display='';
@@ -11200,6 +11212,7 @@ function openNCNDModal(facturaId){
   const prov=proveedores.find(p=>p.id===fa.proveedor_id);
   _frCtx={mode:'ncnd',ocId:null,provId:fa.proveedor_id,facturaAsociadaId:facturaId};
   _frReset();
+  document.getElementById('fr-recibir-todo-wrap').style.display='none';
   document.getElementById('fr-modal-title').textContent='NC / ND de proveedor';
   document.getElementById('fr-tipo').value='nota_credito';
   document.getElementById('fr-prov-ro-wrap').style.display='';
@@ -11385,10 +11398,11 @@ function frRecalc(){
 // conversión de moneda OC→factura y evaluación contra las tolerancias.
 function _frMatchInfo(ocId,netoTotal){
   const oc=ordenesCompra.find(o=>o.id===ocId);
-  const sinRecepciones=!ocItems.some(i=>i.oc_id===ocId&&(parseFloat(i.cantidad_recibida)||0)>0);
+  const recibirTodo=document.getElementById('fr-recibir-todo')?.checked===true;
+  const sinRecepciones=!recibirTodo&&!ocItems.some(i=>i.oc_id===ocId&&(parseFloat(i.cantidad_recibida)||0)>0);
   const monFact=document.getElementById('fr-moneda').value||'ARS';
   const conv=convertirRecibidoAFactura({
-    recibido:_calcValorRecibidoOC(ocId),
+    recibido:_calcValorRecibidoOC(ocId,{completo:recibirTodo}),
     monOC:oc?.moneda,monFact,
     tcFact:document.getElementById('fr-tc').value,tcOC:oc?.tipo_cambio,
   });
@@ -11407,8 +11421,11 @@ async function registrarFacturaRecibida(btnId){
   const totalTipeado=parseFloat(document.getElementById('fr-total').value)||0;
   const noGravado=parseFloat(document.getElementById('fr-no-gravado').value)||0;
   const exento=parseFloat(document.getElementById('fr-exento').value)||0;
+  const fechaContable=document.getElementById('fr-fecha-contable').value;
   if(!nro){notify('El número de comprobante es obligatorio','err');return;}
-  if(!fecha){notify('La fecha es obligatoria','err');return;}
+  const vf=validarFechasFactura({emision:fecha,contable:fechaContable});
+  if(!vf.ok){notify('Cargá la fecha de emisión y la fecha contable','err');return;}
+  if(vf.warning&&!confirm(vf.warning+'\n\n¿Registrar igual?'))return;
   if(totalTipeado<=0){notify('El total debe ser mayor a cero','err');return;}
   if(_frCtx.mode==='sinoc'&&!_frCtx.provId){notify('Elegí el proveedor','err');return;}
   const v=validarDesgloseFactura({letra,ivas:frIvas,totalTipeado,totales:t});
@@ -11449,6 +11466,7 @@ async function registrarFacturaRecibida(btnId){
   ];
   const f={
     oc_id:_frCtx.ocId,proveedor_id:_frCtx.provId,nro,fecha,
+    fecha_contable:fechaContable,
     fecha_vto:document.getElementById('fr-fecha-vto').value||null,
     tipo,letra,neto:t.neto,iva:t.iva,total:totalTipeado,
     no_gravado:noGravado,exento,
@@ -11456,17 +11474,23 @@ async function registrarFacturaRecibida(btnId){
     tipo_cambio:parseFloat(document.getElementById('fr-tc').value)||null,
     factura_asociada_id:facturaAsociada,cta_imputacion_id:ctaImputacion,
   };
+  const recibirTodo=_frCtx.mode==='oc'&&tipo==='factura'&&document.getElementById('fr-recibir-todo')?.checked===true;
   try{
     setBusy(btnId,true);
+    if(recibirTodo){
+      const oc=ordenesCompra.find(o=>o.id===_frCtx.ocId);
+      const pend=itemsPendientesOC(ocItems.filter(i=>i.oc_id===_frCtx.ocId));
+      if(pend.length)await registrarRecepcionOC(oc,pend,{fecha:fechaContable,remitoNro:nro,obs:`Recepción registrada desde factura ${nro}`});
+    }
     await RPC('registrar_factura_recibida',{p_factura:f,p_impuestos:impuestos,p_override:override,p_motivo:motivo});
-    await reload('facturas_recibidas','ordenes_compra','asientos','asiento_lineas');
+    await reload('facturas_recibidas','ordenes_compra','asientos','asiento_lineas','recepciones_oc','oc_items','barras','insumos','herramientas');
     closeModal('modal-factura-recibida');renderAll();
     notify({factura:'Factura registrada',nota_credito:'Nota de crédito registrada',nota_debito:'Nota de débito registrada'}[tipo]);
   }catch(e){notify(e.message||'Error registrando el comprobante','err');}
   finally{setBusy(btnId,false);}
 }
 
-function _calcValorRecibidoOC(ocId){
+function _calcValorRecibidoOC(ocId,{completo=false}={}){
   // Valor recibido NETO (sin IVA), en la misma base que el crédito GR/IR
   // del asiento de recepción (generarAsientoCompra): si los precios de la
   // OC incluyen IVA, se descuenta para comparar contra el neto de la factura.
@@ -11475,7 +11499,8 @@ function _calcValorRecibidoOC(ocId){
   const items=ocItems.filter(i=>i.oc_id===ocId);
   return items.reduce((a,i)=>{
     const pu=parseFloat(i.precio_unitario)||0;
-    const qr=parseFloat(i.cantidad_recibida)||0;
+    // completo: simula la OC recibida entera (tilde "recibí todo")
+    const qr=completo?(parseFloat(i.cantidad)||0):(parseFloat(i.cantidad_recibida)||0);
     const bruto=pu*qr;
     return a+(incluyeIva?bruto/(1+ivaPct):bruto);
   },0);
