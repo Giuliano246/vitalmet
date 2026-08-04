@@ -8,8 +8,13 @@
 //                               microservicio viejo + afip_environment
 //                               y condicion_iva_receptor_id (RG 5616)
 //
-// Auth: header X-API-Key == BILLING_API_KEY (mismo shared secret que
-// usaba Railway; el ERP ya lo manda).
+// Auth (cualquiera de las dos):
+//   a) Authorization: Bearer <access_token de Supabase> — el camino
+//      normal del ERP: cualquier usuario logueado de la empresa con
+//      permiso al módulo 'ventas' (o es_admin) puede facturar; los
+//      usuarios es_planta / es_contador quedan afuera.
+//   b) header X-API-Key == BILLING_API_KEY — fallback para testing
+//      y scripts (el shared secret que usaba Railway).
 //
 // WSAA: el TRA se firma CMS/PKCS#7 con node-forge y se postea a
 // LoginCms. El TA resultante se persiste en public.afip_ta (migración
@@ -384,6 +389,49 @@ async function solicitarCAE(req: FacturaReq) {
   };
 }
 
+// ── Autorización ────────────────────────────────────────────────────
+// Devuelve null si el request está autorizado, o la Response de error.
+async function autorizar(req: Request): Promise<Response | null> {
+  // b) shared secret (testing / scripts)
+  const apiKey = req.headers.get("x-api-key");
+  if (apiKey) {
+    if (BILLING_API_KEY && apiKey === BILLING_API_KEY) return null;
+    return json({ detail: "API key inválida (header X-API-Key)" }, 401);
+  }
+
+  // a) sesión de Supabase del usuario del ERP
+  const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  if (!bearer) {
+    return json({ detail: "Falta autenticación (Authorization: Bearer o X-API-Key)" }, 401);
+  }
+  const { data: userData, error } = await supabase.auth.getUser(bearer);
+  if (error || !userData?.user) {
+    return json({ detail: "Sesión inválida o vencida — volvé a loguearte en el ERP" }, 401);
+  }
+
+  const { data: u } = await supabase
+    .from("usuarios")
+    .select("empresa_id, es_admin, es_planta, es_contador")
+    .eq("id", userData.user.id)
+    .maybeSingle();
+  if (!u) return json({ detail: "Usuario sin alta en el ERP" }, 403);
+  if (u.es_planta || u.es_contador) {
+    return json({ detail: "Este usuario no está habilitado para facturar" }, 403);
+  }
+  if (!u.es_admin) {
+    const { data: perm } = await supabase
+      .from("permisos_usuario")
+      .select("id")
+      .eq("usuario_id", userData.user.id)
+      .eq("modulo", "ventas")
+      .maybeSingle();
+    if (!perm) {
+      return json({ detail: "Necesitás permiso al módulo Ventas para facturar" }, 403);
+    }
+  }
+  return null;
+}
+
 // ── Router ──────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
@@ -401,9 +449,8 @@ Deno.serve(async (req) => {
     });
   }
 
-  if (!BILLING_API_KEY || req.headers.get("x-api-key") !== BILLING_API_KEY) {
-    return json({ detail: "API key inválida o ausente (header X-API-Key)" }, 401);
-  }
+  const authError = await autorizar(req);
+  if (authError) return authError;
 
   try {
     if (path === "/ultimo-comprobante" && req.method === "GET") {

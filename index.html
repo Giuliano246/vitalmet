@@ -2581,7 +2581,8 @@ const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 // Facturación AFIP: Edge Function `facturacion` (reemplazó al
 // microservicio de Railway el 2026-08-04). Mismo contrato HTTP.
 const BILLING_URL = SUPA_URL + '/functions/v1/facturacion';
-const BILLING_API_KEY = localStorage.getItem('billing_api_key') || '';
+// Auth de facturación: sesión de Supabase del usuario logueado (la
+// función valida es_admin o permiso 'ventas'; planta/contador no).
 
 // ─── AUTH HELPERS ──────────────────────────────────────────────────
 let currentSession=null, currentUser=null, currentEmpresa=null;
@@ -3718,12 +3719,7 @@ async function saveVenta(){
 
 // ─── FACTURACIÓN ELECTRÓNICA AFIP (vitalmet-billing) ───────────────
 async function emitirFactura(ventaId,skipConfirm){
-  if(!BILLING_API_KEY){
-    const k=prompt('Falta configurar billing_api_key. Pegá el API key del microservicio (se guarda en localStorage):');
-    if(!k)return false;
-    localStorage.setItem('billing_api_key',k);
-    location.reload();return false;
-  }
+  if(!currentSession?.access_token){notify('Sesión vencida — volvé a loguearte','err');return false;}
   if(!skipConfirm&&!confirm('¿Emitir factura electrónica para esta venta?\n\nEsto solicita un CAE a AFIP. La operación NO se puede deshacer (un CAE emitido queda en la base de AFIP, después solo se puede emitir una Nota de Crédito).'))return false;
   const vList=await GET('ventas',`?id=eq.${ventaId}&select=*,venta_items(*)`).catch(()=>[]);
   const venta=vList[0];
@@ -3764,7 +3760,7 @@ async function emitirFactura(ventaId,skipConfirm){
   try{
     const res=await fetch(`${BILLING_URL}/facturar`,{
       method:'POST',
-      headers:{'Content-Type':'application/json','X-API-Key':BILLING_API_KEY},
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${currentSession.access_token}`},
       body:JSON.stringify(payload),
     });
     if(!res.ok){
