@@ -2578,12 +2578,9 @@ body.no-costos .solo-costos{display:none!important}
 <script>
 const SUPA_URL='https://dqvlqhaxgvtilhiuatpv.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxdmxxaGF4Z3Z0aWxoaXVhdHB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MDU4MzcsImV4cCI6MjA5MTA4MTgzN30.-3sLblqE1qbEBTVfxT_88AtzLc_XfyvIBBLnm7nHGc8';
-// Microservicio vitalmet-billing (AFIP factura electrónica).
-// Detecta entorno: localhost en dev, dominio prod en Netlify.
-// La API key se inyecta en producción via Netlify env. En dev se lee de localStorage.
-const BILLING_URL = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-  ? 'http://localhost:8080'
-  : 'https://billing.vitalmetsa.com';
+// Facturación AFIP: Edge Function `facturacion` (reemplazó al
+// microservicio de Railway el 2026-08-04). Mismo contrato HTTP.
+const BILLING_URL = SUPA_URL + '/functions/v1/facturacion';
 const BILLING_API_KEY = localStorage.getItem('billing_api_key') || '';
 
 // ─── AUTH HELPERS ──────────────────────────────────────────────────
@@ -3747,6 +3744,8 @@ async function emitirFactura(ventaId,skipConfirm){
   const items=buildItemsFactura(venta.venta_items,{tc,ivaPct,incluyenIva:!!configContable?.precios_incluyen_iva});
   const docTipo=cuit.length===11?80:99;
   const docNro=cuit.length===11?cuit:'0';
+  // Condición IVA del receptor (RG 5616, obligatoria desde 2026-09-01)
+  const COND_IVA_AFIP={RI:1,exento:4,consumidor_final:5,monotributo:6};
   const payload={
     punto_venta:Number(configContable?.punto_venta)||1,
     tipo_comprobante:cbte.tipo,
@@ -3756,6 +3755,7 @@ async function emitirFactura(ventaId,skipConfirm){
     fecha:hoyLocal(),
     moneda:'PES',
     cotizacion_moneda:1,
+    condicion_iva_receptor_id:COND_IVA_AFIP[cli?.condicion_fiscal]||undefined,
     items,
   };
   const btnId=`emitir-factura-${ventaId}`;
@@ -3794,7 +3794,7 @@ async function emitirFactura(ventaId,skipConfirm){
       resultado:data.resultado,
       observaciones:(data.observaciones&&data.observaciones.length)?data.observaciones:null,
       qr_url:data.qr_url,
-      afip_environment:(BILLING_URL.includes('localhost')||BILLING_URL.includes('vitalmetsa'))?'homologacion':'produccion',
+      afip_environment:data.afip_environment||'produccion',
       created_by:currentUser?.id||null,
     });
     const facturaEmitidaId=Array.isArray(fEmitida)?fEmitida[0]?.id:fEmitida?.id;

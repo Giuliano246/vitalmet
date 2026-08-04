@@ -13,7 +13,7 @@ VitalStock es un ERP single-file (HTML + Supabase) para Vitalmet SA, empresa met
 - **Backend/DB:** Supabase (auth + PostgreSQL 17, REST vía PostgREST)
 - **Hosting:** Netlify (deploy automático al pushear a `main` de github.com/Giuliano246/vitalmet)
 - **Headers:** `netlify.toml` define CSP + security headers. **Si se agrega un CDN, API externa o fuente nueva, agregar el origen al CSP o se bloquea en producción.**
-- **Facturación AFIP:** microservicio aparte `~/vitalmet-billing` en Railway (https://billing.vitalmetsa.com). Falta solo el cert X.509.
+- **Facturación AFIP:** Edge Function `supabase/functions/facturacion` (deploy: `npx supabase functions deploy facturacion --no-verify-jwt`). WSAA firma CMS con node-forge; TA cacheado en tabla `afip_ta` (migración 063). Cert X.509 prod vigente hasta 2028-08-03, PV 4, ambiente `produccion`. Secrets: AFIP_CUIT/AFIP_ENVIRONMENT/AFIP_CERT_B64/AFIP_KEY_B64/BILLING_API_KEY. El microservicio de Railway (`~/vitalmet-billing`) quedó obsoleto 2026-08-04.
 
 ## Supabase
 - **URL:** `https://dqvlqhaxgvtilhiuatpv.supabase.co` (anon key en el HTML, ~línea 1843)
