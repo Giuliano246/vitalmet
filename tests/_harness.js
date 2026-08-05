@@ -73,6 +73,8 @@ function load() {
     document: stubDocument(),
     localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
     location: { hostname: 'test', hash: '', href: 'http://test/' },
+    history: { replaceState() {}, pushState() {} },
+    addEventListener() {}, removeEventListener() {},
     navigator: { userAgent: 'node-test' },
     fetch: () => Promise.reject(new Error('sin red en tests')),
     confirm: () => false,

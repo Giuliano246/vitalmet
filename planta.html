@@ -245,8 +245,8 @@ function renderOP(){
     let acciones='';
     if(done)acciones='';
     else if(bloqueado)acciones=`<div class="bloqueado">🔒 Bloqueado: hay un punto HOLD anterior sin liberar (se firma desde el ERP).</div>`;
-    else if(prod)acciones=`<div class="acciones"><button class="btn pause" onclick="openSheet('${p.id}')">⏸ PAUSAR</button><button class="btn stop" onclick="finalizar('${p.id}')">■ FINALIZAR</button></div>`;
-    else acciones=`<div class="acciones"><button class="btn play" onclick="iniciar('${p.id}')">▶ INICIAR</button>${p.estado==='en_curso'?`<button class="btn stop" onclick="finalizar('${p.id}')">■ FINALIZAR</button>`:''}</div>`;
+    else if(prod)acciones=`<div class="acciones"><button class="btn pause" onclick="openSheet('${p.id}')">⏸ PAUSAR</button><button class="btn stop" onclick="finalizar('${p.id}',this)">■ FINALIZAR</button></div>`;
+    else acciones=`<div class="acciones"><button class="btn play" onclick="iniciar('${p.id}',this)">▶ INICIAR</button>${p.estado==='en_curso'?`<button class="btn stop" onclick="finalizar('${p.id}',this)">■ FINALIZAR</button>`:''}</div>`;
     return `<div class="card paso${done?' done':''}">
       <div class="paso-top">
         <div><span class="paso-nombre">${done?'✓ ':''}${esc(p.nombre)}</span>${qc}${pausa?`<span class="badge pausa">⏸ ${esc(pausa.motivo||'pausa')}</span>`:''}
@@ -270,10 +270,16 @@ function stopTick(){if(tickInt){clearInterval(tickInt);tickInt=null;}}
 
 // ─── Acciones (misma semántica que startTiempoOp/confirmPauseTiempo/
 //     completeTiempoOp del ERP; los quality gates los aplica la DB) ──
-async function iniciar(pasoId){
+// Anti doble-tap: con wifi lento un segundo toque duplicaría time-entries.
+// El botón tocado se deshabilita al instante y loadOP re-renderiza al final.
+let accionBusy=false;
+function lockBtn(btn){accionBusy=true;if(btn){btn.disabled=true;btn.textContent='…';}}
+async function iniciar(pasoId,btn){
+  if(accionBusy)return;
   const paso=pasos.find(p=>p.id===pasoId);if(!paso)return;
   if(paso.estado==='completada'){toast('Ese paso ya está completado',1);return;}
   if(openOf(pasoId,'productivo')){toast('Ese paso ya tiene un timer corriendo',1);return;}
+  lockBtn(btn);
   try{
     const now=new Date().toISOString();
     await PATCH('op_time_entries',`?operacion_id=eq.${pasoId}&tipo=eq.pausa&ended_at=is.null`,{ended_at:now});
@@ -281,11 +287,13 @@ async function iniciar(pasoId){
     if(paso.estado==='pendiente')await PATCH('op_operaciones',`?id=eq.${pasoId}`,{estado:'en_curso'});
     toast('▶ Timer iniciado · '+paso.nombre);
   }catch(e){toast('Error: '+e.message,1);}
+  accionBusy=false;
   loadOP(op.id);
 }
 
 let pausaPasoId=null;
 function openSheet(pasoId){
+  if(accionBusy)return;
   if(!openOf(pasoId,'productivo')){toast('Ese paso no tiene timer corriendo',1);return;}
   pausaPasoId=pasoId;
   document.getElementById('sheet-backdrop').style.display='block';
@@ -294,25 +302,30 @@ function openSheet(pasoId){
 function closeSheet(){pausaPasoId=null;document.getElementById('sheet-backdrop').style.display='none';document.getElementById('sheet').style.display='none';}
 async function pausar(motivo){
   const pasoId=pausaPasoId;closeSheet();
-  if(!pasoId)return;
+  if(!pasoId||accionBusy)return;
+  lockBtn(null);
   try{
     const now=new Date().toISOString();
     await PATCH('op_time_entries',`?operacion_id=eq.${pasoId}&tipo=eq.productivo&ended_at=is.null`,{ended_at:now});
     await POST('op_time_entries',[{empresa_id:EMPRESA_ID,operacion_id:pasoId,operario_id:session.user.id,tipo:'pausa',motivo,started_at:now}]);
     toast('⏸ Pausado · '+motivo);
   }catch(e){toast('Error: '+e.message,1);}
+  accionBusy=false;
   loadOP(op.id);
 }
 
-async function finalizar(pasoId){
+async function finalizar(pasoId,btn){
+  if(accionBusy)return;
   const paso=pasos.find(p=>p.id===pasoId);if(!paso)return;
   if(!confirm(`¿Marcar "${paso.nombre}" como completado?`))return;
+  lockBtn(btn);
   try{
     const now=new Date().toISOString();
     await PATCH('op_time_entries',`?operacion_id=eq.${pasoId}&ended_at=is.null`,{ended_at:now});
     await PATCH('op_operaciones',`?id=eq.${pasoId}`,{estado:'completada'});
     toast('✓ '+paso.nombre+' completado');
   }catch(e){toast('Error: '+e.message,1);}
+  accionBusy=false;
   loadOP(op.id);
 }
 

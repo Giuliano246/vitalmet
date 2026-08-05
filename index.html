@@ -211,6 +211,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
 .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .search-box input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,160,48,.15)}
 .nav-item:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.tab:focus-visible,.subtab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* ─── #6 Row hover mejorado ─── */
 tbody tr{transition:background .15s ease,box-shadow .15s ease}
@@ -383,15 +384,15 @@ body.no-costos .solo-costos{display:none!important}
     </div>
     <div id="cotizacion-badge" style="padding:8px 14px;border-bottom:1px solid var(--border);background:var(--surface2)"><span style="color:var(--text3);font-size:10px">USD: —</span></div>
     <nav class="nav">
-      <div class="nav-item active" data-group="dash" onclick="showPage('dash')"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></span>Métricas<span class="nav-alert" id="nav-alert-dash" style="display:none"></span></div>
-      <div class="nav-item" data-group="inventario" onclick="showPage('mp')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></span>Inventario</div>
-      <div class="nav-item" data-group="produccion" onclick="showPage('op')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></svg></span>Producción</div>
-      <div class="nav-item" data-group="compras" onclick="showPage('compras')"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></span>Compras</div>
-      <div class="nav-item" data-group="ventas" onclick="showPage('presupuestos')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></span>Ventas</div>
-      <div class="nav-item" data-group="analisis" onclick="showPage('costos')"><span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>Análisis</div>
-      <div class="nav-item" data-group="calidad" onclick="showPage('ncr')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></span>Calidad</div>
-      <div class="nav-item" data-group="contabilidad" onclick="showPage('cuentas')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 17V7"/><path d="M11 17V11"/><path d="M15 17V13"/><path d="M19 17V9"/></svg></span>Contabilidad</div>
-      <div class="nav-item" data-group="config" onclick="showPage('config')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>Configuración</div>
+      <div class="nav-item active" tabindex="0" role="button" data-group="dash" onclick="showPage('dash')"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></span>Métricas<span class="nav-alert" id="nav-alert-dash" style="display:none"></span></div>
+      <div class="nav-item" tabindex="0" role="button" data-group="inventario" onclick="showPage('mp')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></span>Inventario</div>
+      <div class="nav-item" tabindex="0" role="button" data-group="produccion" onclick="showPage('op')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></svg></span>Producción</div>
+      <div class="nav-item" tabindex="0" role="button" data-group="compras" onclick="showPage('compras')"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg></span>Compras</div>
+      <div class="nav-item" tabindex="0" role="button" data-group="ventas" onclick="showPage('presupuestos')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></span>Ventas</div>
+      <div class="nav-item" tabindex="0" role="button" data-group="analisis" onclick="showPage('costos')"><span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>Análisis</div>
+      <div class="nav-item" tabindex="0" role="button" data-group="calidad" onclick="showPage('ncr')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></span>Calidad</div>
+      <div class="nav-item" tabindex="0" role="button" data-group="contabilidad" onclick="showPage('cuentas')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 17V7"/><path d="M11 17V11"/><path d="M15 17V13"/><path d="M19 17V9"/></svg></span>Contabilidad</div>
+      <div class="nav-item" tabindex="0" role="button" data-group="config" onclick="showPage('config')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>Configuración</div>
     </nav>
     <div class="sidebar-footer" style="position:relative">
       <button onclick="openPalette()" title="Buscar (Ctrl+K)" aria-label="Buscar" style="position:absolute;top:8px;right:32px;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:2px 4px;line-height:1">⌕</button>
@@ -3188,6 +3189,9 @@ async function loadEmpresaAndStart(){
     }
     aplicarPermisos();
     renderAll();
+    // Restaurar la página del hash (#ctacte, #ventas, …) tras F5 o link directo
+    const _h=(location.hash||'').slice(1);
+    if(_h&&_h!=='dash')showPage(_h);
     // Cotizacion USD oficial — fetch inicial + refresh cada 5min
     fetchCotizacion();
     if(!window._cotIv)window._cotIv=setInterval(()=>fetchCotizacion(true),5*60*1000);
@@ -3369,6 +3373,8 @@ function showPage(p,recordId){
   if(!pageEl)return;
   pageEl.classList.add('active');
   _currentPage=p;
+  // Deep-link: el hash refleja la página activa (F5 y links compartibles)
+  if(location.hash!=='#'+p)history.replaceState(null,'','#'+p);
   if(_dirtyPages.has(p))renderPage(p);
   const group=PAGE_TO_GROUP[p]||p;
   document.querySelectorAll(`.nav-item[data-group="${group}"]`).forEach(e=>e.classList.add('active'));
@@ -3379,11 +3385,11 @@ function showPage(p,recordId){
       const parent=PAGE_TO_PARENT[p]||p;
       const mainHtml=GROUP_TABS[group].map(t=>{
         const target=t.sub?t.sub[0].k:t.k;
-        return `<div class="tab ${t.k===parent?'active':''}" onclick="showPage('${target}')">${t.l}</div>`;
+        return `<div class="tab ${t.k===parent?'active':''}" tabindex="0" role="button" onclick="showPage('${target}')">${t.l}</div>`;
       }).join('');
       const parentTab=GROUP_TABS[group].find(t=>t.k===parent);
       if(parentTab && parentTab.sub){
-        const subHtml=parentTab.sub.map(s=>`<div class="subtab ${s.k===p?'active':''}" onclick="showPage('${s.k}')">${s.l}</div>`).join('');
+        const subHtml=parentTab.sub.map(s=>`<div class="subtab ${s.k===p?'active':''}" tabindex="0" role="button" onclick="showPage('${s.k}')">${s.l}</div>`).join('');
         tabsEl.className='tabs has-sub';
         tabsEl.innerHTML=`<div class="tabs-main">${mainHtml}</div><div class="tabs-sub">${subHtml}</div>`;
       }else{
@@ -3434,9 +3440,13 @@ function openModal(id){
   if(!_ov._dirtyHooked){_ov._dirtyHooked=true;_ov.addEventListener('input',()=>{_modalDirty[id]=true;});_ov.addEventListener('change',()=>{_modalDirty[id]=true;});}
 }
 let _modalDirty={};
-const MODALES_CON_GUARD=new Set(['modal-venta','modal-presupuesto','modal-op']);
+// Guard de cierre: cualquier modal donde el usuario tocó un campo pide
+// confirmación al cerrarse por X/Cancelar/Escape/click-afuera. Los cierres
+// programáticos post-guardado pasan force=true (los literales del script).
+// Excluidos: modales de solo lectura o efímeros donde tipear no es "cargar".
+const MODALES_SIN_GUARD=new Set(['modal-palette','modal-ficha-cliente','modal-kardex','modal-qr-planta','modal-tiempos']);
 function closeModal(id,force){
-  if(!force&&MODALES_CON_GUARD.has(id)&&_modalDirty[id]){
+  if(!force&&!MODALES_SIN_GUARD.has(id)&&_modalDirty[id]){
     if(!confirm('Tenés cambios sin guardar. ¿Cerrar igual?'))return;
   }
   _modalDirty[id]=false;
@@ -3540,12 +3550,12 @@ async function saveMP(){
   _savingMP=true;setBusy('btn-save-mp',true);
   try{
     await POST('barras',{empresa_id:currentEmpresa.id,lote:g('mp-lote'),material:g('mp-material'),perfil:g('mp-perfil'),diametro:g('mp-diam'),kg_disponibles:parseFloat(g('mp-kg'))||0,unidades:parseInt(g('mp-unid'))||0,nro_colada:g('mp-colada'),certificado_id:g('mp-cert-link')||null,kg_minimo:parseFloat(g('mp-min'))||0,observaciones:g('mp-obs')});
-    await reload('barras');closeModal('modal-mp');resetF(['mp-lote','mp-material','mp-diam','mp-kg','mp-unid','mp-colada','mp-cert-link','mp-min','mp-obs']);renderAll();notify('Barra registrada');
+    await reload('barras');closeModal('modal-mp',true);resetF(['mp-lote','mp-material','mp-diam','mp-kg','mp-unid','mp-colada','mp-cert-link','mp-min','mp-obs']);renderAll();notify('Barra registrada');
   }catch(e){
     if(e.message.includes('unique')||e.message.includes('duplicate')){
       notify('Ya existe una barra con ese lote. Usá un lote diferente.','err');
     } else {
-      notify(e.message,'err');
+      notify(msgError(e),'err');
     }
   }
   _savingMP=false;setBusy('btn-save-mp',false,'Guardar barra');
@@ -3568,7 +3578,7 @@ async function saveCert(){
       file_name:certFileName||null
     });
     await reload('certificados','barras');
-    closeModal('modal-cert');
+    closeModal('modal-cert',true);
     resetF(['cert-nro','cert-prov','cert-mat','cert-colada','cert-fecha','cert-metros']);
     certFileData=null;certFileName=null;
     document.getElementById('cert-file-name').textContent='Ningún archivo seleccionado';
@@ -3581,7 +3591,7 @@ async function saveCert(){
       populateOCCertSelect(nuevoCert?.id||'');
       openModal('modal-oc');
     }
-  }catch(e){notify(e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
   setBusy('btn-save-cert',false,'Guardar certificado');
 }
 
@@ -3654,8 +3664,8 @@ async function saveOP(){
       notify('Orden registrada — stock PT pendiente');
     }
     opPresupuestoOrigen=null;_modalDirty['modal-op']=false;
-    await reload('ordenes_produccion','barras','productos_terminados');closeModal('modal-op');resetF(['op-nro','op-pieza','op-desc','op-cant','op-precio','op-lote-pt','op-barra','op-barra-opt','op-kg-usados','op-merma','op-operario','op-fecha-fin','op-horas','op-codigo','op-oc-material','op-matriz-desc']);renderAll();
-  }catch(e){notify(e.message,'err');}
+    await reload('ordenes_produccion','barras','productos_terminados');closeModal('modal-op',true);resetF(['op-nro','op-pieza','op-desc','op-cant','op-precio','op-lote-pt','op-barra','op-barra-opt','op-kg-usados','op-merma','op-operario','op-fecha-fin','op-horas','op-codigo','op-oc-material','op-matriz-desc']);renderAll();
+  }catch(e){notify(msgError(e),'err');}
   setBusy('btn-save-op',false,'Registrar orden');
 }
 
@@ -3710,10 +3720,10 @@ async function saveVenta(){
     // ANTES: se generaba asiento contable acá. Ahora el asiento se genera
     // recién al emitir la factura electrónica (ver emitirFactura → generarAsientoFactura).
     // Razón: hasta que no hay CAE, no hay hecho imponible documentado.
-    await reload('ventas','productos_terminados','clientes','asientos','asiento_lineas');_modalDirty['modal-venta']=false;closeModal('modal-venta');ventaItemsList=[];window.editingVentaId=null;
+    await reload('ventas','productos_terminados','clientes','asientos','asiento_lineas');_modalDirty['modal-venta']=false;closeModal('modal-venta',true);ventaItemsList=[];window.editingVentaId=null;
     resetF(['v-remito','v-cliente','v-cuit','v-fecha','v-condicion','v-estado','v-obs','v-grupo-bonif']);
     renderAll();notify(isEdit?'Venta actualizada':'Pedido registrado');
-  }catch(e){notify(e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
   finally{_savingVenta=false;setBusy('btn-save-venta',false,window.editingVentaId?'Guardar cambios':'Registrar pedido');}
 }
 
@@ -4007,7 +4017,7 @@ async function cambiarEstado(table,id,nuevoEstado){
     if(table==='ventas'&&nuevoEstado==='entregado')
       await encolarEmailEstadoVenta(id,'pedido_despachado');
     await reload(table);renderAll();notify('Estado actualizado');
-  }catch(e){console.error('cambiarEstado',e);notify('Error: '+e.message,'err');renderAll();}
+  }catch(e){console.error('cambiarEstado',e);notify(msgError(e),'err');renderAll();}
 }
 
 // ─── CHEQUES: ASIENTOS POR EVENTO (mig 056) ───────────────────
@@ -4331,14 +4341,14 @@ async function saveInsumo(){
       delete data.cantidad;
       await PATCH('insumos',data,`?id=eq.${id}`);
     }else await POST('insumos',data);
-    await reload('insumos');closeModal('modal-insumo');renderAll();notify(id?'Insumo actualizado':'Insumo creado');
-  }catch(e){notify(e.message,'err');}
+    await reload('insumos');closeModal('modal-insumo',true);renderAll();notify(id?'Insumo actualizado':'Insumo creado');
+  }catch(e){notify(msgError(e),'err');}
   setBusy('btn-save-insumo',false,'Guardar');
 }
 async function deleteInsumo(id){
   if(!confirm('¿Eliminar insumo? Esta acción no se puede deshacer.'))return;
   try{await DEL('insumos',`?id=eq.${id}`);await reload('insumos');renderAll();notify('Insumo eliminado');}
-  catch(e){notify(e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 
 // ─── HERRAMIENTAS ────────────────────────────────────────────
@@ -4405,14 +4415,14 @@ async function saveHerramienta(){
     const data={empresa_id:currentEmpresa.id,codigo:g('herr-codigo')||null,nombre:g('herr-nombre'),descripcion:g('herr-descripcion')||null,cantidad:parseFloat(g('herr-cantidad'))||1,estado:g('herr-estado')||'nueva',ubicacion:g('herr-ubicacion')||null,precio_compra:parseFloat(g('herr-precio'))||null,fecha_compra:g('herr-fecha')||null,proveedor_id:g('herr-proveedor')||null,observaciones:g('herr-observaciones')||null,
       requiere_calibracion:g('herr-req-cal')==='true',frecuencia_calibracion_meses:parseInt(g('herr-frec-cal'))||null,patron_referencia:g('herr-patron')||null};
     if(id)await PATCH('herramientas',data,`?id=eq.${id}`);else await POST('herramientas',data);
-    await reload('herramientas');closeModal('modal-herramienta');renderAll();notify(id?'Herramienta actualizada':'Herramienta creada');
-  }catch(e){notify(e.message,'err');}
+    await reload('herramientas');closeModal('modal-herramienta',true);renderAll();notify(id?'Herramienta actualizada':'Herramienta creada');
+  }catch(e){notify(msgError(e),'err');}
   setBusy('btn-save-herramienta',false,'Guardar');
 }
 async function deleteHerramienta(id){
   if(!confirm('¿Eliminar herramienta? Esta acción no se puede deshacer.'))return;
   try{await DEL('herramientas',`?id=eq.${id}`);await reload('herramientas');renderAll();notify('Herramienta eliminada');}
-  catch(e){notify(e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 
 // ─── CALIBRACIONES (ISO 7.1.5 / API Q1 4.4.4) ────────────────────
@@ -4455,9 +4465,9 @@ async function saveCalibracion(){
       laboratorio_id:document.getElementById('cal-laboratorio').value||null,
       file_data:calFileData||null,file_name:calFileName||null,
       observaciones:document.getElementById('cal-obs').value.trim()||null});
-    await reload('calibraciones');closeModal('modal-calibracion');renderAll();
+    await reload('calibraciones');closeModal('modal-calibracion',true);renderAll();
     notify(document.getElementById('cal-resultado').value==='conforme'?'✓ Calibración registrada — vencimiento actualizado':'Calibración NO conforme — instrumento bloqueado y enviado a mantenimiento');
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
   finally{setBusy('btn-save-cal',false);}
 }
 
@@ -5049,7 +5059,7 @@ async function openPDF(certId){
 
 async function deleteCert(id){
   if(!confirm('¿Eliminar este certificado?'))return;
-  try{await DEL('certificados',`?id=eq.${id}`);await reload('certificados','barras');renderAll();notify('Certificado eliminado');}catch(e){notify(e.message,'err');}
+  try{await DEL('certificados',`?id=eq.${id}`);await reload('certificados','barras');renderAll();notify('Certificado eliminado');}catch(e){notify(msgError(e),'err');}
 }
 
 async function anularVenta(id){
@@ -5059,9 +5069,21 @@ async function anularVenta(id){
     // presupuesto + borra la venta. Bloquea si tiene factura emitida (CAE).
     await RPC('anular_venta',{p_venta_id:id});
     await reload('ventas','productos_terminados','clientes','asientos','asiento_lineas');renderAll();notify('Venta anulada — stock PT repuesto + asiento anulado');
-  }catch(e){notify(e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 
+// Traduce errores técnicos (Postgres/Supabase/red) a mensajes útiles en
+// castellano. Los mensajes de las RPCs (ya en castellano) pasan sin tocar.
+function msgError(e){
+  const m=String(e?.message||e||'Error desconocido');
+  if(/duplicate key|already exists|unique constraint/i.test(m))return 'Ya existe un registro con esos datos. Revisá si está duplicado.';
+  if(/foreign key/i.test(m))return 'No se puede: hay registros vinculados que dependen de este dato.';
+  if(/row-level security|permission denied/i.test(m))return 'No tenés permisos para hacer esta operación.';
+  if(/check constraint/i.test(m))return 'Hay un valor inválido en los datos cargados. Revisá el formulario.';
+  if(/failed to fetch|networkerror|load failed/i.test(m))return 'Sin conexión con el servidor. Revisá internet e intentá de nuevo.';
+  if(/jwt expired|token.*expired|invalid.*token/i.test(m))return 'La sesión venció. Recargá la página y volvé a entrar.';
+  return m;
+}
 function notify(msg,type){
   const el=document.getElementById('notif');
   el.textContent=(type==='err'?'✗ ':'✓ ')+msg;
@@ -5124,6 +5146,11 @@ let _currentPage='dash';
 const _dirtyPages=new Set();
 function renderPage(p){
   (PAGE_RENDERS[p]||[]).forEach(f=>f());
+  // Repasar el filtro tipeado: los renders corren sin argumento y la tabla
+  // quedaría desincronizada del texto que sigue visible en el buscador
+  document.querySelectorAll(`#page-${p} .search-box input`).forEach(inp=>{
+    if(inp.value.trim())inp.dispatchEvent(new Event('input'));
+  });
   _dirtyPages.delete(p);
   animateNumbers();applyIconButtonLabels();
   document.querySelectorAll(`#page-${p} tbody[id]`).forEach(tb=>{if(_tableSorts[tb.id])applyTableSort(tb.id);});
@@ -5266,8 +5293,8 @@ async function saveCuenta(){
   try{
     const data={empresa_id:currentEmpresa.id,codigo:g('cuenta-codigo'),nombre:g('cuenta-nombre'),tipo:g('cuenta-tipo'),cuenta_padre_id:g('cuenta-padre')||null,imputable:document.getElementById('cuenta-imputable').checked,activa:document.getElementById('cuenta-activa').checked,es_ajustable:document.getElementById('cuenta-es-ajustable').checked,observaciones:g('cuenta-observaciones')||null};
     if(id)await PATCH('cuentas_contables',data,`?id=eq.${id}`);else await POST('cuentas_contables',data);
-    await reload('cuentas_contables');closeModal('modal-cuenta');renderAll();notify(id?'Cuenta actualizada':'Cuenta creada');
-  }catch(e){notify(e.message,'err');}
+    await reload('cuentas_contables');closeModal('modal-cuenta',true);renderAll();notify(id?'Cuenta actualizada':'Cuenta creada');
+  }catch(e){notify(msgError(e),'err');}
   setBusy('btn-save-cuenta',false,'Guardar');
 }
 async function deleteCuenta(id){
@@ -5278,7 +5305,7 @@ async function deleteCuenta(id){
   if(hijas>0)return notify(`No se puede eliminar: la cuenta tiene ${hijas} subcuenta(s)`,'err');
   if(!confirm(`¿Eliminar cuenta "${c.codigo} · ${c.nombre}"?`))return;
   try{await DEL('cuentas_contables',`?id=eq.${id}`);await reload('cuentas_contables');renderAll();notify('Cuenta eliminada');}
-  catch(e){notify(e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 
 // ─── PERÍODOS CONTABLES ───────────────────────────────────────
@@ -5566,7 +5593,7 @@ async function saveCuentaBancaria(btnId){
   try{
     if(id){await PATCH('cuentas_bancarias',data,`?id=eq.${id}`);}
     else{await POST('cuentas_bancarias',data);}
-    await reload('cuentas_bancarias');closeModal('modal-cuenta-bancaria');renderAll();notify('Cuenta bancaria guardada');
+    await reload('cuentas_bancarias');closeModal('modal-cuenta-bancaria',true);renderAll();notify('Cuenta bancaria guardada');
   }catch(e){notify(e.message||'Error guardando cuenta','err');}
   finally{setBusy(btnId,false);}
 }
@@ -5663,7 +5690,7 @@ async function saveIndiceIPC(){
   try{
     const data={empresa_id:currentEmpresa.id,anio,mes,indice,fuente:g('ipc-fuente')||'INDEC',observaciones:g('ipc-observaciones')||null};
     if(id)await PATCH('indices_ipc',data,`?id=eq.${id}`);else await POST('indices_ipc',data);
-    await reload('indices_ipc');closeModal('modal-indice-ipc');renderAll();notify(id?'Índice actualizado':'Índice cargado');
+    await reload('indices_ipc');closeModal('modal-indice-ipc',true);renderAll();notify(id?'Índice actualizado':'Índice cargado');
   }catch(e){
     const msg=(e.message||'').toLowerCase().includes('unique')||(e.message||'').includes('duplicate')?`Ya existe un índice para ${MES_NOMBRE[mes]} ${anio}. Editalo en lugar de crear uno nuevo.`:e.message;
     notify(msg,'err');
@@ -5674,7 +5701,7 @@ async function deleteIndiceIPC(id){
   const i=indicesIpc.find(x=>x.id===id);if(!i)return;
   if(!confirm(`¿Eliminar índice de ${MES_NOMBRE[i.mes]} ${i.anio}?`))return;
   try{await DEL('indices_ipc',`?id=eq.${id}`);await reload('indices_ipc');renderAll();notify('Índice eliminado');}
-  catch(e){notify(e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 
 // ─── CIERRE DE EJERCICIO (refundición + pasaje a No Asignados) ─
@@ -6573,7 +6600,7 @@ async function anularCobPag(id){
   const a=asientos.find(x=>x.id===id);if(!a)return;
   if(!confirm(`¿Anular asiento N° ${a.numero} (${a.tipo})?\nQueda con estado "anulado", no se borra.`))return;
   try{await PATCH('asientos',{estado:'anulado'},`?id=eq.${id}`);await reload('asientos','asiento_lineas','cheques');renderAll();notify('Movimiento anulado');}
-  catch(e){notify(e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 
 async function registrarCobroOPago(){
@@ -6929,14 +6956,14 @@ async function saveCheque(){
     };
     if(id){data.updated_at=new Date().toISOString();await PATCH('cheques',data,`?id=eq.${id}`);}
     else{data.empresa_id=currentEmpresa.id;await POST('cheques',data);}
-    await reload('cheques');closeModal('modal-cheque');renderAll();notify(id?'Cheque actualizado':'Cheque registrado');
-  }catch(e){notify(e.message,'err');}
+    await reload('cheques');closeModal('modal-cheque',true);renderAll();notify(id?'Cheque actualizado':'Cheque registrado');
+  }catch(e){notify(msgError(e),'err');}
   setBusy('btn-save-cheque',false);
 }
 async function deleteCheque(id){
   if(!confirm('¿Eliminar este cheque del registro?'))return;
   try{await DEL('cheques',`?id=eq.${id}`);await reload('cheques');renderAll();notify('Cheque eliminado');}
-  catch(e){notify(e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 function exportChequesCSV(){
   const rows=cheques.map(c=>[c.tipo,c.numero,c.banco||'',_chequeTercero(c),c.fecha_recepcion||'',c.fecha_pago||'',_numAR(parseFloat(c.monto)||0),c.moneda,c.estado,c.echeq?'sí':'no',c.observaciones||'']);
@@ -7223,8 +7250,8 @@ async function saveAsiento(){
     const cabecera={numero:parseInt(g('asiento-numero'))||null,fecha:g('asiento-fecha'),descripcion:g('asiento-descripcion'),comprobante_nro:g('asiento-comprobante')||null,estado:g('asiento-estado'),tipo:'manual',moneda,tipo_cambio:tc,tc_tipo:tcTipo};
     const lns=lineasDraft.map((l,idx)=>({cuenta_id:l.cuenta_id,debe:parseFloat(l.debe||0),haber:parseFloat(l.haber||0),descripcion:l.descripcion||null,orden:idx}));
     await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lns,p_asiento_id:id||null});
-    await reload('asientos','asiento_lineas');closeModal('modal-asiento');renderAll();notify(id?'Asiento actualizado':'Asiento registrado');
-  }catch(e){notify(e.message,'err');}
+    await reload('asientos','asiento_lineas');closeModal('modal-asiento',true);renderAll();notify(id?'Asiento actualizado':'Asiento registrado');
+  }catch(e){notify(msgError(e),'err');}
   finally{_savingAsiento=false;setBusy('btn-save-asiento',false,'Guardar asiento');}
 }
 
@@ -7232,7 +7259,7 @@ async function anularAsiento(id){
   const a=asientos.find(x=>x.id===id);if(!a)return;
   if(!confirm(`¿Anular asiento N° ${a.numero}? El asiento queda en la base pero marcado como anulado.`))return;
   try{await PATCH('asientos',{estado:'anulado'},`?id=eq.${id}`);await reload('asientos','asiento_lineas');renderAll();notify('Asiento anulado');}
-  catch(e){notify(e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 async function deleteAsiento(id){
   const a=asientos.find(x=>x.id===id);if(!a)return;
@@ -7246,7 +7273,7 @@ async function deleteAsiento(id){
     await DEL('asiento_lineas',`?asiento_id=eq.${id}`);
     await DEL('asientos',`?id=eq.${id}`);
     await reload('asientos','asiento_lineas');renderAll();notify('Asiento eliminado');
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 
 // ─── LIBRO DIARIO ─────────────────────────────────────────────
@@ -7830,7 +7857,7 @@ async function saveMaterial(){
       await POST('materiales',{...payload,empresa_id:currentEmpresa.id});
       notify('Material agregado');
     }
-    await reload('materiales');closeModal('modal-material');renderAll();
+    await reload('materiales');closeModal('modal-material',true);renderAll();
   }catch(e){notify(e.message.includes('unique')?'Ya existe un material con ese nombre':e.message,'err');}
   setBusy('btn-save-mat',false,'Guardar');
 }
@@ -7838,7 +7865,7 @@ async function saveMaterial(){
 async function deleteMaterial(id){
   if(!confirm('¿Eliminar este material? No afecta las barras ya registradas.'))return;
   try{await DEL('materiales',`?id=eq.${id}`);await reload('materiales');renderAll();notify('Material eliminado');}
-  catch(e){notify(e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 
 // ─── CRUD EDITAR / ELIMINAR ───────────────────────────────────────
@@ -7911,7 +7938,7 @@ async function savePlano(){
   try{setBusy('btn-save-plano',true);
     if(id)await PATCH('planos',data,`?id=eq.${id}`);
     else await POST('planos',{...data,empresa_id:currentEmpresa.id});
-    await reload('planos');closeModal('modal-plano');renderPlanos();
+    await reload('planos');closeModal('modal-plano',true);renderPlanos();
     notify(id?'Plano actualizado':'Plano cargado — la planta ya lo ve en la OP');
   }catch(e){notify(e.message.includes('ux_planos_codigo')||e.message.includes('duplicate')?'Ya existe un plano con ese código — editalo en vez de crear otro':'Error: '+e.message,'err');}
   finally{setBusy('btn-save-plano',false,'Guardar');}
@@ -7920,7 +7947,7 @@ async function deletePlano(id){
   const p=planosList.find(x=>x.id===id);if(!p)return;
   if(!confirm(`¿Eliminar el plano ${p.codigo}? Las OPs que lo referencian conservan el código pero pierden el archivo.`))return;
   try{await DEL('planos',`?id=eq.${id}`);await reload('planos');renderPlanos();notify('Plano eliminado');}
-  catch(e){notify(e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 // Visor: mismo patrón hardened de openPDF (certificados)
 async function openPlanoView(idOrCodigo){
@@ -8064,9 +8091,9 @@ async function saveRevDir(cerrar){
   try{setBusy(cerrar?'btn-cerrar-revdir':'btn-save-revdir',true);
     if(id)await PATCH('revisiones_direccion',data,`?id=eq.${id}`);
     else await POST('revisiones_direccion',{...data,empresa_id:currentEmpresa.id,created_by:currentUser.id});
-    await reload('revisiones_direccion');closeModal('modal-revdir');renderRevDir();
+    await reload('revisiones_direccion');closeModal('modal-revdir',true);renderRevDir();
     notify(cerrar?'✓ Revisión cerrada — quedó como registro inmutable del SGC':'Borrador guardado');
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
   finally{setBusy('btn-save-revdir',false,'Guardar borrador');setBusy('btn-cerrar-revdir',false,'Cerrar revisión (inmutable)');}
 }
 
@@ -8135,7 +8162,7 @@ async function addHallazgo(){
     await POST('auditoria_hallazgos',{empresa_id:currentEmpresa.id,auditoria_id:id,tipo:document.getElementById('hallazgo-tipo').value,clausula:document.getElementById('hallazgo-clausula').value.trim()||null,descripcion:desc});
     document.getElementById('hallazgo-desc').value='';document.getElementById('hallazgo-clausula').value='';
     await reload('auditoria_hallazgos');renderHallazgos(id);renderAuditorias();
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 async function generarNCDesdeHallazgo(hallazgoId){
   const h=auditoriaHallazgos.find(x=>x.id===hallazgoId);if(!h)return;
@@ -8147,7 +8174,7 @@ async function generarNCDesdeHallazgo(hallazgoId){
     await reload('no_conformidades','auditoria_hallazgos');
     renderHallazgos(h.auditoria_id);renderAuditorias();
     notify('✓ NC generada — tratala en Calidad → NCR / CAPA');
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 async function saveAuditoria(){
   const id=document.getElementById('audit-edit-id').value;
@@ -8167,8 +8194,8 @@ async function saveAuditoria(){
     }
     await reload('auditorias_internas');renderAuditorias();
     if(!id){document.getElementById('audit-hallazgos-section').style.display='';renderHallazgos(document.getElementById('audit-edit-id').value);notify('Auditoría creada — ya podés cargar hallazgos');}
-    else{closeModal('modal-auditoria');notify('Auditoría actualizada');}
-  }catch(e){notify('Error: '+e.message,'err');}
+    else{closeModal('modal-auditoria',true);notify('Auditoría actualizada');}
+  }catch(e){notify(msgError(e),'err');}
   finally{setBusy('btn-save-auditoria',false,'Guardar');}
 }
 
@@ -8229,14 +8256,14 @@ async function saveCompetencia(){
   try{setBusy('btn-save-comp',true);
     if(id)await PATCH('competencias',data,`?id=eq.${id}`);
     else await POST('competencias',{...data,empresa_id:currentEmpresa.id,created_by:currentUser.id});
-    await reload('competencias');closeModal('modal-competencia');renderCompetencias();notify(id?'Calificación actualizada':'Calificación registrada');
-  }catch(e){notify('Error: '+e.message,'err');}
+    await reload('competencias');closeModal('modal-competencia',true);renderCompetencias();notify(id?'Calificación actualizada':'Calificación registrada');
+  }catch(e){notify(msgError(e),'err');}
   finally{setBusy('btn-save-comp',false,'Guardar');}
 }
 async function deleteCompetencia(id){
   if(!confirm('¿Eliminar esta calificación?'))return;
   try{await DEL('competencias',`?id=eq.${id}`);await reload('competencias');renderCompetencias();notify('Eliminada');}
-  catch(e){notify(e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 
 // ═══ KARDEX + CONTEO FÍSICO (mig 058) ═══════════════════════════════
@@ -8279,7 +8306,7 @@ async function abrirConteo(){
     }
     document.getElementById('conteo-title').textContent=`Conteo físico ${conteoActual.nro||''} — ${conteoActual.fecha||''}`;
     renderConteoModal();openModal('modal-conteo');
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 function renderConteoModal(filtro=''){
   const f=(filtro||'').toLowerCase();
@@ -8318,7 +8345,7 @@ async function cerrarConteo(){
   if(!confirm(`Cerrar ${conteoActual.nro}:\n\n• ${contados.length} ítems contados\n• ${difs.length} con diferencia contra el sistema\n\nCada diferencia genera un ajuste de stock documentado (kardex + asiento contable). ¿Confirmar?`))return;
   try{setBusy('btn-cerrar-conteo',true);
     const r=await RPC('cerrar_conteo',{p_conteo_id:conteoActual.id});
-    closeModal('modal-conteo');conteoActual=null;conteoItemsActual=[];
+    closeModal('modal-conteo',true);conteoActual=null;conteoItemsActual=[];
     await reload('barras','productos_terminados','insumos','asientos','asiento_lineas');renderAll();
     notify(`✓ Conteo ${r.nro} cerrado — ${r.ajustes} ajuste${r.ajustes===1?'':'s'} aplicado${r.ajustes===1?'':'s'}${r.saltados?` (${r.saltados} ítem(s) ya no existían)`:''}`);
   }catch(e){notify('Error al cerrar el conteo: '+e.message,'err');}
@@ -8356,14 +8383,14 @@ async function saveEditBarra(){
       certificado_id:document.getElementById('edit-barra-cert').value||null,
       observaciones:document.getElementById('edit-barra-obs').value,
     },`?id=eq.${id}`);
-    await reload('barras');closeModal('modal-edit-barra');renderAll();notify('Barra actualizada');
-  }catch(e){notify(e.message,'err');}
+    await reload('barras');closeModal('modal-edit-barra',true);renderAll();notify('Barra actualizada');
+  }catch(e){notify(msgError(e),'err');}
   setBusy('btn-save-edit-barra',false,'Guardar cambios');
 }
 async function deleteBarra(id){
   if(!confirm('¿Eliminar esta barra? Esta acción no se puede deshacer.'))return;
   try{await DEL('barras',`?id=eq.${id}`);await reload('barras');renderAll();notify('Barra eliminada');}
-  catch(e){notify(e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 
 // ── CERTIFICADOS ──
@@ -8389,8 +8416,8 @@ async function saveEditCert(){
       fecha:document.getElementById('edit-cert-fecha').value||null,
       metros:parseFloat(document.getElementById('edit-cert-metros').value)||null,
     },`?id=eq.${id}`);
-    await reload('certificados','barras');closeModal('modal-edit-cert');renderAll();notify('Certificado actualizado');
-  }catch(e){notify(e.message,'err');}
+    await reload('certificados','barras');closeModal('modal-edit-cert',true);renderAll();notify('Certificado actualizado');
+  }catch(e){notify(msgError(e),'err');}
   setBusy('btn-save-edit-cert',false,'Guardar cambios');
 }
 
@@ -8494,14 +8521,14 @@ async function savePT(){
         notify('Producto creado');
       }
     }
-    await reload('productos_terminados');closeModal('modal-pt');renderAll();
-  }catch(e){notify(e.message,'err');}
+    await reload('productos_terminados');closeModal('modal-pt',true);renderAll();
+  }catch(e){notify(msgError(e),'err');}
   setBusy('btn-save-pt',false,'Guardar');
 }
 async function deletePT(id){
   if(!confirm('¿Eliminar este producto terminado?'))return;
   try{await DEL('productos_terminados',`?id=eq.${id}`);await reload('productos_terminados');renderAll();notify('Producto eliminado');}
-  catch(e){notify(e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 
 // ── ÓRDENES PRODUCCIÓN ──
@@ -8577,8 +8604,8 @@ async function saveEditOP(){
     // Al completar, congelar el costo real de la OP (mig 056)
     if(nuevoEstado==='completada'&&estadoAnterior!=='completada')
       await persistirCostoRealOP(id).catch(e=>console.warn('Costo real no persistido:',e));
-    await reload('ordenes_produccion','barras','productos_terminados');closeModal('modal-edit-op');renderAll();
-  }catch(e){notify(e.message,'err');}
+    await reload('ordenes_produccion','barras','productos_terminados');closeModal('modal-edit-op',true);renderAll();
+  }catch(e){notify(msgError(e),'err');}
   setBusy('btn-save-edit-op',false,'Guardar cambios');
 }
 async function deleteOP(id){
@@ -8589,7 +8616,7 @@ async function deleteOP(id){
     const r=await RPC('eliminar_op',{p_op_id:id});
     await reload('ordenes_produccion','barras','productos_terminados');renderAll();
     notify(r?.kg_devueltos>0?`Orden eliminada — ${r.kg_devueltos} mts devueltos a ${r.lote||'la barra'}`:'Orden eliminada');
-  }catch(e){notify(e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 
 // ── VENTAS ──
@@ -8767,7 +8794,7 @@ async function saveConfigContable(){
     }
     await reload('config_contable');renderImputacionContable();
     notify('Imputación contable guardada');
-  }catch(e){notify(e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
   setBusy('btn-save-cfg-imputacion',false,'Guardar configuración');
 }
 
@@ -8856,8 +8883,8 @@ async function savePermisos(){
     const modulos=[...document.querySelectorAll('#permisos-checks input[type=checkbox]:checked')].map(c=>c.value);
     // RPC atómica (mig 055): roles + módulos en una transacción
     await RPC('guardar_permisos',{p_usuario_id:userId,p_es_admin:esAdmin,p_ver_costos:verCostos,p_es_contador:esContador,p_es_auditor:esAuditor,p_modulos:modulos});
-    await reload('permisos_usuario','usuarios');closeModal('modal-permisos');renderUsuarios();notify('Permisos actualizados');
-  }catch(e){notify(e.message,'err');}
+    await reload('permisos_usuario','usuarios');closeModal('modal-permisos',true);renderUsuarios();notify('Permisos actualizados');
+  }catch(e){notify(msgError(e),'err');}
   setBusy('btn-save-permisos',false,'Guardar permisos');
 }
 
@@ -8919,7 +8946,7 @@ async function saveTratamiento(){
     document.getElementById('trat-cert-file-name').textContent='Sin archivo';
     tratFileData=null;tratFileName=null;
     notify('Tratamiento registrado');
-  }catch(e){notify(e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
   setBusy('btn-save-trat',false,'Agregar tratamiento');
 }
 
@@ -8930,7 +8957,7 @@ async function deleteTratamiento(id){
     await DEL('tratamientos',`?id=eq.${id}`);
     await reload('tratamientos');renderTratLista(t?.orden_id||'');
     notify('Tratamiento eliminado');
-  }catch(e){notify(e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 
 async function openTratPDF(tratId){
@@ -9057,8 +9084,8 @@ async function saveCliente(){
       await POST('clientes',data);
       notify('Cliente registrado');
     }
-    await reload('clientes');closeModal('modal-cliente');renderAll();
-  }catch(e){notify(e.message,'err');}
+    await reload('clientes');closeModal('modal-cliente',true);renderAll();
+  }catch(e){notify(msgError(e),'err');}
   setBusy('btn-save-cliente',false,'Guardar');
 }
 
@@ -9189,7 +9216,7 @@ async function importClientes(){
   }
   await reload('clientes');renderAll();
   setBusy('btn-import-cli',false,'Importar');
-  closeModal('modal-import-clientes');
+  closeModal('modal-import-clientes',true);
   notify(`Importación: ${creados} creados, ${actualizados} actualizados, ${saltados} saltados${errores?', '+errores+' con error':''}`);
 }
 
@@ -9334,7 +9361,7 @@ async function importPT(){
   await reload('productos_terminados');renderAll();
   _importingPT=false;
   setBusy('btn-import-pt',false,'Importar');
-  closeModal('modal-import-pt');
+  closeModal('modal-import-pt',true);
   notify(`Importación: ${creados} creados, ${actualizados} actualizados, ${saltados} saltados${errores?', '+errores+' con error':''}`);
 }
 
@@ -9350,7 +9377,7 @@ async function deleteCliente(id){
   try{
     await DEL('clientes',`?id=eq.${id}`);
     await reload('clientes');renderAll();notify('Cliente eliminado');
-  }catch(e){notify(e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 
 function openFichaCliente(id){
@@ -9439,7 +9466,7 @@ function openFichaCliente(id){
 
 function editClienteFromFicha(){
   const id=document.getElementById('modal-ficha-cliente').dataset.clienteId;
-  closeModal('modal-ficha-cliente');
+  closeModal('modal-ficha-cliente',true);
   editCliente(id);
 }
 
@@ -9505,7 +9532,7 @@ async function openTiempos(opId){
   if(tiempoInterval)clearInterval(tiempoInterval);
   tiempoInterval=setInterval(()=>{renderTimerDisplay();renderTiemposMetrics();},1000);
 }
-function closeTiempos(){closeModal('modal-tiempos');if(tiempoInterval){clearInterval(tiempoInterval);tiempoInterval=null;}currentTiempoOpId=null;}
+function closeTiempos(){closeModal('modal-tiempos',true);if(tiempoInterval){clearInterval(tiempoInterval);tiempoInterval=null;}currentTiempoOpId=null;}
 
 function openEntryOf(entries,opId,tipo){return entries.find(e=>e.operacion_id===opId&&e.tipo===tipo&&!e.ended_at)||null;}
 function activeProductivos(entries){return entries.filter(e=>e.tipo==='productivo'&&!e.ended_at);}
@@ -9774,19 +9801,19 @@ function renderPrecios(filter=''){
 }
 async function savePrecioBase(id,valor){
   try{await PATCH('precios_base',{precio_usd:parseFloat(valor)||0},`?id=eq.${id}`);await reload('precios_base');renderPrecios();notify('Precio actualizado');}
-  catch(e){notify('Error: '+e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 async function deletePrecioBase(id){
   const p=preciosBase.find(x=>x.id===id);
   if(!confirm(`¿Eliminar el precio base de "${p?.pieza||''}"?`))return;
   try{await DEL('precios_base',`?id=eq.${id}`);await reload('precios_base');renderPrecios();notify('Eliminado');}
-  catch(e){notify('Error: '+e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 async function nuevoPrecioBase(){
   const pieza=prompt('Pieza:');if(!pieza||!pieza.trim())return;
   const precio=parseFloat(prompt('Precio USD:'))||0;
   try{await POST('precios_base',{empresa_id:currentEmpresa.id,pieza:pieza.trim(),precio_usd:precio});await reload('precios_base');renderPrecios();notify('Precio agregado');}
-  catch(e){notify('Error: '+e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 async function ajustarPreciosPct(){
   if(!preciosBase.length){notify('No hay precios para ajustar');return;}
@@ -9797,7 +9824,7 @@ async function ajustarPreciosPct(){
     // RPC atómica (mig 055): un UPDATE transaccional, no un PATCH por fila
     const r=await RPC('ajustar_precios_pct',{p_pct:pct});
     await reload('precios_base');renderPrecios();notify(`✓ ${r?.ajustados??preciosBase.length} precios ajustados ${pct>0?'+':''}${pct}%`);
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 async function importarPreciosDesdeStock(){
   const existentes=new Set(preciosBase.map(p=>p.pieza.trim().toLowerCase()));
@@ -9810,7 +9837,7 @@ async function importarPreciosDesdeStock(){
   if(!rows.length){notify('Todas las piezas del stock ya tienen precio');return;}
   if(!confirm(`Se van a crear ${rows.length} precios desde el stock PT. ¿Continuar?`))return;
   try{await POST('precios_base',rows);await reload('precios_base');renderPrecios();notify(`✓ ${rows.length} precios importados`);}
-  catch(e){notify('Error: '+e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 
 // ─── Generador de recordatorios (tests/mailings.test.js) ──────────
@@ -9977,7 +10004,7 @@ async function aprobarEmail(id){
   try{
     await PATCH('email_queue',{estado:'aprobado',aprobado_por:currentUser.id,aprobado_at:new Date().toISOString()},`?id=eq.${id}`);
     await ensureMailingsData(true);renderMailings();notify('✓ Aprobado — sale en el próximo ciclo de envío');
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 async function aprobarTodos(){
   const pend=emailQueue.filter(e=>e.estado==='pendiente_aprobacion');
@@ -9986,12 +10013,12 @@ async function aprobarTodos(){
   try{
     await PATCH('email_queue',{estado:'aprobado',aprobado_por:currentUser.id,aprobado_at:new Date().toISOString()},'?estado=eq.pendiente_aprobacion');
     await ensureMailingsData(true);renderMailings();notify(`✓ ${pend.length} aprobados`);
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 async function cancelarEmail(id){
   if(!confirm('¿Cancelar este email? No se va a enviar.'))return;
   try{await PATCH('email_queue',{estado:'cancelado'},`?id=eq.${id}`);await ensureMailingsData(true);renderMailings();notify('Cancelado');}
-  catch(e){notify('Error: '+e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 function openEmailPreview(id){
   const e=emailQueue.find(x=>x.id===id);if(!e)return;
@@ -10015,9 +10042,9 @@ async function saveEmailEdit(aprobar){
     const patch={to_email:to,subject,body_html:document.getElementById('em-body').value};
     if(aprobar===true){patch.estado='aprobado';patch.aprobado_por=currentUser.id;patch.aprobado_at=new Date().toISOString();}
     await PATCH('email_queue',patch,`?id=eq.${id}`);
-    closeModal('modal-email');await ensureMailingsData(true);renderMailings();
+    closeModal('modal-email',true);await ensureMailingsData(true);renderMailings();
     notify(aprobar===true?'✓ Aprobado y programado':'Cambios guardados');
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 function openTemplateEdit(id){
   const t=id?emailTemplates.find(x=>x.id===id):null;
@@ -10038,8 +10065,8 @@ async function saveTemplate(){
     const data={nombre,tipo:document.getElementById('tpl-tipo').value,subject,body_html:body,activo:document.getElementById('tpl-activo').checked};
     if(_tplEditId)await PATCH('email_templates',data,`?id=eq.${_tplEditId}`);
     else await POST('email_templates',{empresa_id:currentEmpresa.id,...data});
-    closeModal('modal-template');await ensureMailingsData(true);renderMailings();notify('Template guardado');
-  }catch(e){notify('Error: '+e.message,'err');}
+    closeModal('modal-template',true);await ensureMailingsData(true);renderMailings();notify('Template guardado');
+  }catch(e){notify(msgError(e),'err');}
   finally{setBusy('btn-save-tpl',false);}
 }
 
@@ -10098,7 +10125,7 @@ function updatePaletteSel(){
 }
 function execPaletteItem(i){
   const it=_palItems[i];if(!it)return;
-  closeModal('modal-palette');
+  closeModal('modal-palette',true);
   if(it.run)it.run();
   else showPage(it.page,it.id);
 }
@@ -10106,7 +10133,7 @@ document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&(e.key==='k'||e.key==='K')){e.preventDefault();openPalette();return;}
   const overlay=document.getElementById('modal-palette');
   if(!overlay||!overlay.classList.contains('open'))return;
-  if(e.key==='Escape'){e.preventDefault();closeModal('modal-palette');}
+  if(e.key==='Escape'){e.preventDefault();closeModal('modal-palette',true);}
   else if(e.key==='ArrowDown'){e.preventDefault();_palSel=Math.min(_palSel+1,_palItems.length-1);updatePaletteSel();}
   else if(e.key==='ArrowUp'){e.preventDefault();_palSel=Math.max(_palSel-1,0);updatePaletteSel();}
   else if(e.key==='Enter'&&_palItems.length){e.preventDefault();execPaletteItem(_palSel);}
@@ -10132,6 +10159,19 @@ document.addEventListener('keydown',e=>{
   if(!abiertos.length)return;
   e.preventDefault();
   closeModal(abiertos[abiertos.length-1].id);
+});
+
+// ─── Enter/Espacio activan nav, tabs y subtabs (son divs, no botones nativos) ──
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter'&&e.key!==' ')return;
+  const t=e.target;
+  if(t.classList&&(t.classList.contains('nav-item')||t.classList.contains('tab')||t.classList.contains('subtab'))){e.preventDefault();t.click();}
+});
+
+// ─── Deep-link: navegar cuando cambia el hash (link pegado con la app abierta) ─
+window.addEventListener('hashchange',()=>{
+  const h=(location.hash||'').slice(1);
+  if(h&&h!==_currentPage&&currentEmpresa)showPage(h);
 });
 
 // ─── Sort de tablas: delegación global ──────────
@@ -10242,7 +10282,7 @@ async function deletePaso(id){
     opOperaciones=opOperaciones.filter(o=>o.id!==id);
     opTimeEntries=opTimeEntries.filter(e=>e.operacion_id!==id);
     renderTiempos();notify('Paso eliminado');
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 
 function renderTiemposEntries(){
@@ -10375,7 +10415,7 @@ function openPauseTiempo(pasoId){
 }
 
 async function confirmPauseTiempo(motivo){
-  closeModal('modal-pausa-motivo');
+  closeModal('modal-pausa-motivo',true);
   const ctx=pausaCtx;pausaCtx=null;
   if(!ctx)return;
   try{
@@ -10388,7 +10428,7 @@ async function confirmPauseTiempo(motivo){
     if(currentTiempoOpId){await loadTiemposData(currentTiempoOpId);renderTiempos();}
     notify('⏸ Pausado · '+motivo);
     refreshTimersActivos();
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 
 async function completeTiempoOp(pasoId){
@@ -10405,7 +10445,7 @@ async function completeTiempoOp(pasoId){
     const pendientes=opOperaciones.filter(o=>o.estado==='pendiente'||o.estado==='en_curso').length;
     notify(pendientes?`✓ ${paso.nombre} completado`:'🎉 Todos los pasos completados');
     renderTiempos();refreshTimersActivos();
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 
 function openAddOperacion(){
@@ -10422,7 +10462,7 @@ async function firmarPunto(id){
   try{
     await PATCH('op_operaciones',{signoff_at:new Date().toISOString()},`?id=eq.${id}`);
     await loadTiemposData(currentTiempoOpId);renderTiempos();notify('✓ Punto liberado');
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 function openAplicarPQP(){
   const activas=pqpPlantillas.filter(p=>p.activo!==false);
@@ -10442,10 +10482,10 @@ async function aplicarPQP(){
   if(!plantillaId)return;
   try{setBusy('btn-apply-pqp',true);
     const r=await POST('rpc/instanciar_pqp',{p_orden_id:currentTiempoOpId,p_plantilla_id:plantillaId});
-    closeModal('modal-aplicar-pqp');
+    closeModal('modal-aplicar-pqp',true);
     await loadTiemposData(currentTiempoOpId);
     renderTiempos();notify(`✓ PQP ${r?.plantilla||''} aplicado (${r?.operaciones||0} pasos)`);
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
   finally{setBusy('btn-apply-pqp',false);}
 }
 let rcFileData=null,rcFileName=null;
@@ -10493,9 +10533,9 @@ async function saveRegistroCalidad(){
       observaciones:document.getElementById('rc-obs').value.trim()||null,
       file_data:rcFileData||null,file_name:rcFileName||null});
     registrosCalidad=await GET('registros_calidad','?order=created_at.desc&select=id,empresa_id,orden_id,operacion_id,recepcion_id,tipo,herramienta_id,datos,resultado,observaciones,firmado_por,file_name,created_at').catch(()=>registrosCalidad);
-    closeModal('modal-registro-calidad');
+    closeModal('modal-registro-calidad',true);
     notify(resultado==='conforme'?'✓ Registro de calidad guardado':'Registro NO CONFORME guardado — registrá la NC en Calidad → NCR');
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
   finally{setBusy('btn-save-rc',false);}
 }
 // ═══════════════════════════════════════════════════════════
@@ -10552,7 +10592,7 @@ async function aceptarRecepcion(id){
   try{
     await PATCH('recepciones_oc',{estado_inspeccion:'aceptado'},`?id=eq.${id}`);
     await reload('recepciones_oc','ordenes_compra','oc_items','barras','insumos','herramientas','certificados');renderAll();notify('✓ Recepción aceptada — material liberado');
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 async function rechazarRecepcion(id){
   const r=recepciones.find(x=>x.id===id);if(!r)return;
@@ -10569,7 +10609,7 @@ async function rechazarRecepcion(id){
     }catch(eNC){console.error('NC automática:',eNC);ncMsg=' — ⚠ la NC automática falló, registrala a mano en Calidad';}
     await reload('recepciones_oc','ordenes_compra','oc_items','barras','no_conformidades');renderAll();
     notify('Recepción rechazada'+ncMsg,ncMsg.includes('⚠')?'err':undefined);
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -10646,8 +10686,8 @@ async function saveNC(){
   try{setBusy('btn-save-nc',true);
     if(id){await PATCH('no_conformidades',data,`?id=eq.${id}`);}
     else{await POST('no_conformidades',{...data,empresa_id:currentEmpresa.id});}
-    await reload('no_conformidades');closeModal('modal-nc');renderAll();notify(id?'NC actualizada':'NC registrada');
-  }catch(e){notify('Error: '+e.message,'err');}
+    await reload('no_conformidades');closeModal('modal-nc',true);renderAll();notify(id?'NC actualizada':'NC registrada');
+  }catch(e){notify(msgError(e),'err');}
   finally{setBusy('btn-save-nc',false);}
 }
 function openCapaModal(id,ncId){
@@ -10681,8 +10721,8 @@ async function saveCapa(){
   try{setBusy('btn-save-capa',true);
     if(id){await PATCH('acciones_capa',data,`?id=eq.${id}`);}
     else{await POST('acciones_capa',{...data,empresa_id:currentEmpresa.id});}
-    await reload('acciones_capa');closeModal('modal-capa');renderAll();notify(id?'CAPA actualizada':'CAPA registrada');
-  }catch(e){notify('Error: '+e.message,'err');}
+    await reload('acciones_capa');closeModal('modal-capa',true);renderAll();notify(id?'CAPA actualizada':'CAPA registrada');
+  }catch(e){notify(msgError(e),'err');}
   finally{setBusy('btn-save-capa',false);}
 }
 
@@ -10734,22 +10774,22 @@ async function saveDoc(){
       estado:document.getElementById('doc-estado').value,
       file_data:docFileData||null,file_name:docFileName||null,
       observaciones:document.getElementById('doc-obs').value.trim()||null});
-    await reload('documentos_controlados');closeModal('modal-doc');renderAll();notify('Documento guardado');
-  }catch(e){notify('Error: '+e.message,'err');}
+    await reload('documentos_controlados');closeModal('modal-doc',true);renderAll();notify('Documento guardado');
+  }catch(e){notify(msgError(e),'err');}
   finally{setBusy('btn-save-doc',false);}
 }
 async function aprobarDoc(id){
   const d=documentosControlados.find(x=>x.id===id);if(!d)return;
   if(!confirm(`¿Poner vigente ${d.codigo} rev.${d.revision}? La revisión vigente anterior (si existe) pasa a obsoleta. Queda aprobado a tu nombre.`))return;
   try{await PATCH('documentos_controlados',{estado:'vigente'},`?id=eq.${id}`);await reload('documentos_controlados');renderAll();notify(`✓ ${d.codigo} rev.${d.revision} vigente`);}
-  catch(e){notify('Error: '+e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 async function openDocPDF(id){
   try{
     const r=await GET('documentos_controlados',`?id=eq.${id}&select=file_data,file_name`);
     const d=r&&r[0];if(!d?.file_data){notify('El documento no tiene archivo adjunto','err');return;}
     const w=window.open('');w.document.write(`<iframe src="${d.file_data}" style="width:100%;height:100%;border:none"></iframe>`);
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
 }
 
 // ─── Plantillas PQP ───────────────────────────────────────────────
@@ -10817,8 +10857,8 @@ async function savePQPPlantilla(){
     else{const r=await POST('pqp_plantillas',[{...cab,empresa_id:currentEmpresa.id,activo:true}]);pid=r&&r[0]?.id;}
     if(!pid)throw new Error('No se pudo crear la plantilla');
     await POST('pqp_plantilla_operaciones',pqpOpsDraft.map((o,i)=>({empresa_id:currentEmpresa.id,plantilla_id:pid,secuencia:i+1,...o})));
-    await reload('pqp_plantillas','pqp_plantilla_operaciones');closeModal('modal-pqp');renderAll();notify('Plantilla PQP guardada');
-  }catch(e){notify('Error: '+e.message,'err');}
+    await reload('pqp_plantillas','pqp_plantilla_operaciones');closeModal('modal-pqp',true);renderAll();notify('Plantilla PQP guardada');
+  }catch(e){notify(msgError(e),'err');}
   finally{setBusy('btn-save-pqp',false);}
 }
 
@@ -10907,8 +10947,8 @@ async function saveProveedor(){
   try{setBusy('btn-save-prov',true);
     if(id){await PATCH('proveedores',data,`?id=eq.${id}`);}
     else{await POST('proveedores',{...data,empresa_id:currentEmpresa.id,activo:true});}
-    await reload('proveedores');closeModal('modal-proveedor');renderAll();notify(id?'Proveedor actualizado':'Proveedor creado');
-  }catch(e){notify('Error: '+e.message,'err');}
+    await reload('proveedores');closeModal('modal-proveedor',true);renderAll();notify(id?'Proveedor actualizado':'Proveedor creado');
+  }catch(e){notify(msgError(e),'err');}
   finally{setBusy('btn-save-prov',false);}
 }
 async function deleteProveedor(id){
@@ -10917,7 +10957,7 @@ async function deleteProveedor(id){
   if(tieneOC){notify('No se puede eliminar: tiene OCs asociadas','err');return;}
   if(!confirm(`¿Eliminar proveedor "${p.nombre}"?`))return;
   try{await DEL('proveedores',`?id=eq.${id}`);await reload('proveedores');renderAll();notify('Proveedor eliminado');}
-  catch(e){notify('Error: '+e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 
 function populateOCCertSelect(selectedId){
@@ -10928,14 +10968,14 @@ let _certReturnToOC=false;
 function openNewCertFromOC(){
   _certReturnToOC=true;
   // Cerrar OC visualmente pero conservar todos los valores del form (siguen en DOM)
-  closeModal('modal-oc');
+  closeModal('modal-oc',true);
   openModal('modal-cert');
 }
 function cancelCertModal(){
   // Si veníamos del modal de OC, volver sin crear cert
   const veniaDeOC=_certReturnToOC;
   _certReturnToOC=false;
-  closeModal('modal-cert');
+  closeModal('modal-cert',true);
   if(veniaDeOC)openModal('modal-oc');
 }
 
@@ -11045,8 +11085,8 @@ async function saveOC(){
     const items=ocItemsDraft.map(i=>({oc_id:ocId,tipo:i.tipo,descripcion:i.descripcion,material:i.material||null,perfil:i.perfil||null,diametro:i.diametro||null,cantidad:parseFloat(i.cantidad)||0,unidad:i.unidad,precio_unitario:parseFloat(i.precio_unitario)||0,subtotal:parseFloat(i.subtotal)||0,cantidad_recibida:parseFloat(i.cantidad_recibida)||0}));
     if(tieneRecepciones)notify('OC con recepciones: se actualizó la cabecera, los ítems no se modifican','err');
     else if(items.length)await POST('oc_items',items);
-    await reload('ordenes_compra','oc_items','asientos','asiento_lineas');closeModal('modal-oc');renderAll();notify(id?'OC actualizada':'OC creada');
-  }catch(e){notify('Error: '+e.message,'err');}
+    await reload('ordenes_compra','oc_items','asientos','asiento_lineas');closeModal('modal-oc',true);renderAll();notify(id?'OC actualizada':'OC creada');
+  }catch(e){notify(msgError(e),'err');}
   finally{_savingOC=false;setBusy('btn-save-oc',false);}
 }
 
@@ -11057,7 +11097,7 @@ async function deleteOC(id){
   }
   if(!confirm(`¿Eliminar OC "${oc.nro}"? Se borran también sus ítems.`))return;
   try{await DEL('ordenes_compra',`?id=eq.${id}`);await reload('ordenes_compra','oc_items','asientos','asiento_lineas');renderAll();notify('OC eliminada');}
-  catch(e){notify('Error: '+e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 
 function openRecepcionModal(ocId){
@@ -11161,9 +11201,9 @@ async function saveRecepcion(){
   try{setBusy('btn-save-recep',true);
     const oc=ordenesCompra.find(x=>x.id===currentOCId);
     const {allComplete}=await registrarRecepcionOC(oc,recepcionesNuevas,{fecha,certId,colada,remitoNro,obs});
-    await reload('recepciones_oc','ordenes_compra','oc_items','barras','insumos','herramientas','certificados');closeModal('modal-recepcion');renderAll();
+    await reload('recepciones_oc','ordenes_compra','oc_items','barras','insumos','herramientas','certificados');closeModal('modal-recepcion',true);renderAll();
     notify(allComplete?'✓ Recepción completa registrada':'Recepción parcial registrada');
-  }catch(e){notify('Error: '+e.message,'err');console.error(e);}
+  }catch(e){notify(msgError(e),'err');console.error(e);}
   finally{setBusy('btn-save-recep',false);}
 }
 
@@ -11311,9 +11351,9 @@ async function saveProvRapido(){
       document.getElementById('fr-proveedor-select').innerHTML='<option value="">— elegir proveedor —</option>'+proveedores.filter(p=>p.activo!==false).map(p=>`<option value="${esc(p.id)}">${esc(p.nombre)}</option>`).join('');
       if(provId){document.getElementById('fr-proveedor-select').value=provId;frOnProveedorChange();}
     }
-    closeModal('modal-prov-rapido');
+    closeModal('modal-prov-rapido',true);
     notify(existente?'Proveedor existente seleccionado':'Proveedor creado');
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
   finally{setBusy('btn-save-pr',false);}
 }
 
@@ -11522,7 +11562,7 @@ async function registrarFacturaRecibida(btnId){
     }
     await RPC('registrar_factura_recibida',{p_factura:f,p_impuestos:impuestos,p_override:override,p_motivo:motivo});
     await reload('facturas_recibidas','ordenes_compra','asientos','asiento_lineas','recepciones_oc','oc_items','barras','insumos','herramientas');
-    closeModal('modal-factura-recibida');renderAll();
+    closeModal('modal-factura-recibida',true);renderAll();
     notify({factura:'Factura registrada',nota_credito:'Nota de crédito registrada',nota_debito:'Nota de débito registrada'}[tipo]);
   }catch(e){notify(e.message||'Error registrando el comprobante','err');}
   finally{setBusy(btnId,false);}
@@ -11816,15 +11856,15 @@ async function savePresupuesto(){
     else{const r=await POST('presupuestos',[{...data,empresa_id:currentEmpresa.id}]);pid=r[0].id;}
     const items=presupItemsDraft.map(i=>({presupuesto_id:pid,producto_id:i.producto_id||null,pieza:i.pieza,descripcion:i.descripcion||null,cantidad:parseFloat(i.cantidad)||0,precio_unitario:parseFloat(i.precio_unitario)||0,subtotal:parseFloat(i.subtotal)||0,costo_estimado:parseFloat(i.costo_estimado)||null}));
     if(items.length)await POST('presupuesto_items',items);
-    await reload('presupuestos');_modalDirty['modal-presupuesto']=false;closeModal('modal-presupuesto');renderAll();notify(id?'Presupuesto actualizado':'Presupuesto creado');
-  }catch(e){notify('Error: '+e.message,'err');}
+    await reload('presupuestos');_modalDirty['modal-presupuesto']=false;closeModal('modal-presupuesto',true);renderAll();notify(id?'Presupuesto actualizado':'Presupuesto creado');
+  }catch(e){notify(msgError(e),'err');}
   finally{_savingPresup=false;setBusy('btn-save-presup',false);}
 }
 async function deletePresupuesto(id){
   const p=presupuestos.find(x=>x.id===id);if(!p)return;
   if(!confirm(`¿Eliminar presupuesto "${p.nro}"? Se borran también sus ítems.`))return;
   try{await DEL('presupuestos',`?id=eq.${id}`);await reload('presupuestos');renderAll();notify('Presupuesto eliminado');}
-  catch(e){notify('Error: '+e.message,'err');}
+  catch(e){notify(msgError(e),'err');}
 }
 async function convertirPresupuesto(id){
   const p=presupuestos.find(x=>x.id===id);if(!p)return;
@@ -12745,7 +12785,7 @@ async function saveCfgCostos(){
     await PATCH('empresas',{tarifa_operario_usd_h:t,overhead_pct:o},`?id=eq.${currentEmpresa.id}`);
     currentEmpresa.tarifa_operario_usd_h=t;currentEmpresa.overhead_pct=o;
     renderCostos();notify('Config de costos guardada');
-  }catch(e){notify('Error: '+e.message,'err');}
+  }catch(e){notify(msgError(e),'err');}
   finally{setBusy('btn-save-cfg-costos',false);}
 }
 
@@ -12761,8 +12801,8 @@ async function saveOperacionPaso(){
     const res=await POST('op_operaciones',[{empresa_id:currentEmpresa.id,orden_id:currentTiempoOpId,secuencia,nombre,maquina,tiempo_estimado_min:estimado,tarifa_maquina_usd:tarifa,estado:'pendiente',
       tipo_punto:document.getElementById('paso-tipo-punto').value,documento_id:document.getElementById('paso-doc').value||null}]);
     if(res&&res[0])opOperaciones.push(res[0]);
-    closeModal('modal-add-op-paso');notify('Paso agregado');renderTiempos();
-  }catch(e){notify('Error: '+e.message,'err');}
+    closeModal('modal-add-op-paso',true);notify('Paso agregado');renderTiempos();
+  }catch(e){notify(msgError(e),'err');}
   finally{setBusy('btn-save-paso',false);}
 }
 
@@ -12812,9 +12852,9 @@ async function crearAsientoDesdeExtracto(btnId){
     const lineaBanco=asientoLineas.find(l=>l.asiento_id===as.id&&l.cuenta_id===ctaBanco);
     if(lineaBanco){
       await PATCH('extracto_bancario',{conciliado:true,asiento_linea_id:lineaBanco.id},`?id=eq.${ex.id}`);
-      await reload('asientos','asiento_lineas','extracto_bancario');closeModal('modal-asiento-extracto');renderAll();notify('Asiento creado y línea conciliada');
+      await reload('asientos','asiento_lineas','extracto_bancario');closeModal('modal-asiento-extracto',true);renderAll();notify('Asiento creado y línea conciliada');
     }else{
-      await reload('asientos','asiento_lineas','extracto_bancario');closeModal('modal-asiento-extracto');renderAll();
+      await reload('asientos','asiento_lineas','extracto_bancario');closeModal('modal-asiento-extracto',true);renderAll();
       notify('Asiento creado, pero no se pudo vincular la línea: recargá y conciliala manualmente','err');
     }
   }catch(e){notify(e.message||'Error creando asiento','err');}
