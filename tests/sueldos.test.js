@@ -92,3 +92,69 @@ test('cashflow: sin fecha_pago usa el fin del período', () => {
   // Fin de septiembre = 30/09 (36 días → d60) + F.931 09/10 (45 días → d60)
   assert.ok(Math.abs(cf.egr.d60 - 500) < 0.01);
 });
+
+// ─── Fase 2 (migración 066): parte de horas + alerta F.931 ───────────
+
+function parteHoras(entries, ordenes, periodo) {
+  return erp.run(`computeParteHoras(${JSON.stringify(entries)},${JSON.stringify(ordenes)},${JSON.stringify(periodo)})`);
+}
+function f931(liqs, hoy) {
+  return erp.run(`alertaF931(${JSON.stringify(liqs)},${JSON.stringify(hoy)})`);
+}
+
+const ORDENES = [
+  { id: 'op1', nro: 'OP-100', pieza: 'VTB 2"', operario: 'Juan Pérez' },
+  { id: 'op2', nro: 'OP-101', pieza: 'Anillo BX', operario: 'juan pérez' },  // case distinto
+  { id: 'op3', nro: 'OP-102', pieza: 'Codo', operario: '' },                 // sin operario
+];
+
+test('computeParteHoras: suma por operario case-insensitive, detalle por OP', () => {
+  const ph = parteHoras([
+    { started_at: '2026-08-05T08:00:00+00:00', ended_at: '2026-08-05T12:00:00+00:00', tipo: 'productivo', orden_id: 'op1' },
+    { started_at: '2026-08-06T08:00:00+00:00', ended_at: '2026-08-06T10:30:00+00:00', tipo: 'productivo', orden_id: 'op2' },
+  ], ORDENES, '2026-08');
+  assert.strictEqual(ph.porOperario['juan pérez'], 6.5);
+  assert.strictEqual(ph.totalHoras, 6.5);
+  assert.strictEqual(ph.detalle.length, 2);
+  assert.strictEqual(ph.detalle[0].nro, 'OP-100');
+});
+
+test('computeParteHoras: excluye pausas, timers abiertos y otros meses', () => {
+  const ph = parteHoras([
+    { started_at: '2026-08-05T08:00:00+00:00', ended_at: '2026-08-05T09:00:00+00:00', tipo: 'pausa', orden_id: 'op1' },
+    { started_at: '2026-08-05T08:00:00+00:00', ended_at: null, tipo: 'productivo', orden_id: 'op1' },
+    { started_at: '2026-07-31T08:00:00+00:00', ended_at: '2026-07-31T12:00:00+00:00', tipo: 'productivo', orden_id: 'op1' },
+    { started_at: '2026-09-01T00:30:00+00:00', ended_at: '2026-09-01T02:00:00+00:00', tipo: 'productivo', orden_id: 'op1' },
+  ], ORDENES, '2026-08');
+  assert.strictEqual(ph.totalHoras, 0);
+});
+
+test('computeParteHoras: horas de OPs sin operario van a horasSinOperario', () => {
+  const ph = parteHoras([
+    { started_at: '2026-08-05T08:00:00+00:00', ended_at: '2026-08-05T10:00:00+00:00', tipo: 'productivo', orden_id: 'op3' },
+  ], ORDENES, '2026-08');
+  assert.strictEqual(ph.horasSinOperario, 2);
+  assert.strictEqual(Object.keys(ph.porOperario).length, 0);
+});
+
+test('alertaF931: por vencer desde el día 2, vencido después del 9', () => {
+  const liq = { estado: 'confirmada', periodo: '2026-07-01', aportes: 100000, contribuciones: 200000, art: 10000 };
+  assert.strictEqual(f931([liq], '2026-08-01'), null);                 // antes del día 2
+  const warn = f931([liq], '2026-08-05');
+  assert.strictEqual(warn.sev, 'warn');
+  assert.strictEqual(warn.porVencer[0].vto, '2026-08-09');
+  assert.strictEqual(warn.porVencer[0].cargas, 310000);
+  const crit = f931([liq], '2026-08-15');
+  assert.strictEqual(crit.sev, 'crit');
+  assert.strictEqual(crit.vencidas.length, 1);
+});
+
+test('alertaF931: pagadas, borradores y sin cargas no alertan; diciembre cruza el año', () => {
+  assert.strictEqual(f931([
+    { estado: 'confirmada', periodo: '2026-07-01', aportes: 1, contribuciones: 1, art: 0, pagado_cargas: true },
+    { estado: 'borrador', periodo: '2026-07-01', aportes: 1, contribuciones: 1, art: 0 },
+    { estado: 'confirmada', periodo: '2026-07-01', aportes: 0, contribuciones: 0, art: 0 },
+  ], '2026-08-15'), null);
+  const dic = f931([{ estado: 'confirmada', periodo: '2026-12-01', aportes: 1, contribuciones: 1, art: 0 }], '2027-01-05');
+  assert.strictEqual(dic.porVencer[0].vto, '2027-01-09');
+});

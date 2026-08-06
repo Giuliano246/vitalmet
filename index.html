@@ -696,6 +696,7 @@ body.no-costos .solo-costos{display:none!important}
           <div class="search-box"><input type="text" id="sueldos-search" placeholder="Buscar por período, empleado..." oninput="renderSueldos(this.value)"></div>
           <button class="btn btn-primary" onclick="openLiquidacion()">+ Liquidación</button>
           <button class="btn btn-ghost" onclick="openEmpleado()">+ Empleado</button>
+          <button class="btn btn-ghost" onclick="exportParteHoras()" title="Horas productivas por operario y OP del período (timers de Modo Planta) — para mandar a la contadora">⏱ Parte de horas (CSV)</button>
         </div>
         <div class="section-label" style="margin:4px 0 8px">Liquidaciones</div>
         <div class="table-container"><table><thead><tr><th>Período</th><th>Tipo</th><th>Empleados</th><th>Bruto ARS</th><th>Neto ARS</th><th>Cargas ARS</th><th>Estado</th><th>Asiento</th><th>Acciones</th></tr></thead><tbody id="liquidaciones-tbody"></tbody></table></div>
@@ -1226,6 +1227,7 @@ body.no-costos .solo-costos{display:none!important}
             <div class="form-row"><div class="form-group"><label>Sueldos fabricación (gasto)</label><select id="cfg-cta-sueldos-fab"></select></div><div class="form-group"><label>Cargas sociales fabricación (gasto)</label><select id="cfg-cta-cargas-fab"></select></div></div>
             <div class="form-row"><div class="form-group"><label>Sueldos administración (gasto)</label><select id="cfg-cta-sueldos-adm"></select></div><div class="form-group"><label>Cargas sociales administración (gasto)</label><select id="cfg-cta-cargas-adm"></select></div></div>
             <div class="form-row"><div class="form-group"><label>Sueldos a pagar (pasivo)</label><select id="cfg-cta-sueldos-a-pagar"></select></div><div class="form-group"><label>Cargas sociales a pagar (pasivo)</label><select id="cfg-cta-cargas-a-pagar"></select></div></div>
+            <div class="form-row"><div class="form-group"><label>Provisión SAC (pasivo)</label><select id="cfg-cta-provision-sac"></select></div><div class="form-group"></div></div>
           </div>
 
           <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end">
@@ -1575,7 +1577,8 @@ body.no-costos .solo-costos{display:none!important}
       <div class="form-row" style="grid-template-columns:110px 1fr 170px"><div class="form-group"><label>Legajo</label><input type="text" id="emp-legajo" placeholder="001"></div><div class="form-group"><label>Nombre y apellido *</label><input type="text" id="emp-nombre"></div><div class="form-group"><label>CUIL</label><input type="text" id="emp-cuil" placeholder="20-12345678-3"></div></div>
       <div class="form-row" style="grid-template-columns:1fr 1fr 1fr"><div class="form-group"><label>Centro de costo</label><select id="emp-centro"><option value="fabricacion">Fabricación (planta)</option><option value="administracion">Administración / ventas</option></select></div><div class="form-group"><label>Modalidad</label><select id="emp-modalidad"><option value="jornal">Jornal (por hora, UOM)</option><option value="mensual">Mensualizado</option></select></div><div class="form-group"><label>Fecha de ingreso</label><input type="date" id="emp-ingreso"></div></div>
       <div class="form-row" style="grid-template-columns:1fr 1fr 1fr"><div class="form-group"><label>Categoría (CCT 260/75)</label><input type="text" id="emp-categoria" placeholder="Operario / Oficial / Adm. 2ª"></div><div class="form-group"><label>Rama UOM</label><input type="text" id="emp-rama" placeholder="17 (metalmecánica)"></div><div class="form-group"><label>Obra social</label><input type="text" id="emp-os" placeholder="OSUOMRA"></div></div>
-      <div class="form-row" style="grid-template-columns:1fr 1fr"><div class="form-group"><label>Nombre en OPs / timers</label><input type="text" id="emp-operario" placeholder="Como figura en las órdenes de producción"></div><div class="form-group"><label>Observaciones</label><input type="text" id="emp-obs"></div></div>
+      <div class="form-row" style="grid-template-columns:1fr 160px 1fr"><div class="form-group"><label>Nombre en OPs / timers</label><input type="text" id="emp-operario" placeholder="Como figura en las órdenes de producción"></div><div class="form-group"><label>Valor hora (ARS)</label><input type="number" id="emp-valor-hora" step="0.01" min="0" placeholder="4313.43"></div><div class="form-group"><label>Observaciones</label><input type="text" id="emp-obs"></div></div>
+      <p style="margin:8px 0 0 0;color:var(--text3);font-size:11px">Con <b>nombre en OPs</b> + <b>valor hora</b> cargados, el botón "Traer horas de planta" del modal de liquidación suma las horas productivas de los timers del período (por la orden asignada al operario) y sugiere el bruto.</p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-empleado')">Cancelar</button>
@@ -1591,7 +1594,8 @@ body.no-costos .solo-costos{display:none!important}
     <div class="modal-body">
       <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Cargá los números de la liquidación de la contadora. Los % de abajo pre-calculan aportes, contribuciones y neto como ayuda — <b>todos los campos son editables</b> para que coincidan con el recibo real. Al confirmar se genera el asiento de devengamiento.</p>
       <div class="form-row" style="grid-template-columns:150px 170px 150px 1fr"><div class="form-group"><label>Período *</label><input type="month" id="liq-periodo"></div><div class="form-group"><label>Tipo</label><select id="liq-tipo"><option value="mensual">Mensual</option><option value="quincena1">1ª quincena</option><option value="quincena2">2ª quincena</option><option value="sac">SAC (aguinaldo)</option><option value="vacaciones">Vacaciones</option><option value="final">Liquidación final</option><option value="otro">Otro</option></select></div><div class="form-group"><label>Fecha de pago</label><input type="date" id="liq-fecha-pago"></div><div class="form-group"><label>Observaciones</label><input type="text" id="liq-obs"></div></div>
-      <div class="form-row" style="grid-template-columns:150px 170px 150px;margin-bottom:4px"><div class="form-group"><label>Aportes % (empleado)</label><input type="number" id="liq-pct-aportes" value="17" step="0.01" oninput="liqRecalcularTodo()"></div><div class="form-group"><label>Contribuciones % (patronal)</label><input type="number" id="liq-pct-contrib" value="27.35" step="0.01" oninput="liqRecalcularTodo()"></div><div class="form-group"><label>ART %</label><input type="number" id="liq-pct-art" value="3" step="0.01" oninput="liqRecalcularTodo()"></div></div>
+      <div class="form-row" style="grid-template-columns:150px 170px 150px 1fr;margin-bottom:4px"><div class="form-group"><label>Aportes % (empleado)</label><input type="number" id="liq-pct-aportes" value="17" step="0.01" oninput="liqRecalcularTodo()"></div><div class="form-group"><label>Contribuciones % (patronal)</label><input type="number" id="liq-pct-contrib" value="27.35" step="0.01" oninput="liqRecalcularTodo()"></div><div class="form-group"><label>ART %</label><input type="number" id="liq-pct-art" value="3" step="0.01" oninput="liqRecalcularTodo()"></div><div class="form-group"><label>&nbsp;</label><button class="btn btn-ghost" id="btn-liq-horas" onclick="liqTraerHoras()" title="Suma las horas productivas de los timers de Modo Planta del período (por la orden asignada al operario) y sugiere el bruto = horas × valor hora" style="border-color:var(--teal);color:var(--teal)">⏱ Traer horas de planta</button></div></div>
+      <div id="liq-horas-info" style="display:none;margin-bottom:8px;font-size:11px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:8px 10px"></div>
       <div style="display:grid;grid-template-columns:1fr 110px 110px 110px 110px 110px 100px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Empleado</div><div style="text-align:right">Bruto</div><div style="text-align:right">No remun.</div><div style="text-align:right">Aportes</div><div style="text-align:right">Neto</div><div style="text-align:right">Contrib.</div><div style="text-align:right">ART</div></div>
       <div id="liq-items-list" style="display:flex;flex-direction:column;gap:6px"></div>
       <div id="liq-resumen" style="margin-top:12px;font-size:12px;color:var(--text2)"></div>
@@ -4085,6 +4089,7 @@ function openEmpleado(id){
   s('emp-legajo',e?.legajo);s('emp-nombre',e?.nombre);s('emp-cuil',e?.cuil);
   s('emp-categoria',e?.categoria);s('emp-rama',e?.rama);s('emp-os',e?.obra_social);
   s('emp-ingreso',e?.fecha_ingreso);s('emp-operario',e?.operario_nombre);s('emp-obs',e?.observaciones);
+  s('emp-valor-hora',e?.valor_hora);
   document.getElementById('emp-centro').value=e?.centro||'fabricacion';
   document.getElementById('emp-modalidad').value=e?.modalidad||'jornal';
   openModal('modal-empleado');
@@ -4096,7 +4101,8 @@ async function saveEmpleado(){
     const data={legajo:g('emp-legajo')||null,nombre:g('emp-nombre'),cuil:g('emp-cuil')||null,
       categoria:g('emp-categoria')||null,rama:g('emp-rama')||null,obra_social:g('emp-os')||null,
       centro:g('emp-centro'),modalidad:g('emp-modalidad'),fecha_ingreso:g('emp-ingreso')||null,
-      operario_nombre:g('emp-operario')||null,observaciones:g('emp-obs')||null};
+      operario_nombre:g('emp-operario')||null,observaciones:g('emp-obs')||null,
+      valor_hora:parseFloat(g('emp-valor-hora'))||null};
     if(_empEditId)await PATCH('empleados',data,`?id=eq.${_empEditId}`);
     else await POST('empleados',{empresa_id:currentEmpresa.id,...data});
     await reload('empleados');
@@ -4135,6 +4141,8 @@ function openLiquidacion(liqId){
   document.getElementById('liq-obs').value=l?.observaciones||'';
   // Filas: empleados activos + los que ya están en la liquidación (aunque estén de baja)
   const prev={};(l?.liquidacion_items||[]).forEach(i=>{prev[i.empleado_id]=i;});
+  _liqHorasEmp={};(l?.liquidacion_items||[]).forEach(i=>{if(i.detalle?.horas_planta)_liqHorasEmp[i.empleado_id]=i.detalle.horas_planta;});
+  const infoEl=document.getElementById('liq-horas-info');if(infoEl){infoEl.style.display='none';infoEl.innerHTML='';}
   const filas=[...activos];
   Object.keys(prev).forEach(eid=>{if(!filas.some(e=>e.id===eid)){const e=empleados.find(x=>x.id===eid);if(e)filas.push(e);}});
   const NUM=(eid,k,v)=>`<input type="number" step="0.01" min="0" value="${v||0}" data-liq-emp="${eid}" data-liq-campo="${k}" oninput="liqOnInput('${eid}','${k}')" style="text-align:right">`;
@@ -4169,7 +4177,74 @@ function _liqItems(){
     const eid=inp.dataset.liqEmp;
     (porEmp[eid]=porEmp[eid]||{empleado_id:eid})[inp.dataset.liqCampo]=parseFloat(inp.value)||0;
   });
+  Object.keys(_liqHorasEmp).forEach(eid=>{if(porEmp[eid])porEmp[eid].detalle={horas_planta:_liqHorasEmp[eid]};});
   return Object.values(porEmp).filter(i=>i.bruto>0||i.no_remunerativo>0||i.neto>0);
+}
+// ── Parte de horas desde los timers de planta (Fase 2, 066) ──
+let _liqHorasEmp={}; // empleado_id → horas del período (queda en item.detalle)
+async function _fetchEntriesPeriodo(periodoYM){
+  const [y,m]=periodoYM.split('-').map(Number);
+  const ini=`${y}-${String(m).padStart(2,'0')}-01`;
+  const finExcl=`${m===12?y+1:y}-${String(m===12?1:m+1).padStart(2,'0')}-01`;
+  const raw=await GET('op_time_entries',`?tipo=eq.productivo&ended_at=not.is.null&started_at=gte.${ini}&started_at=lt.${finExcl}&select=started_at,ended_at,tipo,op_operaciones(orden_id)`);
+  return raw.map(e=>({started_at:e.started_at,ended_at:e.ended_at,tipo:e.tipo,orden_id:e.op_operaciones?.orden_id}));
+}
+async function liqTraerHoras(){
+  const periodo=g('liq-periodo');
+  if(!periodo)return notify('Indicá el período primero','err');
+  const btn=document.getElementById('btn-liq-horas');
+  if(btn){btn.disabled=true;btn.textContent='Buscando horas...';}
+  try{
+    const entries=await _fetchEntriesPeriodo(periodo);
+    const ph=computeParteHoras(entries,ops,periodo);
+    _liqHorasEmp={};
+    const conMatch=[],sinValor=[],operariosMatcheados=new Set();
+    empleados.filter(e=>e.activo!==false&&e.operario_nombre).forEach(e=>{
+      const hs=ph.porOperario[(e.operario_nombre||'').trim().toLowerCase()];
+      if(!hs)return;
+      operariosMatcheados.add((e.operario_nombre||'').trim().toLowerCase());
+      _liqHorasEmp[e.id]=hs;
+      const vh=parseFloat(e.valor_hora)||0;
+      if(vh){
+        _liqSet(e.id,'bruto',Math.round(hs*vh*100)/100);
+        liqOnInput(e.id,'bruto');
+        conMatch.push(`${e.nombre}: ${hs} hs × ${fmtARS(vh)} = ${fmtARS(hs*vh)}`);
+      }else{
+        sinValor.push(`${e.nombre}: ${hs} hs (sin valor hora cargado)`);
+      }
+    });
+    const sinMatch=Object.keys(ph.porOperario).filter(k=>!operariosMatcheados.has(k));
+    const info=document.getElementById('liq-horas-info');
+    if(info){
+      info.style.display='block';
+      info.innerHTML=[
+        `<b>${ph.totalHoras} hs productivas</b> en ${liqPeriodoFmt(periodo+'-01')}${ph.horasSinOperario?` · ${ph.horasSinOperario} hs en OPs sin operario asignado`:''}`,
+        conMatch.length?('Bruto sugerido → '+conMatch.map(esc).join(' · ')):null,
+        sinValor.length?`<span style="color:var(--accent)">${sinValor.map(esc).join(' · ')}</span>`:null,
+        sinMatch.length?`<span style="color:var(--coral)">Operarios sin empleado vinculado: ${sinMatch.map(esc).join(', ')} (cargá "nombre en OPs" en el legajo)</span>`:null,
+      ].filter(Boolean).join('<br>');
+    }
+    if(!Object.keys(ph.porOperario).length)notify('No hay horas de planta registradas en ese período');
+  }catch(e){notify(msgError(e),'err');}
+  finally{if(btn){btn.disabled=false;btn.innerHTML='⏱ Traer horas de planta';}}
+}
+async function exportParteHoras(){
+  const periodo=prompt('Parte de horas — período (AAAA-MM):',hoyLocal().slice(0,7));
+  if(!periodo)return;
+  if(!/^\d{4}-\d{2}$/.test(periodo))return notify('Formato inválido — usá AAAA-MM','err');
+  try{
+    const entries=await _fetchEntriesPeriodo(periodo);
+    const ph=computeParteHoras(entries,ops,periodo);
+    if(!ph.detalle.length)return notify('Sin horas registradas en ese período');
+    const rows=ph.detalle.map(d=>[d.operario,d.nro,d.pieza,String(d.horas).replace('.',',')]);
+    Object.entries(ph.porOperario).forEach(([k,hs])=>{
+      const nombre=ph.detalle.find(d=>d.operario.toLowerCase()===k)?.operario||k;
+      rows.push([`TOTAL ${nombre}`,'','',String(hs).replace('.',',')]);
+    });
+    rows.push(['TOTAL GENERAL','','',String(ph.totalHoras).replace('.',',')]);
+    exportCSV(`parte-horas-${periodo}.csv`,['Operario','OP','Pieza','Horas'],rows);
+    notify('Parte de horas exportado — mandáselo a la contadora');
+  }catch(e){notify(msgError(e),'err');}
 }
 function liqResumen(){
   const t=computeTotalesLiquidacion(_liqItems());
@@ -4199,11 +4274,19 @@ async function confirmarLiquidacion(id){
   const l=liquidaciones.find(x=>x.id===id);if(!l)return;
   const t=computeTotalesLiquidacion(l.liquidacion_items||[]);
   if(!confirm(`¿Confirmar la liquidación ${LIQ_TIPO_LABEL[l.tipo]||l.tipo} ${liqPeriodoFmt(l.periodo)}?\n\nNetos: ${fmtARS(t.neto)} · F.931+ART: ${fmtARS(t.cargas)}\nSe genera el asiento de devengamiento.`))return;
+  // Provisión SAC 1/12 (066): opcional en liquidaciones de sueldo del mes.
+  // Al confirmar un SAC, la provisión acumulada se consume sola en la RPC.
+  let provisionar=false;
+  if(['mensual','quincena1','quincena2'].includes(l.tipo)&&configContable?.cta_provision_sac){
+    provisionar=confirm(`¿Registrar también la provisión de SAC (1/12 del bruto = ${fmtARS(t.bruto/12)})?\n\nAceptar = sí · Cancelar = no (la liquidación se confirma igual)`);
+  }
   try{
     await fetchCotizacion().catch(()=>{});
-    const r=await RPC('confirmar_liquidacion',{p_liq_id:id,p_tipo_cambio:parseFloat(cotizacion?.venta)||null});
+    const r=await RPC('confirmar_liquidacion',{p_liq_id:id,p_tipo_cambio:parseFloat(cotizacion?.venta)||null,p_provisionar_sac:provisionar});
     await reload('liquidaciones','asientos','asiento_lineas');
-    renderAll();notify(`✓ Liquidación confirmada — asiento generado`);
+    renderAll();
+    const extra=r?.provision_aplicada>0?` · usó ${fmtARS(r.provision_aplicada)} de provisión SAC`:(provisionar?' · provisión SAC registrada':'');
+    notify(`✓ Liquidación confirmada — asiento generado${extra}`);
   }catch(e){notify(msgError(e),'err');}
 }
 async function anularLiquidacion(id){
@@ -4941,6 +5024,16 @@ function computeAlertas(){
   if(conVencido.length)out.push({sev:'crit',page:'ctacte',count:conVencido.length,
     titulo:`Cobranzas vencidas — ${fmtUSD(totVencido)}`,
     detalle:conVencido.slice(0,3).map(c=>esc(c.nombre)).join('  —  ')+masDe(conVencido)});
+
+  // F.931: cargas de liquidaciones confirmadas sin pago registrado,
+  // vencimiento el ~9 del mes siguiente al devengado (066)
+  const f931=alertaF931(liquidaciones.map(l=>({...l,pagado_cargas:_liqPagada(l.id,'cargas')})),hoy);
+  if(f931){
+    const todas=[...f931.vencidas,...f931.porVencer];
+    out.push({sev:f931.sev,page:'sueldos',count:todas.length,
+      titulo:f931.vencidas.length?`F.931 vencido sin pago registrado`:`F.931 por vencer (día 7-10)`,
+      detalle:todas.slice(0,3).map(x=>`${x.periodo} · ${fmtARS(x.cargas)} (vto ~${x.vto.slice(8)}/${x.vto.slice(5,7)})`).join('  —  ')+masDe(todas)});
+  }
 
   const rep=calcReordenTodos().filter(r=>r.bajo);
   if(rep.length)out.push({sev:'crit',page:'mp',count:rep.length,
@@ -9112,6 +9205,7 @@ function renderImputacionContable(){
   _llenarSelectCuentas('cfg-cta-cargas-adm',['egreso'],c.cta_cargas_adm);
   _llenarSelectCuentas('cfg-cta-sueldos-a-pagar',['pasivo'],c.cta_sueldos_a_pagar);
   _llenarSelectCuentas('cfg-cta-cargas-a-pagar',['pasivo'],c.cta_cargas_a_pagar);
+  _llenarSelectCuentas('cfg-cta-provision-sac',['pasivo'],c.cta_provision_sac);
   document.getElementById('cfg-iva-alicuota').value=c.iva_alicuota!=null?(Number(c.iva_alicuota)*100).toFixed(2).replace(/\.?0+$/,''):'21';
   document.getElementById('cfg-punto-venta').value=c.punto_venta||1;
   document.getElementById('cfg-precios-con-iva').checked=c.precios_incluyen_iva===true;
@@ -9155,6 +9249,7 @@ async function saveConfigContable(){
     cta_cargas_adm:v('cfg-cta-cargas-adm'),
     cta_sueldos_a_pagar:v('cfg-cta-sueldos-a-pagar'),
     cta_cargas_a_pagar:v('cfg-cta-cargas-a-pagar'),
+    cta_provision_sac:v('cfg-cta-provision-sac'),
     updated_at:new Date().toISOString(),
   };
   setBusy('btn-save-cfg-imputacion',true);
@@ -13125,6 +13220,65 @@ function computeTotalesLiquidacion(items){
   t.cargas=r2(t.aportes+t.contribuciones+t.art);
   t.costoTotal=r2(t.bruto+t.no_remunerativo+t.contribuciones+t.art);
   return t;
+}
+// Parte de horas del período desde los timers de planta (Fase 2, 066).
+// Los timers usan el usuario compartido de planta → la atribución por
+// persona viene de la ORDEN (ordenes_produccion.operario, texto) y se
+// matchea con empleados.operario_nombre. Solo entries productivos
+// cerrados cuyo started_at cae dentro del mes.
+// entries: [{started_at, ended_at, tipo, orden_id}] (pre-aplanado)
+// ordenes: [{id, nro, pieza, operario}] · periodoYM: 'AAAA-MM'
+// Puro — tests en tests/sueldos.test.js.
+function computeParteHoras(entries,ordenes,periodoYM){
+  const r2=x=>Math.round(x*100)/100;
+  const [y,m]=(periodoYM||'').split('-').map(Number);
+  if(!y||!m)return {porOperario:{},detalle:[],totalHoras:0,horasSinOperario:0};
+  const ini=`${y}-${String(m).padStart(2,'0')}-01`;
+  const finExcl=`${m===12?y+1:y}-${String(m===12?1:m+1).padStart(2,'0')}-01`;
+  const porOrden={};ordenes.forEach(o=>{porOrden[o.id]=o;});
+  const porOperario={},porDetalle={};let total=0,sinOperario=0;
+  (entries||[]).forEach(e=>{
+    if(e.tipo!=='productivo'||!e.ended_at)return;
+    const s=String(e.started_at);
+    if(s<ini||s>=finExcl)return;
+    const hs=(new Date(e.ended_at)-new Date(e.started_at))/3600000;
+    if(!(hs>0))return;
+    total+=hs;
+    const orden=porOrden[e.orden_id];
+    const op=(orden?.operario||'').trim();
+    if(!op){sinOperario+=hs;return;}
+    const k=op.toLowerCase();
+    porOperario[k]=(porOperario[k]||0)+hs;
+    const dk=k+'|'+(orden?.id||'');
+    if(!porDetalle[dk])porDetalle[dk]={operario:op,nro:orden?.nro||'',pieza:orden?.pieza||'',horas:0};
+    porDetalle[dk].horas+=hs;
+  });
+  Object.keys(porOperario).forEach(k=>{porOperario[k]=r2(porOperario[k]);});
+  const detalle=Object.values(porDetalle).map(d=>({...d,horas:r2(d.horas)}))
+    .sort((a,b)=>a.operario.localeCompare(b.operario,undefined,{sensitivity:'base'})||(a.nro||'').localeCompare(b.nro||''));
+  return {porOperario,detalle,totalHoras:r2(total),horasSinOperario:r2(sinOperario)};
+}
+// Alerta de vencimiento del F.931 (vence entre el 7 y el 10 del mes
+// siguiente al devengado — usamos el 9 como referencia). liquidaciones:
+// [{estado, periodo, aportes, contribuciones, art, pagado_cargas}].
+// Devuelve {sev, vencidas:[...], porVencer:[...]} o null si no hay nada.
+function alertaF931(liquidaciones,hoy){
+  const vencidas=[],porVencer=[];
+  (liquidaciones||[]).forEach(l=>{
+    if(l.estado!=='confirmada'||l.pagado_cargas)return;
+    const cargas=(Number(l.aportes)||0)+(Number(l.contribuciones)||0)+(Number(l.art)||0);
+    if(cargas<0.01)return;
+    const m=(l.periodo||'').match(/^(\d{4})-(\d{2})/);
+    if(!m)return;
+    const y=Number(m[1]),mm=Number(m[2]);
+    const vto=`${mm===12?y+1:y}-${String(mm===12?1:mm+1).padStart(2,'0')}-09`;
+    const desde=vto.slice(0,8)+'02';   // avisar desde el día 2 del mes de vto
+    const item={periodo:`${m[2]}/${m[1]}`,vto,cargas};
+    if(hoy>vto)vencidas.push(item);
+    else if(hoy>=desde)porVencer.push(item);
+  });
+  if(!vencidas.length&&!porVencer.length)return null;
+  return {sev:vencidas.length?'crit':'warn',vencidas,porVencer};
 }
 
 // Parseo del extracto pegado (tab / ; como separador). Devuelve
