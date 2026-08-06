@@ -688,6 +688,21 @@ body.no-costos .solo-costos{display:none!important}
       </div>
     </div>
     <!-- CHEQUES DIFERIDOS -->
+    <div class="page" id="page-sueldos">
+      <div class="page-header"><div class="page-title">Sueldos</div><div class="page-sub">// nómina · liquidaciones de la contadora · asiento de devengamiento · F.931</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="sueldos-stats"></div>
+        <div class="toolbar">
+          <div class="search-box"><input type="text" id="sueldos-search" placeholder="Buscar por período, empleado..." oninput="renderSueldos(this.value)"></div>
+          <button class="btn btn-primary" onclick="openLiquidacion()">+ Liquidación</button>
+          <button class="btn btn-ghost" onclick="openEmpleado()">+ Empleado</button>
+        </div>
+        <div class="section-label" style="margin:4px 0 8px">Liquidaciones</div>
+        <div class="table-container"><table><thead><tr><th>Período</th><th>Tipo</th><th>Empleados</th><th>Bruto ARS</th><th>Neto ARS</th><th>Cargas ARS</th><th>Estado</th><th>Asiento</th><th>Acciones</th></tr></thead><tbody id="liquidaciones-tbody"></tbody></table></div>
+        <div class="section-label" style="margin:18px 0 8px">Empleados</div>
+        <div class="table-container"><table><thead><tr><th>Legajo</th><th>Nombre</th><th>CUIL</th><th>Categoría</th><th>Centro</th><th>Modalidad</th><th>Ingreso</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="empleados-tbody"></tbody></table></div>
+      </div>
+    </div>
     <div class="page" id="page-cheques">
       <div class="page-header"><div class="page-title">Cheques diferidos</div><div class="page-sub">// cartera de valores · recibidos y emitidos · vencimientos</div><div class="tabs"></div></div>
       <div class="page-content">
@@ -1208,6 +1223,9 @@ body.no-costos .solo-costos{display:none!important}
             <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--purple);font-weight:600;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Stock y ajustes de inventario</div>
             <div class="form-row"><div class="form-group"><label>Stock materia prima</label><select id="cfg-cta-stock-mp"></select></div><div class="form-group"><label>Stock producto terminado</label><select id="cfg-cta-stock-pt"></select></div></div>
             <div class="form-row"><div class="form-group"><label>Stock insumos</label><select id="cfg-cta-stock-insumos"></select></div><div class="form-group"><label>Ajustes de inventario (resultado)</label><select id="cfg-cta-ajuste-inventario"></select></div></div>
+            <div class="form-row"><div class="form-group"><label>Sueldos fabricación (gasto)</label><select id="cfg-cta-sueldos-fab"></select></div><div class="form-group"><label>Cargas sociales fabricación (gasto)</label><select id="cfg-cta-cargas-fab"></select></div></div>
+            <div class="form-row"><div class="form-group"><label>Sueldos administración (gasto)</label><select id="cfg-cta-sueldos-adm"></select></div><div class="form-group"><label>Cargas sociales administración (gasto)</label><select id="cfg-cta-cargas-adm"></select></div></div>
+            <div class="form-row"><div class="form-group"><label>Sueldos a pagar (pasivo)</label><select id="cfg-cta-sueldos-a-pagar"></select></div><div class="form-group"><label>Cargas sociales a pagar (pasivo)</label><select id="cfg-cta-cargas-a-pagar"></select></div></div>
           </div>
 
           <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end">
@@ -1545,6 +1563,42 @@ body.no-costos .solo-costos{display:none!important}
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-entrega-parcial')">Cancelar</button>
       <button class="btn btn-primary" id="btn-save-ep" onclick="saveEntregaParcial()">Dividir venta</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Empleado (legajo de nómina) -->
+<div class="modal-overlay" id="modal-empleado">
+  <div class="modal" style="width:620px">
+    <div class="modal-header"><div class="modal-title" id="modal-empleado-title">Nuevo empleado</div><button class="modal-close" onclick="closeModal('modal-empleado')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row" style="grid-template-columns:110px 1fr 170px"><div class="form-group"><label>Legajo</label><input type="text" id="emp-legajo" placeholder="001"></div><div class="form-group"><label>Nombre y apellido *</label><input type="text" id="emp-nombre"></div><div class="form-group"><label>CUIL</label><input type="text" id="emp-cuil" placeholder="20-12345678-3"></div></div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr"><div class="form-group"><label>Centro de costo</label><select id="emp-centro"><option value="fabricacion">Fabricación (planta)</option><option value="administracion">Administración / ventas</option></select></div><div class="form-group"><label>Modalidad</label><select id="emp-modalidad"><option value="jornal">Jornal (por hora, UOM)</option><option value="mensual">Mensualizado</option></select></div><div class="form-group"><label>Fecha de ingreso</label><input type="date" id="emp-ingreso"></div></div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr"><div class="form-group"><label>Categoría (CCT 260/75)</label><input type="text" id="emp-categoria" placeholder="Operario / Oficial / Adm. 2ª"></div><div class="form-group"><label>Rama UOM</label><input type="text" id="emp-rama" placeholder="17 (metalmecánica)"></div><div class="form-group"><label>Obra social</label><input type="text" id="emp-os" placeholder="OSUOMRA"></div></div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr"><div class="form-group"><label>Nombre en OPs / timers</label><input type="text" id="emp-operario" placeholder="Como figura en las órdenes de producción"></div><div class="form-group"><label>Observaciones</label><input type="text" id="emp-obs"></div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-empleado')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-emp" onclick="saveEmpleado()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Liquidación de sueldos (carga lo que liquidó la contadora) -->
+<div class="modal-overlay" id="modal-liquidacion">
+  <div class="modal" style="width:940px">
+    <div class="modal-header"><div class="modal-title" id="modal-liq-title">Nueva liquidación</div><button class="modal-close" onclick="closeModal('modal-liquidacion')">×</button></div>
+    <div class="modal-body">
+      <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Cargá los números de la liquidación de la contadora. Los % de abajo pre-calculan aportes, contribuciones y neto como ayuda — <b>todos los campos son editables</b> para que coincidan con el recibo real. Al confirmar se genera el asiento de devengamiento.</p>
+      <div class="form-row" style="grid-template-columns:150px 170px 150px 1fr"><div class="form-group"><label>Período *</label><input type="month" id="liq-periodo"></div><div class="form-group"><label>Tipo</label><select id="liq-tipo"><option value="mensual">Mensual</option><option value="quincena1">1ª quincena</option><option value="quincena2">2ª quincena</option><option value="sac">SAC (aguinaldo)</option><option value="vacaciones">Vacaciones</option><option value="final">Liquidación final</option><option value="otro">Otro</option></select></div><div class="form-group"><label>Fecha de pago</label><input type="date" id="liq-fecha-pago"></div><div class="form-group"><label>Observaciones</label><input type="text" id="liq-obs"></div></div>
+      <div class="form-row" style="grid-template-columns:150px 170px 150px;margin-bottom:4px"><div class="form-group"><label>Aportes % (empleado)</label><input type="number" id="liq-pct-aportes" value="17" step="0.01" oninput="liqRecalcularTodo()"></div><div class="form-group"><label>Contribuciones % (patronal)</label><input type="number" id="liq-pct-contrib" value="27.35" step="0.01" oninput="liqRecalcularTodo()"></div><div class="form-group"><label>ART %</label><input type="number" id="liq-pct-art" value="3" step="0.01" oninput="liqRecalcularTodo()"></div></div>
+      <div style="display:grid;grid-template-columns:1fr 110px 110px 110px 110px 110px 100px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Empleado</div><div style="text-align:right">Bruto</div><div style="text-align:right">No remun.</div><div style="text-align:right">Aportes</div><div style="text-align:right">Neto</div><div style="text-align:right">Contrib.</div><div style="text-align:right">ART</div></div>
+      <div id="liq-items-list" style="display:flex;flex-direction:column;gap:6px"></div>
+      <div id="liq-resumen" style="margin-top:12px;font-size:12px;color:var(--text2)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-liquidacion')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-liq" onclick="saveLiquidacion()">Guardar borrador</button>
     </div>
   </div>
 </div>
@@ -2610,7 +2664,7 @@ let proveedores=[],ordenesCompra=[],ocItems=[],recepciones=[],ocItemsDraft=[],cu
 let mailingsQueueCount=null; // emails pendientes de aprobación (lo carga el módulo Mailings)
 let preciosBase=[];
 let insumos=[],herramientas=[];
-let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[],cheques=[];
+let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[],cheques=[],empleados=[],liquidaciones=[];
 let facturasRecibidas=[];
 let periodosContables=[];
 let correlatividad=[];
@@ -3300,6 +3354,8 @@ const TBL={
   competencias:{label:'Competencias',q:'?order=persona.asc,habilidad.asc',set:r=>{competenciasList=r||[];}},
   planos:{label:'Planos',q:'?order=codigo.asc&select=id,empresa_id,codigo,revision,descripcion,cliente,file_name,created_at,updated_at',set:r=>{planosList=r||[];}},
   precios_base:{label:'Precios base',q:'?order=pieza.asc',set:r=>{preciosBase=r||[];}},
+  empleados:{label:'Empleados',q:'?order=nombre.asc',set:r=>{empleados=r||[];}},
+  liquidaciones:{label:'Liquidaciones de sueldos',q:'?order=periodo.desc,created_at.desc&select=*,liquidacion_items(*)',set:r=>{liquidaciones=r||[];}},
 };
 let _lastLoadAllAt=0;
 async function _loadTables(nombres){
@@ -3324,7 +3380,7 @@ async function loadAll(){
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',planos:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',mailings:'ventas',precios:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',kpiscalidad:'calidad',revdir:'calidad',auditorias:'calidad',competencias:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',exportables:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',planos:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',mailings:'ventas',precios:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',kpiscalidad:'calidad',revdir:'calidad',auditorias:'calidad',competencias:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',exportables:'contabilidad',sueldos:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
   produccion:[{k:'op',l:'Órdenes'},{k:'planos',l:'Planos'},{k:'eficiencia',l:'Eficiencia'}],
@@ -3333,6 +3389,7 @@ const GROUP_TABS={
     {k:'asientosp',l:'Asientos'},
     {k:'cobpag',l:'Cobros y Pagos'},
     {k:'cheques',l:'Cheques'},
+    {k:'sueldos',l:'Sueldos'},
     {k:'correlatividad',l:'Correlatividad'},
     {k:'conciliacion',l:'Conciliación bancaria'},
     {k:'exportables',l:'Exportables'},
@@ -3976,6 +4033,216 @@ async function generarAsientoFactura(facturaEmitidaId,factura,venta){
   // Atómico (RPC): cabecera + líneas juntas, numeración en la DB.
   await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas,p_asiento_id:existing?existing.id:null});
   console.log(`✓ Asiento contable generado para factura ${comprobanteFmt} (CAE ${factura.cae})`);
+}
+
+// ─── SUELDOS — nómina (migración 065) ───────────────────────────────
+// Fase 1: la contadora liquida afuera; acá se registra la liquidación,
+// se genera el asiento de devengamiento y los pagos (netos / F.931).
+const LIQ_TIPO_LABEL={mensual:'Mensual',quincena1:'1ª quincena',quincena2:'2ª quincena',sac:'SAC',vacaciones:'Vacaciones',final:'Liq. final',otro:'Otro'};
+function liqPeriodoFmt(p){const m=(p||'').match(/^(\d{4})-(\d{2})/);return m?`${m[2]}/${m[1]}`:p||'—';}
+function _liqPagada(liqId,parte){
+  return asientos.some(a=>a.origen_tipo==='liquidacion-pago-'+parte&&a.origen_id===liqId&&a.estado!=='anulado');
+}
+function renderSueldos(filter=''){
+  const f=(filter||'').toLowerCase();
+  const activos=empleados.filter(e=>e.activo!==false);
+  const ultConf=liquidaciones.find(l=>l.estado==='confirmada');
+  const borradores=liquidaciones.filter(l=>l.estado==='borrador').length;
+  const costoUlt=ultConf?computeTotalesLiquidacion(ultConf.liquidacion_items||[]).costoTotal:0;
+  const tcUlt=parseFloat(ultConf?.tipo_cambio)||parseFloat(cotizacion?.venta)||0;
+  const statsEl=document.getElementById('sueldos-stats');
+  if(statsEl)statsEl.innerHTML=`
+    <div class="stat-card"><div class="stat-label">Empleados activos</div><div class="stat-value" style="color:var(--blue)">${activos.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Último costo laboral</div><div class="stat-value" style="font-size:15px;color:var(--green)">${ultConf?fmtARS(costoUlt):'—'}</div><div style="font-size:10px;color:var(--text3);font-family:var(--mono)">${ultConf?`${liqPeriodoFmt(ultConf.periodo)} · ${tcUlt?fmtUSD(costoUlt/tcUlt):'sin TC'}`:'sin liquidaciones'}</div></div>
+    <div class="stat-card"><div class="stat-label">Borradores</div><div class="stat-value" style="color:${borradores?'var(--accent)':'var(--green)'}">${borradores}</div></div>`;
+  const bE={borrador:'badge-amber',confirmada:'badge-green'};
+  const ltbody=document.getElementById('liquidaciones-tbody');
+  const llist=liquidaciones.filter(l=>!f||liqPeriodoFmt(l.periodo).includes(f)||(LIQ_TIPO_LABEL[l.tipo]||'').toLowerCase().includes(f));
+  if(ltbody)ltbody.innerHTML=llist.length?llist.map(l=>{
+    const items=l.liquidacion_items||[];
+    const cargas=(parseFloat(l.aportes)||0)+(parseFloat(l.contribuciones)||0)+(parseFloat(l.art)||0);
+    const asiento=l.asiento_id?asientos.find(a=>a.id===l.asiento_id):null;
+    const pagN=_liqPagada(l.id,'netos'),pagC=_liqPagada(l.id,'cargas');
+    const acc=l.estado==='borrador'
+      ?`<button class="btn btn-ghost btn-sm" onclick="openLiquidacion('${l.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="confirmarLiquidacion('${l.id}')" style="color:var(--green)">Confirmar</button><button class="btn btn-danger btn-sm" onclick="anularLiquidacion('${l.id}')">Eliminar</button>`
+      :`${pagN?'<span class="badge badge-green" style="font-size:9px">NETOS PAG.</span>':`<button class="btn btn-ghost btn-sm" onclick="pagarLiquidacion('${l.id}','netos')" title="Asiento de pago de netos (Sueldos a pagar contra banco)" style="color:var(--teal)">Pagar netos</button>`}${pagC?'<span class="badge badge-green" style="font-size:9px">F.931 PAG.</span>':`<button class="btn btn-ghost btn-sm" onclick="pagarLiquidacion('${l.id}','cargas')" title="Asiento de pago del F.931 + ART (Cargas a pagar contra banco)" style="color:var(--teal)">Pagar F.931</button>`}<button class="btn btn-danger btn-sm" onclick="anularLiquidacion('${l.id}')">Anular</button>`;
+    return`<tr><td class="mono td-primary">${liqPeriodoFmt(l.periodo)}</td><td>${LIQ_TIPO_LABEL[l.tipo]||esc(l.tipo)}</td><td class="mono">${items.length}</td><td class="mono">${fmtARS(parseFloat(l.bruto)||0)}</td><td class="mono" style="color:var(--green)">${fmtARS(parseFloat(l.neto)||0)}</td><td class="mono" style="color:var(--text2)">${fmtARS(cargas)}</td><td><span class="badge ${bE[l.estado]||'badge-warn'}">${l.estado.toUpperCase()}</span></td><td class="mono" style="font-size:11px">${asiento?('Nº '+(asiento.numero||'—')):'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap">${acc}</td></tr>`;
+  }).join(''):`<tr><td colspan="9" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Sin liquidaciones. Cargá empleados y después "+ Liquidación" con los números de la contadora.</td></tr>`;
+  const etbody=document.getElementById('empleados-tbody');
+  const elist=empleados.filter(e=>!f||(e.nombre||'').toLowerCase().includes(f)||(e.legajo||'').toLowerCase().includes(f));
+  if(etbody)etbody.innerHTML=elist.length?elist.map(e=>
+    `<tr><td class="mono">${esc(e.legajo)||'—'}</td><td style="font-weight:500">${esc(e.nombre)}</td><td class="mono" style="font-size:11px">${esc(e.cuil)||'—'}</td><td style="font-size:11px">${esc(e.categoria)||'—'}</td><td><span class="badge ${e.centro==='fabricacion'?'badge-blue':'badge-purple'}">${e.centro==='fabricacion'?'FÁBRICA':'ADMIN'}</span></td><td style="font-size:11px">${e.modalidad==='jornal'?'Jornal':'Mensual'}</td><td class="mono" style="font-size:11px">${e.fecha_ingreso||'—'}</td><td><span class="badge ${e.activo!==false?'badge-green':'badge-coral'}">${e.activo!==false?'ACTIVO':'BAJA'}</span></td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="openEmpleado('${e.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="toggleEmpleado('${e.id}')">${e.activo!==false?'Dar de baja':'Reactivar'}</button></td></tr>`
+  ).join(''):`<tr><td colspan="9" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Sin empleados cargados.</td></tr>`;
+}
+
+// ── Empleados (CRUD) ──
+let _empEditId=null;
+function openEmpleado(id){
+  _empEditId=id||null;
+  const e=id?empleados.find(x=>x.id===id):null;
+  document.getElementById('modal-empleado-title').textContent=e?'Editar empleado':'Nuevo empleado';
+  const s=(fid,v)=>{document.getElementById(fid).value=v||'';};
+  s('emp-legajo',e?.legajo);s('emp-nombre',e?.nombre);s('emp-cuil',e?.cuil);
+  s('emp-categoria',e?.categoria);s('emp-rama',e?.rama);s('emp-os',e?.obra_social);
+  s('emp-ingreso',e?.fecha_ingreso);s('emp-operario',e?.operario_nombre);s('emp-obs',e?.observaciones);
+  document.getElementById('emp-centro').value=e?.centro||'fabricacion';
+  document.getElementById('emp-modalidad').value=e?.modalidad||'jornal';
+  openModal('modal-empleado');
+}
+async function saveEmpleado(){
+  if(!g('emp-nombre'))return notify('Completá el nombre','err');
+  setBusy('btn-save-emp',true);
+  try{
+    const data={legajo:g('emp-legajo')||null,nombre:g('emp-nombre'),cuil:g('emp-cuil')||null,
+      categoria:g('emp-categoria')||null,rama:g('emp-rama')||null,obra_social:g('emp-os')||null,
+      centro:g('emp-centro'),modalidad:g('emp-modalidad'),fecha_ingreso:g('emp-ingreso')||null,
+      operario_nombre:g('emp-operario')||null,observaciones:g('emp-obs')||null};
+    if(_empEditId)await PATCH('empleados',data,`?id=eq.${_empEditId}`);
+    else await POST('empleados',{empresa_id:currentEmpresa.id,...data});
+    await reload('empleados');
+    _modalDirty['modal-empleado']=false;closeModal('modal-empleado',true);_empEditId=null;
+    renderAll();notify('Empleado guardado');
+  }catch(e){notify(msgError(e),'err');}
+  finally{setBusy('btn-save-emp',false,'Guardar');}
+}
+async function toggleEmpleado(id){
+  const e=empleados.find(x=>x.id===id);if(!e)return;
+  const baja=e.activo!==false;
+  if(baja&&!confirm(`¿Dar de baja a ${e.nombre}? No aparece más en liquidaciones nuevas (el histórico queda).`))return;
+  try{
+    await PATCH('empleados',baja?{activo:false,fecha_egreso:hoyLocal()}:{activo:true,fecha_egreso:null},`?id=eq.${id}`);
+    await reload('empleados');renderAll();notify(baja?'Empleado dado de baja':'Empleado reactivado');
+  }catch(err){notify(msgError(err),'err');}
+}
+
+// ── Liquidaciones ──
+let _liqEditId=null;
+function _liqPcts(){return{
+  aportesPct:parseFloat(g('liq-pct-aportes'))||0,
+  contribPct:parseFloat(g('liq-pct-contrib'))||0,
+  artPct:parseFloat(g('liq-pct-art'))||0};}
+function openLiquidacion(liqId){
+  const activos=empleados.filter(e=>e.activo!==false);
+  const l=liqId?liquidaciones.find(x=>x.id===liqId):null;
+  if(liqId&&!l)return;
+  if(l&&l.estado!=='borrador')return notify('La liquidación está confirmada — anulala para editarla','err');
+  if(!l&&!activos.length)return notify('Cargá al menos un empleado primero','err');
+  _liqEditId=liqId||null;
+  document.getElementById('modal-liq-title').textContent=l?`Editar liquidación ${liqPeriodoFmt(l.periodo)}`:'Nueva liquidación';
+  document.getElementById('liq-periodo').value=l?(l.periodo||'').slice(0,7):hoyLocal().slice(0,7);
+  document.getElementById('liq-tipo').value=l?.tipo||'mensual';
+  document.getElementById('liq-fecha-pago').value=l?.fecha_pago||hoyLocal();
+  document.getElementById('liq-obs').value=l?.observaciones||'';
+  // Filas: empleados activos + los que ya están en la liquidación (aunque estén de baja)
+  const prev={};(l?.liquidacion_items||[]).forEach(i=>{prev[i.empleado_id]=i;});
+  const filas=[...activos];
+  Object.keys(prev).forEach(eid=>{if(!filas.some(e=>e.id===eid)){const e=empleados.find(x=>x.id===eid);if(e)filas.push(e);}});
+  const NUM=(eid,k,v)=>`<input type="number" step="0.01" min="0" value="${v||0}" data-liq-emp="${eid}" data-liq-campo="${k}" oninput="liqOnInput('${eid}','${k}')" style="text-align:right">`;
+  document.getElementById('liq-items-list').innerHTML=filas.map(e=>{const p=prev[e.id]||{};return`
+    <div style="display:grid;grid-template-columns:1fr 110px 110px 110px 110px 110px 100px;gap:6px;align-items:center">
+      <div style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(e.nombre)}">${esc(e.nombre)}<span style="color:var(--text3);font-size:10px"> · ${e.centro==='fabricacion'?'fáb':'adm'}</span></div>
+      ${NUM(e.id,'bruto',p.bruto)}${NUM(e.id,'no_remunerativo',p.no_remunerativo)}${NUM(e.id,'aportes',p.aportes)}${NUM(e.id,'neto',p.neto)}${NUM(e.id,'contribuciones',p.contribuciones)}${NUM(e.id,'art',p.art)}
+    </div>`;}).join('');
+  liqResumen();
+  openModal('modal-liquidacion');
+}
+function _liqVal(eid,k){const inp=document.querySelector(`[data-liq-emp="${eid}"][data-liq-campo="${k}"]`);return parseFloat(inp?.value)||0;}
+function _liqSet(eid,k,v){const inp=document.querySelector(`[data-liq-emp="${eid}"][data-liq-campo="${k}"]`);if(inp)inp.value=v;}
+function liqOnInput(eid,campo){
+  // bruto/no_rem → recalcula el renglón con los %; aportes → solo el neto.
+  // neto/contribuciones/art tipeados a mano no disparan nada (dato final).
+  if(campo==='bruto'||campo==='no_remunerativo'){
+    const c=computeItemLiquidacion(_liqVal(eid,'bruto'),_liqVal(eid,'no_remunerativo'),_liqPcts());
+    _liqSet(eid,'aportes',c.aportes);_liqSet(eid,'neto',c.neto);
+    _liqSet(eid,'contribuciones',c.contribuciones);_liqSet(eid,'art',c.art);
+  }else if(campo==='aportes'){
+    _liqSet(eid,'neto',Math.round((_liqVal(eid,'bruto')+_liqVal(eid,'no_remunerativo')-_liqVal(eid,'aportes'))*100)/100);
+  }
+  liqResumen();
+}
+function liqRecalcularTodo(){
+  document.querySelectorAll('[data-liq-campo="bruto"]').forEach(inp=>liqOnInput(inp.dataset.liqEmp,'bruto'));
+}
+function _liqItems(){
+  const porEmp={};
+  document.querySelectorAll('[data-liq-emp]').forEach(inp=>{
+    const eid=inp.dataset.liqEmp;
+    (porEmp[eid]=porEmp[eid]||{empleado_id:eid})[inp.dataset.liqCampo]=parseFloat(inp.value)||0;
+  });
+  return Object.values(porEmp).filter(i=>i.bruto>0||i.no_remunerativo>0||i.neto>0);
+}
+function liqResumen(){
+  const t=computeTotalesLiquidacion(_liqItems());
+  const tc=parseFloat(cotizacion?.venta)||0;
+  document.getElementById('liq-resumen').innerHTML=
+    `Bruto <span class="mono">${fmtARS(t.bruto)}</span> · Netos a pagar <span class="mono" style="color:var(--green)">${fmtARS(t.neto)}</span> · F.931 + ART <span class="mono">${fmtARS(t.cargas)}</span> · Costo empresa <b class="mono">${fmtARS(t.costoTotal)}</b>${tc?` <span style="color:var(--text3)">(${fmtUSD(t.costoTotal/tc)})</span>`:''}`;
+}
+async function saveLiquidacion(){
+  const periodo=g('liq-periodo');
+  if(!periodo)return notify('Indicá el período','err');
+  const items=_liqItems();
+  if(!items.length)return notify('Cargá importes para al menos un empleado','err');
+  const inc=items.find(i=>Math.abs((i.neto||0)-((i.bruto||0)+(i.no_remunerativo||0)-(i.aportes||0)))>0.01);
+  if(inc){const e=empleados.find(x=>x.id===inc.empleado_id);return notify(`Neto inconsistente en ${e?.nombre||'un empleado'}: neto ≠ bruto + no remun. − aportes`,'err');}
+  setBusy('btn-save-liq',true);
+  try{
+    await RPC('guardar_liquidacion',{
+      p_liq:{periodo:periodo+'-01',tipo:g('liq-tipo'),fecha_pago:g('liq-fecha-pago')||null,observaciones:g('liq-obs')||null},
+      p_items:items,p_liq_id:_liqEditId});
+    await reload('liquidaciones');
+    _modalDirty['modal-liquidacion']=false;closeModal('modal-liquidacion',true);_liqEditId=null;
+    renderAll();notify('Liquidación guardada como borrador — confirmala para generar el asiento');
+  }catch(e){notify(msgError(e),'err');}
+  finally{setBusy('btn-save-liq',false,'Guardar borrador');}
+}
+async function confirmarLiquidacion(id){
+  const l=liquidaciones.find(x=>x.id===id);if(!l)return;
+  const t=computeTotalesLiquidacion(l.liquidacion_items||[]);
+  if(!confirm(`¿Confirmar la liquidación ${LIQ_TIPO_LABEL[l.tipo]||l.tipo} ${liqPeriodoFmt(l.periodo)}?\n\nNetos: ${fmtARS(t.neto)} · F.931+ART: ${fmtARS(t.cargas)}\nSe genera el asiento de devengamiento.`))return;
+  try{
+    await fetchCotizacion().catch(()=>{});
+    const r=await RPC('confirmar_liquidacion',{p_liq_id:id,p_tipo_cambio:parseFloat(cotizacion?.venta)||null});
+    await reload('liquidaciones','asientos','asiento_lineas');
+    renderAll();notify(`✓ Liquidación confirmada — asiento generado`);
+  }catch(e){notify(msgError(e),'err');}
+}
+async function anularLiquidacion(id){
+  const l=liquidaciones.find(x=>x.id===id);if(!l)return;
+  let motivo=null;
+  if(l.estado==='confirmada'){
+    motivo=prompt(`Anular la liquidación ${liqPeriodoFmt(l.periodo)}: el asiento queda ANULADO y la liquidación vuelve a borrador.\n\nMotivo (obligatorio):`);
+    if(motivo===null)return;
+    if(!motivo.trim())return notify('El motivo es obligatorio','err');
+  }else if(!confirm('¿Eliminar este borrador de liquidación?'))return;
+  try{
+    await RPC('anular_liquidacion',{p_liq_id:id,p_motivo:motivo});
+    await reload('liquidaciones','asientos','asiento_lineas');
+    renderAll();notify(l.estado==='confirmada'?'Liquidación reabierta como borrador (asiento anulado)':'Borrador eliminado');
+  }catch(e){notify(msgError(e),'err');}
+}
+async function pagarLiquidacion(id,parte){
+  const l=liquidaciones.find(x=>x.id===id);if(!l||l.estado!=='confirmada')return;
+  const cfg=configContable||{};
+  const ctaPasivo=parte==='netos'?cfg.cta_sueldos_a_pagar:cfg.cta_cargas_a_pagar;
+  const ctaBanco=cfg.cta_banco_default;
+  if(!ctaPasivo||!ctaBanco)return notify('Faltan cuentas (banco / sueldos a pagar) en Configuración → Imputación contable','err');
+  const sugerido=parte==='netos'?(parseFloat(l.neto)||0):((parseFloat(l.aportes)||0)+(parseFloat(l.contribuciones)||0)+(parseFloat(l.art)||0));
+  const raw=prompt(`Registrar pago de ${parte==='netos'?'NETOS (acreditación en cuentas sueldo)':'F.931 + ART'} — ${liqPeriodoFmt(l.periodo)}\n\nImporte ARS:`,String(sugerido.toFixed(2)));
+  if(raw===null)return;
+  const monto=parseFloat(String(raw).replace(',','.'));
+  if(!isFinite(monto)||monto<=0)return notify('Importe inválido','err');
+  const desc=`Pago ${parte==='netos'?'sueldos netos':'F.931 y ART'} ${liqPeriodoFmt(l.periodo)}`;
+  try{
+    await RPC('crear_asiento',{p_cabecera:{
+      fecha:hoyLocal(),descripcion:desc,tipo:'auto-pago',estado:'confirmado',
+      origen_tipo:'liquidacion-pago-'+parte,origen_id:id,moneda:'ARS',tipo_cambio:1,tc_tipo:'oficial'},
+      p_lineas:[
+        {cuenta_id:ctaPasivo,debe:monto,haber:0,descripcion:desc,orden:0},
+        {cuenta_id:ctaBanco,debe:0,haber:monto,descripcion:'Banco',orden:1}],
+      p_asiento_id:null});
+    await reload('asientos','asiento_lineas');
+    renderAll();notify(`✓ ${desc} — ${fmtARS(monto)}`);
+  }catch(e){notify(msgError(e),'err');}
 }
 
 function resetF(ids){ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
@@ -4873,11 +5140,25 @@ function computeVentasPorMes(ventasArr,ymHasta,n=12){
 // pendiente (FIFO, espejo de computeCtaCte) + cheques recibidos vivos.
 // Salidas: cheques emitidos entregados + facturas de proveedor por vto
 // (mismo criterio que las alertas de compras).
-function computeCashflowProyectado({cuentas=[],cheques=[],ocs=[],facturas=[]},hoy){
+function computeCashflowProyectado({cuentas=[],cheques=[],ocs=[],facturas=[],liquidaciones=[]},hoy){
   const ing={vencido:0,d30:0,d60:0,d90:0},egr={vencido:0,d30:0,d60:0,d90:0};
   const dias=f=>Math.floor((new Date(f+'T00:00:00')-new Date(hoy+'T00:00:00'))/86400000);
   const bucket=f=>{if(!f)return null;const d=dias(f);return d<0?'vencido':d<=30?'d30':d<=60?'d60':d<=90?'d90':null;};
   const usd=(monto,moneda,tc)=>{monto=parseFloat(monto)||0;return moneda==='ARS'?(parseFloat(tc)>0?monto/parseFloat(tc):0):monto;};
+  // Sueldos: netos a la fecha de pago (o fin del período) y F.931+ART el
+  // día 9 del mes siguiente. Solo fechas futuras y sin asiento de pago
+  // registrado (sin tracking histórico, lo vencido se asume pagado).
+  liquidaciones.forEach(l=>{
+    if(l.estado!=='confirmada')return;
+    const per=(l.periodo||'').slice(0,10);
+    if(!/^\d{4}-\d{2}/.test(per))return;
+    const finMes=(()=>{const d=new Date(per.slice(0,7)+'-01T00:00:00');d.setMonth(d.getMonth()+1);d.setDate(0);return d.toISOString().slice(0,10);})();
+    const f931=(()=>{const d=new Date(per.slice(0,7)+'-01T00:00:00');d.setMonth(d.getMonth()+1);d.setDate(9);return d.toISOString().slice(0,10);})();
+    const cargas=(parseFloat(l.aportes)||0)+(parseFloat(l.contribuciones)||0)+(parseFloat(l.art)||0);
+    const fNetos=l.fecha_pago||finMes;
+    if(!l.pagado_netos&&dias(fNetos)>=0){const b=bucket(fNetos);if(b)egr[b]+=usd(l.neto,'ARS',l.tc);}
+    if(!l.pagado_cargas&&dias(f931)>=0){const b=bucket(f931);if(b)egr[b]+=usd(cargas,'ARS',l.tc);}
+  });
   cuentas.forEach(c=>{
     let resto=parseFloat(c.totPagos)||0;
     (c.cargos||[]).slice().sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')).forEach(x=>{
@@ -4988,7 +5269,9 @@ function renderDash(){
         <div style="font-size:12px;color:var(--text2);margin-top:8px">Este mes: <b style="color:var(--coral)">${fmtUSD(act.total)}</b> · mes anterior: ${fmtUSD(ant?.total||0)}${delta!==null?` · <b style="color:${delta>=0?'var(--green)':'var(--red)'}">${delta>=0?'+':''}${delta}%</b>`:''}</div></div>`;
     })()}
     ${(()=>{ // Cash-flow proyectado 30/60/90
-      const cf=computeCashflowProyectado({cuentas:computeCtaCte(),cheques,ocs:ordenesCompra,facturas:facturasRecibidas},hoyLocal());
+      const cf=computeCashflowProyectado({cuentas:computeCtaCte(),cheques,ocs:ordenesCompra,facturas:facturasRecibidas,
+        liquidaciones:liquidaciones.map(l=>({...l,tc:parseFloat(l.tipo_cambio)||parseFloat(cotizacion?.venta)||0,
+          pagado_netos:_liqPagada(l.id,'netos'),pagado_cargas:_liqPagada(l.id,'cargas')}))},hoyLocal());
       const col=v=>v>=0?'var(--green)':'var(--red)';
       const fila=(l,k)=>`<tr><td style="padding:6px 10px;color:var(--text2)">${l}</td><td style="padding:6px 10px;text-align:right;font-family:var(--mono);color:var(--green)">${fmtUSD(cf.ing[k])}</td><td style="padding:6px 10px;text-align:right;font-family:var(--mono);color:var(--red)">${fmtUSD(cf.egr[k])}</td><td style="padding:6px 10px;text-align:right;font-family:var(--mono);font-weight:700;color:${col(cf.neto[k])}">${fmtUSD(cf.neto[k])}</td></tr>`;
       return`<div class="dash-card"><div class="dash-card-title">Cash-flow proyectado (USD)</div>
@@ -5200,6 +5483,7 @@ const PAGE_RENDERS={
   asientosp:[renderAsientos],
   cobpag:[renderCobPag],
   cheques:[renderCheques],
+  sueldos:[renderSueldos],
   librodiario:[renderLibroDiario],
   libromayor:[populateLibroMayorSel,renderLibroMayor],
   balance:[renderBalance],
@@ -8822,6 +9106,12 @@ function renderImputacionContable(){
   _llenarSelectCuentas('cfg-cta-stock-pt',['activo'],c.cta_stock_pt);
   _llenarSelectCuentas('cfg-cta-stock-insumos',['activo'],c.cta_stock_insumos);
   _llenarSelectCuentas('cfg-cta-ajuste-inventario',['egreso'],c.cta_ajuste_inventario);
+  _llenarSelectCuentas('cfg-cta-sueldos-fab',['egreso'],c.cta_sueldos_fab);
+  _llenarSelectCuentas('cfg-cta-cargas-fab',['egreso'],c.cta_cargas_fab);
+  _llenarSelectCuentas('cfg-cta-sueldos-adm',['egreso'],c.cta_sueldos_adm);
+  _llenarSelectCuentas('cfg-cta-cargas-adm',['egreso'],c.cta_cargas_adm);
+  _llenarSelectCuentas('cfg-cta-sueldos-a-pagar',['pasivo'],c.cta_sueldos_a_pagar);
+  _llenarSelectCuentas('cfg-cta-cargas-a-pagar',['pasivo'],c.cta_cargas_a_pagar);
   document.getElementById('cfg-iva-alicuota').value=c.iva_alicuota!=null?(Number(c.iva_alicuota)*100).toFixed(2).replace(/\.?0+$/,''):'21';
   document.getElementById('cfg-punto-venta').value=c.punto_venta||1;
   document.getElementById('cfg-precios-con-iva').checked=c.precios_incluyen_iva===true;
@@ -8859,6 +9149,12 @@ async function saveConfigContable(){
     cta_stock_pt:v('cfg-cta-stock-pt'),
     cta_stock_insumos:v('cfg-cta-stock-insumos'),
     cta_ajuste_inventario:v('cfg-cta-ajuste-inventario'),
+    cta_sueldos_fab:v('cfg-cta-sueldos-fab'),
+    cta_cargas_fab:v('cfg-cta-cargas-fab'),
+    cta_sueldos_adm:v('cfg-cta-sueldos-adm'),
+    cta_cargas_adm:v('cfg-cta-cargas-adm'),
+    cta_sueldos_a_pagar:v('cfg-cta-sueldos-a-pagar'),
+    cta_cargas_a_pagar:v('cfg-cta-cargas-a-pagar'),
     updated_at:new Date().toISOString(),
   };
   setBusy('btn-save-cfg-imputacion',true);
@@ -8877,7 +9173,7 @@ async function saveConfigContable(){
 // ─── USUARIOS Y PERMISOS ──────────────────────────────────────────
 // Un módulo por página raíz de cada grupo (debe cubrir groupMods de
 // aplicarPermisos — si un módulo no está acá, es inasignable en la UI).
-const MODULOS_LABELS={dash:'Dashboard',mp:'Materia prima',pt:'Prod. terminados',cert:'Certificados MTC',insumos:'Insumos',herramientas:'Herramientas',op:'Órdenes producción',planos:'Planos',eficiencia:'Eficiencia',compras:'Compras',presupuestos:'Presupuestos',ventas:'Ventas',clientes:'Clientes',ctacte:'Cta. corriente',mailings:'Mailings',precios:'Precios',costos:'Costos',trace:'Trazabilidad',ncr:'Calidad (NCR/CAPA)',doccontrol:'Docs controlados',pqptpl:'Planes de calidad',sgc:'SGC (auditorías/KPIs)',cuentas:'Contabilidad'};
+const MODULOS_LABELS={dash:'Dashboard',mp:'Materia prima',pt:'Prod. terminados',cert:'Certificados MTC',insumos:'Insumos',herramientas:'Herramientas',op:'Órdenes producción',planos:'Planos',eficiencia:'Eficiencia',compras:'Compras',presupuestos:'Presupuestos',ventas:'Ventas',clientes:'Clientes',ctacte:'Cta. corriente',mailings:'Mailings',precios:'Precios',costos:'Costos',trace:'Trazabilidad',ncr:'Calidad (NCR/CAPA)',doccontrol:'Docs controlados',pqptpl:'Planes de calidad',sgc:'SGC (auditorías/KPIs)',cuentas:'Contabilidad',sueldos:'Sueldos (nómina)'};
 
 function renderUsuarios(){
   // Mostrar código de invitación
@@ -9556,7 +9852,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op','planos','eficiencia'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte','mailings','precios'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl','sgc'],contabilidad:['cuentas','asientosp','cobpag','cheques','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre','periodos','correlatividad','conciliacion','exportables']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op','planos','eficiencia'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte','mailings','precios'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl','sgc'],contabilidad:['cuentas','asientosp','cobpag','cheques','sueldos','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre','periodos','correlatividad','conciliacion','exportables']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
@@ -12804,6 +13100,31 @@ function computeDivisionVenta(items,envios,totalCabecera){
   return {ok:errores.length===0,errores,detalle,totalEnviado,
           totalPendiente:Math.round((totCab-totalEnviado)*100)/100,
           unidadesEnviadas:nEnv,unidadesSaldo:nCant-nEnv};
+}
+// Pre-cálculo de un renglón de liquidación de sueldos (migración 065).
+// Defaults 2026: aportes 17% (SIPA 11 + PAMI 3 + OS 3), contribuciones
+// MiPyME ~27,35%, ART según póliza. Aportes/contribuciones/ART se
+// calculan sobre el BRUTO (lo no remunerativo no lleva cargas). Es una
+// AYUDA editable: el dato final es el de la contadora. Puro — tests en
+// tests/sueldos.test.js.
+function computeItemLiquidacion(bruto,noRem,{aportesPct=17,contribPct=27.35,artPct=3}={}){
+  const r2=x=>Math.round(x*100)/100;
+  const b=Number(bruto)||0,nr=Number(noRem)||0;
+  const aportes=r2(b*aportesPct/100);
+  return {bruto:b,no_remunerativo:nr,aportes,neto:r2(b+nr-aportes),
+          contribuciones:r2(b*contribPct/100),art:r2(b*artPct/100)};
+}
+// Totales de una liquidación. cargas = lo que se deposita fuera de los
+// netos (aportes retenidos + contribuciones + ART → F.931/ART);
+// costoTotal = costo empresa (bruto + no_rem + contribuciones + ART).
+function computeTotalesLiquidacion(items){
+  const r2=x=>Math.round(x*100)/100;
+  const t={bruto:0,no_remunerativo:0,aportes:0,neto:0,contribuciones:0,art:0};
+  (items||[]).forEach(i=>{Object.keys(t).forEach(k=>{t[k]+=Number(i[k])||0;});});
+  Object.keys(t).forEach(k=>{t[k]=r2(t[k]);});
+  t.cargas=r2(t.aportes+t.contribuciones+t.art);
+  t.costoTotal=r2(t.bruto+t.no_remunerativo+t.contribuciones+t.art);
+  return t;
 }
 
 // Parseo del extracto pegado (tab / ; como separador). Devuelve
