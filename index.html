@@ -1552,6 +1552,24 @@ body.no-costos .solo-costos{display:none!important}
 </div>
 
 <!-- MODAL: Entrega parcial (divide la venta: parte enviada + saldo pendiente) -->
+<div class="modal-overlay" id="modal-nota-credito">
+  <div class="modal" style="width:560px">
+    <div class="modal-header"><div class="modal-title">Nota de crédito <span id="nc-factura-ref" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="modal-close" onclick="closeModal('modal-nota-credito')">×</button></div>
+    <div class="modal-body">
+      <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Se solicita a ARCA una <b>Nota de Crédito con CAE propio</b>, referenciando la factura original. Anula total o parcialmente el comprobante (devolución, error de facturación, descuento). La operación NO se puede deshacer.</p>
+      <div id="nc-factura-info" style="font-size:12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:12px"></div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr">
+        <div class="form-group"><label>Monto de la NC (ARS, IVA incluido) *</label><input type="number" id="nc-monto" step="0.01" min="0" oninput="ncOnInput()"></div>
+        <div class="form-group"><label>Motivo</label><input type="text" id="nc-motivo" placeholder="Devolución de mercadería" maxlength="120"></div>
+      </div>
+      <div id="nc-resumen" style="margin-top:4px;font-size:12px;color:var(--text2)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-nota-credito')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-nc" onclick="emitirNotaCredito()">Emitir NC (CAE)</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="modal-entrega-parcial">
   <div class="modal" style="width:640px">
     <div class="modal-header"><div class="modal-title">Entrega parcial <span id="ep-venta-nro" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="modal-close" onclick="closeModal('modal-entrega-parcial')">×</button></div>
@@ -3900,6 +3918,10 @@ async function emitirFactura(ventaId,skipConfirm){
     cotizacion_moneda:1,
     condicion_iva_receptor_id:COND_IVA_AFIP[cli?.condicion_fiscal]||undefined,
     items,
+    // Trazabilidad: la Edge Function registra la solicitud (aprobada o
+    // rechazada) en afip_eventos vinculada a la venta (mig. 067)
+    venta_id:ventaId,
+    empresa_id:currentEmpresa.id,
   };
   const btnId=`emitir-factura-${ventaId}`;
   const btn=document.getElementById(btnId);
@@ -4037,6 +4059,160 @@ async function generarAsientoFactura(facturaEmitidaId,factura,venta){
   // Atómico (RPC): cabecera + líneas juntas, numeración en la DB.
   await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas,p_asiento_id:existing?existing.id:null});
   console.log(`✓ Asiento contable generado para factura ${comprobanteFmt} (CAE ${factura.cae})`);
+}
+
+// ─── NOTAS DE CRÉDITO DE VENTA (migración 067) ─────────────────────
+// Corrige una factura emitida (devolución, error, descuento): NC con
+// CAE propio referenciando el original (CbtesAsoc, RG 4540). Total o
+// parcial por monto. Asiento inverso automático + impacto en cta cte.
+const NC_TIPO_BY_FACTURA={1:3,6:8,11:13,51:53}; // factura → NC de la misma letra
+const NC_LETRA={3:'A',8:'B',13:'C',53:'M'};
+let _ncFactura=null,_ncVentaId=null,_ncAcreditado=0;
+function _fmtCbte(pv,nro){return`${String(pv).padStart(5,'0')}-${String(nro).padStart(8,'0')}`;}
+function _ncIvaPct(f){
+  // Alícuota implícita de la factura original, ajustada a las válidas de AFIP
+  const neto=parseFloat(f.imp_neto)||0,iva=parseFloat(f.imp_iva)||0;
+  if(neto<=0||iva<=0.005)return 0;
+  const raw=iva/neto*100;
+  return [0,2.5,5,10.5,21,27].reduce((a,b)=>Math.abs(b-raw)<Math.abs(a-raw)?b:a);
+}
+async function openNotaCredito(ventaId){
+  const v=ventas.find(x=>x.id===ventaId);
+  if(!v?.factura_emitida_id)return notify('La venta no tiene factura emitida','err');
+  const list=await GET('facturas_emitidas',`?id=eq.${v.factura_emitida_id}`).catch(()=>[]);
+  const f=list[0];
+  if(!f)return notify('Factura no encontrada','err');
+  if(!NC_TIPO_BY_FACTURA[f.tipo_comprobante])return notify('Este tipo de comprobante no soporta NC desde el ERP','err');
+  const previas=await GET('facturas_emitidas',`?factura_asociada_id=eq.${f.id}&afip_environment=eq.${f.afip_environment}`).catch(()=>[]);
+  _ncFactura=f;_ncVentaId=ventaId;
+  _ncAcreditado=previas.reduce((s,x)=>s+(parseFloat(x.imp_total)||0),0);
+  const saldo=Math.max(0,Math.round(((parseFloat(f.imp_total)||0)-_ncAcreditado)*100)/100);
+  document.getElementById('nc-factura-ref').textContent=_fmtCbte(f.punto_venta,f.numero);
+  document.getElementById('nc-factura-info').innerHTML=
+    `Factura <b>${_fmtCbte(f.punto_venta,f.numero)}</b> a <b>${esc(v.cliente)}</b> — Total <span class="mono">${fmtARS(parseFloat(f.imp_total)||0)}</span> (neto ${fmtARS(parseFloat(f.imp_neto)||0)} + IVA ${fmtARS(parseFloat(f.imp_iva)||0)}) · CAE ${esc(f.cae)}`+
+    (_ncAcreditado>0?`<br><span style="color:var(--amber,#d99a2b)">Ya acreditado por NC anteriores: ${fmtARS(_ncAcreditado)} — queda ${fmtARS(saldo)}</span>`:'');
+  document.getElementById('nc-monto').value=saldo?saldo.toFixed(2):'';
+  document.getElementById('nc-motivo').value='';
+  ncOnInput();
+  openModal('modal-nota-credito');
+}
+function ncOnInput(){
+  const f=_ncFactura;if(!f)return;
+  const monto=parseFloat(document.getElementById('nc-monto').value)||0;
+  const max=Math.round(((parseFloat(f.imp_total)||0)-_ncAcreditado)*100)/100;
+  const d=computeNetoIvaDesdeTotal(monto,_ncIvaPct(f));
+  const res=document.getElementById('nc-resumen');
+  let ok=false;
+  if(monto<=0)res.innerHTML='<span style="color:var(--text3)">Ingresá el monto a acreditar (por defecto, el total pendiente).</span>';
+  else if(monto>max+0.01)res.innerHTML=`<span style="color:var(--coral,#e5484d)">El monto supera lo pendiente de acreditar (${fmtARS(max)}).</span>`;
+  else{ok=true;res.innerHTML=`Se emite NC por <b class="mono">${fmtARS(d.total)}</b> — neto ${fmtARS(d.neto)} + IVA ${_ncIvaPct(f)}% ${fmtARS(d.iva)}${Math.abs(d.total-monto)>0.005?` <span style="color:var(--text3)">(ajuste por redondeo AFIP)</span>`:''}`;}
+  const btn=document.getElementById('btn-save-nc');if(btn)btn.disabled=!ok;
+}
+async function emitirNotaCredito(){
+  const f=_ncFactura,v=ventas.find(x=>x.id===_ncVentaId);
+  if(!f||!v)return;
+  if(!currentSession?.access_token)return notify('Sesión vencida — volvé a loguearte','err');
+  const monto=parseFloat(document.getElementById('nc-monto').value)||0;
+  const motivo=(document.getElementById('nc-motivo').value||'').trim();
+  const ivaPct=_ncIvaPct(f);
+  const d=computeNetoIvaDesdeTotal(monto,ivaPct);
+  if(!(d.total>0))return notify('Monto inválido','err');
+  const ncTipo=NC_TIPO_BY_FACTURA[f.tipo_comprobante];
+  const letra=NC_LETRA[ncTipo];
+  const fmtOrig=_fmtCbte(f.punto_venta,f.numero);
+  if(!confirm(`¿Emitir Nota de Crédito ${letra} por ${fmtARS(d.total)} sobre la Factura ${fmtOrig}?\n\nEsto solicita un CAE a AFIP y NO se puede deshacer.`))return;
+  setBusy('btn-save-nc',true);
+  try{
+    const cli=clientes.find(c=>c.id===v.cliente_id)||clientes.find(c=>c.nombre===v.cliente);
+    const COND_IVA_AFIP={RI:1,exento:4,consumidor_final:5,monotributo:6};
+    const payload={
+      punto_venta:f.punto_venta,
+      tipo_comprobante:ncTipo,
+      concepto:1,
+      doc_tipo:f.doc_tipo,
+      doc_nro:f.doc_nro,
+      fecha:hoyLocal(),
+      moneda:'PES',
+      cotizacion_moneda:1,
+      condicion_iva_receptor_id:COND_IVA_AFIP[cli?.condicion_fiscal]||undefined,
+      items:[{descripcion:(`Nota de crédito s/ Factura ${letra} ${fmtOrig}`+(motivo?` — ${motivo}`:'')).slice(0,200),cantidad:1,precio_unit:d.neto,iva_pct:ivaPct}],
+      comprobantes_asociados:[{tipo:f.tipo_comprobante,punto_venta:f.punto_venta,numero:f.numero,fecha:f.fecha}],
+      venta_id:v.id,
+      empresa_id:currentEmpresa.id,
+    };
+    const res=await fetch(`${BILLING_URL}/facturar`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${currentSession.access_token}`},
+      body:JSON.stringify(payload),
+    });
+    if(!res.ok){
+      const errBody=await res.json().catch(()=>({}));
+      const detail=errBody.detail;
+      throw new Error(typeof detail==='string'?detail:(detail?.mensaje||JSON.stringify(detail)||res.statusText));
+    }
+    const data=await res.json();
+    const rows=await POST('facturas_emitidas',{
+      empresa_id:currentEmpresa.id,
+      venta_id:v.id,
+      factura_asociada_id:f.id,
+      cae:data.cae,cae_vto:data.cae_vto,numero:data.numero,punto_venta:data.punto_venta,
+      tipo_comprobante:data.tipo_comprobante,fecha:data.fecha,
+      imp_neto:data.imp_neto,imp_iva:data.imp_iva,imp_total:data.imp_total,
+      moneda:'PES',cotizacion_moneda:1,doc_tipo:f.doc_tipo,doc_nro:f.doc_nro,
+      resultado:data.resultado,
+      observaciones:(data.observaciones&&data.observaciones.length)?data.observaciones:null,
+      qr_url:data.qr_url,afip_environment:data.afip_environment||'produccion',
+      created_by:currentUser?.id||null,
+    });
+    const ncId=Array.isArray(rows)?rows[0]?.id:rows?.id;
+    if(ncId)await generarAsientoNC(ncId,data,v,motivo).catch(e=>console.warn('Asiento de NC no generado:',e));
+    await reload('asientos','asiento_lineas');
+    _modalDirty['modal-nota-credito']=false;closeModal('modal-nota-credito',true);
+    _ncFactura=null;_ncVentaId=null;
+    renderAll();
+    notify(`✓ CAE ${data.cae} — Nota de Crédito ${letra} ${_fmtCbte(data.punto_venta,data.numero)} s/ Factura ${fmtOrig}`,'ok');
+  }catch(e){notify(`Error al emitir NC: ${e.message}`,'err');}
+  finally{setBusy('btn-save-nc',false,'Emitir NC (CAE)');}
+}
+// Asiento inverso al de la factura: debe Ventas + IVA Débito, haber
+// Deudores. Con cliente_id y TC del día para que la cta cte (USD) lo
+// tome como crédito. Idempotente por origen_id.
+async function generarAsientoNC(ncId,nc,venta,motivo){
+  if(!configContable){console.warn('Asiento de NC no generado: falta configuración contable');return;}
+  const ctaDeudores=cuentasContables.find(c=>c.id===configContable.cta_deudores);
+  const ctaVentas=cuentasContables.find(c=>c.id===configContable.cta_ventas_default);
+  const ctaIvaDeb=cuentasContables.find(c=>c.id===configContable.cta_iva_debito);
+  if(!ctaDeudores||!ctaVentas){console.warn('Asiento de NC no generado: faltan cuentas Deudores o Ventas');return;}
+  const neto=Number(nc.imp_neto)||0,iva=Number(nc.imp_iva)||0,total=Number(nc.imp_total)||0;
+  if(total<=0)return;
+  const aplicaIVA=ctaIvaDeb&&iva>0.005;
+  await fetchCotizacion();
+  const tc=Number(cotizacion?.venta)||0;
+  const tipoStr={3:'NC-A',8:'NC-B',13:'NC-C',53:'NC-M'}[nc.tipo_comprobante]||('NC-'+nc.tipo_comprobante);
+  const fmt=`${tipoStr} ${_fmtCbte(nc.punto_venta,nc.numero)}`;
+  const cliente=(venta?.cliente||'cliente').toString().slice(0,80);
+  const existingArr=await GET('asientos',`?origen_tipo=eq.nota-credito&origen_id=eq.${ncId}`).catch(()=>[]);
+  const existing=existingArr&&existingArr[0];
+  const cabecera={
+    fecha:nc.fecha||hoyLocal(),
+    descripcion:`Nota de crédito ${fmt} a ${cliente}`+(motivo?` — ${motivo}`:''),
+    comprobante_nro:fmt,
+    tipo:'auto-nc',
+    origen_tipo:'nota-credito',
+    origen_id:ncId,
+    estado:'confirmado',
+    moneda:'ARS',
+    tipo_cambio:tc||1,
+    tc_tipo:'oficial',
+    cliente_id:venta?.cliente_id||null,
+  };
+  const lineas=[
+    {cuenta_id:ctaVentas.id,debe:neto,haber:0,descripcion:`Reversa venta s/${fmt}`,orden:0},
+  ];
+  if(aplicaIVA)lineas.push({cuenta_id:ctaIvaDeb.id,debe:iva,haber:0,descripcion:`Reversa IVA Débito s/${fmt}`,orden:1});
+  lineas.push({cuenta_id:ctaDeudores.id,debe:0,haber:aplicaIVA?total:neto,descripcion:`Crédito a ${cliente} s/${fmt}`,orden:lineas.length});
+  await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas,p_asiento_id:existing?existing.id:null});
+  console.log(`✓ Asiento contable generado para ${fmt} (CAE ${nc.cae})`);
 }
 
 // ─── SUELDOS — nómina (migración 065) ───────────────────────────────
@@ -4947,7 +5123,7 @@ function renderVentas(filter=''){
     }else if(v.estado==='pendiente'&&v.fecha_entrega_hasta&&v.fecha_entrega_hasta<hoy){
       otdBadge=`<br><span class="badge badge-warn" style="font-size:9px" title="Fecha de entrega prometida: ${v.fecha_entrega_hasta}">ATRASADO</span>`;
     }
-    return`<tr data-id="${v.id}"><td class="mono td-primary">${esc(v.nro_remito)}${v.venta_padre_id?` <span class="badge badge-amber" style="font-size:9px" title="Saldo de una entrega parcial — pendiente de enviar y facturar">SALDO</span>`:''}</td><td style="font-weight:500"><span onclick="event.stopPropagation();linkCliente(this.dataset.n)" data-n="${esc(v.cliente)}" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="Ver ficha del cliente">${esc(v.cliente)}</span></td><td>${esc(v.fecha)||'—'}${otdBadge}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(piezas)}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td>${estadoSelect('ventas',v.id,v.estado,['pendiente','entregado','facturado'],bE)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button>${v.estado==='pendiente'&&!v.factura_emitida_id&&totalU>1?`<button class="btn btn-ghost btn-sm" onclick="openEntregaParcial('${v.id}')" title="Entrega parcial — enviar y facturar una parte, el saldo queda pendiente" style="color:var(--amber,#d99a2b)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M21 3l-7 7"/><path d="M3 3l7 7"/><path d="M12 22v-8"/><path d="M8 18l4 4 4-4"/></svg></span>Parcial</button>`:''}${v.factura_emitida_id?`<button class="btn btn-ghost btn-sm" id="ver-factura-${v.id}" onclick="verFactura('${v.factura_emitida_id}')" title="CAE emitido — ver/descargar"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h3"/></svg></span>CAE</button>`:`<button class="btn btn-ghost btn-sm" id="emitir-factura-${v.id}" onclick="emitirFactura('${v.id}')" title="Solicitar CAE a AFIP" style="color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m13 2-3 7h8l-9 13 3-9H4z"/></svg></span>Facturar</button>`}${v.estado==='entregado'||v.estado==='facturado'?`<button class="btn btn-ghost btn-sm" onclick="irACobrarVenta('${v.id}')" title="Registrar el cobro — abre Cobros y Pagos con cliente y monto precargados" style="color:var(--teal)"><span class="btn-icon"><svg viewBox="0 0 24 24"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Cobrar</button>`:''}<button class="btn btn-ghost btn-sm" onclick="generateRemitoPDF('${v.id}')" title="Remito de entrega (PDF)" aria-label="Remito PDF"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18h-5"/><path d="M20 18h2v-7l-3-5h-5v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span></button><button class="btn btn-ghost btn-sm" onclick="generateCertConformidadPDF('${v.id}')" title="Certificado de conformidad (PDF)" aria-label="Certificado de conformidad"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg></span></button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>Anular</button></td></tr>`;}):(`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></div><div class="empty-title">Sin ventas registradas</div><div class="empty-msg">Las ventas se generan al convertir un presupuesto aprobado. Andá a <b>Presupuestos</b> y aprobalo.</div></div></td></tr>`);
+    return`<tr data-id="${v.id}"><td class="mono td-primary">${esc(v.nro_remito)}${v.venta_padre_id?` <span class="badge badge-amber" style="font-size:9px" title="Saldo de una entrega parcial — pendiente de enviar y facturar">SALDO</span>`:''}</td><td style="font-weight:500"><span onclick="event.stopPropagation();linkCliente(this.dataset.n)" data-n="${esc(v.cliente)}" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="Ver ficha del cliente">${esc(v.cliente)}</span></td><td>${esc(v.fecha)||'—'}${otdBadge}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(piezas)}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td>${estadoSelect('ventas',v.id,v.estado,['pendiente','entregado','facturado'],bE)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button>${v.estado==='pendiente'&&!v.factura_emitida_id&&totalU>1?`<button class="btn btn-ghost btn-sm" onclick="openEntregaParcial('${v.id}')" title="Entrega parcial — enviar y facturar una parte, el saldo queda pendiente" style="color:var(--amber,#d99a2b)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M21 3l-7 7"/><path d="M3 3l7 7"/><path d="M12 22v-8"/><path d="M8 18l4 4 4-4"/></svg></span>Parcial</button>`:''}${v.factura_emitida_id?`<button class="btn btn-ghost btn-sm" id="ver-factura-${v.id}" onclick="verFactura('${v.factura_emitida_id}')" title="CAE emitido — ver/descargar"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h3"/></svg></span>CAE</button><button class="btn btn-ghost btn-sm" onclick="openNotaCredito('${v.id}')" title="Nota de crédito con CAE — anula total o parcialmente la factura (devolución / error / descuento)" style="color:var(--coral,#e5484d)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></span>NC</button>`:`<button class="btn btn-ghost btn-sm" id="emitir-factura-${v.id}" onclick="emitirFactura('${v.id}')" title="Solicitar CAE a AFIP" style="color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m13 2-3 7h8l-9 13 3-9H4z"/></svg></span>Facturar</button>`}${v.estado==='entregado'||v.estado==='facturado'?`<button class="btn btn-ghost btn-sm" onclick="irACobrarVenta('${v.id}')" title="Registrar el cobro — abre Cobros y Pagos con cliente y monto precargados" style="color:var(--teal)"><span class="btn-icon"><svg viewBox="0 0 24 24"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Cobrar</button>`:''}<button class="btn btn-ghost btn-sm" onclick="generateRemitoPDF('${v.id}')" title="Remito de entrega (PDF)" aria-label="Remito PDF"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18h-5"/><path d="M20 18h2v-7l-3-5h-5v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span></button><button class="btn btn-ghost btn-sm" onclick="generateCertConformidadPDF('${v.id}')" title="Certificado de conformidad (PDF)" aria-label="Certificado de conformidad"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg></span></button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>Anular</button></td></tr>`;}):(`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></div><div class="empty-title">Sin ventas registradas</div><div class="empty-msg">Las ventas se generan al convertir un presupuesto aprobado. Andá a <b>Presupuestos</b> y aprobalo.</div></div></td></tr>`);
 }
 
 // ─── DIGEST DE ALERTAS — "Para hoy" ───────────────────────────────
@@ -7211,6 +7387,12 @@ function computeCtaCte(){
     const monto=_cobroEnUSD(a);if(monto<=0)return;
     cuentaDe(a.cliente_id,null).cargos.push({fecha:a.fecha,venc:a.fecha,monto,ref:a.comprobante_nro||('#'+(a.numero||'')),tipo:'Cheque rechazado'});
   });
+  // Notas de crédito (mig 067): reducen la deuda del cliente como un pago.
+  // El asiento auto-nc suma en el debe neto+IVA (= total) y trae el TC del día.
+  asientos.filter(a=>a.tipo==='auto-nc'&&a.estado==='confirmado'&&a.cliente_id).forEach(a=>{
+    const monto=_cobroEnUSD(a);if(monto<=0)return;
+    cuentaDe(a.cliente_id,null).pagos.push({fecha:a.fecha,monto,ref:a.comprobante_nro||('#'+(a.numero||'')),tipo:'Nota de crédito'});
+  });
   const res=Object.values(cuentas).map(c=>{
     c.cargos.sort((a,b)=>(a.venc||a.fecha||'').localeCompare(b.venc||b.fecha||''));
     const totCargos=c.cargos.reduce((s,x)=>s+x.monto,0);
@@ -7585,7 +7767,7 @@ function renderAsientos(filter=''){
     const ttLabel=tt==='compra'?'C':tt==='venta'?'V':'';
     const ejCerr=esFechaEnEjercicioCerrado(a.fecha);
     const cierreBadge=ejCerr?`<span style="display:inline-block;font-size:9px;padding:1px 6px;background:rgba(224,82,82,.12);color:var(--red);border-radius:8px;margin-left:6px;letter-spacing:.05em;font-family:var(--sans);vertical-align:middle" title="Ejercicio N° ${ejCerr.numero} cerrado">CERR</span>`:'';
-    return`<tr><td class="mono td-primary">${a.numero||'—'}</td><td class="mono">${a.fecha||'—'}${cierreBadge}</td><td>${esc(a.descripcion)||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${esc(a.comprobante_nro)||'—'}</td><td class="mono" style="font-size:11px">${esc(a.tipo)||'manual'}</td><td>${monBadge}${tc?`<div style="font-size:9px;color:var(--text3);font-family:var(--mono)">TC ${tc.toFixed(2)}${ttLabel?' '+ttLabel:''}</div>`:''}</td><td class="mono" style="color:var(--green)">${totARS!==null?fmtARS(totARS):'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:var(--blue);font-size:11px">${totUSD!==null?fmtUSD(totUSD):'<span style="color:var(--text3)">—</span>'}</td><td>${estadoSelect('asientos',a.id,a.estado||'borrador',['borrador','confirmado','anulado'],badges)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editAsiento('${a.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>${a.estado==='confirmado'?'Ver':'Editar'}</button>${a.estado!=='anulado'?`<button class="btn btn-ghost btn-sm" onclick="anularAsiento('${a.id}')" style="border-color:var(--accent);color:var(--accent)" title="Anular (soft delete)"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span></button>`:''}<button class="btn btn-danger btn-sm" onclick="deleteAsiento('${a.id}')" title="Eliminar definitivamente"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+    return`<tr><td class="mono td-primary">${a.numero||'—'}</td><td class="mono">${a.fecha||'—'}${cierreBadge}</td><td>${esc(a.descripcion)||'—'}</td><td class="mono" style="font-size:11px;color:var(--text3)">${esc(a.comprobante_nro)||'—'}</td><td class="mono" style="font-size:11px">${esc(a.tipo)||'manual'}</td><td>${monBadge}${tc?`<div style="font-size:9px;color:var(--text3);font-family:var(--mono)">TC ${tc.toFixed(2)}${ttLabel?' '+ttLabel:''}</div>`:''}</td><td class="mono" style="color:var(--green)">${totARS!==null?fmtARS(totARS):'<span style="color:var(--text3)">—</span>'}</td><td class="mono" style="color:var(--blue);font-size:11px">${totUSD!==null?fmtUSD(totUSD):'<span style="color:var(--text3)">—</span>'}</td><td>${estadoSelect('asientos',a.id,a.estado||'borrador',a.estado==='confirmado'?['confirmado','anulado']:a.estado==='anulado'?['anulado','confirmado']:['borrador','confirmado','anulado'],badges)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editAsiento('${a.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>${a.estado==='confirmado'?'Ver':'Editar'}</button>${a.estado!=='anulado'?`<button class="btn btn-ghost btn-sm" onclick="anularAsiento('${a.id}')" style="border-color:var(--accent);color:var(--accent)" title="Anular (soft delete)"><span class="btn-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span></button>`:''}${a.estado==='borrador'||!a.estado?`<button class="btn btn-danger btn-sm" onclick="deleteAsiento('${a.id}')" title="Eliminar borrador"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button>`:''}</td></tr>`;
   }).join(''):`<tr><td colspan="10" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></svg></div><div class="empty-title">Sin asientos cargados</div><div class="empty-msg">Cargá el primer asiento manual con <b>+ Nuevo asiento</b>. Validamos automáticamente que Debe = Haber.</div></div></td></tr>`;
 }
 
@@ -13195,6 +13377,18 @@ function computeDivisionVenta(items,envios,totalCabecera){
   return {ok:errores.length===0,errores,detalle,totalEnviado,
           totalPendiente:Math.round((totCab-totalEnviado)*100)/100,
           unidadesEnviadas:nEnv,unidadesSaldo:nCant-nEnv};
+}
+// NC de ventas (migración 067): desglose neto/IVA desde un monto con
+// IVA incluido, con el mismo redondeo por paso (r2) que la Edge
+// Function, para que el total del CAE coincida con el previsto. Puro —
+// tests en tests/nota-credito.test.js.
+function computeNetoIvaDesdeTotal(total,ivaPct){
+  const r2=n=>Math.round(n*100)/100;
+  const t=r2(parseFloat(total)||0);
+  const pct=parseFloat(ivaPct)||0;
+  const neto=r2(t/(1+pct/100));
+  const iva=r2(neto*pct/100);
+  return{neto,iva,total:r2(neto+iva)};
 }
 // Pre-cálculo de un renglón de liquidación de sueldos (migración 065).
 // Defaults 2026: aportes 17% (SIPA 11 + PAMI 3 + OS 3), contribuciones

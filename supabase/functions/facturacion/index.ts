@@ -291,6 +291,13 @@ function qrUrl(p: {
 }
 
 // ── Solicitud de CAE ────────────────────────────────────────────────
+interface CbteAsoc {
+  tipo: number;
+  punto_venta: number;
+  numero: number;
+  fecha?: string; // yyyy-mm-dd del comprobante original
+}
+
 interface FacturaReq {
   punto_venta: number;
   tipo_comprobante: number;
@@ -302,6 +309,42 @@ interface FacturaReq {
   cotizacion_moneda?: number;
   condicion_iva_receptor_id?: number;
   items: Item[];
+  // NC/ND (tipos 2,3,7,8,12,13): comprobante(s) que corrige — ARCA exige
+  // el bloque CbtesAsoc (RG 4540)
+  comprobantes_asociados?: CbteAsoc[];
+  // Trazabilidad (migración 067): el ERP los manda para que la bitácora
+  // afip_eventos quede vinculada a la venta/empresa. No van a ARCA.
+  venta_id?: string;
+  empresa_id?: string;
+}
+
+// Bitácora afip_eventos (migración 067): toda solicitud de CAE queda
+// registrada con la respuesta SOAP cruda — aprobada o rechazada. Es la
+// prueba ante una fiscalización. Nunca bloquea la operación.
+async function logEvento(e: {
+  evento: "cae_aprobado" | "cae_rechazado" | "error";
+  req?: FacturaReq;
+  numero?: number;
+  detalle?: unknown;
+  raw?: string;
+}) {
+  try {
+    const { error } = await supabase.from("afip_eventos").insert({
+      empresa_id: e.req?.empresa_id ?? null,
+      venta_id: e.req?.venta_id ?? null,
+      evento: e.evento,
+      punto_venta: e.req?.punto_venta ?? null,
+      tipo_comprobante: e.req?.tipo_comprobante ?? null,
+      numero: e.numero ?? null,
+      request: e.req ?? null,
+      detalle: e.detalle ?? null,
+      raw_response: e.raw ?? null,
+      environment: AFIP_ENV,
+    });
+    if (error) console.error("afip_eventos insert:", error.message);
+  } catch (err) {
+    console.error("afip_eventos:", (err as Error).message);
+  }
 }
 
 async function solicitarCAE(req: FacturaReq) {
@@ -326,6 +369,26 @@ async function solicitarCAE(req: FacturaReq) {
     ).join("")
   }</ar:Iva>`;
 
+  // NC/ND: obligatorio referenciar el comprobante original (RG 4540).
+  // El Cuit del CbteAsoc es el del EMISOR del comprobante original —
+  // acá siempre nosotros, porque solo asociamos comprobantes propios.
+  const esNCND = [2, 3, 7, 8, 12, 13].includes(req.tipo_comprobante);
+  if (esNCND && !req.comprobantes_asociados?.length) {
+    throw new AfipError(
+      "Una NC/ND requiere comprobantes_asociados (el comprobante que corrige)",
+      400,
+    );
+  }
+  const asocXml = req.comprobantes_asociados?.length
+    ? `<ar:CbtesAsoc>${
+      req.comprobantes_asociados.map((a) =>
+        `<ar:CbteAsoc><ar:Tipo>${a.tipo}</ar:Tipo><ar:PtoVta>${a.punto_venta}</ar:PtoVta><ar:Nro>${a.numero}</ar:Nro><ar:Cuit>${AFIP_CUIT}</ar:Cuit>${
+          a.fecha ? `<ar:CbteFch>${a.fecha.replace(/-/g, "")}</ar:CbteFch>` : ""
+        }</ar:CbteAsoc>`
+      ).join("")
+    }</ar:CbtesAsoc>`
+    : "";
+
   // El orden de los elementos respeta la secuencia del WSDL de FECAEDetRequest
   const xml = await wsfeCall(
     "FECAESolicitar",
@@ -347,6 +410,7 @@ async function solicitarCAE(req: FacturaReq) {
         <ar:MonId>${xmlEsc(req.moneda ?? "PES")}</ar:MonId>
         <ar:MonCotiz>${req.cotizacion_moneda ?? 1}</ar:MonCotiz>
         <ar:CondicionIVAReceptorId>${condIva}</ar:CondicionIVAReceptorId>
+        ${asocXml}
         ${ivaXml}
       </ar:FECAEDetRequest></ar:FeDetReq>
     </ar:FeCAEReq>`,
@@ -356,15 +420,27 @@ async function solicitarCAE(req: FacturaReq) {
   const resultado = tag(xml, "Resultado") ?? "";
   const obs = codeMsgs(xml, "Obs").map((o) => `${o.code}: ${o.msg}`);
   if (!cae || resultado === "R") {
-    throw new AfipError({
+    const detail = {
       mensaje: "AFIP rechazó la solicitud de CAE",
       resultado,
       errores: codeMsgs(xml, "Err").filter((e) => e.code !== 39),
       observaciones: obs,
-    });
+    };
+    await logEvento({ evento: "cae_rechazado", req, numero: nro, detalle: detail, raw: xml });
+    const err = new AfipError(detail);
+    (err as unknown as { logged: boolean }).logged = true;
+    throw err;
   }
   const vto = tag(xml, "CAEFchVto") ?? ""; // yyyymmdd
   const caeVto = vto.length === 8 ? `${vto.slice(0, 4)}-${vto.slice(4, 6)}-${vto.slice(6, 8)}` : vto;
+
+  await logEvento({
+    evento: "cae_aprobado",
+    req,
+    numero: nro,
+    detalle: { cae, cae_vto: caeVto, resultado, observaciones: obs },
+    raw: xml,
+  });
 
   return {
     cae,
@@ -465,7 +541,20 @@ Deno.serve(async (req) => {
 
     if (path === "/facturar" && req.method === "POST") {
       const body = (await req.json()) as FacturaReq;
-      return json(await solicitarCAE(body));
+      try {
+        return json(await solicitarCAE(body));
+      } catch (err) {
+        // Los rechazos de ARCA ya se loguearon (con SOAP crudo) dentro
+        // de solicitarCAE; acá caen los errores previos (WSAA, red…).
+        if (!(err as { logged?: boolean }).logged) {
+          await logEvento({
+            evento: "error",
+            req: body,
+            detalle: err instanceof AfipError ? err.detail : { mensaje: (err as Error).message },
+          });
+        }
+        throw err;
+      }
     }
 
     return json({ detail: `Ruta no encontrada: ${req.method} ${path}` }, 404);
