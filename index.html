@@ -1123,7 +1123,7 @@ body.no-costos .solo-costos{display:none!important}
         </div>
         <div style="display:flex;gap:14px;align-items:end;margin-bottom:18px;flex-wrap:wrap;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:6px">
           <div class="form-group" style="margin:0;width:180px"><label>Método de pago</label><select id="cp-metodo"><option value="caja">Caja (efectivo)</option><option value="banco">Banco (transferencia)</option><option value="cheque">Cheque diferido</option></select></div>
-          <div class="form-group" style="margin:0;flex:1;min-width:180px"><label>Comprobante / Nº recibo</label><input type="text" id="cp-comprobante" placeholder="REC-001"></div>
+          <div class="form-group" style="margin:0;flex:1;min-width:180px"><label>Comprobante / Nº recibo</label><input type="text" id="cp-comprobante" placeholder="vacío = REC-#### automático"></div>
           <div class="form-group" style="margin:0;flex:2;min-width:200px"><label>Observaciones</label><input type="text" id="cp-obs" placeholder="Detalle adicional"></div>
           <button class="btn btn-primary" id="btn-save-cobpag" onclick="registrarCobroOPago()">Registrar</button>
         </div>
@@ -1552,6 +1552,23 @@ body.no-costos .solo-costos{display:none!important}
 </div>
 
 <!-- MODAL: Entrega parcial (divide la venta: parte enviada + saldo pendiente) -->
+<div class="modal-overlay" id="modal-pago-liq">
+  <div class="modal" style="width:460px">
+    <div class="modal-header"><div class="modal-title">Registrar pago <span id="pl-titulo" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="modal-close" onclick="closeModal('modal-pago-liq')">×</button></div>
+    <div class="modal-body">
+      <p id="pl-info" style="margin:0 0 12px 0;color:var(--text3);font-size:12px"></p>
+      <div class="form-row" style="grid-template-columns:130px 1fr">
+        <div class="form-group"><label>Fecha *</label><input type="date" id="pl-fecha"></div>
+        <div class="form-group"><label>Importe ARS *</label><input type="number" id="pl-monto" step="0.01" min="0"></div>
+      </div>
+      <div class="form-group"><label>Cuenta bancaria *</label><select id="pl-banco"></select></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-pago-liq')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-pl" onclick="savePagoLiquidacion()">Registrar pago</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="modal-nota-credito">
   <div class="modal" style="width:560px">
     <div class="modal-header"><div class="modal-title">Nota de crédito <span id="nc-factura-ref" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="modal-close" onclick="closeModal('modal-nota-credito')">×</button></div>
@@ -2947,6 +2964,96 @@ async function expIvaCompras(desde,hasta){
   return {nombre:`iva_compras_${desde}_a_${hasta}.csv`,contenido:csvArmar(filas),
           resumen:`IVA compras: ${fr.length} comprobantes · total ${csvNum(tot[17])}`};
 }
+// Libro Diario formal (obs. auditoría 068): todos los asientos
+// confirmados del período, cronológicos, con sus líneas — la base para
+// la transcripción al libro rubricado que lleva el estudio.
+async function expLibroDiario(desde,hasta){
+  const as=await GET('asientos',`?fecha=gte.${desde}&fecha=lte.${hasta}&estado=eq.confirmado&order=numero&select=id,numero,fecha,descripcion,comprobante_nro,tipo,moneda,tipo_cambio`);
+  const cuentas=await GET('cuentas_contables','?select=id,codigo,nombre&order=codigo');
+  const cm={};for(const c of cuentas)cm[c.id]=c;
+  let lineas=[];
+  for(let i=0;i<as.length;i+=80){
+    const ids=as.slice(i,i+80).map(a=>a.id).join(',');
+    lineas=lineas.concat(await GET('asiento_lineas',`?asiento_id=in.(${ids})&select=asiento_id,cuenta_id,debe,haber,descripcion,orden`));
+  }
+  const porAsiento={};lineas.forEach(l=>{(porAsiento[l.asiento_id]=porAsiento[l.asiento_id]||[]).push(l);});
+  const filas=[['Asiento N°','Fecha','Comprobante','Descripción','Cuenta','Nombre de cuenta','Detalle','Debe','Haber']];
+  let td=0,th=0;
+  for(const a of as){
+    const ls=(porAsiento[a.id]||[]).sort((x,y)=>(x.orden||0)-(y.orden||0));
+    ls.forEach((l,i)=>{
+      const c=cm[l.cuenta_id]||{codigo:'?',nombre:'(cuenta eliminada)'};
+      td+=Number(l.debe||0);th+=Number(l.haber||0);
+      filas.push([i===0?a.numero:'',i===0?csvFecha(a.fecha):'',i===0?(a.comprobante_nro||''):'',
+        i===0?(a.descripcion||''):'',c.codigo,c.nombre,l.descripcion||'',csvNum(l.debe),csvNum(l.haber)]);
+    });
+  }
+  filas.push(['','','','TOTALES','','','',csvNum(td),csvNum(th)]);
+  return {nombre:`libro_diario_${desde}_a_${hasta}.csv`,contenido:csvArmar(filas),
+          resumen:`Libro Diario: ${as.length} asientos · Debe ${csvNum(td)} = Haber ${csvNum(th)}`};
+}
+// ─── Libro IVA Digital RG 4597 (TXT de importación ARCA) ────────────
+// Ventas: desde facturas_emitidas (solo producción — homologación no
+// es legal). Compras: solo comprobantes que discriminan IVA (A/M);
+// B/C/X no generan crédito fiscal y se informan aparte en el resumen.
+async function _lidVentasData(desde,hasta){
+  const fe=await GET('facturas_emitidas',`?fecha=gte.${desde}&fecha=lte.${hasta}&afip_environment=eq.produccion&order=fecha,punto_venta,numero&select=fecha,tipo_comprobante,punto_venta,numero,doc_tipo,doc_nro,imp_neto,imp_iva,imp_total,ventas(cliente)`);
+  return fe.map(f=>({fecha:f.fecha,tipo:f.tipo_comprobante,pv:f.punto_venta,nro:f.numero,
+    docTipo:f.doc_tipo,docNro:f.doc_nro,denom:f.ventas?.cliente||'',
+    total:f.imp_total,noGravado:0,exento:0,moneda:'PES',tc:1,
+    alicuotas:[{pct:_ncIvaPct(f),neto:f.imp_neto,iva:f.imp_iva}]}));
+}
+const LID_TIPO_COMPRA={factura:{A:1,B:6,C:11,M:51},nota_debito:{A:2,B:7,C:12,M:52},nota_credito:{A:3,B:8,C:13,M:53}};
+async function _lidComprasData(desde,hasta){
+  const [fr,pm]=await Promise.all([
+    GET('facturas_recibidas',`?fecha_contable=gte.${desde}&fecha_contable=lte.${hasta}&order=fecha_contable,nro&select=id,fecha,fecha_contable,nro,tipo,letra,proveedor_id,neto,iva,total,no_gravado,exento`),
+    _proveedoresMap()]);
+  const ids=fr.map(f=>f.id);
+  let imps=[];
+  for(let i=0;i<ids.length;i+=80)
+    imps=imps.concat(await GET('factura_recibida_impuestos',`?factura_id=in.(${ids.slice(i,i+80).join(',')})&select=factura_id,tipo,alicuota,base,monto`));
+  const porFact={};imps.forEach(x=>{(porFact[x.factura_id]=porFact[x.factura_id]||[]).push(x);});
+  const data=[],excluidos=[];
+  for(const f of fr){
+    const tipoAfip=LID_TIPO_COMPRA[f.tipo||'factura']?.[f.letra||'A'];
+    if(!tipoAfip||!['A','M'].includes(f.letra||'A')){excluidos.push(`${f.letra||'?'} ${f.nro}`);continue;}
+    const p=pm[f.proveedor_id]||{};
+    const ls=porFact[f.id]||[];
+    const ivaLines=ls.filter(x=>x.tipo==='iva');
+    const percep=t=>ls.filter(x=>x.tipo===t).reduce((s,x)=>s+(parseFloat(x.monto)||0),0);
+    // Facturas históricas sin tax lines: alícuota implícita del total
+    const alicuotas=ivaLines.length?ivaLines.map(x=>({pct:x.alicuota,neto:x.base,iva:x.monto}))
+      :((parseFloat(f.iva)||0)>0?[{pct:_ncIvaPct({imp_neto:f.neto,imp_iva:f.iva}),neto:f.neto,iva:f.iva}]:[]);
+    const {pv,nro}=parseNroComprobante(f.nro);
+    data.push({fecha:f.fecha||f.fecha_contable,tipo:tipoAfip,pv,nro,docTipo:80,
+      docNro:(p.cuit||'').replace(/\D/g,''),denom:p.nombre||'',
+      total:f.total,noGravado:f.no_gravado,exento:f.exento,moneda:'PES',tc:1,
+      percepIva:percep('percepcion_iva'),percepNac:percep('percepcion_ganancias'),percepIibb:percep('percepcion_iibb'),
+      credFiscal:alicuotas.reduce((s,a)=>s+(parseFloat(a.iva)||0),0),
+      alicuotas});
+  }
+  return{data,excluidos};
+}
+async function expLidVentasCbte(d,h){
+  const data=await _lidVentasData(d,h);
+  return{nombre:`LID_VENTAS_CBTE_${d.slice(0,7)}.txt`,contenido:buildLidVentas(data).cbte,
+    resumen:`LID Ventas comprobantes: ${data.length} registros — importar en Libro IVA Digital (ARCA)`};
+}
+async function expLidVentasAlic(d,h){
+  const data=await _lidVentasData(d,h);
+  return{nombre:`LID_VENTAS_ALICUOTAS_${d.slice(0,7)}.txt`,contenido:buildLidVentas(data).alic,
+    resumen:`LID Ventas alícuotas: ${data.length} comprobantes`};
+}
+async function expLidComprasCbte(d,h){
+  const {data,excluidos}=await _lidComprasData(d,h);
+  return{nombre:`LID_COMPRAS_CBTE_${d.slice(0,7)}.txt`,contenido:buildLidCompras(data).cbte,
+    resumen:`LID Compras comprobantes: ${data.length} registros`+(excluidos.length?` · ${excluidos.length} sin crédito fiscal excluidos (${excluidos.slice(0,3).join(', ')}${excluidos.length>3?'…':''})`:'')};
+}
+async function expLidComprasAlic(d,h){
+  const {data}=await _lidComprasData(d,h);
+  return{nombre:`LID_COMPRAS_ALICUOTAS_${d.slice(0,7)}.txt`,contenido:buildLidCompras(data).alic,
+    resumen:`LID Compras alícuotas: ${data.length} comprobantes`};
+}
 async function expMayores(desde,hasta){
   const as=await GET('asientos',`?fecha=gte.${desde}&fecha=lte.${hasta}&estado=eq.confirmado&order=fecha,numero&select=id,numero,fecha,descripcion`);
   const cuentas=await GET('cuentas_contables','?select=id,codigo,nombre&order=codigo');
@@ -2991,7 +3098,12 @@ const EXPORT_BUILDERS=[
   {titulo:'IVA compras',fn:expIvaCompras},
   {titulo:'Posición IVA del mes',fn:expPosicionIva},
   {titulo:'Retenciones sufridas',fn:expRetenciones},
+  {titulo:'Libro Diario',fn:expLibroDiario},
   {titulo:'Mayores',fn:expMayores},
+  {titulo:'Libro IVA Digital — Ventas comprobantes (TXT ARCA)',fn:expLidVentasCbte},
+  {titulo:'Libro IVA Digital — Ventas alícuotas (TXT ARCA)',fn:expLidVentasAlic},
+  {titulo:'Libro IVA Digital — Compras comprobantes (TXT ARCA)',fn:expLidComprasCbte},
+  {titulo:'Libro IVA Digital — Compras alícuotas (TXT ARCA)',fn:expLidComprasAlic},
   {titulo:'Valuación de inventario',fn:(d,h)=>expValuacionInventario()},
   {titulo:'Plan de cuentas',fn:(d,h)=>expPlanCuentas()},
 ];
@@ -3043,7 +3155,7 @@ function renderExportables(){
   document.getElementById('exportables-lista').innerHTML=EXPORT_BUILDERS.map((b,i)=>
     `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid var(--border);border-radius:6px">
        <span style="font-size:13px;color:var(--text)">${esc(b.titulo)}</span>
-       <button class="btn btn-ghost btn-sm" onclick="exportarUno(${i})">Descargar CSV</button>
+       <button class="btn btn-ghost btn-sm" onclick="exportarUno(${i})">Descargar</button>
      </div>`).join('');
 }
 async function descargarCarpeta(){
@@ -4272,9 +4384,12 @@ function openEmpleado(id){
 }
 async function saveEmpleado(){
   if(!g('emp-nombre'))return notify('Completá el nombre','err');
+  // CUIL: mismo dígito verificador módulo 11 que el CUIT (obs. auditoría 068)
+  const cuilDigits=(g('emp-cuil')||'').replace(/\D/g,'');
+  if(cuilDigits&&!validarCuit(cuilDigits))return notify('CUIL inválido — revisá los 11 dígitos (falla el dígito verificador)','err');
   setBusy('btn-save-emp',true);
   try{
-    const data={legajo:g('emp-legajo')||null,nombre:g('emp-nombre'),cuil:g('emp-cuil')||null,
+    const data={legajo:g('emp-legajo')||null,nombre:g('emp-nombre'),cuil:cuilDigits||null,
       categoria:g('emp-categoria')||null,rama:g('emp-rama')||null,obra_social:g('emp-os')||null,
       centro:g('emp-centro'),modalidad:g('emp-modalidad'),fecha_ingreso:g('emp-ingreso')||null,
       operario_nombre:g('emp-operario')||null,observaciones:g('emp-obs')||null,
@@ -4479,29 +4594,60 @@ async function anularLiquidacion(id){
     renderAll();notify(l.estado==='confirmada'?'Liquidación reabierta como borrador (asiento anulado)':'Borrador eliminado');
   }catch(e){notify(msgError(e),'err');}
 }
-async function pagarLiquidacion(id,parte){
+// Pago de liquidación contra cuenta BANCARIA real (obs. auditoría: la
+// ley 2026 exige pago de sueldos por acreditación bancaria). El modal
+// pide fecha, importe y banco; la DB rechaza el doble pago (UNIQUE 068).
+let _pagoLiq=null;
+function pagarLiquidacion(id,parte){
   const l=liquidaciones.find(x=>x.id===id);if(!l||l.estado!=='confirmada')return;
   const cfg=configContable||{};
   const ctaPasivo=parte==='netos'?cfg.cta_sueldos_a_pagar:cfg.cta_cargas_a_pagar;
-  const ctaBanco=cfg.cta_banco_default;
-  if(!ctaPasivo||!ctaBanco)return notify('Faltan cuentas (banco / sueldos a pagar) en Configuración → Imputación contable','err');
+  if(!ctaPasivo)return notify('Faltan cuentas (sueldos/cargas a pagar) en Configuración → Imputación contable','err');
+  const bancos=cuentasBancarias.filter(cb=>cb.activa!==false&&cb.cuenta_contable_id&&cb.moneda!=='USD');
+  if(!bancos.length&&!cfg.cta_banco_default)
+    return notify('Cargá una cuenta bancaria (Contabilidad → Bancos, con cuenta contable vinculada) o la cuenta banco por defecto en Imputación contable','err');
   const sugerido=parte==='netos'?(parseFloat(l.neto)||0):((parseFloat(l.aportes)||0)+(parseFloat(l.contribuciones)||0)+(parseFloat(l.art)||0));
-  const raw=prompt(`Registrar pago de ${parte==='netos'?'NETOS (acreditación en cuentas sueldo)':'F.931 + ART'} — ${liqPeriodoFmt(l.periodo)}\n\nImporte ARS:`,String(sugerido.toFixed(2)));
-  if(raw===null)return;
-  const monto=parseFloat(String(raw).replace(',','.'));
+  _pagoLiq={id,parte,ctaPasivo};
+  document.getElementById('pl-titulo').textContent=`${parte==='netos'?'Netos':'F.931 + ART'} · ${liqPeriodoFmt(l.periodo)}`;
+  document.getElementById('pl-info').innerHTML=parte==='netos'
+    ?'Acreditación de los netos en las cuentas sueldo. La ley exige el pago por <b>transferencia bancaria</b> — elegí desde qué cuenta salió.'
+    :'Pago del F.931 (aportes + contribuciones) y la cuota de ART. Elegí desde qué cuenta bancaria salió.';
+  document.getElementById('pl-fecha').value=hoyLocal();
+  document.getElementById('pl-monto').value=sugerido.toFixed(2);
+  document.getElementById('pl-banco').innerHTML=
+    bancos.map(cb=>`<option value="${cb.id}">${esc(cb.nombre)}${cb.banco?' — '+esc(cb.banco):''}</option>`).join('')+
+    (cfg.cta_banco_default?`<option value="cfg">Cuenta banco por defecto (sin banco asociado)</option>`:'');
+  openModal('modal-pago-liq');
+}
+async function savePagoLiquidacion(){
+  const p=_pagoLiq;if(!p)return;
+  const l=liquidaciones.find(x=>x.id===p.id);if(!l)return;
+  const cfg=configContable||{};
+  const fecha=document.getElementById('pl-fecha').value||hoyLocal();
+  const monto=parseFloat(String(document.getElementById('pl-monto').value).replace(',','.'));
   if(!isFinite(monto)||monto<=0)return notify('Importe inválido','err');
-  const desc=`Pago ${parte==='netos'?'sueldos netos':'F.931 y ART'} ${liqPeriodoFmt(l.periodo)}`;
+  const sel=document.getElementById('pl-banco').value;
+  let ctaBanco=cfg.cta_banco_default,bancoLbl='';
+  if(sel&&sel!=='cfg'){
+    const cb=cuentasBancarias.find(x=>x.id===sel);
+    if(cb){ctaBanco=cb.cuenta_contable_id;bancoLbl=` vía ${cb.banco||cb.nombre}`;}
+  }
+  if(!ctaBanco)return notify('Sin cuenta banco configurada','err');
+  const desc=`Pago ${p.parte==='netos'?'sueldos netos':'F.931 y ART'} ${liqPeriodoFmt(l.periodo)}${bancoLbl}`;
+  setBusy('btn-save-pl',true);
   try{
     await RPC('crear_asiento',{p_cabecera:{
-      fecha:hoyLocal(),descripcion:desc,tipo:'auto-pago',estado:'confirmado',
-      origen_tipo:'liquidacion-pago-'+parte,origen_id:id,moneda:'ARS',tipo_cambio:1,tc_tipo:'oficial'},
+      fecha,descripcion:desc,tipo:'auto-pago',estado:'confirmado',
+      origen_tipo:'liquidacion-pago-'+p.parte,origen_id:p.id,moneda:'ARS',tipo_cambio:1,tc_tipo:'oficial'},
       p_lineas:[
-        {cuenta_id:ctaPasivo,debe:monto,haber:0,descripcion:desc,orden:0},
-        {cuenta_id:ctaBanco,debe:0,haber:monto,descripcion:'Banco',orden:1}],
+        {cuenta_id:p.ctaPasivo,debe:monto,haber:0,descripcion:desc,orden:0},
+        {cuenta_id:ctaBanco,debe:0,haber:monto,descripcion:'Banco'+bancoLbl,orden:1}],
       p_asiento_id:null});
     await reload('asientos','asiento_lineas');
+    _modalDirty['modal-pago-liq']=false;closeModal('modal-pago-liq',true);_pagoLiq=null;
     renderAll();notify(`✓ ${desc} — ${fmtARS(monto)}`);
-  }catch(e){notify(msgError(e),'err');}
+  }catch(e){notify(/uq_asientos_pago_liquidacion|duplicate key/i.test(e.message||'')?'Ese pago ya está registrado para esta liquidación (anulá el asiento anterior para corregirlo)':msgError(e),'err');}
+  finally{setBusy('btn-save-pl',false,'Registrar pago');}
 }
 
 function resetF(ids){ids.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});}
@@ -13389,6 +13535,60 @@ function computeNetoIvaDesdeTotal(total,ivaPct){
   const neto=r2(t/(1+pct/100));
   const iva=r2(neto*pct/100);
   return{neto,iva,total:r2(neto+iva)};
+}
+// ─── Libro IVA Digital RG 4597 — TXT de importación ARCA (068) ─────
+// Registros de ancho fijo (espejo del formato CITI RG 3685 que usa el
+// importador del Libro de IVA Digital): fechas AAAAMMDD, importes en
+// centavos sin separador (15 posiciones, siempre positivos — el signo
+// lo da el tipo de comprobante), texto padded con espacios. Puras —
+// tests en tests/libro-iva-digital.test.js.
+function lidInt(n,len){return String(Math.trunc(Math.abs(parseFloat(n)||0))).padStart(len,'0').slice(-len);}
+function lidNum(n,len=15){return String(Math.round(Math.abs(parseFloat(n)||0)*100)).padStart(len,'0').slice(-len);}
+function lidStr(s,len){return String(s??'').replace(/[\r\n]/g,' ').slice(0,len).padEnd(len,' ');}
+function lidFecha(f){return(String(f||'').slice(0,10).replace(/-/g,'')+'00000000').slice(0,8);}
+function lidTc(tc){return String(Math.round((parseFloat(tc)||1)*1e6)).padStart(10,'0').slice(-10);}
+function lidAlicId(pct){return({'0':3,'2.5':9,'5':8,'10.5':4,'21':5,'27':6})[String(parseFloat(pct)||0)]??5;}
+// "00004-00001234" → {pv:4, nro:1234}; texto sin formato → pv 0 + dígitos
+function parseNroComprobante(nro){
+  const m=String(nro||'').match(/^\s*(\d{1,5})\s*-\s*(\d{1,20})\s*$/);
+  if(m)return{pv:parseInt(m[1]),nro:parseInt(m[2])};
+  return{pv:0,nro:parseInt(String(nro||'').replace(/\D/g,''))||0};
+}
+// cbte ventas: {fecha,tipo,pv,nro,docTipo,docNro,denom,total,noGravado,
+//               exento,moneda,tc,alicuotas:[{pct,neto,iva}]}
+function buildLidVentas(cbtes){
+  const cbte=[],alic=[];
+  for(const c of cbtes||[]){
+    const alics=(c.alicuotas||[]).filter(a=>(parseFloat(a.neto)||0)>0.005||(parseFloat(a.iva)||0)>0.005);
+    const codOper=alics.length?'0':((parseFloat(c.exento)||0)>0?'E':'N');
+    cbte.push(
+      lidFecha(c.fecha)+lidInt(c.tipo,3)+lidInt(c.pv,5)+lidInt(c.nro,20)+lidInt(c.nro,20)+
+      lidInt(c.docTipo,2)+lidInt(c.docNro,20)+lidStr(c.denom,30)+
+      lidNum(c.total)+lidNum(c.noGravado)+lidNum(0)+lidNum(c.exento)+
+      lidNum(0)+lidNum(0)+lidNum(0)+lidNum(0)+
+      lidStr(c.moneda||'PES',3)+lidTc(c.tc)+String(Math.min(alics.length,9))+codOper+lidNum(0)+'00000000');
+    for(const a of alics)
+      alic.push(lidInt(c.tipo,3)+lidInt(c.pv,5)+lidInt(c.nro,20)+lidNum(a.neto)+lidInt(lidAlicId(a.pct),4)+lidNum(a.iva));
+  }
+  return{cbte:cbte.join('\r\n'),alic:alic.join('\r\n')};
+}
+// cbte compras: idem ventas + {percepIva,percepNac,percepIibb,credFiscal}
+function buildLidCompras(cbtes){
+  const cbte=[],alic=[];
+  for(const c of cbtes||[]){
+    const alics=(c.alicuotas||[]).filter(a=>(parseFloat(a.neto)||0)>0.005||(parseFloat(a.iva)||0)>0.005);
+    const codOper=alics.length?'0':((parseFloat(c.exento)||0)>0?'E':'N');
+    cbte.push(
+      lidFecha(c.fecha)+lidInt(c.tipo,3)+lidInt(c.pv,5)+lidInt(c.nro,20)+lidStr('',16)+
+      lidInt(c.docTipo??80,2)+lidInt(c.docNro,20)+lidStr(c.denom,30)+
+      lidNum(c.total)+lidNum(c.noGravado)+lidNum(c.exento)+
+      lidNum(c.percepIva)+lidNum(c.percepNac)+lidNum(c.percepIibb)+lidNum(0)+lidNum(0)+
+      lidStr(c.moneda||'PES',3)+lidTc(c.tc)+String(Math.min(alics.length,9))+codOper+
+      lidNum(c.credFiscal)+lidNum(0)+lidInt(0,11)+lidStr('',30)+lidNum(0));
+    for(const a of alics)
+      alic.push(lidInt(c.tipo,3)+lidInt(c.pv,5)+lidInt(c.nro,20)+lidInt(c.docTipo??80,2)+lidInt(c.docNro,20)+lidNum(a.neto)+lidInt(lidAlicId(a.pct),4)+lidNum(a.iva));
+  }
+  return{cbte:cbte.join('\r\n'),alic:alic.join('\r\n')};
 }
 // Pre-cálculo de un renglón de liquidación de sueldos (migración 065).
 // Defaults 2026: aportes 17% (SIPA 11 + PAMI 3 + OS 3), contribuciones
