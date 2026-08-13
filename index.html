@@ -616,7 +616,7 @@ body.no-costos .solo-costos{display:none!important}
       <div class="page-content">
         <div class="stats-bar" id="ventas-stats"></div>
         <div class="toolbar">
-          <div class="search-box"><input type="text" placeholder="Buscar por cliente, remito..." oninput="renderVentas(this.value)"></div><button class="btn btn-ghost" id="btn-fact-lote" onclick="facturarEntregadas()" style="border-color:var(--green);color:var(--green);display:none">Facturar entregadas</button><input type="date" id="ventasf-fdesde" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Desde" style="width:auto"><input type="date" id="ventasf-fhasta" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Hasta" style="width:auto">
+          <div class="search-box"><input type="text" placeholder="Buscar por cliente, remito..." oninput="renderVentas(this.value)"></div><button class="btn btn-ghost" id="btn-fact-lote" onclick="facturarEntregadas()" style="border-color:var(--green);color:var(--green);display:none">Facturar entregadas</button><button class="btn btn-ghost" onclick="openFacturaDirecta()" style="border-color:var(--teal);color:var(--teal)">+ Factura directa</button><button class="btn btn-ghost" onclick="openFacturasDirectas()">Ver facturas directas</button><input type="date" id="ventasf-fdesde" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Desde" style="width:auto"><input type="date" id="ventasf-fhasta" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Hasta" style="width:auto">
           <button class="btn btn-ghost" onclick="exportVentasCSV()" title="Exportar a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Nro. remito</th><th>Cliente</th><th>Fecha</th><th>Piezas</th><th>Total unid.</th><th>Importe</th><th>Estado</th><th></th></tr></thead><tbody id="ventas-tbody"></tbody></table></div>
@@ -1584,6 +1584,44 @@ body.no-costos .solo-costos{display:none!important}
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-nota-credito')">Cancelar</button>
       <button class="btn btn-primary" id="btn-save-nc" onclick="emitirNotaCredito()">Emitir NC (CAE)</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-factura-directa">
+  <div class="modal" style="width:680px">
+    <div class="modal-header"><div class="modal-title">Nueva factura directa <span style="color:var(--text3);font-weight:400;font-size:13px">(sin venta)</span></div><button class="modal-close" onclick="closeModal('modal-factura-directa')">×</button></div>
+    <div class="modal-body">
+      <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Emite una <b>factura electrónica con CAE</b> a AFIP sin registrar una venta (concepto: productos). NO se puede deshacer — después solo se revierte con Nota de Crédito.</p>
+      <div class="form-row" style="grid-template-columns:2fr 1fr">
+        <div class="form-group"><label>Cliente *</label><input type="text" id="fd-cliente" placeholder="Razón social" list="clientes-datalist" oninput="onFdClienteChange()"></div>
+        <div class="form-group"><label>CUIT</label><input type="text" id="fd-cuit" placeholder="—" readonly></div>
+      </div>
+      <div id="fd-cliente-info" style="font-size:11px;color:var(--text3);margin:-6px 0 10px 0;min-height:14px"></div>
+      <div class="form-row" style="grid-template-columns:1fr 2fr">
+        <div class="form-group"><label>Moneda</label><select id="fd-moneda" onchange="onFdMonedaChange()"><option value="ARS">Pesos (ARS)</option><option value="USD">Dólares (USD)</option></select></div>
+        <div class="form-group"><label>&nbsp;</label><div id="fd-tc-info" style="font-size:11px;padding:8px 0;color:var(--text3)">Importes en pesos</div></div>
+      </div>
+      <label style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Ítems — precio unitario NETO (sin IVA)</label>
+      <div id="fd-items-wrap" style="margin:6px 0"></div>
+      <button class="btn btn-ghost btn-sm" onclick="addFdItem()">+ Agregar ítem</button>
+      <div class="form-group" style="margin-top:12px"><label>Observaciones</label><input type="text" id="fd-obs" placeholder="Ej: factura preventiva" maxlength="120"></div>
+      <div id="fd-resumen" style="margin-top:8px;font-size:13px;text-align:right;color:var(--text2)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-factura-directa')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-emitir-fd" onclick="emitirFacturaDirecta()">Emitir factura (CAE)</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-facturas-directas">
+  <div class="modal" style="width:740px">
+    <div class="modal-header"><div class="modal-title">Facturas directas emitidas</div><button class="modal-close" onclick="closeModal('modal-facturas-directas')">×</button></div>
+    <div class="modal-body">
+      <p style="margin:0 0 10px 0;color:var(--text3);font-size:12px">Facturas emitidas sin venta asociada (con CAE de AFIP).</p>
+      <div id="fd-lista" style="font-size:12px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-facturas-directas')">Cerrar</button>
     </div>
   </div>
 </div>
@@ -4254,6 +4292,141 @@ async function facturarEntregadas(){
   notify(err?`${ok} facturadas · ${err} con error`:`✓ ${ok} facturadas`,err?'err':undefined);
 }
 
+// ─── FACTURA DIRECTA (sin venta) — UI + emisión ────────────────────
+let fdItems=[];
+function _fdIvaDefault(){return configContable?.iva_alicuota!=null?Math.round(Number(configContable.iva_alicuota)*10000)/100:21;}
+function openFacturaDirecta(){
+  fdItems=[{descripcion:'',cantidad:1,precio:0,ivaPct:_fdIvaDefault()}];
+  ['fd-cliente','fd-cuit','fd-obs'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('fd-cliente-info').textContent='';
+  document.getElementById('fd-moneda').value='ARS';
+  renderFdItems();onFdMonedaChange();
+  openModal('modal-factura-directa');
+}
+function onFdClienteChange(){
+  const nombre=document.getElementById('fd-cliente').value.trim();
+  const cli=resolverClienteVenta({cliente:nombre},clientes);
+  document.getElementById('fd-cuit').value=cli?.cuit||'';
+  const info=document.getElementById('fd-cliente-info');
+  if(!cli){info.textContent=nombre?'Cliente no encontrado en la lista.':'';return;}
+  const cuit=cuitParaFacturar({},cli);
+  const cbte=tipoComprobanteVentaAFIP(cli.condicion_fiscal||null,cuit.length===11);
+  info.textContent=cbte?`Condición: ${cli.condicion_fiscal||'—'} · saldrá Factura ${cbte.letra}`:`Definí la condición fiscal de "${cli.nombre}" en Clientes.`;
+}
+async function onFdMonedaChange(){
+  const info=document.getElementById('fd-tc-info');
+  if(document.getElementById('fd-moneda').value==='USD'){
+    info.textContent='Buscando cotización…';
+    await fetchCotizacion();
+    const tc=Number(cotizacion?.venta)||0;
+    info.textContent=tc?`Se convierte a pesos al TC $${tc} (BNA vendedor)`:'Sin cotización — reintentá en unos minutos';
+  } else info.textContent='Importes en pesos';
+  updateFdTotal();
+}
+function addFdItem(){fdItems.push({descripcion:'',cantidad:1,precio:0,ivaPct:_fdIvaDefault()});renderFdItems();}
+function removeFdItem(i){fdItems.splice(i,1);renderFdItems();}
+function fdItemChange(i,f,v){fdItems[i][f]=v;updateFdTotal();}
+function renderFdItems(){
+  const w=document.getElementById('fd-items-wrap');if(!w)return;
+  if(!fdItems.length){w.innerHTML=`<div style="text-align:center;padding:12px;color:var(--text3);font-size:12px">Agregá ítems con el botón de abajo</div>`;updateFdTotal();return;}
+  const cols='2fr 64px 92px 66px 92px 28px';
+  const inp='background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:4px 6px;color:var(--text);font-size:11px;width:100%';
+  const hdr=`<div style="display:grid;grid-template-columns:${cols};gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">
+    <div>Descripción</div><div style="text-align:right">Cant.</div><div style="text-align:right">Precio</div><div style="text-align:right">% IVA</div><div style="text-align:right">Subtotal</div><div></div></div>`;
+  w.innerHTML=hdr+fdItems.map((it,i)=>{
+    const sub=Math.round((Number(it.cantidad)||0)*(Number(it.precio)||0)*100)/100;
+    return `<div style="display:grid;grid-template-columns:${cols};gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+      <input type="text" value="${esc(it.descripcion)}" placeholder="Detalle del producto" oninput="fdItemChange(${i},'descripcion',this.value)" style="${inp}">
+      <input type="number" min="0" step="1" value="${it.cantidad}" onchange="fdItemChange(${i},'cantidad',+this.value)" style="${inp};text-align:right">
+      <input type="number" min="0" step="0.01" value="${it.precio||''}" placeholder="0.00" onchange="fdItemChange(${i},'precio',+this.value)" style="${inp};text-align:right;color:var(--coral)">
+      <input type="number" min="0" step="0.5" value="${it.ivaPct}" onchange="fdItemChange(${i},'ivaPct',+this.value)" style="${inp};text-align:right">
+      <div style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--text2)">${_numAR(sub)}</div>
+      <button class="btn btn-ghost btn-sm" onclick="removeFdItem(${i})" style="padding:2px 6px" title="Quitar">×</button>
+    </div>`;
+  }).join('');
+  updateFdTotal();
+}
+function _fdTc(){return document.getElementById('fd-moneda')?.value==='USD'?(Number(cotizacion?.venta)||1):1;}
+function updateFdTotal(){
+  const t=facturaDirectaTotales(facturaDirectaItems(fdItems,_fdTc()));
+  const usd=document.getElementById('fd-moneda')?.value==='USD';
+  const el=document.getElementById('fd-resumen');
+  if(el)el.innerHTML=`Neto <b class="mono">${fmtARS(t.neto)}</b> + IVA <b class="mono">${fmtARS(t.iva)}</b> = Total <b class="mono">${fmtARS(t.total)}</b>${usd?' <span style="color:var(--text3)">(pesos, al TC del día)</span>':''}`;
+}
+async function emitirFacturaDirecta(){
+  if(!currentSession?.access_token)return notify('Sesión vencida — volvé a loguearte','err');
+  const nombre=document.getElementById('fd-cliente').value.trim();
+  const cli=resolverClienteVenta({cliente:nombre},clientes);
+  if(!cli)return notify('Elegí un cliente de la lista','err');
+  const cuit=cuitParaFacturar({},cli);
+  const cbte=tipoComprobanteVentaAFIP(cli.condicion_fiscal||null,cuit.length===11);
+  if(!cbte)return notify(`Definí la condición fiscal de "${cli.nombre}" (Clientes → Editar)`,'err');
+  if(cbte.tipo===1&&cuit.length!==11)return notify('Para Factura A necesitás el CUIT del cliente cargado','err');
+  const moneda=document.getElementById('fd-moneda').value;
+  let tc=1;
+  if(moneda==='USD'){await fetchCotizacion();tc=Number(cotizacion?.venta)||0;if(!tc)return notify('Sin cotización del dólar — reintentá en unos minutos','err');}
+  const items=facturaDirectaItems(fdItems,tc);
+  if(!items.length)return notify('Cargá al menos un ítem con cantidad y precio','err');
+  const tot=facturaDirectaTotales(items);
+  if(!(tot.total>0))return notify('El total debe ser mayor a cero','err');
+  const docTipo=cuit.length===11?80:99,docNro=cuit.length===11?cuit:'0';
+  const COND_IVA_AFIP={RI:1,exento:4,consumidor_final:5,monotributo:6};
+  if(!confirm(`¿Emitir Factura ${cbte.letra} por ${fmtARS(tot.total)} a ${cli.nombre}?\n\nSolicita un CAE a AFIP. NO se puede deshacer (después solo Nota de Crédito).`))return;
+  const obsUser=(document.getElementById('fd-obs').value||'').trim();
+  const payload={
+    punto_venta:Number(configContable?.punto_venta)||1,
+    tipo_comprobante:cbte.tipo,concepto:1,
+    doc_tipo:docTipo,doc_nro:docNro,
+    fecha:hoyLocal(),moneda:'PES',cotizacion_moneda:1,
+    condicion_iva_receptor_id:COND_IVA_AFIP[cli.condicion_fiscal]||undefined,
+    items,venta_id:null,empresa_id:currentEmpresa.id,
+  };
+  const btn=document.getElementById('btn-emitir-fd');
+  if(btn){btn.disabled=true;btn.textContent='Solicitando CAE...';}
+  try{
+    const res=await fetch(`${BILLING_URL}/facturar`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${currentSession.access_token}`},body:JSON.stringify(payload)});
+    if(!res.ok){const eb=await res.json().catch(()=>({}));const d=eb.detail;throw new Error(typeof d==='string'?d:(d?.mensaje||JSON.stringify(d)||res.statusText));}
+    const data=await res.json();
+    const notas=[obsUser,moneda==='USD'?`Facturado en USD a TC $${tc}`:'',(data.observaciones&&data.observaciones.length)?data.observaciones.join('; '):''].filter(Boolean).join(' · ')||null;
+    const rows=await POST('facturas_emitidas',{
+      empresa_id:currentEmpresa.id,venta_id:null,
+      cae:data.cae,cae_vto:data.cae_vto,numero:data.numero,punto_venta:data.punto_venta,
+      tipo_comprobante:data.tipo_comprobante,fecha:data.fecha,
+      imp_neto:data.imp_neto,imp_iva:data.imp_iva,imp_total:data.imp_total,
+      moneda:'PES',cotizacion_moneda:1,doc_tipo:docTipo,doc_nro:docNro,
+      resultado:data.resultado,observaciones:notas,
+      qr_url:data.qr_url,afip_environment:data.afip_environment||'produccion',
+      created_by:currentUser?.id||null,
+    });
+    const fid=Array.isArray(rows)?rows[0]?.id:rows?.id;
+    if(fid)await generarAsientoFactura(fid,data,{cliente:cli.nombre}).catch(e=>console.warn('Asiento de factura directa no generado:',e));
+    await reload('asientos','asiento_lineas');
+    _modalDirty['modal-factura-directa']=false;closeModal('modal-factura-directa',true);fdItems=[];
+    notify(`✓ CAE ${data.cae} — Factura ${cbte.letra} ${String(data.punto_venta).padStart(5,'0')}-${String(data.numero).padStart(8,'0')}${moneda==='USD'?` · TC $${tc}`:''}`,'ok');
+  }catch(e){notify(`Error al facturar: ${e.message}`,'err');}
+  finally{const b=document.getElementById('btn-emitir-fd');if(b){b.disabled=false;b.textContent='Emitir factura (CAE)';}}
+}
+async function openFacturasDirectas(){
+  openModal('modal-facturas-directas');
+  const cont=document.getElementById('fd-lista');
+  cont.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3)">Cargando…</div>';
+  const fs=await GET('facturas_emitidas','?venta_id=is.null&order=fecha.desc,numero.desc&select=id,fecha,tipo_comprobante,punto_venta,numero,doc_nro,imp_total,cae').catch(()=>[]);
+  renderFacturasDirectas(fs);
+}
+function renderFacturasDirectas(fs){
+  const cont=document.getElementById('fd-lista');if(!cont)return;
+  if(!fs||!fs.length){cont.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3)">No hay facturas directas emitidas todavía.</div>';return;}
+  const tipoStr={1:'A',2:'NC-A',3:'ND-A',6:'B',7:'NC-B',8:'ND-B',11:'C',12:'NC-C',13:'ND-C',51:'M',52:'NC-M',53:'ND-M'};
+  const rows=fs.map(f=>`<tr style="border-bottom:1px solid var(--border)">
+    <td class="mono" style="padding:6px 4px">${esc(f.fecha)||'—'}</td>
+    <td class="mono" style="padding:6px 4px">${tipoStr[f.tipo_comprobante]||f.tipo_comprobante} ${String(f.punto_venta).padStart(5,'0')}-${String(f.numero).padStart(8,'0')}</td>
+    <td class="mono" style="padding:6px 4px">${esc(f.doc_nro)||'—'}</td>
+    <td class="mono" style="padding:6px 4px;text-align:right">${fmtARS(Number(f.imp_total)||0)}</td>
+    <td class="mono" style="padding:6px 4px;font-size:11px">${esc(f.cae)||'—'}</td>
+    <td style="padding:6px 4px"><button class="btn btn-ghost btn-sm" onclick="verFactura('${f.id}')">Ver CAE</button></td>
+  </tr>`).join('');
+  cont.innerHTML=`<table style="width:100%;border-collapse:collapse"><thead><tr style="font-size:9px;color:var(--text3);text-transform:uppercase;text-align:left"><th style="padding:4px">Fecha</th><th style="padding:4px">Comprobante</th><th style="padding:4px">Doc receptor</th><th style="padding:4px;text-align:right">Total</th><th style="padding:4px">CAE</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+}
 async function verFactura(facturaEmitidaId){
   const list=await GET('facturas_emitidas',`?id=eq.${facturaEmitidaId}&select=*`).catch(()=>[]);
   const f=list[0];
@@ -13641,6 +13814,29 @@ function buildItemsFactura(items,{tc,ivaPct,incluyenIva}){
     const neto=incluyenIva?ars/(1+ivaPct/100):ars;
     return {descripcion:(i.pieza||i.material||'Producto').toString().slice(0,200),cantidad:Number(i.cantidad)||0,precio_unit:Math.round(neto*100)/100,iva_pct:ivaPct};
   });
+}
+// ─── FACTURA DIRECTA (sin venta) ────────────────────────────────────
+// Ítems del payload desde las filas del formulario. El precio ingresado
+// es NETO en la moneda elegida; tc=1 si ARS, cotización si USD. Se filtran
+// filas incompletas (cantidad o precio ≤ 0). iva_pct por línea.
+function facturaDirectaItems(filas,tc){
+  const k=Number(tc)||1;
+  return (filas||[]).filter(f=>f&&(Number(f.cantidad)||0)>0&&(Number(f.precio)||0)>0).map(f=>({
+    descripcion:String(f.descripcion||'Producto').slice(0,200),
+    cantidad:Number(f.cantidad)||0,
+    precio_unit:Math.round((Number(f.precio)||0)*k*100)/100,
+    iva_pct:Number(f.ivaPct)>=0?Number(f.ivaPct):21,
+  }));
+}
+// Totales en vivo (los que se guardan son los que devuelve AFIP).
+function facturaDirectaTotales(items){
+  let neto=0,iva=0;
+  for(const i of (items||[])){
+    const ln=(Number(i.cantidad)||0)*(Number(i.precio_unit)||0);
+    neto+=ln;iva+=ln*(Number(i.iva_pct)||0)/100;
+  }
+  neto=Math.round(neto*100)/100;iva=Math.round(iva*100)/100;
+  return {neto,iva,total:Math.round((neto+iva)*100)/100};
 }
 function validarDesgloseFactura({letra,ivas=[],totalTipeado,totales}){
   const errores=[];
