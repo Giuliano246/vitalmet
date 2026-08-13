@@ -3876,7 +3876,7 @@ function updateVTotal(){
 
 function onVentaClienteChange(){
   const nombre=document.getElementById('v-cliente').value.trim();
-  const cliente=clientes.find(c=>c.nombre.toLowerCase()===nombre.toLowerCase());
+  const cliente=resolverClienteVenta({cliente:nombre},clientes);
   document.getElementById('v-cuit').value=cliente?.cuit||'';
   // Auto-select lista de precios del cliente si tiene
   if(cliente?.lista_precios_id){
@@ -4148,13 +4148,14 @@ async function emitirFactura(ventaId,skipConfirm){
   const venta=vList[0];
   if(!venta){notify('Venta no encontrada','err');return;}
   if(!(venta.venta_items||[]).length){notify('La venta no tiene items','err');return;}
-  // Doc: si hay CUIT (11 dígitos) → 80=CUIT; si no → 99=Consumidor Final
-  const cuit=(venta.cuit||venta.cuit_cliente||'').toString().replace(/\D/g,'');
-  // Letra según condición fiscal del cliente (RG 5003)
-  const cli=clientes.find(c=>c.id===venta.cliente_id)||clientes.find(c=>c.nombre===venta.cliente);
+  // Cliente por id o por nombre normalizado; el CUIT sale de la venta o,
+  // como plan B, del cliente en vivo (ver cuitParaFacturar). Doc: 11 dígitos
+  // → 80=CUIT; si no → 99=Consumidor Final. Letra por cond. fiscal (RG 5003).
+  const cli=resolverClienteVenta(venta,clientes);
+  const cuit=cuitParaFacturar(venta,cli);
   const cbte=tipoComprobanteVentaAFIP(cli?.condicion_fiscal||null,cuit.length===11);
   if(!cbte){notify(`Definí la condición fiscal de "${venta.cliente}" (Clientes → Editar) antes de facturar`,'err');return;}
-  if(cbte.tipo===1&&cuit.length!==11){notify('Factura A requiere el CUIT del cliente en la venta','err');return;}
+  if(cbte.tipo===1&&cuit.length!==11){notify('Para Factura A necesitás el CUIT del cliente cargado (en la venta o en la ficha del cliente)','err');return;}
   // La venta está en USD: se factura en pesos al TC vendedor BNA del día
   await fetchCotizacion();
   const tc=Number(cotizacion?.venta)||0;
@@ -13611,6 +13612,22 @@ function sugerirLetra(condicionFiscal){
 // RG 5003: RI y monotributistas reciben Factura A; exentos y consumidor
 // final reciben B. Con CUIT pero sin condición definida → null (hay que
 // cargar el dato antes de facturar); sin CUIT → B a consumidor final.
+// Cliente de una venta: por cliente_id si existe, si no por nombre
+// normalizado (trim + case-insensitive). El nombre guardado puede tener
+// espacios o mayúsculas distintas de lo tipeado, así que no se compara crudo.
+function resolverClienteVenta(venta,clientes){
+  if(!venta)return undefined;
+  const norm=s=>String(s||'').trim().toLowerCase();
+  return (clientes||[]).find(c=>venta.cliente_id&&c.id===venta.cliente_id)
+      || (clientes||[]).find(c=>norm(c.nombre)===norm(venta.cliente));
+}
+// CUIT (solo dígitos) para facturar. Plan B: si la venta no capturó el
+// CUIT (foto vieja o match de nombre fallido al cargarla), se usa el del
+// cliente en vivo — el CUIT del receptor no cambia de una venta a otra.
+function cuitParaFacturar(venta,cli){
+  const raw=(venta&&(venta.cuit||venta.cuit_cliente))||(cli&&cli.cuit)||'';
+  return String(raw).replace(/\D/g,'');
+}
 function tipoComprobanteVentaAFIP(condicionFiscal,tieneCuit){
   if(condicionFiscal==='RI'||condicionFiscal==='monotributo')return {tipo:1,letra:'A'};
   if(condicionFiscal==='exento'||condicionFiscal==='consumidor_final')return {tipo:6,letra:'B'};
