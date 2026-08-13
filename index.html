@@ -2813,6 +2813,90 @@ function descargarBytes(nombre,bytes,mime){
   setTimeout(()=>URL.revokeObjectURL(a.href),5000);
 }
 function descargarTexto(nombre,texto){descargarBytes(nombre,new TextEncoder().encode(texto),'text/csv;charset=utf-8');}
+// ─── Generador .xlsx en JS puro (reusa zipStore; cero dependencias) ──
+// Un .xlsx es un ZIP de XML. hojas=[{nombre, filas, cols?}]. Cada celda:
+// primitivo (string/number) o {v, t:'s'|'n', s:'<estilo>'}. Estilos:
+// header · money · moneyTotal · textBold · textTotal (índices en styles.xml).
+const XLSX_MIME='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const XLSX_STYLE={header:1,money:2,moneyTotal:3,textBold:4,textTotal:5};
+function xlsxCol(n){let s='';n++;while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26);}return s;}
+function xlsxTxt(v){return esc(String(v).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,""));}
+function xlsxCelda(ref,c){
+  if(c===null||c===undefined||c==='')return'';
+  let v,t,s;
+  if(typeof c==='object'){v=c.v;t=c.t||(typeof v==='number'?'n':'s');s=c.s;}
+  else{v=c;t=typeof c==='number'?'n':'s';}
+  const sa=s!==undefined?` s="${XLSX_STYLE[s]??0}"`:'';
+  if(t==='n'){const num=Number(v);if(isFinite(num))return `<c r="${ref}"${sa}><v>${num}</v></c>`;t='s';}
+  return `<c r="${ref}"${sa} t="inlineStr"><is><t xml:space="preserve">${xlsxTxt(v)}</t></is></c>`;
+}
+function xlsxHoja(filas,cols){
+  let cuerpo='';
+  filas.forEach((fila,ri)=>{
+    let celdas='';
+    fila.forEach((c,ci)=>{celdas+=xlsxCelda(xlsxCol(ci)+(ri+1),c);});
+    cuerpo+=`<row r="${ri+1}">${celdas}</row>`;
+  });
+  const colsXml=cols&&cols.length
+    ?`<cols>${cols.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols>`:'';
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`+
+    `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">`+
+    `<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`+
+    `<sheetFormatPr defaultRowHeight="15"/>${colsXml}<sheetData>${cuerpo}</sheetData></worksheet>`;
+}
+function xlsxStyles(){
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`+
+    `<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">`+
+    `<numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0.00"/></numFmts>`+
+    `<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>`+
+    `<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>`+
+    `<fill><patternFill patternType="solid"><fgColor rgb="FFD9E1F2"/><bgColor indexed="64"/></patternFill></fill></fills>`+
+    `<borders count="3"><border><left/><right/><top/><bottom/><diagonal/></border>`+
+    `<border><left style="thin"><color rgb="FFB0B0B0"/></left><right style="thin"><color rgb="FFB0B0B0"/></right><top style="thin"><color rgb="FFB0B0B0"/></top><bottom style="thin"><color rgb="FFB0B0B0"/></bottom><diagonal/></border>`+
+    `<border><left/><right/><top style="thin"><color rgb="FF000000"/></top><bottom/><diagonal/></border></borders>`+
+    `<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>`+
+    `<cellXfs count="6">`+
+    `<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>`+
+    `<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>`+
+    `<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>`+
+    `<xf numFmtId="164" fontId="1" fillId="0" borderId="2" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1"/>`+
+    `<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>`+
+    `<xf numFmtId="0" fontId="1" fillId="0" borderId="2" xfId="0" applyFont="1" applyBorder="1"/>`+
+    `</cellXfs>`+
+    `<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+}
+function xlsxBuild(hojas){
+  const nombre=n=>String(n||'Hoja').replace(/[\\/?*\[\]:]/g,' ').slice(0,31);
+  const sheets=hojas.map((h,i)=>({idx:i+1,nombre:nombre(h.nombre),xml:xlsxHoja(h.filas||[],h.cols)}));
+  const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`+
+    `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">`+
+    `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>`+
+    `<Default Extension="xml" ContentType="application/xml"/>`+
+    `<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>`+
+    `<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>`+
+    sheets.map(s=>`<Override PartName="/xl/worksheets/sheet${s.idx}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')+
+    `</Types>`;
+  const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`+
+    `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">`+
+    `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+  const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`+
+    `<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>`+
+    sheets.map(s=>`<sheet name="${xlsxTxt(s.nombre)}" sheetId="${s.idx}" r:id="rId${s.idx}"/>`).join('')+
+    `</sheets></workbook>`;
+  const wbRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`+
+    `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">`+
+    sheets.map(s=>`<Relationship Id="rId${s.idx}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${s.idx}.xml"/>`).join('')+
+    `<Relationship Id="rId${sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+  const archivos=[
+    {nombre:'[Content_Types].xml',contenido:ct},
+    {nombre:'_rels/.rels',contenido:rels},
+    {nombre:'xl/workbook.xml',contenido:wb},
+    {nombre:'xl/_rels/workbook.xml.rels',contenido:wbRels},
+    {nombre:'xl/styles.xml',contenido:xlsxStyles()},
+    ...sheets.map(s=>({nombre:`xl/worksheets/sheet${s.idx}.xml`,contenido:s.xml})),
+  ];
+  return zipStore(archivos);
+}
 
 // ─── Exportables del período (contador y admin) ───
 async function expSubdiarioVentas(desde,hasta){
@@ -3054,6 +3138,66 @@ async function expLidComprasAlic(d,h){
   return{nombre:`LID_COMPRAS_ALICUOTAS_${d.slice(0,7)}.txt`,contenido:buildLidCompras(data).alic,
     resumen:`LID Compras alícuotas: ${data.length} comprobantes`};
 }
+// ─── Libro IVA Digital en Excel — espejo legible del TXT ARCA ────────
+// Puro y testeable: recibe los MISMOS arrays que alimentan el TXT
+// (_lidVentasData / _lidComprasData) y arma las 3 hojas del workbook.
+// NC/ND van con signo (convención de expIvaVentas) para que los TOTALES
+// sean el neto real y cuadren con la posición de IVA.
+function libroIvaExcelHojas(ventas,compras,excluidos){
+  const H=s=>({v:s,s:'header'});
+  const M=n=>({v:Math.round((Number(n)||0)*100)/100,t:'n',s:'money'});
+  const MT=n=>({v:Math.round((Number(n)||0)*100)/100,t:'n',s:'moneyTotal'});
+  const TT=s=>({v:s,s:'textTotal'});
+  const TB=s=>({v:s,s:'textBold'});
+  const sumA=(c,k)=>(c.alicuotas||[]).reduce((s,a)=>s+(parseFloat(a[k])||0),0);
+  const cbteRef=(pv,nro)=>`${String(pv||0).padStart(5,'0')}-${String(nro||0).padStart(8,'0')}`;
+  const pctDe=c=>{const a=c.alicuotas||[];return a.length===1?(parseFloat(a[0].pct)||0):(a.length?'varias':'');};
+  // Ventas
+  const vFilas=[[H('Fecha'),H('Tipo'),H('Comprobante'),H('Cliente'),H('Doc receptor'),H('Neto'),H('IVA'),H('Alíc. %'),H('Total')]];
+  let vN=0,vI=0,vT=0;
+  for(const c of ventas){
+    const inf=cbteAfipInfo(c.tipo),sg=inf.signo;
+    const neto=sg*sumA(c,'neto'),iva=sg*sumA(c,'iva'),tot=sg*(Number(c.total)||0);
+    vN+=neto;vI+=iva;vT+=tot;
+    vFilas.push([csvFecha(c.fecha),inf.label,cbteRef(c.pv,c.nro),c.denom||'',c.docNro||'',M(neto),M(iva),pctDe(c),M(tot)]);
+  }
+  vFilas.push([TT(''),TT(''),TT(''),TT(''),TT('TOTALES'),MT(vN),MT(vI),TT(''),MT(vT)]);
+  // Compras
+  const cFilas=[[H('Fecha'),H('Tipo'),H('Comprobante'),H('Proveedor'),H('CUIT'),H('Neto'),H('IVA'),H('Alíc. %'),H('Percep. IVA'),H('Percep. IIBB'),H('Percep. Gcias'),H('Crédito fiscal'),H('Total')]];
+  let cN=0,cI=0,cPiva=0,cPiibb=0,cPgan=0,cCF=0,cT=0;
+  for(const c of compras){
+    const inf=cbteAfipInfo(c.tipo),sg=inf.signo;
+    const neto=sg*sumA(c,'neto'),iva=sg*sumA(c,'iva'),cf=sg*(Number(c.credFiscal)||0);
+    const piva=sg*(Number(c.percepIva)||0),piibb=sg*(Number(c.percepIibb)||0),pgan=sg*(Number(c.percepNac)||0),tot=sg*(Number(c.total)||0);
+    cN+=neto;cI+=iva;cPiva+=piva;cPiibb+=piibb;cPgan+=pgan;cCF+=cf;cT+=tot;
+    cFilas.push([csvFecha(c.fecha),inf.label,cbteRef(c.pv,c.nro),c.denom||'',c.docNro||'',M(neto),M(iva),pctDe(c),M(piva),M(piibb),M(pgan),M(cf),M(tot)]);
+  }
+  cFilas.push([TT(''),TT(''),TT(''),TT(''),TT('TOTALES'),MT(cN),MT(cI),TT(''),MT(cPiva),MT(cPiibb),MT(cPgan),MT(cCF),MT(cT)]);
+  if(excluidos&&excluidos.length)
+    cFilas.push([{v:`Excluidos (B/C sin crédito fiscal, informados aparte): ${excluidos.join(', ')}`,s:'textBold'}]);
+  // Resumen / Posición IVA (calculada de los mismos datos)
+  const df=vI,cf=cCF,tecnico=df-cf,saldo=tecnico-cPiva;
+  const rFilas=[
+    [H('Concepto'),H('Monto')],
+    ['Débito fiscal (ventas)',M(df)],
+    ['Crédito fiscal (compras)',M(cf)],
+    [TB('Saldo técnico (DF − CF)'),MT(tecnico)],
+    ['Percepciones de IVA sufridas',M(cPiva)],
+    [TB(saldo>=0?'SALDO A PAGAR':'SALDO A FAVOR'),MT(Math.abs(saldo))],
+  ];
+  return [
+    {nombre:'Ventas',filas:vFilas,cols:[12,8,18,34,16,15,15,9,15]},
+    {nombre:'Compras',filas:cFilas,cols:[12,8,18,34,14,14,14,9,13,13,13,15,15]},
+    {nombre:'Resumen',filas:rFilas,cols:[34,18]},
+  ];
+}
+async function expLibroIvaExcel(d,h){
+  const [ventas,comprasRes]=await Promise.all([_lidVentasData(d,h),_lidComprasData(d,h)]);
+  const {data:compras,excluidos}=comprasRes;
+  const bytes=xlsxBuild(libroIvaExcelHojas(ventas,compras,excluidos));
+  return{nombre:`Libro_IVA_Digital_${d.slice(0,7)}.xlsx`,bytes,mime:XLSX_MIME,
+    resumen:`Libro IVA Digital (Excel): ${ventas.length} ventas · ${compras.length} compras — revisar antes de importar a ARCA`};
+}
 async function expMayores(desde,hasta){
   const as=await GET('asientos',`?fecha=gte.${desde}&fecha=lte.${hasta}&estado=eq.confirmado&order=fecha,numero&select=id,numero,fecha,descripcion`);
   const cuentas=await GET('cuentas_contables','?select=id,codigo,nombre&order=codigo');
@@ -3104,6 +3248,7 @@ const EXPORT_BUILDERS=[
   {titulo:'Libro IVA Digital — Ventas alícuotas (TXT ARCA)',fn:expLidVentasAlic},
   {titulo:'Libro IVA Digital — Compras comprobantes (TXT ARCA)',fn:expLidComprasCbte},
   {titulo:'Libro IVA Digital — Compras alícuotas (TXT ARCA)',fn:expLidComprasAlic},
+  {titulo:'Libro IVA Digital — Excel para revisar (XLSX)',fn:expLibroIvaExcel},
   {titulo:'Valuación de inventario',fn:(d,h)=>expValuacionInventario()},
   {titulo:'Plan de cuentas',fn:(d,h)=>expPlanCuentas()},
 ];
@@ -3141,7 +3286,8 @@ async function exportarUno(idx){
   try{
     btns.forEach(b=>b.disabled=true);
     const res=await EXPORT_BUILDERS[idx].fn(r.desde,r.hasta);
-    descargarTexto(res.nombre,res.contenido);
+    if(res.bytes)descargarBytes(res.nombre,res.bytes,res.mime);
+    else descargarTexto(res.nombre,res.contenido);
     notify(res.resumen,'ok');
   }catch(e){notify('Error al exportar: '+e.message,'err');}
   finally{btns.forEach(b=>b.disabled=false);}
@@ -3168,7 +3314,7 @@ async function descargarCarpeta(){
     const archivos=[];const resumenes=[];
     for(const b of EXPORT_BUILDERS){
       const res=await b.fn(r.desde,r.hasta);
-      archivos.push({nombre:res.nombre,contenido:res.contenido});
+      archivos.push({nombre:res.nombre,contenido:res.bytes||res.contenido});
       resumenes.push(res.resumen);
     }
     const gen=new Date();
