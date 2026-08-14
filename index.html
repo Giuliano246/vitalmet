@@ -4500,11 +4500,13 @@ async function generarAsientoFactura(facturaEmitidaId,factura,venta){
   const existingArr=await GET('asientos',`?origen_tipo=eq.factura&origen_id=eq.${facturaEmitidaId}`).catch(()=>[]);
   const existing=existingArr&&existingArr[0];
   // Moneda del asiento: factura.moneda (PES o DOL). Si DOL se carga el TC real.
-  let moneda='ARS',tipoCambio=1,tcTipo='oficial';
+  // tc_tipo: null para ARS, 'venta' para USD (una venta se convierte al TC
+  // vendedor). 'oficial' NO es un valor válido del constraint asientos_tc_tipo_check.
+  let moneda='ARS',tipoCambio=1,tcTipo=null;
   if(factura.moneda==='DOL'){
-    moneda='USD';tipoCambio=Number(factura.cotizacion_moneda)||1;tcTipo='oficial';
+    moneda='USD';tipoCambio=Number(factura.cotizacion_moneda)||1;tcTipo='venta';
   } else if(factura.moneda==='PES'){
-    moneda='ARS';tipoCambio=1;
+    moneda='ARS';tipoCambio=1;tcTipo=null;
   }
   const cabecera={
     fecha:factura.fecha||hoyLocal(),
@@ -4673,7 +4675,7 @@ async function generarAsientoNC(ncId,nc,venta,motivo){
     estado:'confirmado',
     moneda:'ARS',
     tipo_cambio:tc||1,
-    tc_tipo:'oficial',
+    tc_tipo:null, // ARS → null ('oficial' no lo acepta asientos_tc_tipo_check)
     cliente_id:venta?.cliente_id||null,
   };
   const lineas=[
@@ -4996,7 +4998,7 @@ async function savePagoLiquidacion(){
   try{
     await RPC('crear_asiento',{p_cabecera:{
       fecha,descripcion:desc,tipo:'auto-pago',estado:'confirmado',
-      origen_tipo:'liquidacion-pago-'+p.parte,origen_id:p.id,moneda:'ARS',tipo_cambio:1,tc_tipo:'oficial'},
+      origen_tipo:'liquidacion-pago-'+p.parte,origen_id:p.id,moneda:'ARS',tipo_cambio:1,tc_tipo:null},
       p_lineas:[
         {cuenta_id:p.ctaPasivo,debe:monto,haber:0,descripcion:desc,orden:0},
         {cuenta_id:ctaBanco,debe:0,haber:monto,descripcion:'Banco'+bancoLbl,orden:1}],
