@@ -616,7 +616,7 @@ body.no-costos .solo-costos{display:none!important}
       <div class="page-content">
         <div class="stats-bar" id="ventas-stats"></div>
         <div class="toolbar">
-          <div class="search-box"><input type="text" placeholder="Buscar por cliente, remito..." oninput="renderVentas(this.value)"></div><button class="btn btn-ghost" id="btn-fact-lote" onclick="facturarEntregadas()" style="border-color:var(--green);color:var(--green);display:none">Facturar entregadas</button><button class="btn btn-ghost" onclick="openFacturaDirecta()" style="border-color:var(--teal);color:var(--teal)">+ Factura directa</button><button class="btn btn-ghost" onclick="openFacturasDirectas()">Ver facturas directas</button><input type="date" id="ventasf-fdesde" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Desde" style="width:auto"><input type="date" id="ventasf-fhasta" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Hasta" style="width:auto">
+          <div class="search-box"><input type="text" placeholder="Buscar por cliente, remito..." oninput="renderVentas(this.value)"></div><button class="btn btn-ghost" id="btn-fact-lote" onclick="facturarEntregadas()" style="border-color:var(--green);color:var(--green);display:none">Facturar entregadas</button><button class="btn btn-ghost" onclick="openFacturaDirecta()" style="border-color:var(--teal);color:var(--teal)">+ Factura directa</button><button class="btn btn-ghost" onclick="openFacturasDirectas()">Ver facturas directas</button><button class="btn btn-ghost" id="btn-regen-asientos" onclick="regenerarAsientosFaltantes()" style="border-color:var(--amber,#d99a2b);color:var(--amber,#d99a2b)" title="Genera el asiento contable de las facturas y NC con CAE que no lo tengan (backfill)">Regenerar asientos</button><input type="date" id="ventasf-fdesde" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Desde" style="width:auto"><input type="date" id="ventasf-fhasta" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Hasta" style="width:auto">
           <button class="btn btn-ghost" onclick="exportVentasCSV()" title="Exportar a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Nro. remito</th><th>Cliente</th><th>Fecha</th><th>Piezas</th><th>Total unid.</th><th>Importe</th><th>Estado</th><th></th></tr></thead><tbody id="ventas-tbody"></tbody></table></div>
@@ -4263,7 +4263,7 @@ async function emitirFactura(ventaId,skipConfirm){
     if(facturaEmitidaId){
       await PATCH('ventas',{factura_emitida_id:facturaEmitidaId,estado:'facturado'},`?id=eq.${ventaId}`);
       // Asiento contable automático con los datos reales del CAE (no bloquea si falla)
-      await generarAsientoFactura(facturaEmitidaId,data,venta).catch(e=>console.warn('Asiento de factura no generado:',e));
+      await generarAsientoFactura(facturaEmitidaId,data,venta).catch(e=>{console.warn('Asiento de factura no generado:',e);notify(`⚠ La factura tiene CAE pero NO se generó el asiento contable: ${e.message}. Usá "Regenerar asientos" para reintentar.`,'err');});
     }
     await reload('ventas','asientos','asiento_lineas');renderVentas(document.querySelector('#page-ventas .search-box input')?.value||'');
     notify(`✓ CAE ${data.cae} — Factura ${cbte.letra} ${String(data.punto_venta).padStart(5,'0')}-${String(data.numero).padStart(8,'0')} · TC $${tc}`,'ok');
@@ -4399,7 +4399,7 @@ async function emitirFacturaDirecta(){
       created_by:currentUser?.id||null,
     });
     const fid=Array.isArray(rows)?rows[0]?.id:rows?.id;
-    if(fid)await generarAsientoFactura(fid,data,{cliente:cli.nombre}).catch(e=>console.warn('Asiento de factura directa no generado:',e));
+    if(fid)await generarAsientoFactura(fid,data,{cliente:cli.nombre}).catch(e=>{console.warn('Asiento de factura directa no generado:',e);notify(`⚠ La factura tiene CAE pero NO se generó el asiento contable: ${e.message}. Usá "Regenerar asientos" para reintentar.`,'err');});
     await reload('asientos','asiento_lineas');
     _modalDirty['modal-factura-directa']=false;closeModal('modal-factura-directa',true);fdItems=[];
     notify(`✓ CAE ${data.cae} — Factura ${cbte.letra} ${String(data.punto_venta).padStart(5,'0')}-${String(data.numero).padStart(8,'0')}${moneda==='USD'?` · TC $${tc}`:''}`,'ok');
@@ -4427,6 +4427,40 @@ function renderFacturasDirectas(fs){
   </tr>`).join('');
   cont.innerHTML=`<table style="width:100%;border-collapse:collapse"><thead><tr style="font-size:9px;color:var(--text3);text-transform:uppercase;text-align:left"><th style="padding:4px">Fecha</th><th style="padding:4px">Comprobante</th><th style="padding:4px">Doc receptor</th><th style="padding:4px;text-align:right">Total</th><th style="padding:4px">CAE</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
 }
+// Backfill: genera el asiento de las facturas/NC con CAE que no lo tengan,
+// y muestra el motivo exacto si alguna falla (diagnóstico + arreglo).
+async function regenerarAsientosFaltantes(){
+  if(!currentEmpresa){notify('Sin empresa activa','err');return;}
+  if(!confirm('Busca facturas y notas de crédito con CAE que NO tengan asiento contable y los genera. No toca AFIP. ¿Continuar?'))return;
+  const btn=document.getElementById('btn-regen-asientos');
+  if(btn){btn.disabled=true;btn.textContent='Revisando...';}
+  try{
+    const fs=await GET('facturas_emitidas','?order=fecha.asc,numero.asc&select=id,venta_id,factura_asociada_id,tipo_comprobante,punto_venta,numero,fecha,doc_nro,imp_neto,imp_iva,imp_total,moneda,cotizacion_moneda,cae');
+    const as=await GET('asientos','?origen_tipo=in.(factura,nota-credito)&select=origen_id');
+    const conAsiento=new Set((as||[]).map(a=>a.origen_id));
+    const NC_TIPOS=new Set([3,8,13,53]);
+    const faltan=(fs||[]).filter(f=>f.cae&&!conAsiento.has(f.id));
+    if(!faltan.length){notify('Todas las facturas con CAE ya tienen su asiento ✓','ok');return;}
+    let ok=0;const errores=[];
+    for(const f of faltan){
+      const fmt=`${String(f.punto_venta).padStart(5,'0')}-${String(f.numero).padStart(8,'0')}`;
+      try{
+        let venta=null;
+        if(f.venta_id){const vl=await GET('ventas',`?id=eq.${f.venta_id}&select=id,cliente,cliente_id`).catch(()=>[]);venta=vl&&vl[0]||null;}
+        if(!venta){const c=clientes.find(x=>(x.cuit||'').replace(/\D/g,'')===String(f.doc_nro||'').replace(/\D/g,''));venta={cliente:c?.nombre||'cliente',cliente_id:c?.id||null};}
+        if(NC_TIPOS.has(f.tipo_comprobante))await generarAsientoNC(f.id,f,venta,'');
+        else await generarAsientoFactura(f.id,f,venta);
+        ok++;
+      }catch(e){errores.push(`${fmt}: ${e.message}`);}
+    }
+    await reload('asientos','asiento_lineas');renderAll();
+    if(errores.length){
+      notify(`${ok} asiento(s) generado(s) · ${errores.length} con error`,'err');
+      alert('No se pudieron generar estos asientos:\n\n'+errores.join('\n\n')+'\n\nCorregí el motivo (normalmente la Imputación contable) y volvé a apretar "Regenerar asientos".');
+    } else notify(`✓ ${ok} asiento(s) contable(s) generado(s)`,'ok');
+  }catch(e){notify('Error al regenerar asientos: '+e.message,'err');}
+  finally{const b=document.getElementById('btn-regen-asientos');if(b){b.disabled=false;b.textContent='Regenerar asientos';}}
+}
 async function verFactura(facturaEmitidaId){
   const list=await GET('facturas_emitidas',`?id=eq.${facturaEmitidaId}&select=*`).catch(()=>[]);
   const f=list[0];
@@ -4445,15 +4479,18 @@ async function verFactura(facturaEmitidaId){
 // no los calculados por el ERP. Idempotente: si ya hay asiento con
 // origen_id=facturaEmitidaId, lo updatea en vez de duplicar.
 async function generarAsientoFactura(facturaEmitidaId,factura,venta){
-  if(!configContable){console.warn('Asiento de factura no generado: falta configuración contable (Configuración → Imputación contable)');return;}
+  // Errores NO silenciosos: lanza (el emisor los muestra / los cachea el backfill).
+  if(!configContable)throw new Error('Falta la configuración contable (Configuración → Imputación contable)');
   const ctaDeudores=cuentasContables.find(c=>c.id===configContable.cta_deudores);
   const ctaVentas=cuentasContables.find(c=>c.id===configContable.cta_ventas_default);
   const ctaIvaDeb=cuentasContables.find(c=>c.id===configContable.cta_iva_debito);
-  if(!ctaDeudores||!ctaVentas){console.warn('Asiento de factura no generado: faltan cuentas Deudores o Ventas en Imputación contable');return;}
+  if(!ctaDeudores||!ctaVentas)throw new Error('Faltan las cuentas Deudores o Ventas en Imputación contable (o apuntan a una cuenta inexistente)');
   const neto=Number(factura.imp_neto)||0;
   const iva=Number(factura.imp_iva)||0;
   const total=Number(factura.imp_total)||0;
-  if(total<=0){console.warn('Asiento de factura no generado: total<=0');return;}
+  if(total<=0)throw new Error('El total de la factura es 0 — no se puede armar el asiento');
+  const ivaSinCuenta=iva>0.005&&!ctaIvaDeb;
+  if(ivaSinCuenta)throw new Error('La factura tiene IVA pero no hay cuenta "IVA Débito Fiscal" configurada (el asiento quedaría descuadrado)');
   const aplicaIVA=ctaIvaDeb&&iva>0.005;
   // Formato del comprobante: "B 00001-00000123"
   const tipoStr={1:'A',2:'NC-A',3:'ND-A',6:'B',7:'NC-B',8:'ND-B',11:'C',12:'NC-C',13:'ND-C',51:'M',52:'NC-M',53:'ND-M'}[factura.tipo_comprobante]||String(factura.tipo_comprobante);
@@ -4597,7 +4634,7 @@ async function emitirNotaCredito(){
       created_by:currentUser?.id||null,
     });
     const ncId=Array.isArray(rows)?rows[0]?.id:rows?.id;
-    if(ncId)await generarAsientoNC(ncId,data,v,motivo).catch(e=>console.warn('Asiento de NC no generado:',e));
+    if(ncId)await generarAsientoNC(ncId,data,v,motivo).catch(e=>{console.warn('Asiento de NC no generado:',e);notify(`⚠ La NC tiene CAE pero NO se generó el asiento contable: ${e.message}. Usá "Regenerar asientos" para reintentar.`,'err');});
     await reload('asientos','asiento_lineas');
     _modalDirty['modal-nota-credito']=false;closeModal('modal-nota-credito',true);
     _ncFactura=null;_ncVentaId=null;
@@ -4610,13 +4647,14 @@ async function emitirNotaCredito(){
 // Deudores. Con cliente_id y TC del día para que la cta cte (USD) lo
 // tome como crédito. Idempotente por origen_id.
 async function generarAsientoNC(ncId,nc,venta,motivo){
-  if(!configContable){console.warn('Asiento de NC no generado: falta configuración contable');return;}
+  if(!configContable)throw new Error('Falta la configuración contable (Configuración → Imputación contable)');
   const ctaDeudores=cuentasContables.find(c=>c.id===configContable.cta_deudores);
   const ctaVentas=cuentasContables.find(c=>c.id===configContable.cta_ventas_default);
   const ctaIvaDeb=cuentasContables.find(c=>c.id===configContable.cta_iva_debito);
-  if(!ctaDeudores||!ctaVentas){console.warn('Asiento de NC no generado: faltan cuentas Deudores o Ventas');return;}
+  if(!ctaDeudores||!ctaVentas)throw new Error('Faltan las cuentas Deudores o Ventas en Imputación contable');
   const neto=Number(nc.imp_neto)||0,iva=Number(nc.imp_iva)||0,total=Number(nc.imp_total)||0;
-  if(total<=0)return;
+  if(total<=0)throw new Error('El total de la NC es 0 — no se puede armar el asiento');
+  if(iva>0.005&&!ctaIvaDeb)throw new Error('La NC tiene IVA pero no hay cuenta "IVA Débito Fiscal" configurada');
   const aplicaIVA=ctaIvaDeb&&iva>0.005;
   await fetchCotizacion();
   const tc=Number(cotizacion?.venta)||0;
