@@ -31,3 +31,42 @@ test('generarAsientoNC LANZA si falta la configuración contable', async () => {
   const msg = await reject('generarAsientoNC("x",{imp_neto:100,imp_iva:21,imp_total:121},{cliente:"c"},"")');
   assert.match(msg, /configuraci[oó]n contable/i);
 });
+
+// ─── facturasSinAsiento (mig 069, H-10): flag persistente ────────────
+// Detecta comprobantes con CAE cuyo asiento (origen_tipo factura /
+// nota-credito) no existe — alimenta el badge del botón y el digest.
+
+function sinAsiento(facturas, asientosList) {
+  return erp.run(`facturasSinAsiento(${JSON.stringify(facturas)},${JSON.stringify(asientosList)})`);
+}
+
+test('facturasSinAsiento: detecta la factura con CAE sin asiento', () => {
+  const r = sinAsiento(
+    [{ id: 'f1', cae: '123' }, { id: 'f2', cae: '456' }],
+    [{ origen_tipo: 'factura', origen_id: 'f1' }],
+  );
+  assert.strictEqual(r.length, 1);
+  assert.strictEqual(r[0].id, 'f2');
+});
+
+test('facturasSinAsiento: el asiento de NC también cuenta', () => {
+  const r = sinAsiento(
+    [{ id: 'nc1', cae: '789' }],
+    [{ origen_tipo: 'nota-credito', origen_id: 'nc1' }],
+  );
+  assert.strictEqual(r.length, 0);
+});
+
+test('facturasSinAsiento: asientos de otro origen NO tapan el faltante', () => {
+  const r = sinAsiento(
+    [{ id: 'f1', cae: '123' }],
+    [{ origen_tipo: 'cobro', origen_id: 'f1' }, { origen_tipo: 'cheque-deposito', origen_id: 'f1' }],
+  );
+  assert.strictEqual(r.length, 1);
+});
+
+test('facturasSinAsiento: sin CAE no es hallazgo, y vacíos no rompen', () => {
+  assert.strictEqual(sinAsiento([{ id: 'f1', cae: null }], []).length, 0);
+  assert.strictEqual(sinAsiento([], null).length, 0);
+  assert.strictEqual(sinAsiento(null, []).length, 0);
+});

@@ -3586,6 +3586,8 @@ async function loadEmpresaAndStart(){
     fetchCotizacion();
     if(!window._cotIv)window._cotIv=setInterval(()=>fetchCotizacion(true),5*60*1000);
     generarRecordatoriosAuto(); // recordatorios de cobranza/seguimiento (1x/día, con aprobación manual)
+    checkAsientosFaltantes(); // H-10: flag persistente de facturas con CAE sin asiento (async, actualiza botón + digest)
+    repararVinculosVentaFactura(); // H-03: re-vincula ventas con CAE emitido que quedaron sin factura_emitida_id (async)
   }catch(e){
     console.error('Error al iniciar:',e);
     // Si falla por sesión expirada, limpiar y mostrar login
@@ -4186,6 +4188,20 @@ async function emitirFactura(ventaId,skipConfirm){
   const venta=vList[0];
   if(!venta){notify('Venta no encontrada','err');return;}
   if(!(venta.venta_items||[]).length){notify('La venta no tiene items','err');return;}
+  // H-03 (auditoría 2026-08): candados anti doble CAE. La venta se relee
+  // recién de la DB (no del caché) y, si ya tiene una factura con CAE sin
+  // vincular (falla de red entre el POST de la factura y el PATCH de la
+  // venta), se repara el vínculo en vez de pedir OTRO CAE a AFIP.
+  if(venta.factura_emitida_id){notify('Esta venta ya está facturada (recargá la pantalla)','err');return false;}
+  const _huerfanas=await GET('facturas_emitidas',`?venta_id=eq.${ventaId}&factura_asociada_id=is.null&order=created_at.desc&limit=1&select=id,cae,punto_venta,numero`).catch(()=>[]);
+  if(_huerfanas&&_huerfanas[0]&&_huerfanas[0].cae){
+    const h=_huerfanas[0];
+    await PATCH('ventas',{factura_emitida_id:h.id,estado:'facturado'},`?id=eq.${ventaId}`);
+    await reload('ventas');renderVentas(document.querySelector('#page-ventas .search-box input')?.value||'');
+    checkAsientosFaltantes();
+    notify(`Esta venta ya tenía CAE ${h.cae} (Factura ${String(h.punto_venta).padStart(5,'0')}-${String(h.numero).padStart(8,'0')}). Se re-vinculó — NO se pidió un CAE nuevo.`,'ok');
+    return true;
+  }
   // Cliente por id o por nombre normalizado; el CUIT sale de la venta o,
   // como plan B, del cliente en vivo (ver cuitParaFacturar). Doc: 11 dígitos
   // → 80=CUIT; si no → 99=Consumidor Final. Letra por cond. fiscal (RG 5003).
@@ -4266,6 +4282,7 @@ async function emitirFactura(ventaId,skipConfirm){
       await generarAsientoFactura(facturaEmitidaId,data,venta).catch(e=>{console.warn('Asiento de factura no generado:',e);notify(`⚠ La factura tiene CAE pero NO se generó el asiento contable: ${e.message}. Usá "Regenerar asientos" para reintentar.`,'err');});
     }
     await reload('ventas','asientos','asiento_lineas');renderVentas(document.querySelector('#page-ventas .search-box input')?.value||'');
+    checkAsientosFaltantes();
     notify(`✓ CAE ${data.cae} — Factura ${cbte.letra} ${String(data.punto_venta).padStart(5,'0')}-${String(data.numero).padStart(8,'0')} · TC $${tc}`,'ok');
     return true;
   }catch(e){
@@ -4400,6 +4417,7 @@ async function emitirFacturaDirecta(){
     });
     const fid=Array.isArray(rows)?rows[0]?.id:rows?.id;
     if(fid)await generarAsientoFactura(fid,data,{cliente:cli.nombre}).catch(e=>{console.warn('Asiento de factura directa no generado:',e);notify(`⚠ La factura tiene CAE pero NO se generó el asiento contable: ${e.message}. Usá "Regenerar asientos" para reintentar.`,'err');});
+    checkAsientosFaltantes();
     await reload('asientos','asiento_lineas');
     _modalDirty['modal-factura-directa']=false;closeModal('modal-factura-directa',true);fdItems=[];
     notify(`✓ CAE ${data.cae} — Factura ${cbte.letra} ${String(data.punto_venta).padStart(5,'0')}-${String(data.numero).padStart(8,'0')}${moneda==='USD'?` · TC $${tc}`:''}`,'ok');
@@ -4429,6 +4447,46 @@ function renderFacturasDirectas(fs){
 }
 // Backfill: genera el asiento de las facturas/NC con CAE que no lo tengan,
 // y muestra el motivo exacto si alguna falla (diagnóstico + arreglo).
+// H-10 (auditoría 2026-08): flag PERSISTENTE de facturas/NC con CAE sin
+// asiento contable — antes solo se avisaba con un notify al emitir y el
+// estado se perdía al recargar. Pura (tests en asiento-visible.test.js):
+function facturasSinAsiento(facturas,asientosList){
+  const con=new Set((asientosList||[]).filter(a=>a.origen_tipo==='factura'||a.origen_tipo==='nota-credito').map(a=>a.origen_id));
+  return (facturas||[]).filter(f=>f.cae&&!con.has(f.id));
+}
+// H-03 (auditoría 2026-08): recuperación automática del vínculo
+// venta↔factura. Si el CAE salió y facturas_emitidas se grabó pero el
+// PATCH de la venta falló (red/pestaña cerrada), la venta queda "sin
+// facturar" en la UI con riesgo de doble CAE. Al cargar, se buscan
+// facturas con CAE (no NC: factura_asociada_id null) cuya venta no
+// tenga factura_emitida_id y se repara el PATCH que faltó.
+async function repararVinculosVentaFactura(){
+  try{
+    const fs=await GET('facturas_emitidas','?venta_id=not.is.null&factura_asociada_id=is.null&select=id,venta_id,cae,punto_venta,numero').catch(()=>[]);
+    const rotas=(fs||[]).filter(f=>f.cae&&ventas.some(v=>v.id===f.venta_id&&!v.factura_emitida_id));
+    if(!rotas.length)return;
+    for(const f of rotas){
+      await PATCH('ventas',{factura_emitida_id:f.id,estado:'facturado'},`?id=eq.${f.venta_id}`);
+    }
+    await reload('ventas');renderAll();
+    notify(`⚠ ${rotas.length} venta(s) tenían CAE emitido pero quedaron sin vincular a su factura (falla de red previa) — se repararon automáticamente`,'ok');
+  }catch(e){console.warn('Reparación de vínculos venta-factura:',e);}
+}
+let _facturasSinAsiento=[];
+async function checkAsientosFaltantes(){
+  try{
+    const fs=await GET('facturas_emitidas','?select=id,cae,punto_venta,numero,tipo_comprobante').catch(()=>[]);
+    _facturasSinAsiento=facturasSinAsiento(fs,asientos);
+  }catch(e){_facturasSinAsiento=[];}
+  const btn=document.getElementById('btn-regen-asientos');
+  if(btn){
+    const n=_facturasSinAsiento.length;
+    btn.textContent=n?`Regenerar asientos (${n})`:'Regenerar asientos';
+    const color=n?'var(--coral,#e5484d)':'var(--amber,#d99a2b)';
+    btn.style.borderColor=color;btn.style.color=color;
+    btn.title=n?`${n} comprobante(s) con CAE sin asiento contable — apretá para generarlos`:'Genera el asiento contable de las facturas y NC con CAE que no lo tengan (backfill)';
+  }
+}
 async function regenerarAsientosFaltantes(){
   if(!currentEmpresa){notify('Sin empresa activa','err');return;}
   if(!confirm('Busca facturas y notas de crédito con CAE que NO tengan asiento contable y los genera. No toca AFIP. ¿Continuar?'))return;
@@ -4454,6 +4512,7 @@ async function regenerarAsientosFaltantes(){
       }catch(e){errores.push(`${fmt}: ${e.message}`);}
     }
     await reload('asientos','asiento_lineas');renderAll();
+    checkAsientosFaltantes();
     if(errores.length){
       notify(`${ok} asiento(s) generado(s) · ${errores.length} con error`,'err');
       alert('No se pudieron generar estos asientos:\n\n'+errores.join('\n\n')+'\n\nCorregí el motivo (normalmente la Imputación contable) y volvé a apretar "Regenerar asientos".');
@@ -4540,6 +4599,13 @@ const NC_TIPO_BY_FACTURA={1:3,6:8,11:13,51:53}; // factura → NC de la misma le
 const NC_LETRA={3:'A',8:'B',13:'C',53:'M'};
 let _ncFactura=null,_ncVentaId=null,_ncAcreditado=0;
 function _fmtCbte(pv,nro){return`${String(pv).padStart(5,'0')}-${String(nro).padStart(8,'0')}`;}
+// Saldo disponible para acreditar por NC (pura, tests en nota-credito.test.js).
+// El control AUTORITATIVO es server-side (RPC nc_reservar + trigger
+// trg_nc_tope, mig 069) — esto es solo el preview del modal.
+function computeSaldoNC(impTotal,previas){
+  const acreditado=Math.round((previas||[]).reduce((s,x)=>s+(parseFloat(x.imp_total)||0),0)*100)/100;
+  return {acreditado,saldo:Math.max(0,Math.round(((parseFloat(impTotal)||0)-acreditado)*100)/100)};
+}
 function _ncIvaPct(f){
   // Alícuota implícita de la factura original, ajustada a las válidas de AFIP
   const neto=parseFloat(f.imp_neto)||0,iva=parseFloat(f.imp_iva)||0;
@@ -4556,8 +4622,8 @@ async function openNotaCredito(ventaId){
   if(!NC_TIPO_BY_FACTURA[f.tipo_comprobante])return notify('Este tipo de comprobante no soporta NC desde el ERP','err');
   const previas=await GET('facturas_emitidas',`?factura_asociada_id=eq.${f.id}&afip_environment=eq.${f.afip_environment}`).catch(()=>[]);
   _ncFactura=f;_ncVentaId=ventaId;
-  _ncAcreditado=previas.reduce((s,x)=>s+(parseFloat(x.imp_total)||0),0);
-  const saldo=Math.max(0,Math.round(((parseFloat(f.imp_total)||0)-_ncAcreditado)*100)/100);
+  const {acreditado,saldo}=computeSaldoNC(f.imp_total,previas);
+  _ncAcreditado=acreditado;
   document.getElementById('nc-factura-ref').textContent=_fmtCbte(f.punto_venta,f.numero);
   document.getElementById('nc-factura-info').innerHTML=
     `Factura <b>${_fmtCbte(f.punto_venta,f.numero)}</b> a <b>${esc(v.cliente)}</b> — Total <span class="mono">${fmtARS(parseFloat(f.imp_total)||0)}</span> (neto ${fmtARS(parseFloat(f.imp_neto)||0)} + IVA ${fmtARS(parseFloat(f.imp_iva)||0)}) · CAE ${esc(f.cae)}`+
@@ -4591,9 +4657,21 @@ async function emitirNotaCredito(){
   const ncTipo=NC_TIPO_BY_FACTURA[f.tipo_comprobante];
   const letra=NC_LETRA[ncTipo];
   const fmtOrig=_fmtCbte(f.punto_venta,f.numero);
+  // H-08 (RG 5616): si al cliente le borraron la condición fiscal después de
+  // facturar, condicion_iva_receptor_id saldría undefined — avisar antes del CAE.
+  const _cliNC=clientes.find(c=>c.id===v.cliente_id)||clientes.find(c=>c.nombre===v.cliente);
+  if(_cliNC&&!['RI','exento','consumidor_final','monotributo'].includes(_cliNC.condicion_fiscal))return notify(`Definí la condición fiscal de "${v.cliente}" (Clientes → Editar) antes de emitir la NC`,'err');
   if(!confirm(`¿Emitir Nota de Crédito ${letra} por ${fmtARS(d.total)} sobre la Factura ${fmtOrig}?\n\nEsto solicita un CAE a AFIP y NO se puede deshacer.`))return;
   setBusy('btn-save-nc',true);
+  // H-02 (mig 069): el tope de NC es server-side. nc_reservar valida el
+  // monto contra el saldo REAL (NC emitidas + otras emisiones en curso,
+  // con lock) ANTES de tocar ARCA — el _ncAcreditado cacheado del modal
+  // es solo preview. La reserva se libera al terminar; si el CAE salió
+  // pero el INSERT falló, se deja viva (sostiene el saldo, vence a 15').
+  let _reservaId=null,_caeOk=false,_ncGuardada=false;
   try{
+    const _reserva=await RPC('nc_reservar',{p_factura_id:f.id,p_monto:d.total});
+    _reservaId=_reserva?.reserva_id||null;
     const cli=clientes.find(c=>c.id===v.cliente_id)||clientes.find(c=>c.nombre===v.cliente);
     const COND_IVA_AFIP={RI:1,exento:4,consumidor_final:5,monotributo:6};
     const payload={
@@ -4622,6 +4700,7 @@ async function emitirNotaCredito(){
       throw new Error(typeof detail==='string'?detail:(detail?.mensaje||JSON.stringify(detail)||res.statusText));
     }
     const data=await res.json();
+    _caeOk=true;
     const rows=await POST('facturas_emitidas',{
       empresa_id:currentEmpresa.id,
       venta_id:v.id,
@@ -4636,6 +4715,7 @@ async function emitirNotaCredito(){
       created_by:currentUser?.id||null,
     });
     const ncId=Array.isArray(rows)?rows[0]?.id:rows?.id;
+    _ncGuardada=true;
     if(ncId)await generarAsientoNC(ncId,data,v,motivo).catch(e=>{console.warn('Asiento de NC no generado:',e);notify(`⚠ La NC tiene CAE pero NO se generó el asiento contable: ${e.message}. Usá "Regenerar asientos" para reintentar.`,'err');});
     await reload('asientos','asiento_lineas');
     _modalDirty['modal-nota-credito']=false;closeModal('modal-nota-credito',true);
@@ -4643,7 +4723,11 @@ async function emitirNotaCredito(){
     renderAll();
     notify(`✓ CAE ${data.cae} — Nota de Crédito ${letra} ${_fmtCbte(data.punto_venta,data.numero)} s/ Factura ${fmtOrig}`,'ok');
   }catch(e){notify(`Error al emitir NC: ${e.message}`,'err');}
-  finally{setBusy('btn-save-nc',false,'Emitir NC (CAE)');}
+  finally{
+    if(_reservaId&&(_ncGuardada||!_caeOk))RPC('nc_liberar',{p_reserva_id:_reservaId}).catch(()=>{});
+    checkAsientosFaltantes();
+    setBusy('btn-save-nc',false,'Emitir NC (CAE)');
+  }
 }
 // Asiento inverso al de la factura: debe Ventas + IVA Débito, haber
 // Deudores. Con cliente_id y TC del día para que la cta cte (USD) lo
@@ -5699,6 +5783,12 @@ function computeAlertas(){
   if(atras.length)out.push({sev:'crit',page:'ventas',count:atras.length,
     titulo:uno(atras.length,'Entrega atrasada','Entregas atrasadas'),
     detalle:atras.slice(0,3).map(v=>esc((v.nro_remito||'')+' · '+(v.cliente||''))).join('  —  ')+masDe(atras)});
+
+  // Comprobantes con CAE sin asiento contable (H-10 — _facturasSinAsiento
+  // lo llena checkAsientosFaltantes tras el load y tras cada emisión)
+  if(_facturasSinAsiento.length)out.push({sev:'crit',page:'ventas',count:_facturasSinAsiento.length,
+    titulo:uno(_facturasSinAsiento.length,'Factura con CAE sin asiento contable','Facturas con CAE sin asiento contable'),
+    detalle:_facturasSinAsiento.slice(0,3).map(f=>_fmtCbte(f.punto_venta,f.numero)).join('  —  ')+masDe(_facturasSinAsiento)+'  ·  Ventas → Regenerar asientos'});
 
   const cc=computeCtaCte();
   const conVencido=cc.filter(c=>(c.buckets.d30+c.buckets.d60+c.buckets.d90+c.buckets.mas90)>0.005);
@@ -7809,17 +7899,17 @@ async function registrarCobroOPago(){
         {cuenta_id:ctaMedio.id,debe:0,haber:monto,descripcion:`${ctaMedio.nombre} ${tercero}`,orden:1},
       ];
     }
-    // Atómico (RPC): cabecera + líneas juntas, numeración en la DB.
-    const r=await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas});
-    // Registrar los certificados de retención (para el contador / SICORE)
-    if(retsValidas.length){
-      await POST('retenciones_sufridas',retsValidas.map(ret=>({
-        empresa_id:currentEmpresa.id,cliente_id:clienteMatch?.id||null,fecha,
-        tipo:ret.tipo,certificado_nro:ret.certificado_nro.trim()||null,
+    // Atómico (RPC registrar_cobro, mig 069): asiento + certificados de
+    // retención en UNA transacción — antes el POST de retenciones iba
+    // aparte y una falla dejaba el asiento sin certificados (auditoría
+    // H-05). La fecha de las retenciones es la de la cabecera.
+    const r=await RPC('registrar_cobro',{p_cabecera:cabecera,p_lineas:lineas,
+      p_retenciones:retsValidas.map(ret=>({
+        cliente_id:clienteMatch?.id||null,tipo:ret.tipo,
+        certificado_nro:ret.certificado_nro.trim()||null,
         jurisdiccion:ret.jurisdiccion||null,monto:ret.monto,moneda,
-        tipo_cambio:moneda==='USD'?tc:null,asiento_id:r.id,created_by:currentUser?.id||null,
-      })));
-    }
+        tipo_cambio:moneda==='USD'?tc:null,
+      }))});
     await reload('asientos','asiento_lineas','cheques');
     notify(`✓ ${cobPagModo==='cobro'?'Cobro':'Pago'} registrado · Asiento N° ${r.numero}${retsValidas.length?` · ${retsValidas.length} retención${retsValidas.length>1?'es':''}`:''}`);
     // limpiar form (mantener fecha/método/tercero por si hay varios)
@@ -8821,58 +8911,54 @@ function renderRatios(){
 // ─── ASIENTO AUTOMÁTICO DESDE COMPRA (recepción de OC) ────────
 // Se invoca desde saveRecepcion con la lista de ítems recibidos en la sesión.
 // Genera UN asiento por sesión agrupando montos por cuenta según tipo de ítem.
-async function generarAsientoCompra(recepcionItems,oc,fecha){
-  try{
-    if(!configContable){console.warn('Asiento de compra no generado: falta configuración contable');return;}
-    if(!recepcionItems||!recepcionItems.length)return;
-    const cfg=configContable;
-    // Cuenta puente GR/IR (obligatoria para la recepción)
-    if(!cfg.cta_gr_ir){notify('Asiento de recepción no generado: falta cuenta puente GR/IR en Imputación contable','err');return;}
-    const ctaGRIR=cuentasContables.find(c=>c.id===cfg.cta_gr_ir);
-    if(!ctaGRIR){notify('Asiento de recepción no generado: cuenta GR/IR no encontrada en el plan de cuentas','err');return;}
-    // Mapeo tipo de ítem → cuenta de compra
-    const ctasPorTipo={
-      'materia_prima':cfg.cta_compra_mp,
-      'insumo':cfg.cta_compra_insumos,
-      'herramienta':cfg.cta_compra_herramientas,
-      'servicio':cfg.cta_compra_servicios,
-    };
-    const ivaPct=Number(cfg.iva_alicuota)||0;
-    // Agrupar netos por cuenta de débito (sin IVA — IVA va en el asiento de factura)
-    const porCuenta={};
-    let totalNeto=0;
-    for(const r of recepcionItems){
-      const ctaId=ctasPorTipo[r.it.tipo];
-      if(!ctaId){console.warn(`Sin cuenta para tipo "${r.it.tipo}" en Imputación contable`);continue;}
-      const monto=(parseFloat(r.it.precio_unitario)||0)*r.qty;
-      if(monto<=0)continue;
-      const neto=cfg.precios_incluyen_iva?(monto/(1+ivaPct)):monto;
-      porCuenta[ctaId]=(porCuenta[ctaId]||0)+neto;
-      totalNeto+=neto;
-    }
-    if(totalNeto<=0){console.warn('Asiento de compra no generado: monto total = 0');return;}
-    const cabecera={
-      fecha,
-      descripcion:`Recepción OC ${oc.nro} — ${oc.proveedores?.nombre||'proveedor'}`,
-      comprobante_nro:oc.factura_nro||oc.nro,
-      tipo:'auto-compra',
-      origen_tipo:'recepcion',
-      origen_id:null,
-      estado:'confirmado',
-      moneda:oc.moneda||'USD',
-      tipo_cambio:oc.tipo_cambio||null,
-      tc_tipo:oc.tc_tipo||null,
-    };
-    // Débitos: stock/gasto neto por tipo de ítem
-    // Crédito: cuenta puente GR/IR por el total neto (IVA y Proveedores van en el asiento de factura)
-    const lineas=[];let ord=0;
-    Object.entries(porCuenta).forEach(([ctaId,neto])=>{
-      lineas.push({cuenta_id:ctaId,debe:neto,haber:0,descripcion:`Recepción OC ${oc.nro}`,orden:ord++});
-    });
-    lineas.push({cuenta_id:ctaGRIR.id,debe:0,haber:totalNeto,descripcion:`GR/IR OC ${oc.nro}`,orden:ord++});
-    // Atómico (RPC): cabecera + líneas juntas, numeración en la DB.
-    await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas});
-  }catch(e){console.warn('Error generando asiento automático de compra:',e);}
+// H-01 (mig 070): arma el asiento de recepción (GR/IR) que registrar_recepcion_oc
+// crea DENTRO de su transacción. Pura (tests en tests/recepcion-oc.test.js):
+// devuelve {cabecera,lineas} o null si falta imputación o el monto es 0
+// (la recepción sale sin asiento, comportamiento histórico).
+// Débitos: stock/gasto neto por tipo de ítem. Crédito: cuenta puente GR/IR
+// por el total neto (IVA y Proveedores van en el asiento de factura).
+function armarAsientoRecepcion(recepcionItems,oc,fecha,cfg=configContable,cuentas=cuentasContables){
+  if(!cfg||!recepcionItems||!recepcionItems.length)return null;
+  if(!cfg.cta_gr_ir)return null;
+  const ctaGRIR=(cuentas||[]).find(c=>c.id===cfg.cta_gr_ir);
+  if(!ctaGRIR)return null;
+  const ctasPorTipo={
+    'materia_prima':cfg.cta_compra_mp,
+    'insumo':cfg.cta_compra_insumos,
+    'herramienta':cfg.cta_compra_herramientas,
+    'servicio':cfg.cta_compra_servicios,
+  };
+  const ivaPct=Number(cfg.iva_alicuota)||0;
+  const porCuenta={};
+  let totalNeto=0;
+  for(const r of recepcionItems){
+    const ctaId=ctasPorTipo[r.it.tipo];
+    if(!ctaId){console.warn(`Sin cuenta para tipo "${r.it.tipo}" en Imputación contable`);continue;}
+    const monto=(parseFloat(r.it.precio_unitario)||0)*r.qty;
+    if(monto<=0)continue;
+    const neto=cfg.precios_incluyen_iva?(monto/(1+ivaPct)):monto;
+    porCuenta[ctaId]=(porCuenta[ctaId]||0)+neto;
+    totalNeto+=neto;
+  }
+  if(totalNeto<=0)return null;
+  const cabecera={
+    fecha,
+    descripcion:`Recepción OC ${oc.nro} — ${oc.proveedores?.nombre||'proveedor'}`,
+    comprobante_nro:oc.factura_nro||oc.nro,
+    tipo:'auto-compra',
+    origen_tipo:'recepcion',
+    origen_id:null, // la RPC lo pisa con el batch_id de la recepción
+    estado:'confirmado',
+    moneda:oc.moneda||'USD',
+    tipo_cambio:oc.tipo_cambio||null,
+    tc_tipo:oc.tc_tipo||null,
+  };
+  const lineas=[];let ord=0;
+  Object.entries(porCuenta).forEach(([ctaId,neto])=>{
+    lineas.push({cuenta_id:ctaId,debe:neto,haber:0,descripcion:`Recepción OC ${oc.nro}`,orden:ord++});
+  });
+  lineas.push({cuenta_id:ctaGRIR.id,debe:0,haber:totalNeto,descripcion:`GR/IR OC ${oc.nro}`,orden:ord++});
+  return {cabecera,lineas};
 }
 
 // ─── ANIMACIÓN DE KPIs (count-up al cargar) ─────────────
@@ -12292,47 +12378,28 @@ function recepCertColada(){
 // Núcleo de la recepción de OC (extraído de saveRecepcion en 062): lo
 // usan el modal Recibir y el tilde "recibí todo" del modal de factura.
 // items = [{itemId, qty, it}] (formato de itemsPendientesOC).
+// H-01 (mig 070): la recepción es atómica y server-side. La RPC hace altas de
+// stock (barras/insumos/herramientas) + recepciones_oc + cantidad_recibida +
+// estado de la OC + asiento GR/IR en UNA transacción: una falla de red a mitad
+// de camino ya no deja stock sin recepción ni compra sin devengar. El batch_id
+// se REUSA al reintentar el mismo submit: si el intento anterior llegó a
+// commitear pero la respuesta se perdió (timeout), la RPC responde
+// ya_registrada en vez de duplicar barras y cantidades.
+let _recepBatch={key:null,id:null};
 async function registrarRecepcionOC(oc,items,{fecha,certId=null,colada='',remitoNro=null,obs=null}={}){
-  for(const r of items){
-    let barraId=null;
-    // Materia prima → crear barra en stock
-    if(r.it.tipo==='materia_prima'){
-      const lote=`${oc.nro}-${r.it.descripcion.slice(0,8).replace(/\s/g,'')}-${Date.now().toString().slice(-4)}`;
-      // Costo USD del ítem de la OC → la barra nace valuada (antes se perdía)
-      const tcOC=parseFloat(oc.tipo_cambio)||0;
-      const costoUSD=oc.moneda==='ARS'&&tcOC>0?(parseFloat(r.it.precio_unitario)||0)/tcOC:(parseFloat(r.it.precio_unitario)||0);
-      const barraData={empresa_id:currentEmpresa.id,lote,material:r.it.material||r.it.descripcion,perfil:r.it.perfil||'',diametro:r.it.diametro||'',kg_disponibles:['kg','mts'].includes(r.it.unidad)?r.qty:0,unidades:r.it.unidad==='un'?r.qty:0,nro_colada:colada,certificado_id:certId,kg_minimo:0,proveedor_id:oc.proveedor_id,oc_id:oc.id,costo_usd_unidad:costoUSD>0?costoUSD:null,observaciones:`Recepción OC ${oc.nro}`};
-      const bres=await POST('barras',[barraData]);
-      if(bres&&bres[0])barraId=bres[0].id;
-    }
-    // Insumo → buscar duplicado por nombre/código y sumar; si no existe, crear
-    else if(r.it.tipo==='insumo'){
-      const nombre=(r.it.descripcion||'').trim();
-      const existente=insumos.find(x=>(x.nombre||'').toLowerCase()===nombre.toLowerCase());
-      if(existente){
-        await PATCH('insumos',{cantidad:parseFloat(existente.cantidad||0)+r.qty,ultimo_precio:parseFloat(r.it.precio_unitario)||existente.ultimo_precio,proveedor_id:oc.proveedor_id||existente.proveedor_id,updated_at:new Date().toISOString()},`?id=eq.${existente.id}`);
-      }else{
-        await POST('insumos',{empresa_id:currentEmpresa.id,nombre,descripcion:r.it.descripcion||null,cantidad:r.qty,unidad:r.it.unidad||'un',ultimo_precio:parseFloat(r.it.precio_unitario)||null,proveedor_id:oc.proveedor_id,observaciones:`Recibido en OC ${oc.nro}`});
-      }
-    }
-    // Herramienta → siempre crear nueva (cada una es individual)
-    else if(r.it.tipo==='herramienta'){
-      await POST('herramientas',{empresa_id:currentEmpresa.id,nombre:(r.it.descripcion||'').trim(),descripcion:r.it.descripcion||null,cantidad:r.qty,estado:'nueva',precio_compra:parseFloat(r.it.precio_unitario)||null,fecha_compra:fecha,proveedor_id:oc.proveedor_id,observaciones:`Recibida en OC ${oc.nro}`});
-    }
-    await POST('recepciones_oc',[{empresa_id:currentEmpresa.id,oc_item_id:r.itemId,fecha,cantidad_recibida:r.qty,certificado_id:certId,barra_id:barraId,remito_nro:remitoNro,observaciones:obs}]);
-    // actualizar cantidad_recibida del item
-    const nuevaRecibida=(parseFloat(r.it.cantidad_recibida)||0)+r.qty;
-    await PATCH('oc_items',{cantidad_recibida:nuevaRecibida},`?id=eq.${r.itemId}`);
-  }
-  // Actualizar estado de la OC
-  const ocItemsReload=await GET('oc_items',`?oc_id=eq.${oc.id}`);
-  const allComplete=ocItemsReload.every(i=>parseFloat(i.cantidad_recibida||0)>=parseFloat(i.cantidad||0));
-  const anyReceived=ocItemsReload.some(i=>parseFloat(i.cantidad_recibida||0)>0);
-  const nuevoEstado=allComplete?'recibida':(anyReceived?'recibida_parcial':oc.estado);
-  await PATCH('ordenes_compra',{estado:nuevoEstado},`?id=eq.${oc.id}`);
-  // Asiento contable automático de compra
-  await generarAsientoCompra(items,oc,fecha);
-  return {allComplete};
+  const asiento=armarAsientoRecepcion(items,oc,fecha);
+  if(!asiento&&configContable&&!configContable.cta_gr_ir)notify('La recepción saldrá sin asiento contable: falta la cuenta puente GR/IR en Imputación contable','err');
+  const key=oc.id+'|'+items.map(x=>`${x.itemId}:${x.qty}`).join(',');
+  if(_recepBatch.key!==key)_recepBatch={key,id:crypto.randomUUID()};
+  const r=await RPC('registrar_recepcion_oc',{
+    p_oc_id:oc.id,
+    p_items:items.map(x=>({oc_item_id:x.itemId,qty:x.qty,tipo:x.it.tipo,descripcion:x.it.descripcion||'',material:x.it.material||null,perfil:x.it.perfil||null,diametro:x.it.diametro||null,unidad:x.it.unidad||'un',precio_unitario:parseFloat(x.it.precio_unitario)||0})),
+    p_meta:{fecha,certificado_id:certId,nro_colada:colada||'',remito_nro:remitoNro,observaciones:obs},
+    p_asiento:asiento,
+    p_batch_id:_recepBatch.id,
+  });
+  _recepBatch={key:null,id:null}; // éxito: el próximo submit genera batch nuevo
+  return {allComplete:!!r?.all_complete};
 }
 
 async function saveRecepcion(){
@@ -12725,7 +12792,7 @@ async function registrarFacturaRecibida(btnId){
 
 function _calcValorRecibidoOC(ocId,{completo=false}={}){
   // Valor recibido NETO (sin IVA), en la misma base que el crédito GR/IR
-  // del asiento de recepción (generarAsientoCompra): si los precios de la
+  // del asiento de recepción (armarAsientoRecepcion): si los precios de la
   // OC incluyen IVA, se descuenta para comparar contra el neto de la factura.
   const ivaPct=Number(configContable?.iva_alicuota)||0;
   const incluyeIva=!!configContable?.precios_incluyen_iva;
