@@ -216,6 +216,31 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
 @keyframes modalScaleIn{from{transform:scale(0.96) translateY(8px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
 .modal-overlay.open{animation:modalFadeIn 0.18s ease-out}
 .modal-overlay.open .modal{animation:modalScaleIn 0.22s cubic-bezier(0.16,1,0.3,1)}
+/* ─── Command palette (Ctrl+K): el buscador como instrumento ─── */
+.pal{background:var(--surface-grad);box-shadow:var(--canto),0 8px 24px rgba(0,0,0,.45)}
+html[data-theme="light"] .pal{background:var(--surface);box-shadow:0 8px 24px rgba(42,36,28,.18)}
+.pal-head{display:flex;align-items:center;gap:10px;padding:13px 14px;border-bottom:var(--th-rule)}
+.pal-lupa{color:var(--text3);flex:none;transition:color .15s}
+.pal-head:focus-within .pal-lupa{color:var(--accent)}
+.pal-head input{flex:1;background:none;border:none;outline:none;box-shadow:none;color:var(--text);font-size:15px;font-family:var(--sans);padding:0}
+.pal-head input::placeholder{color:var(--text3)}
+.pal-kbd{font-family:var(--mono);font-size:9px;letter-spacing:.05em;color:var(--text3);border:1px solid var(--border);border-bottom-width:2px;border-radius:var(--r-xs);padding:2px 5px;background:var(--surface2);text-transform:uppercase;line-height:1}
+.pal-results{max-height:52vh;overflow-y:auto;padding:4px 8px 8px}
+.pal-cat{font-family:var(--mono);font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:var(--track);color:var(--text3);padding:11px 10px 4px;display:flex;align-items:center;gap:8px}
+.pal-cat::after{content:'';flex:1;height:1px;background:var(--border)}
+.palette-item{display:flex;align-items:baseline;gap:8px;padding:8px 10px;border-radius:var(--r-sm);cursor:pointer;font-size:13px;color:var(--text2);box-shadow:inset 0 0 0 transparent;transition:background .12s}
+.palette-item .pal-id{font-family:var(--mono);font-size:12.5px;color:var(--text);white-space:nowrap}
+.palette-item .pal-plus{flex:none;color:var(--accent);align-self:center}
+.palette-item .pal-nombre{color:var(--text)}
+.palette-item:hover{background:var(--surface2)}
+.palette-item.sel{background:rgba(227,161,66,.09);box-shadow:inset 2px 0 0 var(--accent);color:var(--text)}
+html[data-theme="light"] .palette-item.sel{background:rgba(139,94,52,.08)}
+.pal-hl{color:var(--accent);font-weight:600}
+.pal-foot{display:flex;gap:14px;align-items:center;padding:9px 14px;border-top:1px solid var(--border);font-family:var(--mono);font-size:9.5px;color:var(--text3);letter-spacing:.05em}
+.pal-foot span{display:flex;align-items:center;gap:4px}
+#pal-count{margin-left:auto;letter-spacing:var(--track);text-transform:uppercase}
+.pal-empty{padding:24px 10px;text-align:center;color:var(--text3);font-size:12.5px}
+.pal-empty .pal-q{font-family:var(--mono);color:var(--text2)}
 
 /* ─── #4 Skeleton loaders ─── */
 @keyframes skeletonShimmer{0%{background-position:-300px 0}100%{background-position:300px 0}}
@@ -415,7 +440,7 @@ body.no-costos .solo-costos{display:none!important}
       <div class="nav-item" tabindex="0" role="button" data-group="config" onclick="showPage('config')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>Configuración</div>
     </nav>
     <div class="sidebar-footer" style="position:relative">
-      <button onclick="openPalette()" title="Buscar (Ctrl+K)" aria-label="Buscar" style="position:absolute;top:8px;right:32px;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:2px 4px;line-height:1">⌕</button>
+      <button onclick="openPalette()" title="Buscar (Ctrl+K)" aria-label="Buscar" style="position:absolute;top:8px;right:32px;background:none;border:none;color:var(--text3);cursor:pointer;padding:2px 4px;line-height:0"><svg viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg></button>
       <button onclick="toggleTheme()" id="btn-theme" title="Cambiar tema" style="position:absolute;top:8px;right:10px;background:none;border:none;color:var(--text3);font-size:13px;cursor:pointer;padding:2px 4px;line-height:1"><span id="theme-icon">☀</span></button>
       <div class="user-info" id="sidebar-user" style="padding-right:22px">—</div>
       <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
@@ -2439,10 +2464,17 @@ body.no-costos .solo-costos{display:none!important}
 
 <!-- MODAL: Command palette (Ctrl+K) -->
 <div class="modal-overlay" id="modal-palette">
-  <div class="modal" style="width:560px;align-self:flex-start;margin-top:10vh">
-    <div class="modal-body" style="padding:12px">
-      <input type="text" id="palette-input" placeholder="Buscar clientes, ventas, OPs, páginas… (Esc para cerrar)" autocomplete="off" style="width:100%;font-size:14px;padding:10px 12px">
-      <div id="palette-results" style="margin-top:8px;max-height:50vh;overflow-y:auto"></div>
+  <div class="modal pal" style="width:600px;align-self:flex-start;margin-top:9vh;overflow:hidden">
+    <div class="pal-head">
+      <svg class="pal-lupa" viewBox="0 0 16 16" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
+      <input type="text" id="palette-input" placeholder="Buscar clientes, ventas, OPs, páginas…" autocomplete="off">
+      <kbd class="pal-kbd">esc</kbd>
+    </div>
+    <div id="palette-results" class="pal-results"></div>
+    <div class="pal-foot">
+      <span><kbd class="pal-kbd">↑</kbd><kbd class="pal-kbd">↓</kbd> moverte</span>
+      <span><kbd class="pal-kbd">↵</kbd> abrir</span>
+      <span id="pal-count"></span>
     </div>
   </div>
 </div>
@@ -11353,10 +11385,10 @@ function buildPaletteIndex(){
     (t.sub||[t]).forEach(s=>{if(!vistos.has(s.k)){vistos.add(s.k);ix.push({cat:'Páginas',label:'Ir a '+s.l,run:()=>showPage(s.k)});}});
   });
   ix.push({cat:'Páginas',label:'Ir a Métricas',run:()=>showPage('dash')});
-  ix.push({cat:'Acciones',label:'⚡ Nueva venta',run:()=>openModal('modal-venta')});
-  ix.push({cat:'Acciones',label:'⚡ Nuevo presupuesto',run:()=>openPresupuestoModal()});
-  ix.push({cat:'Acciones',label:'⚡ Nueva orden de producción',run:()=>openModal('modal-op')});
-  ix.push({cat:'Acciones',label:'⚡ Nueva orden de compra',run:()=>openOCModal()});
+  ix.push({cat:'Acciones',label:'Nueva venta',run:()=>openModal('modal-venta')});
+  ix.push({cat:'Acciones',label:'Nuevo presupuesto',run:()=>openPresupuestoModal()});
+  ix.push({cat:'Acciones',label:'Nueva orden de producción',run:()=>openModal('modal-op')});
+  ix.push({cat:'Acciones',label:'Nueva orden de compra',run:()=>openOCModal()});
   return ix;
 }
 function openPalette(){
@@ -11366,24 +11398,49 @@ function openPalette(){
   inp.value='';renderPaletteResults('');
   setTimeout(()=>inp.focus(),50);
 }
+// Resalta las coincidencias del query sobre texto plano (marca rangos y
+// escapa después, así un término nunca matchea dentro del markup insertado)
+function _palHl(txt,terms){
+  const t=String(txt),lower=t.toLowerCase(),marks=new Array(t.length).fill(false);
+  (terms||[]).forEach(term=>{const i=lower.indexOf(term.toLowerCase());if(term&&i>=0)for(let j=i;j<i+term.length;j++)marks[j]=true;});
+  let out='',open=false;
+  for(let i=0;i<t.length;i++){
+    if(marks[i]&&!open){out+='<span class="pal-hl">';open=true;}
+    if(!marks[i]&&open){out+='</span>';open=false;}
+    out+=esc(t[i]);
+  }
+  return out+(open?'</span>':'');
+}
+const _PAL_PLUS='<svg class="pal-plus" viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="3"/><line x1="8" y1="5" x2="8" y2="11"/><line x1="5" y1="8" x2="11" y2="8"/></svg>';
 function renderPaletteResults(q){
   const cont=document.getElementById('palette-results');
   _palItems=q.trim()?paletteMatch(q,_palIndex):_palIndex.filter(i=>i.cat==='Acciones').concat(_palIndex.filter(i=>i.cat==='Páginas').slice(0,6));
   _palSel=0;
-  if(!_palItems.length){cont.innerHTML='<div style="padding:14px;text-align:center;color:var(--text3);font-size:12px">Sin resultados</div>';return;}
+  const terms=q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const count=document.getElementById('pal-count');
+  if(count)count.textContent=terms.length?(_palItems.length===1?'1 resultado':_palItems.length+' resultados'):'';
+  if(!_palItems.length){cont.innerHTML=`<div class="pal-empty">Sin resultados para <span class="pal-q">«${esc(q.trim())}»</span></div>`;return;}
   let lastCat=null;
   cont.innerHTML=_palItems.map((it,i)=>{
-    const header=it.cat!==lastCat?`<div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);padding:8px 10px 3px">${esc(it.cat)}</div>`:'';
+    const header=it.cat!==lastCat?`<div class="pal-cat">${esc(it.cat)}</div>`:'';
     lastCat=it.cat;
-    return header+`<div class="palette-item" data-i="${i}" onclick="execPaletteItem(${i})" style="padding:8px 10px;border-radius:var(--r-xs);cursor:pointer;font-size:13px">${esc(it.label)}</div>`;
+    // La Regla del Instrumento: el identificador (nro, lote, CUIT) va en Mono.
+    // En Clientes/Proveedores el primer segmento es un NOMBRE (prosa, Sans);
+    // en el resto es el número de documento y abre la fila en Mono.
+    const idPrimero=!it.run&&it.cat!=='Clientes'&&it.cat!=='Proveedores';
+    const dot=(it.run?-1:it.label.indexOf(' · '));
+    let body;
+    if(dot>0&&idPrimero)body=`<span class="pal-id">${_palHl(it.label.slice(0,dot),terms)}</span><span>${_palHl(it.label.slice(dot),terms)}</span>`;
+    else if(dot>0)body=`<span class="pal-nombre">${_palHl(it.label.slice(0,dot),terms)}</span><span class="pal-id" style="font-size:11.5px;color:var(--text3)">${_palHl(it.label.slice(dot+3),terms)}</span>`;
+    else body=(it.cat==='Acciones'?_PAL_PLUS:'')+`<span${idPrimero?' class="pal-id"':' class="pal-nombre"'}>${_palHl(it.label,terms)}</span>`;
+    return header+`<div class="palette-item" data-i="${i}" onclick="execPaletteItem(${i})">${body}</div>`;
   }).join('');
   updatePaletteSel();
 }
 function updatePaletteSel(){
   document.querySelectorAll('.palette-item').forEach(el=>{
     const sel=parseInt(el.dataset.i)===_palSel;
-    el.style.background=sel?'var(--surface2)':'transparent';
-    el.style.outline=sel?'1px solid var(--accent)':'none';
+    el.classList.toggle('sel',sel);
     if(sel)el.scrollIntoView({block:'nearest'});
   });
 }
