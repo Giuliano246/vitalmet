@@ -1176,6 +1176,25 @@ body.no-costos .solo-costos{display:none!important}
         <div class="table-wrap"><table><thead><tr><th>Código</th><th>Cuenta</th><th>Tipo</th><th style="text-align:right">Saldo actual (ARS)</th><th style="text-align:right">Saldo ajustado</th><th style="text-align:right">Debe</th><th style="text-align:right">Haber</th></tr></thead><tbody id="ajuste-tbody"></tbody><tfoot id="ajuste-tfoot"></tfoot></table></div>
       </div>
     </div>
+    <!-- CONTABILIDAD: Estados contables RT 54 (Sprint D) -->
+    <div class="page" id="page-eecc">
+      <div class="page-header"><div class="page-title">Estados contables RT 54</div><div class="page-sub">// ESP · ER · EEPN · EFE sintético · notas y anexos del modelo para Entidades Pequeñas · comparativo en moneda homogénea</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div style="display:flex;gap:14px;align-items:end;margin-bottom:14px;flex-wrap:wrap;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm)">
+          <div class="form-group" style="margin:0;width:260px"><label>Ejercicio</label><select id="eecc-ejercicio" onchange="_eeccEjercicioSel()"></select></div>
+          <div class="form-group" style="margin:0;width:140px"><label>Inicio</label><input type="date" id="eecc-desde"></div>
+          <div class="form-group" style="margin:0;width:140px"><label>Cierre</label><input type="date" id="eecc-hasta"></div>
+          <div class="form-group" style="margin:0;width:130px"><label>TC cierre (anexo ME)</label><input type="number" step="0.01" id="eecc-tc" placeholder="cotización"></div>
+          <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--text2);cursor:pointer;padding-bottom:8px"><input type="checkbox" id="eecc-comparativo" checked style="margin:0">Comparativo (ejercicio anterior reexpresado)</label>
+          <button class="btn btn-ghost" onclick="calcularEECC()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>Vista previa</button>
+          <div style="flex:1"></div>
+          <button class="btn btn-primary" id="btn-eecc-xlsx" onclick="exportarEECC()" disabled style="opacity:.4">Exportar Excel</button>
+        </div>
+        <div id="eecc-empresa" style="font-size:11px;color:var(--text3);margin-bottom:10px"></div>
+        <div id="eecc-content"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h8"/></svg></div><div class="empty-title">Elegí el ejercicio y calculá la vista previa</div><div class="empty-msg">Los estados salen del <b>rubro RT 54</b> de cada cuenta y de los asientos confirmados. Antes de exportar, corré los ajustes de cierre (panel RT 54) y el ajuste por inflación; el Excel trae carátula, ESP, ER, EEPN, EFE, notas de composición y los anexos (ME, bienes de uso, previsiones, CMV, gastos por naturaleza, partes relacionadas).</div></div></div>
+      </div>
+    </div>
+
     <!-- CONTABILIDAD: Bienes de uso (Sprint C RT 54 · mig 073) -->
     <div class="page" id="page-bienesuso">
       <div class="page-header"><div class="page-title">Bienes de uso</div><div class="page-sub">// activos fijos e intangibles · depreciación lineal por meses · anexo RT 54</div><div class="tabs"></div></div>
@@ -3893,7 +3912,7 @@ async function loadAll(){
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',planos:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',mailings:'ventas',precios:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',kpiscalidad:'calidad',revdir:'calidad',auditorias:'calidad',competencias:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',bienesuso:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',exportables:'contabilidad',sueldos:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',planos:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',mailings:'ventas',precios:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',kpiscalidad:'calidad',revdir:'calidad',auditorias:'calidad',competencias:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',eecc:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',bienesuso:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',exportables:'contabilidad',sueldos:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
   produccion:[{k:'op',l:'Órdenes'},{k:'planos',l:'Planos'},{k:'eficiencia',l:'Eficiencia'}],
@@ -3907,7 +3926,7 @@ const GROUP_TABS={
     {k:'conciliacion',l:'Conciliación bancaria'},
     {k:'exportables',l:'Exportables'},
     {k:'libros',l:'Libros',sub:[{k:'librodiario',l:'Diario'},{k:'libromayor',l:'Mayor'}]},
-    {k:'estados',l:'Estados contables',sub:[{k:'balance',l:'Balance comprob.'},{k:'estado',l:'Estado de Rdos.'},{k:'balgral',l:'Balance general'}]},
+    {k:'estados',l:'Estados contables',sub:[{k:'balance',l:'Balance comprob.'},{k:'estado',l:'Estado de Rdos.'},{k:'balgral',l:'Balance general'},{k:'eecc',l:'EECC RT 54'}]},
     {k:'analisis',l:'Análisis',sub:[{k:'ratios',l:'Ratios'},{k:'bimon',l:'Bimonetario'},{k:'compha',l:'Hist. vs Ajust.'},{k:'compej',l:'Compar. ejerc.'}]},
     {k:'cierreinf',l:'Cierre e inflación',sub:[{k:'periodos',l:'Períodos mensuales'},{k:'ipc',l:'Índices IPC'},{k:'ajuste',l:'Ajuste inflación'},{k:'bienesuso',l:'Bienes de uso'},{k:'cierre',l:'Cierre y apertura'}]}
   ],
@@ -3919,7 +3938,7 @@ const GROUP_TABS={
 const PAGE_TO_PARENT={
   kpiscalidad:'sgc',revdir:'sgc',auditorias:'sgc',competencias:'sgc',
   librodiario:'libros',libromayor:'libros',
-  balance:'estados',estado:'estados',balgral:'estados',
+  balance:'estados',estado:'estados',balgral:'estados',eecc:'estados',
   ratios:'analisis',bimon:'analisis',compha:'analisis',compej:'analisis',
   ipc:'cierreinf',ajuste:'cierreinf',bienesuso:'cierreinf',cierre:'cierreinf',periodos:'cierreinf'
 };
@@ -6562,6 +6581,7 @@ const PAGE_RENDERS={
   ajuste:[renderAjuste],
   cierre:[renderCierre,renderCierreRT54],
   bienesuso:[renderBienesUso],
+  eecc:[renderEECC],
   compha:[renderComparativoHA],
   compej:[renderComparativoEjercicios],
   bimon:[renderBimonetario],
@@ -7814,6 +7834,351 @@ async function generarAsientoRT54(paso){
     notify(`Asiento N° ${r.numero} creado en borrador. Revisalo en Asientos y confirmalo.`);
   }catch(e){notify(e.message||'Error generando el asiento','err');}
   setBusy(btnId,false,'Generar asiento');
+}
+
+// ─── ESTADOS CONTABLES RT 54 (Sprint D) ───────────────────────
+// Genera ESP, ER, EEPN, EFE sintético, notas de composición y anexos del
+// modelo de EECC para Entidades Pequeñas (CPCECABA) a partir del rubro
+// RT 54 de cada cuenta (mig 072), con columna comparativa reexpresada a
+// moneda de cierre (IPC hasta / IPC hasta anterior). Puras con tests en
+// tests/eecc-rt54.test.js: saldosEECC, computeEstadosRT54, computeEFE.
+const RT54_ESP_ACTIVO=['caja_bancos','inversiones','cuentas_cobrar_clientes','creditos_impositivos','creditos_partes_rel','otras_cuentas_cobrar','bienes_cambio','bienes_uso','intangibles'];
+const RT54_ESP_PASIVO=['proveedores','prestamos','deudas_fiscales','deudas_laborales','deudas_especie','deudas_partes_rel','previsiones'];
+const RT54_PN=['capital','ajuste_capital','aportes_irrevocables','reserva_legal','otras_reservas','rna','resultado_ejercicio'];
+const RT54_RESULT=['ventas','cmv','gastos_comercializacion','gastos_administracion','desvalorizacion','rfyt','otros_ingresos_egresos','iigg'];
+const CIERRE_TIPOS_PATRIM=['auto-cierre-patrimoniales','auto-apertura'];
+const CIERRE_TIPOS_RESULT=['auto-cierre-resultados','auto-pasaje-resultados'];
+const _rt54Label=v=>{const r=RUBROS_RT54.find(x=>x[0]===v);return r?r[1]:v;};
+
+// Saldos por cuenta (ARS) con las reglas de los estados: siempre sin cierre/apertura
+// patrimonial (netean a cero), y sin refundición/pasaje del ejercicio en curso
+// (fecha >= ejercicioDesde) para que los resultados sigan en sus cuentas.
+function saldosEECC(lineas,asientosList,o){
+  const desde=o.desde||'',hasta=o.hasta||'',ejDesde=o.ejercicioDesde||desde;
+  const asMap={};
+  (asientosList||[]).forEach(a=>{
+    if(a.estado!=='confirmado')return;
+    if(desde&&a.fecha<desde)return;if(hasta&&a.fecha>hasta)return;
+    if(CIERRE_TIPOS_PATRIM.includes(a.tipo))return;
+    if(CIERRE_TIPOS_RESULT.includes(a.tipo)&&ejDesde&&a.fecha>=ejDesde)return;
+    if(o.excluirOrigen&&o.excluirOrigen.includes(a.origen_tipo))return;
+    asMap[a.id]=a;
+  });
+  const por={};
+  (lineas||[]).forEach(l=>{
+    const a=asMap[l.asiento_id];if(!a)return;
+    if(!por[l.cuenta_id])por[l.cuenta_id]={debe:0,haber:0};
+    por[l.cuenta_id].debe+=toARS(l.debe,a)||0;
+    por[l.cuenta_id].haber+=toARS(l.haber,a)||0;
+  });
+  return por;
+}
+function _natural(c,m){if(!m)return 0;const d=m.debe||0,h=m.haber||0;return ['activo','egreso'].includes(c.tipo)?d-h:h-d;}
+function _diaAnterior(f){const d=new Date(f+'T00:00:00');d.setDate(d.getDate()-1);return d.toISOString().slice(0,10);}
+
+// o = {cuentas, act:{saldos, inicio, mov}, ant:{saldos, inicio, mov}|null, coefAnt, desde, hasta}
+function computeEstadosRT54(o){
+  const r2=n=>Math.round((Number(n)||0)*100)/100;
+  const cuentas=(o.cuentas||[]).filter(c=>c.imputable!==false);
+  const coef=Number(o.coefAnt)||1;
+  const ant=o.ant||null;
+  const sinRubro=cuentas.filter(c=>c.activa!==false&&!c.rubro_rt54&&(o.act.saldos[c.id]||o.act.mov[c.id])).map(c=>`${c.codigo} ${c.nombre}`);
+  const sum=(saldos,pred)=>r2(cuentas.filter(pred).reduce((s,c)=>s+_natural(c,saldos[c.id]),0));
+  const sumR=(saldos,rubro,grupo)=>sum(saldos,c=>c.rubro_rt54===rubro&&(!grupo||_grupoBimon(c)===grupo));
+  const cuentasDe=(saldosA,saldosB,pred)=>cuentas.filter(c=>pred(c)&&(Math.abs(_natural(c,saldosA[c.id]))>=0.01||(saldosB&&Math.abs(_natural(c,saldosB[c.id]))>=0.01)))
+    .sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'',undefined,{numeric:true}))
+    .map(c=>({codigo:c.codigo,nombre:c.nombre,actual:r2(_natural(c,saldosA[c.id])),anterior:saldosB?r2(_natural(c,saldosB[c.id])*coef):null}));
+  const bloque=(rubros,grupo)=>rubros.map(rb=>({rubro:rb,label:_rt54Label(rb),actual:sumR(o.act.saldos,rb,grupo),anterior:ant?r2(sumR(ant.saldos,rb,grupo)*coef):null,
+      cuentas:cuentasDe(o.act.saldos,ant?ant.saldos:null,c=>c.rubro_rt54===rb&&_grupoBimon(c)===grupo)}))
+    .filter(x=>Math.abs(x.actual)>=0.01||Math.abs(x.anterior||0)>=0.01);
+  const tot=(arr,k)=>r2(arr.reduce((s,x)=>s+(x[k]||0),0));
+  // ── Estado de resultados (movimientos del ejercicio) ──
+  const erDe=(mov)=>{
+    const g=rb=>sum(mov,c=>c.rubro_rt54===rb&&c.tipo==='ingreso')-sum(mov,c=>c.rubro_rt54===rb&&c.tipo==='egreso');
+    const ventas=g('ventas'),cmv=g('cmv'),bruto=r2(ventas+cmv);
+    const gcom=g('gastos_comercializacion'),gadm=g('gastos_administracion'),desv=g('desvalorizacion'),rfyt=g('rfyt'),otros=g('otros_ingresos_egresos');
+    const antesIIGG=r2(bruto+gcom+gadm+desv+rfyt+otros);
+    const iigg=g('iigg');
+    const resultado=r2(antesIIGG+iigg);
+    const sinRubroRes=sum(mov,c=>['ingreso','egreso'].includes(c.tipo)&&!c.rubro_rt54);
+    return {ventas,cmv,bruto,gastos_comercializacion:gcom,gastos_administracion:gadm,desvalorizacion:desv,rfyt,otros_ingresos_egresos:otros,antesIIGG,iigg,resultado,sinRubro:sinRubroRes};
+  };
+  const erAct=erDe(o.act.mov);
+  const erAnt=ant?erDe(ant.mov):null;
+  const erLineas=[
+    ['ventas','Ingresos por la venta de bienes'],['cmv','Costo de los bienes vendidos'],['bruto','Ganancia (pérdida) bruta'],
+    ['gastos_comercializacion','Gastos de comercialización'],['gastos_administracion','Gastos de administración'],
+    ['desvalorizacion','Reversión (pérdidas) por desvalorización'],['rfyt','Resultados financieros y por tenencia (incl. RECPAM)'],
+    ['otros_ingresos_egresos','Otros ingresos y egresos'],['antesIIGG','Ganancia (pérdida) antes del impuesto a las ganancias'],
+    ['iigg','Impuesto a las ganancias'],['resultado','Ganancia (pérdida) del ejercicio'],
+  ].map(([k,label])=>({k,label,actual:erAct[k],anterior:erAnt?r2(erAnt[k]*coef):null,total:['bruto','antesIIGG','resultado'].includes(k)}));
+  // ── ESP ──
+  const resultAcum=saldos=>sum(saldos,c=>['ingreso','egreso'].includes(c.tipo)&&c.tipo==='ingreso')-sum(saldos,c=>c.tipo==='egreso');
+  const resAcumAct=resultAcum(o.act.saldos);
+  const resAcumAnt=ant?resultAcum(ant.saldos):0;
+  const pnLinea=(rb,saldos,extra)=>r2(sumR(saldos,rb)+(extra||0));
+  const pn=RT54_PN.map(rb=>{
+    let actual,anterior=null;
+    if(rb==='resultado_ejercicio'){actual=pnLinea(rb,o.act.saldos,erAct.resultado);anterior=ant?r2(pnLinea(rb,ant.saldos,erAnt.resultado)*coef):null;}
+    else if(rb==='rna'){actual=pnLinea(rb,o.act.saldos,resAcumAct-erAct.resultado);anterior=ant?r2(pnLinea(rb,ant.saldos,resAcumAnt-erAnt.resultado)*coef):null;}
+    else{actual=pnLinea(rb,o.act.saldos);anterior=ant?r2(pnLinea(rb,ant.saldos)*coef):null;}
+    return {rubro:rb,label:_rt54Label(rb),actual,anterior};
+  }).filter(x=>Math.abs(x.actual)>=0.01||Math.abs(x.anterior||0)>=0.01);
+  const esp={
+    activoCorriente:bloque(RT54_ESP_ACTIVO,'AC'),activoNoCorriente:bloque(RT54_ESP_ACTIVO,'ANC'),
+    pasivoCorriente:bloque(RT54_ESP_PASIVO,'PC'),pasivoNoCorriente:bloque(RT54_ESP_PASIVO,'PNC'),pn,
+  };
+  esp.totAC=tot(esp.activoCorriente,'actual');esp.totANC=tot(esp.activoNoCorriente,'actual');esp.totActivo=r2(esp.totAC+esp.totANC);
+  esp.totPC=tot(esp.pasivoCorriente,'actual');esp.totPNC=tot(esp.pasivoNoCorriente,'actual');esp.totPasivo=r2(esp.totPC+esp.totPNC);
+  esp.totPN=tot(pn,'actual');esp.totPasivoPN=r2(esp.totPasivo+esp.totPN);
+  esp.dif=r2(esp.totActivo-esp.totPasivoPN);esp.cuadra=Math.abs(esp.dif)<0.01;
+  if(ant){
+    esp.totACAnt=tot(esp.activoCorriente,'anterior');esp.totANCAnt=tot(esp.activoNoCorriente,'anterior');esp.totActivoAnt=r2(esp.totACAnt+esp.totANCAnt);
+    esp.totPCAnt=tot(esp.pasivoCorriente,'anterior');esp.totPNCAnt=tot(esp.pasivoNoCorriente,'anterior');esp.totPasivoAnt=r2(esp.totPCAnt+esp.totPNCAnt);
+    esp.totPNAnt=tot(pn,'anterior');esp.totPasivoPNAnt=r2(esp.totPasivoAnt+esp.totPNAnt);esp.difAnt=r2(esp.totActivoAnt-esp.totPasivoPNAnt);
+  }
+  // ── EEPN ──
+  const cols=['capital','ajuste_capital','aportes_irrevocables','reserva_legal','otras_reservas','rna'];
+  const resInicio=resultAcum(o.act.inicio);
+  const eepn={cols:cols.map(c=>({k:c,label:_rt54Label(c)})),filas:[]};
+  const fila=(label,fn)=>{const f={label,vals:{}};cols.forEach(c=>{f.vals[c]=r2(fn(c));});f.total=r2(cols.reduce((s,c)=>s+f.vals[c],0));eepn.filas.push(f);return f;};
+  fila('Saldos al inicio del ejercicio',c=>sumR(o.act.inicio,c)+(c==='rna'?resInicio:0));
+  fila('Reexpresión y otros movimientos del ejercicio',c=>sumR(o.act.mov,c));
+  fila('Ganancia (pérdida) del ejercicio',c=>c==='rna'?erAct.resultado:0);
+  fila('Saldos al cierre del ejercicio',c=>sumR(o.act.saldos,c)+(c==='rna'?resAcumAct:0));
+  // ── Anexos sobre saldos/movimientos ──
+  const codigoCMV=c=>String(c.codigo||'').startsWith('51');
+  const gastosNat=(()=>{
+    const filas={};
+    cuentas.filter(c=>c.tipo==='egreso'&&['cmv','gastos_comercializacion','gastos_administracion'].includes(c.rubro_rt54)&&!codigoCMV(c)).forEach(c=>{
+      const v=_natural(c,o.act.mov[c.id]);if(Math.abs(v)<0.01)return;
+      const k=(c.naturaleza||c.nombre||'').trim();
+      if(!filas[k])filas[k]={concepto:k,cmv:0,gastos_comercializacion:0,gastos_administracion:0,total:0};
+      filas[k][c.rubro_rt54]=r2(filas[k][c.rubro_rt54]+v);filas[k].total=r2(filas[k].total+v);
+    });
+    const arr=Object.values(filas).sort((a,b)=>b.total-a.total);
+    const total={concepto:'Total',cmv:tot(arr,'cmv'),gastos_comercializacion:tot(arr,'gastos_comercializacion'),gastos_administracion:tot(arr,'gastos_administracion'),total:tot(arr,'total')};
+    return {filas:arr,total};
+  })();
+  const anexoCMV=(()=>{
+    const ei=sum(o.act.inicio,c=>c.rubro_rt54==='bienes_cambio');
+    const ef=sum(o.act.saldos,c=>c.rubro_rt54==='bienes_cambio');
+    const compras=r2(cuentas.filter(c=>c.rubro_rt54==='bienes_cambio').reduce((s,c)=>s+((o.act.movCompras||o.act.mov)[c.id]?.debe||0),0));
+    const prod=sum(o.act.mov,c=>c.rubro_rt54==='cmv'&&!codigoCMV(c));
+    const cmvContab=sum(o.act.mov,c=>c.rubro_rt54==='cmv'&&codigoCMV(c));
+    return {existenciaInicial:ei,compras,costoProduccion:prod,existenciaFinal:ef,cmv:r2(ei+compras+prod-ef),cmvContabilizado:cmvContab,cmvTotalER:r2(-erAct.cmv)};
+  })();
+  const previsiones=cuentas.filter(c=>c.rubro_rt54==='previsiones'||(c.tipo==='activo'&&c.saldo_habitual==='acreedor'&&/previsi/i.test(c.nombre||''))).map(c=>{
+    const ini=_natural(c,o.act.inicio[c.id]),fin=_natural(c,o.act.saldos[c.id]);const m=o.act.mov[c.id]||{debe:0,haber:0};
+    const inicio=c.tipo==='activo'?-ini:ini,cierre=c.tipo==='activo'?-fin:fin;
+    return {codigo:c.codigo,nombre:c.nombre,deducidaDelActivo:c.tipo==='activo',inicio:r2(inicio),aumentos:r2(m.haber||0),disminuciones:r2(m.debe||0),cierre:r2(cierre)};
+  }).filter(p=>Math.abs(p.inicio)>=0.01||Math.abs(p.cierre)>=0.01||p.aumentos>=0.01||p.disminuciones>=0.01);
+  const partesRel=cuentas.filter(c=>['creditos_partes_rel','deudas_partes_rel'].includes(c.rubro_rt54)).map(c=>({codigo:c.codigo,nombre:c.nombre,credito:c.tipo==='activo'?r2(_natural(c,o.act.saldos[c.id])):0,deuda:c.tipo==='pasivo'?r2(_natural(c,o.act.saldos[c.id])):0,creditoAnt:ant&&c.tipo==='activo'?r2(_natural(c,ant.saldos[c.id])*coef):0,deudaAnt:ant&&c.tipo==='pasivo'?r2(_natural(c,ant.saldos[c.id])*coef):0}))
+    .filter(p=>Math.abs(p.credito)+Math.abs(p.deuda)+Math.abs(p.creditoAnt)+Math.abs(p.deudaAnt)>=0.01);
+  // Notas de composición: todos los rubros del ESP con sus cuentas
+  const notas=[];
+  [['Activo corriente',esp.activoCorriente],['Activo no corriente',esp.activoNoCorriente],['Pasivo corriente',esp.pasivoCorriente],['Pasivo no corriente',esp.pasivoNoCorriente]].forEach(([seccion,arr])=>{
+    arr.forEach(b=>notas.push({seccion,rubro:b.rubro,label:b.label,actual:b.actual,anterior:b.anterior,cuentas:b.cuentas}));
+  });
+  const ventasDet=cuentasDe(o.act.mov,ant?ant.mov:null,c=>c.rubro_rt54==='ventas');
+  return {desde:o.desde,hasta:o.hasta,coefAnt:coef,tieneAnterior:!!ant,sinRubro,esp,er:{lineas:erLineas,act:erAct,ant:erAnt},eepn,gastosNat,anexoCMV,previsiones,partesRel,notas,ventasDet};
+}
+
+// EFE sintético por método directo sobre los asientos que tocan efectivo
+// (rubro caja_bancos). Clasificación por el rubro de la contrapartida.
+function computeEFE(o){
+  const r2=n=>Math.round((Number(n)||0)*100)/100;
+  const byCta={};(o.cuentas||[]).forEach(c=>{byCta[c.id]=c;});
+  const esEfectivo=c=>c&&c.rubro_rt54==='caja_bancos';
+  const asMap={};(o.asientos||[]).forEach(a=>{if(a.estado==='confirmado'&&a.fecha>=o.desde&&a.fecha<=o.hasta&&!CIERRE_TIPOS_PATRIM.includes(a.tipo))asMap[a.id]=a;});
+  const porAs={};
+  (o.lineas||[]).forEach(l=>{const a=asMap[l.asiento_id];if(!a)return;if(!porAs[a.id])porAs[a.id]={a,ef:0,contra:[]};const c=byCta[l.cuenta_id];const m=(toARS(l.debe,a)||0)-(toARS(l.haber,a)||0);if(esEfectivo(c))porAs[a.id].ef+=m;else porAs[a.id].contra.push({c,m});});
+  const INV=['bienes_uso','intangibles','inversiones'],FIN=['prestamos','capital','aportes_irrevocables','ajuste_capital','rna','reserva_legal','otras_reservas'];
+  const op={cobros_clientes:0,pagos_proveedores:0,sueldos_cargas:0,impuestos:0,otros:0},inv={altas:0,bajas:0,inversiones:0},fin={prestamos:0,aportes_dividendos:0};
+  Object.values(porAs).forEach(x=>{
+    if(Math.abs(x.ef)<0.005)return;
+    const rubros=x.contra.map(y=>y.c?y.c.rubro_rt54:null);
+    const tiene=list=>rubros.some(r=>list.includes(r));
+    if(tiene(INV)){
+      if(rubros.includes('inversiones')&&!rubros.some(r=>['bienes_uso','intangibles'].includes(r)))inv.inversiones+=x.ef;
+      else if(x.ef<0)inv.altas+=x.ef;else inv.bajas+=x.ef;
+    }else if(tiene(FIN)){
+      if(rubros.includes('prestamos'))fin.prestamos+=x.ef;else fin.aportes_dividendos+=x.ef;
+    }else{
+      const laboral=rubros.includes('deudas_laborales')||x.contra.some(y=>y.c&&/sueldo|jornal|cargas soc|\bSAC\b|aguinaldo|vacacion/i.test(y.c.nombre||''));
+      if(x.ef>0&&(rubros.includes('cuentas_cobrar_clientes')||rubros.includes('ventas')||rubros.includes('deudas_especie')))op.cobros_clientes+=x.ef;
+      else if(laboral)op.sueldos_cargas+=x.ef;
+      else if(x.ef<0&&(rubros.includes('proveedores')||rubros.includes('bienes_cambio')||rubros.includes('cmv')))op.pagos_proveedores+=x.ef;
+      else if(rubros.includes('deudas_fiscales')||rubros.includes('creditos_impositivos')||rubros.includes('iigg'))op.impuestos+=x.ef;
+      else op.otros+=x.ef;
+    }
+  });
+  const inicio=r2((o.cuentas||[]).filter(esEfectivo).reduce((s,c)=>s+_natural(c,(o.saldosInicio||{})[c.id]),0));
+  const cierre=r2((o.cuentas||[]).filter(esEfectivo).reduce((s,c)=>s+_natural(c,(o.saldosCierre||{})[c.id]),0));
+  Object.keys(op).forEach(k=>{op[k]=r2(op[k]);});Object.keys(inv).forEach(k=>{inv[k]=r2(inv[k]);});Object.keys(fin).forEach(k=>{fin[k]=r2(fin[k]);});
+  const totOp=r2(Object.values(op).reduce((s,v)=>s+v,0)),totInv=r2(Object.values(inv).reduce((s,v)=>s+v,0)),totFin=r2(Object.values(fin).reduce((s,v)=>s+v,0));
+  const variacion=r2(cierre-inicio);
+  const recpamEfectivo=r2(variacion-totOp-totInv-totFin);   // asientos de ajuste/diferencia que tocan efectivo sin contrapartida operativa
+  return {inicio,cierre,variacion,op,inv,fin,totOp,totInv,totFin,recpamEfectivo};
+}
+
+// ── Página Estados RT 54 ──
+let eeccPreview=null;
+function _eeccEjercicioSel(){
+  const sel=document.getElementById('eecc-ejercicio');
+  const desde=document.getElementById('eecc-desde'),hasta=document.getElementById('eecc-hasta');
+  if(sel&&sel.value&&sel.value!=='__manual__'){const e=ejercicios.find(x=>x.id===sel.value);if(e){desde.value=e.fecha_inicio;hasta.value=e.fecha_fin;}}
+  return {desde:desde?.value||'',hasta:hasta?.value||''};
+}
+function renderEECC(){
+  const sel=document.getElementById('eecc-ejercicio');if(!sel)return;
+  if(!sel.options.length||sel.dataset.n!==String(ejercicios.length)){
+    sel.innerHTML=ejercicios.slice().sort((a,b)=>(b.numero||0)-(a.numero||0)).map(e=>`<option value="${e.id}">N° ${e.numero} · ${fmtFecha(e.fecha_inicio)} → ${fmtFecha(e.fecha_fin)}${e.estado==='cerrado'?' [CERRADO]':''}</option>`).join('')+'<option value="__manual__">— fechas manuales —</option>';
+    sel.dataset.n=String(ejercicios.length);
+    if(!ejercicios.length){sel.value='__manual__';const ej=_ejercicioVigente();document.getElementById('eecc-desde').value=ej.desde;document.getElementById('eecc-hasta').value=ej.hasta;}
+  }
+  const tcEl=document.getElementById('eecc-tc');if(tcEl&&!tcEl.value&&cotizacion.venta)tcEl.value=cotizacion.venta;
+  _eeccEjercicioSel();
+  const emp=document.getElementById('eecc-empresa');if(emp)emp.textContent=`${currentEmpresa?.nombre||''} · CUIT ${currentEmpresa?.cuit||'—'}`;
+  if(eeccPreview)pintarEECC();
+}
+function _eeccArmar(){
+  const {desde,hasta}=_eeccEjercicioSel();
+  if(!desde||!hasta||desde>=hasta)throw new Error('Definí inicio y cierre del ejercicio');
+  const comparativo=document.getElementById('eecc-comparativo')?.checked!==false;
+  const tc=parseFloat(document.getElementById('eecc-tc')?.value)||0;
+  const inicioDia=_diaAnterior(desde);
+  const act={
+    saldos:saldosEECC(asientoLineas,asientos,{hasta,ejercicioDesde:desde}),
+    inicio:saldosEECC(asientoLineas,asientos,{hasta:inicioDia,ejercicioDesde:desde}),
+    mov:saldosEECC(asientoLineas,asientos,{desde,hasta,ejercicioDesde:desde}),
+    movCompras:saldosEECC(asientoLineas,asientos,{desde,hasta,ejercicioDesde:desde,excluirOrigen:['cierre_rt54','ajuste_inflacion','depreciacion']}),
+  };
+  let ant=null,coefAnt=1,notaCoef='';
+  if(comparativo){
+    const dA=new Date(desde+'T00:00:00'),hA=new Date(hasta+'T00:00:00');
+    const antHasta=inicioDia;
+    const antDesde=(()=>{const d=new Date(dA);d.setFullYear(d.getFullYear()-1);return d.toISOString().slice(0,10);})();
+    const prev=ejercicios.find(e=>e.fecha_fin===antHasta);
+    const aD=prev?prev.fecha_inicio:antDesde;
+    ant={
+      saldos:saldosEECC(asientoLineas,asientos,{hasta:antHasta,ejercicioDesde:aD}),
+      inicio:saldosEECC(asientoLineas,asientos,{hasta:_diaAnterior(aD),ejercicioDesde:aD}),
+      mov:saldosEECC(asientoLineas,asientos,{desde:aD,hasta:antHasta,ejercicioDesde:aD}),
+      desde:aD,hasta:antHasta,
+    };
+    const idx=_ipcMap(indicesIpc);const iA=ipcMasCercano(idx,hasta.slice(0,7)),iB=ipcMasCercano(idx,antHasta.slice(0,7));
+    if(iA&&iB){coefAnt=iA.indice/iB.indice;notaCoef=`Comparativo reexpresado × ${coefAnt.toFixed(4)} (IPC ${iA.mesUsado} / IPC ${iB.mesUsado})`;}
+    else notaCoef='Sin índices IPC: comparativo en valores nominales';
+    void hA;
+  }
+  const r=computeEstadosRT54({cuentas:cuentasContables,act,ant,coefAnt,desde,hasta});
+  r.notaCoef=notaCoef;r.antDesde=ant?ant.desde:null;r.antHasta=ant?ant.hasta:null;
+  r.efe=computeEFE({lineas:asientoLineas,asientos,cuentas:cuentasContables,desde,hasta,saldosInicio:act.inicio,saldosCierre:act.saldos});
+  r.efeAnt=ant?computeEFE({lineas:asientoLineas,asientos,cuentas:cuentasContables,desde:ant.desde,hasta:ant.hasta,saldosInicio:ant.inicio,saldosCierre:ant.saldos}):null;
+  r.bienesUso=computeAnexoBienesUso(bienesUso,depreciacionesVivas(),desde,hasta);
+  r.me=tc>0?computeDiferenciaCambio(asientoLineas.filter(l=>{const a=asientos.find(x=>x.id===l.asiento_id);return a&&a.fecha<=hasta;}),asientos,cuentasContables,tc,{cta_dif_cambio:configContable?.cta_dif_cambio||'x'}):null;
+  r.tc=tc;r.empresa={nombre:currentEmpresa?.nombre||'',cuit:currentEmpresa?.cuit||''};
+  return r;
+}
+function calcularEECC(){
+  try{eeccPreview=_eeccArmar();pintarEECC();const b=document.getElementById('btn-eecc-xlsx');if(b){b.disabled=false;b.style.opacity='1';}}
+  catch(e){notify(e.message||'Error armando los estados','err');}
+}
+function pintarEECC(){
+  const p=eeccPreview;const cont=document.getElementById('eecc-content');if(!cont||!p)return;
+  const f=v=>v==null?'':(v<0?`(${fmtARS(-v)})`:fmtARS(v));
+  const col=p.tieneAnterior;
+  const th=`<tr><th></th><th style="text-align:right">${fmtFecha(p.hasta)}</th>${col?`<th style="text-align:right">${fmtFecha(p.antHasta)}</th>`:''}</tr>`;
+  const row=(label,a,b,cls)=>`<tr${cls?` style="${cls}"`:''}><td>${label}</td><td class="mono" style="text-align:right">${f(a)}</td>${col?`<td class="mono" style="text-align:right;color:var(--text2)">${f(b)}</td>`:''}</tr>`;
+  const bold='font-weight:600;background:var(--surface2)';
+  const bloque=(titulo,arr,totA,totB)=>`<tr><td colspan="${col?3:2}" style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);padding-top:10px">${titulo}</td></tr>`+arr.map(b=>row(b.label,b.actual,b.anterior)).join('')+row(`Total ${titulo.toLowerCase()}`,totA,totB,bold);
+  const e=p.esp;
+  const esp=`<table style="width:100%"><thead>${th}</thead><tbody>`+
+    bloque('Activo corriente',e.activoCorriente,e.totAC,e.totACAnt)+bloque('Activo no corriente',e.activoNoCorriente,e.totANC,e.totANCAnt)+row('TOTAL DEL ACTIVO',e.totActivo,e.totActivoAnt,bold)+
+    bloque('Pasivo corriente',e.pasivoCorriente,e.totPC,e.totPCAnt)+bloque('Pasivo no corriente',e.pasivoNoCorriente,e.totPNC,e.totPNCAnt)+row('TOTAL DEL PASIVO',e.totPasivo,e.totPasivoAnt,bold)+
+    bloque('Patrimonio neto',e.pn,e.totPN,e.totPNAnt)+row('TOTAL DEL PASIVO Y PATRIMONIO NETO',e.totPasivoPN,e.totPasivoPNAnt,bold)+`</tbody></table>`;
+  const er=`<table style="width:100%"><thead>${th}</thead><tbody>`+p.er.lineas.map(l=>row(l.label,l.actual,l.anterior,l.total?bold:'')).join('')+`</tbody></table>`;
+  const ef=p.efe;const efA=p.efeAnt;
+  const efeRow=(label,k,grp)=>row(label,grp?ef[grp][k]:ef[k],efA?(grp?efA[grp][k]:efA[k]):null);
+  const efe=`<table style="width:100%"><thead>${th}</thead><tbody>`+efeRow('Efectivo al inicio del ejercicio','inicio')+efeRow('Efectivo al cierre del ejercicio','cierre')+row('Aumento (disminución) neto del efectivo',ef.variacion,efA?efA.variacion:null,bold)+
+    `<tr><td colspan="${col?3:2}" style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);padding-top:10px">Actividades operativas</td></tr>`+efeRow('Cobros a clientes','cobros_clientes','op')+efeRow('Pagos a proveedores','pagos_proveedores','op')+efeRow('Sueldos y cargas sociales','sueldos_cargas','op')+efeRow('Impuestos','impuestos','op')+efeRow('Otros','otros','op')+row('Flujo neto de actividades operativas',ef.totOp,efA?efA.totOp:null,bold)+
+    `<tr><td colspan="${col?3:2}" style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);padding-top:10px">Actividades de inversión</td></tr>`+efeRow('Altas de bienes de uso e intangibles','altas','inv')+efeRow('Bajas de bienes de uso','bajas','inv')+efeRow('Inversiones financieras','inversiones','inv')+row('Flujo neto de actividades de inversión',ef.totInv,efA?efA.totInv:null,bold)+
+    `<tr><td colspan="${col?3:2}" style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);padding-top:10px">Actividades de financiación</td></tr>`+efeRow('Préstamos','prestamos','fin')+efeRow('Aportes y distribuciones','aportes_dividendos','fin')+row('Flujo neto de actividades de financiación',ef.totFin,efA?efA.totFin:null,bold)+
+    row('Resultados financieros y por tenencia del efectivo (incl. RECPAM)',ef.recpamEfectivo,efA?efA.recpamEfectivo:null)+`</tbody></table>`;
+  const aviso=(p.sinRubro.length?`<div style="margin-bottom:10px;padding:8px 14px;background:rgba(224,82,82,.08);border:1px solid rgba(224,82,82,.3);border-left:3px solid var(--red);border-radius:var(--r-sm);color:var(--red);font-size:11px;line-height:1.5">⚠ Cuentas con saldo sin rubro RT 54 (no aparecen en los estados): ${p.sinRubro.map(esc).join(' · ')}. Asignalo en Plan de cuentas → Editar.</div>`:'')+
+    (!e.cuadra?`<div style="margin-bottom:10px;padding:8px 14px;background:rgba(224,82,82,.08);border:1px solid rgba(224,82,82,.3);border-left:3px solid var(--red);border-radius:var(--r-sm);color:var(--red);font-size:11px">⚠ El ESP no cuadra: diferencia ${fmtARS(e.dif)} (cuentas sin rubro, asientos en borrador o resultados de ejercicios anteriores sin refundir).</div>`:'')+
+    `<div style="margin-bottom:12px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r-sm);font-size:12px;color:var(--text2);line-height:1.6"><b style="color:var(--text)">Ejercicio:</b> ${fmtFecha(p.desde)} → ${fmtFecha(p.hasta)}${col?` <span style="color:var(--text3)">·</span> <b style="color:var(--text)">Comparativo:</b> ${fmtFecha(p.antDesde)} → ${fmtFecha(p.antHasta)} · ${esc(p.notaCoef)}`:''} <span style="color:var(--text3)">·</span> ${e.cuadra?'<span style="color:var(--green)">✓ Activo = Pasivo + PN</span>':''} <span style="color:var(--text3)">·</span> Resultado del ejercicio <b class="mono" style="color:${p.er.act.resultado>=0?'var(--green)':'var(--red)'}">${fmtARS(p.er.act.resultado)}</b></div>`;
+  const card=(t,html)=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;font-size:12px"><div style="font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">${t}</div>${html}</div>`;
+  cont.innerHTML=aviso+`<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">${card('Estado de situación patrimonial',esp)}<div style="display:flex;flex-direction:column;gap:14px">${card('Estado de resultados',er)}${card('Estado de flujos de efectivo (sintético)',efe)}</div></div>`;
+}
+function eeccHojas(p){
+  const H=s=>({v:s,s:'header'});const M=n=>({v:Math.round((Number(n)||0)*100)/100,t:'n',s:'money'});const MT=n=>({v:Math.round((Number(n)||0)*100)/100,t:'n',s:'moneyTotal'});const TT=s=>({v:s,s:'textTotal'});const TB=s=>({v:s,s:'textBold'});
+  const col=p.tieneAnterior;const hdr=[H(''),H(fmtFecha(p.hasta))].concat(col?[H(fmtFecha(p.antHasta))]:[]);
+  const R=(label,a,b,tot)=>tot?[TT(label),MT(a)].concat(col?[MT(b)]:[]):[label,M(a)].concat(col?[M(b)]:[]);
+  const titulo=(t)=>[[TB(p.empresa.nombre)],[TB(t)],[`Por el ejercicio finalizado el ${fmtFecha(p.hasta)}${col?', comparativo con el ejercicio anterior':''}. En moneda homogénea. ${col?p.notaCoef:''}`],[]];
+  const hojas=[];
+  hojas.push({nombre:'Carátula',cols:[34,40],filas:[[TB(p.empresa.nombre)],[TB(`ESTADOS CONTABLES AL ${fmtFecha(p.hasta)}`)],[],['CUIT',p.empresa.cuit],['Ejercicio económico',`${fmtFecha(p.desde)} al ${fmtFecha(p.hasta)}`],['Unidad de medida','Moneda homogénea (RT 54, serie IPC FACPCE/INDEC)'],['Entidad','Entidad Pequeña (EP) — RT 54 Título I'],['Comparativo',col?`${fmtFecha(p.antDesde)} al ${fmtFecha(p.antHasta)} · ${p.notaCoef}`:'—'],[],['Generado por','VitalStock ERP — revisar y completar por el contador antes de emitir']]});
+  const e=p.esp;const espF=titulo('ESTADO DE SITUACIÓN PATRIMONIAL').concat([hdr]);
+  const blk=(t,arr,ta,tb)=>{espF.push([TB(t)]);arr.forEach(b=>espF.push(R(b.label,b.actual,b.anterior)));espF.push(R(`Total ${t.toLowerCase()}`,ta,tb,true));};
+  blk('ACTIVO CORRIENTE',e.activoCorriente,e.totAC,e.totACAnt);blk('ACTIVO NO CORRIENTE',e.activoNoCorriente,e.totANC,e.totANCAnt);espF.push(R('TOTAL DEL ACTIVO',e.totActivo,e.totActivoAnt,true));espF.push([]);
+  blk('PASIVO CORRIENTE',e.pasivoCorriente,e.totPC,e.totPCAnt);blk('PASIVO NO CORRIENTE',e.pasivoNoCorriente,e.totPNC,e.totPNCAnt);espF.push(R('TOTAL DEL PASIVO',e.totPasivo,e.totPasivoAnt,true));
+  blk('PATRIMONIO NETO (según estado correspondiente)',e.pn,e.totPN,e.totPNAnt);espF.push(R('TOTAL DEL PASIVO Y PATRIMONIO NETO',e.totPasivoPN,e.totPasivoPNAnt,true));
+  hojas.push({nombre:'1-ESP',cols:[52,18,18],filas:espF});
+  const erF=titulo('ESTADO DE RESULTADOS').concat([hdr]);p.er.lineas.forEach(l=>erF.push(R(l.label,l.actual,l.anterior,l.total)));
+  hojas.push({nombre:'2-ER',cols:[56,18,18],filas:erF});
+  const ep=p.eepn;const epF=titulo('ESTADO DE EVOLUCIÓN DEL PATRIMONIO NETO').concat([[H('Rubros')].concat(ep.cols.map(c=>H(c.label))).concat([H('Total')])]);
+  ep.filas.forEach((f,i)=>{const last=i===ep.filas.length-1;epF.push([last?TT(f.label):f.label].concat(ep.cols.map(c=>last?MT(f.vals[c.k]):M(f.vals[c.k]))).concat([last?MT(f.total):M(f.total)]));});
+  hojas.push({nombre:'3-EEPN',cols:[40,16,16,16,16,16,18,18],filas:epF});
+  const ef=p.efe,efA=p.efeAnt;const efF=titulo('ESTADO DE FLUJOS DE EFECTIVO (en forma sintética, método directo)').concat([hdr]);
+  const eR=(l,k,g,t)=>efF.push(R(l,g?ef[g][k]:ef[k],efA?(g?efA[g][k]:efA[k]):null,t));
+  efF.push([TB('VARIACIONES DEL EFECTIVO')]);eR('Efectivo al inicio del ejercicio','inicio');eR('Efectivo al cierre del ejercicio','cierre');eR('Aumento (disminución) neto del efectivo','variacion',null,true);efF.push([]);
+  efF.push([TB('CAUSAS DE LA VARIACIÓN — Actividades operativas')]);eR('Cobros a clientes','cobros_clientes','op');eR('Pagos a proveedores de bienes y servicios','pagos_proveedores','op');eR('Sueldos y cargas sociales','sueldos_cargas','op');eR('Impuestos','impuestos','op');eR('Otros cobros y pagos operativos','otros','op');eR('Flujo neto de efectivo generado por (utilizado en) las actividades operativas','totOp',null,true);
+  efF.push([TB('Actividades de inversión')]);eR('Altas de bienes de uso e intangibles','altas','inv');eR('Cobros por bajas de bienes de uso','bajas','inv');eR('Inversiones financieras','inversiones','inv');eR('Flujo neto de efectivo generado por (utilizado en) las actividades de inversión','totInv',null,true);
+  efF.push([TB('Actividades de financiación')]);eR('Préstamos tomados (cancelados)','prestamos','fin');eR('Aportes de los propietarios / distribuciones','aportes_dividendos','fin');eR('Flujo neto de efectivo generado por (utilizado en) las actividades de financiación','totFin',null,true);
+  eR('Resultados financieros y por tenencia del efectivo (incl. RECPAM)','recpamEfectivo');eR('Aumento (disminución) neto del efectivo','variacion',null,true);
+  efF.push([]);efF.push(['Efectivo = cuentas con rubro "Caja y bancos". Conciliación con el ESP: coincide con el rubro Caja y bancos del activo corriente.']);
+  hojas.push({nombre:'4-EFE',cols:[70,18,18],filas:efF});
+  const nF=titulo('NOTAS — COMPOSICIÓN DE LOS RUBROS').concat([hdr]);let n=1;
+  p.notas.forEach(nt=>{nF.push([TB(`3.${n++} ${nt.label} (${nt.seccion})`)]);nt.cuentas.forEach(c=>nF.push(R(`${c.codigo} ${c.nombre}`,c.actual,c.anterior)));nF.push(R('Total',nt.actual,nt.anterior,true));nF.push([]);});
+  nF.push([TB(`3.${n++} Ingresos por la venta de bienes`)]);p.ventasDet.forEach(c=>nF.push(R(`${c.codigo} ${c.nombre}`,c.actual,c.anterior)));nF.push(R('Total',p.er.act.ventas,p.er.ant?Math.round(p.er.ant.ventas*p.coefAnt*100)/100:null,true));
+  hojas.push({nombre:'Notas',cols:[52,18,18],filas:nF});
+  const meF=titulo('ANEXO — ACTIVOS Y PASIVOS EN MONEDA EXTRANJERA').concat([[H('Cuenta'),H('Moneda'),H('Monto en ME'),H('TC de cierre'),H('Monto en moneda local'),H('Contabilizado'),H('Diferencia')]]);
+  if(p.me&&p.me.filas){p.me.filas.forEach(x=>meF.push([`${x.cuenta.codigo} ${x.cuenta.nombre}`,'USD',M(x.saldoUsd),M(p.tc),M(x.arsCierre),M(x.arsContable),M(x.dif)]));meF.push([TT('Total'),'','','','','',MT(p.me.total)]);}
+  else meF.push(['Sin TC de cierre cargado o sin exposición registrada en USD']);
+  hojas.push({nombre:'Anexo ME',cols:[40,8,16,12,20,18,16],filas:meF});
+  const bu=p.bienesUso;const buF=titulo('ANEXO — BIENES DE USO').concat([[H('Rubro'),H('Al inicio'),H('Altas'),H('Bajas'),H('Al cierre'),H('Amort. al inicio'),H('Del ejercicio'),H('Amort. bajas'),H('Amort. al cierre'),H('Neto al cierre'),H('Neto anterior')]]);
+  bu.filas.forEach(f=>buF.push([f.label,M(f.valorInicio),M(f.altas),M(f.bajas),M(f.valorCierre),M(f.amortInicio),M(f.amortEjercicio),M(f.amortBajas),M(f.amortCierre),M(f.netoCierre),M(f.netoInicio)]));
+  buF.push([TT('Total'),MT(bu.total.valorInicio),MT(bu.total.altas),MT(bu.total.bajas),MT(bu.total.valorCierre),MT(bu.total.amortInicio),MT(bu.total.amortEjercicio),MT(bu.total.amortBajas),MT(bu.total.amortCierre),MT(bu.total.netoCierre),MT(bu.total.netoInicio)]);
+  buF.push([]);buF.push(['Valores nominales del subledger Bienes de uso; la reexpresión a moneda de cierre está en las cuentas 122xxx vía ajuste por inflación.']);
+  hojas.push({nombre:'Anexo BU',cols:[26,16,14,14,16,16,14,14,16,16,16],filas:buF});
+  const prF=titulo('ANEXO — PREVISIONES').concat([[H('Rubro'),H('Saldo al inicio'),H('Aumentos'),H('Disminuciones'),H('Saldo al cierre')]]);
+  const prA=p.previsiones.filter(x=>x.deducidaDelActivo),prP=p.previsiones.filter(x=>!x.deducidaDelActivo);
+  prF.push([TB('DEDUCIDAS DEL ACTIVO')]);prA.forEach(x=>prF.push([`${x.codigo} ${x.nombre}`,M(x.inicio),M(x.aumentos),M(x.disminuciones),M(x.cierre)]));
+  prF.push([TB('INCLUIDAS EN EL PASIVO')]);prP.forEach(x=>prF.push([`${x.codigo} ${x.nombre}`,M(x.inicio),M(x.aumentos),M(x.disminuciones),M(x.cierre)]));
+  if(!p.previsiones.length)prF.push(['Sin previsiones con movimiento']);
+  hojas.push({nombre:'Anexo Prev',cols:[46,16,16,16,16],filas:prF});
+  const cv=p.anexoCMV;const cvF=titulo('ANEXO — COSTO DE LOS BIENES VENDIDOS').concat([[H('Descripción'),H(fmtFecha(p.hasta))]]);
+  cvF.push(['Existencia inicial',M(cv.existenciaInicial)]);cvF.push(['Más: Compras',M(cv.compras)]);cvF.push(['Más: Costo de producción (Anexo gastos)',M(cv.costoProduccion)]);cvF.push(['Menos: Existencia final',M(-cv.existenciaFinal)]);cvF.push([TT('Costo de los bienes vendidos'),MT(cv.cmv)]);
+  cvF.push([]);cvF.push(['Control: CMV contabilizado en 511000 (variación de existencias)',M(cv.cmvContabilizado)]);cvF.push(['Control: Costo de los bienes vendidos según Estado de resultados',M(cv.cmvTotalER)]);
+  hojas.push({nombre:'Anexo CMV',cols:[56,18],filas:cvF});
+  const gn=p.gastosNat;const gnF=titulo('ANEXO — COSTO DE PRODUCCIÓN Y GASTOS POR NATURALEZA').concat([[H('Conceptos'),H('Costo de producción'),H('Gastos de comercialización'),H('Gastos de administración'),H('Total')]]);
+  gn.filas.forEach(x=>gnF.push([x.concepto,M(x.cmv),M(x.gastos_comercializacion),M(x.gastos_administracion),M(x.total)]));gnF.push([TT('Total'),MT(gn.total.cmv),MT(gn.total.gastos_comercializacion),MT(gn.total.gastos_administracion),MT(gn.total.total)]);
+  gnF.push([]);gnF.push(['Fila = campo "naturaleza" de la cuenta (o su nombre si está vacío). Completalo en Plan de cuentas → Editar para agrupar por sueldos, cargas, honorarios, energía, etc.']);
+  hojas.push({nombre:'Anexo Gastos',cols:[46,20,22,22,16],filas:gnF});
+  const prlF=titulo('ANEXO — SALDOS CON PARTES RELACIONADAS').concat([[H('Parte relacionada / cuenta'),H('Créditos'),H('Deudas')].concat(col?[H('Créditos anterior'),H('Deudas anterior')]:[])]);
+  p.partesRel.forEach(x=>prlF.push([`${x.codigo} ${x.nombre}`,M(x.credito),M(x.deuda)].concat(col?[M(x.creditoAnt),M(x.deudaAnt)]:[])));
+  if(!p.partesRel.length)prlF.push(['Sin saldos con partes relacionadas']);
+  hojas.push({nombre:'Anexo Partes rel',cols:[46,16,16,18,18],filas:prlF});
+  return hojas;
+}
+function exportarEECC(){
+  if(!eeccPreview)return notify('Calculá la vista previa primero','err');
+  try{
+    const bytes=xlsxBuild(eeccHojas(eeccPreview));
+    descargarBytes(`EECC_RT54_${eeccPreview.hasta}.xlsx`,bytes,XLSX_MIME);
+    notify('Estados contables RT 54 exportados (Excel). Revisalos con la contadora antes de emitir.');
+  }catch(e){notify('Error al exportar: '+(e.message||e),'err');}
 }
 
 // ─── BIENES DE USO Y DEPRECIACIONES (Sprint C RT 54 · migración 073) ──
@@ -11518,7 +11883,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op','planos','eficiencia'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte','mailings','precios'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl','sgc'],contabilidad:['cuentas','asientosp','cobpag','cheques','sueldos','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','bienesuso','cierre','periodos','correlatividad','conciliacion','exportables']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op','planos','eficiencia'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte','mailings','precios'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl','sgc'],contabilidad:['cuentas','asientosp','cobpag','cheques','sueldos','librodiario','libromayor','balance','estado','balgral','eecc','bimon','ratios','compha','compej','ipc','ajuste','bienesuso','cierre','periodos','correlatividad','conciliacion','exportables']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
