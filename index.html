@@ -867,7 +867,7 @@ body.no-costos .solo-costos{display:none!important}
           <button class="btn btn-ghost btn-sm" onclick="cuentasColapsarTodas()" title="Colapsar todas las agrupadoras"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M7 14l5-5 5 5"/></svg></span>Colapsar</button>
           <button class="btn btn-ghost" onclick="openModalCuenta()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nueva cuenta</button>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Cuenta padre</th><th>Imputable</th><th>Activa</th><th title="No monetaria — se ajusta por inflación">Aj.</th><th></th></tr></thead><tbody id="cuentas-tbody"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Código</th><th>Nombre</th><th>Tipo</th><th>Cuenta padre</th><th>Imputable</th><th>Activa</th><th title="No monetaria — se ajusta por inflación">Aj.</th><th>Rubro RT 54</th><th></th></tr></thead><tbody id="cuentas-tbody"></tbody></table></div>
       </div>
     </div>
     <!-- CONTABILIDAD: Asientos -->
@@ -1351,7 +1351,12 @@ body.no-costos .solo-costos{display:none!important}
             <div class="form-row"><div class="form-group"><label>Sueldos fabricación (gasto)</label><select id="cfg-cta-sueldos-fab"></select></div><div class="form-group"><label>Cargas sociales fabricación (gasto)</label><select id="cfg-cta-cargas-fab"></select></div></div>
             <div class="form-row"><div class="form-group"><label>Sueldos administración (gasto)</label><select id="cfg-cta-sueldos-adm"></select></div><div class="form-group"><label>Cargas sociales administración (gasto)</label><select id="cfg-cta-cargas-adm"></select></div></div>
             <div class="form-row"><div class="form-group"><label>Sueldos a pagar (pasivo)</label><select id="cfg-cta-sueldos-a-pagar"></select></div><div class="form-group"><label>Cargas sociales a pagar (pasivo)</label><select id="cfg-cta-cargas-a-pagar"></select></div></div>
-            <div class="form-row"><div class="form-group"><label>Provisión SAC (pasivo)</label><select id="cfg-cta-provision-sac"></select></div><div class="form-group"></div></div>
+            <div class="form-row"><div class="form-group"><label>Provisión SAC (pasivo)</label><select id="cfg-cta-provision-sac"></select></div><div class="form-group"><label>Provisión vacaciones y cargas sociales (pasivo)</label><select id="cfg-cta-prov-vacaciones"></select></div></div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:600;margin:14px 0 10px">Cierre RT 54</div>
+            <div class="form-row"><div class="form-group"><label>Costo de los bienes vendidos (resultado)</label><select id="cfg-cta-cmv"></select></div><div class="form-group"><label>Diferencias de cambio (resultado)</label><select id="cfg-cta-dif-cambio"></select></div></div>
+            <div class="form-row"><div class="form-group"><label>Previsión para incobrables (regularizadora de activo)</label><select id="cfg-cta-prev-incobrables"></select></div><div class="form-group"><label>Deudores incobrables (gasto)</label><select id="cfg-cta-gasto-incobrables"></select></div></div>
+            <div class="form-row"><div class="form-group"><label>Impuesto a las ganancias (gasto)</label><select id="cfg-cta-iigg"></select></div><div class="form-group"><label>Impuesto a las ganancias a pagar (pasivo)</label><select id="cfg-cta-iigg-a-pagar"></select></div></div>
+            <div class="form-row"><div class="form-group"><label>Anticipos de clientes (pasivo)</label><select id="cfg-cta-anticipos-clientes"></select></div><div class="form-group"></div></div>
           </div>
 
           <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end">
@@ -1504,6 +1509,7 @@ body.no-costos .solo-costos{display:none!important}
       <div class="form-row" style="grid-template-columns:120px 1fr"><div class="form-group"><label>Código *</label><input type="text" id="cuenta-codigo" placeholder="1.1.06"></div><div class="form-group"><label>Nombre *</label><input type="text" id="cuenta-nombre" placeholder="Caja chica"></div></div>
       <div class="form-row"><div class="form-group"><label>Tipo *</label><select id="cuenta-tipo"><option value="activo">Activo</option><option value="pasivo">Pasivo</option><option value="patrimonio">Patrimonio</option><option value="ingreso">Ingreso</option><option value="egreso">Egreso</option></select></div><div class="form-group"><label>Cuenta padre</label><select id="cuenta-padre"><option value="">— sin padre (raíz) —</option></select></div></div>
       <div class="form-row"><div class="form-group" style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" id="cuenta-imputable" checked style="margin:0"><label for="cuenta-imputable" style="cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text2)">Imputable (se pueden cargar asientos en esta cuenta)</label></div><div class="form-group" style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" id="cuenta-activa" checked style="margin:0"><label for="cuenta-activa" style="cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text2)">Cuenta activa</label></div></div>
+      <div class="form-row single"><div class="form-group"><label>Rubro RT 54 (exposición en los estados contables)</label><select id="cuenta-rubro-rt54"></select></div></div>
       <div class="form-row single"><div class="form-group" style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" id="cuenta-es-ajustable" style="margin:0"><label for="cuenta-es-ajustable" style="cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text2)">No monetaria — se ajusta por inflación (RT 6)</label></div></div>
       <div class="form-row single"><div class="form-group"><label>Observaciones</label><input type="text" id="cuenta-observaciones" placeholder="Notas internas"></div></div>
     </div>
@@ -6622,8 +6628,30 @@ function renderCuentas(filter=''){
       ? `<button class="caret-btn" onclick="event.stopPropagation();toggleCuentaColapso('${c.id}')" title="${colapsada?'Expandir':'Colapsar'}" style="background:none;border:none;cursor:pointer;color:var(--text2);padding:0 4px 0 0;display:inline-flex;align-items:center">${caretSvg(!colapsada)}</button>`
       : `<span style="display:inline-block;width:16px"></span>`;
     const peso=c.imputable===false?'font-weight:600':(nivel===0?'font-weight:500':'');
-    return`<tr${c.imputable===false?' style="background:rgba(99,102,241,0.04)"':''}><td class="mono td-primary" style="padding-left:${padding+4}px;${peso}">${caret}${esc(c.codigo)}</td><td style="${peso}">${esc(c.nombre)}</td><td><span class="badge ${tipoBadge[c.tipo]||'badge-warn'}">${(c.tipo||'').toUpperCase()}</span></td><td class="mono" style="font-size:11px;color:var(--text3)">${padre?padre.codigo+' · '+padre.nombre:'—'}</td><td class="mono" style="color:${c.imputable?'var(--green)':'var(--text3)'};font-size:11px">${c.imputable?'sí':'agrupadora'}</td><td class="mono" style="color:${c.activa?'var(--text)':'var(--red)'};font-size:11px">${c.activa?'activa':'inactiva'}</td><td>${c.es_ajustable?`<span class="badge badge-purple" title="No monetaria — se ajusta por inflación">AJ</span>`:`<span class="mono" style="color:var(--text3);font-size:11px">—</span>`}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editCuenta('${c.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteCuenta('${c.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
+    return`<tr${c.imputable===false?' style="background:rgba(99,102,241,0.04)"':''}><td class="mono td-primary" style="padding-left:${padding+4}px;${peso}">${caret}${esc(c.codigo)}</td><td style="${peso}">${esc(c.nombre)}</td><td><span class="badge ${tipoBadge[c.tipo]||'badge-warn'}">${(c.tipo||'').toUpperCase()}</span></td><td class="mono" style="font-size:11px;color:var(--text3)">${padre?padre.codigo+' · '+padre.nombre:'—'}</td><td class="mono" style="color:${c.imputable?'var(--green)':'var(--text3)'};font-size:11px">${c.imputable?'sí':'agrupadora'}</td><td class="mono" style="color:${c.activa?'var(--text)':'var(--red)'};font-size:11px">${c.activa?'activa':'inactiva'}</td><td>${c.es_ajustable?`<span class="badge badge-purple" title="No monetaria — se ajusta por inflación">AJ</span>`:`<span class="mono" style="color:var(--text3);font-size:11px">—</span>`}</td><td style="font-size:11px;color:var(--text2)">${c.imputable===false?'':_rubroRT54Label(c.rubro_rt54)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editCuenta('${c.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button><button class="btn btn-danger btn-sm" onclick="deleteCuenta('${c.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span></button></td></tr>`;
   }).join(''):`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 17V7"/><path d="M11 17V11"/><path d="M15 17V13"/><path d="M19 17V9"/></svg></div><div class="empty-title">Sin cuentas configuradas</div><div class="empty-msg">Cargá la primera cuenta con <b>+ Nueva cuenta</b>. El plan estándar argentino se cargó automáticamente desde Supabase.</div></div></td></tr>`;
+}
+// Rubros del modelo de EECC RT 54 para Entidades Pequeñas (migración 072).
+const RUBROS_RT54=[
+  ['caja_bancos','Caja y bancos','activo'],['inversiones','Inversiones financieras','activo'],
+  ['cuentas_cobrar_clientes','Cuentas por cobrar a clientes','activo'],['creditos_impositivos','Créditos impositivos','activo'],
+  ['creditos_partes_rel','Créditos con partes relacionadas','activo'],['otras_cuentas_cobrar','Otras cuentas por cobrar','activo'],
+  ['bienes_cambio','Bienes de cambio','activo'],['bienes_uso','Bienes de uso','activo'],['intangibles','Activos intangibles','activo'],
+  ['proveedores','Proveedores de bienes y servicios','pasivo'],['prestamos','Préstamos y otros pasivos financieros','pasivo'],
+  ['deudas_fiscales','Deudas fiscales','pasivo'],['deudas_laborales','Deudas laborales y previsionales','pasivo'],
+  ['deudas_especie','Deudas en especie (anticipos)','pasivo'],['deudas_partes_rel','Deudas con partes relacionadas','pasivo'],['previsiones','Previsiones','pasivo'],
+  ['capital','Capital suscripto','patrimonio'],['ajuste_capital','Ajuste de capital','patrimonio'],['aportes_irrevocables','Aportes irrevocables','patrimonio'],
+  ['reserva_legal','Reserva legal','patrimonio'],['otras_reservas','Otras reservas','patrimonio'],['rna','Resultados no asignados','patrimonio'],['resultado_ejercicio','Resultado del ejercicio','patrimonio'],
+  ['ventas','Ingresos por ventas','ingreso'],['cmv','Costo de los bienes vendidos / producción','egreso'],
+  ['gastos_comercializacion','Gastos de comercialización','egreso'],['gastos_administracion','Gastos de administración','egreso'],
+  ['desvalorizacion','Reversión (pérdidas) por desvalorización','egreso'],['rfyt','Resultados financieros y por tenencia (incl. RECPAM)','ingreso,egreso'],
+  ['otros_ingresos_egresos','Otros ingresos y egresos','ingreso,egreso'],['iigg','Impuesto a las ganancias','egreso'],
+];
+function _rubroRT54Label(v){const r=RUBROS_RT54.find(x=>x[0]===v);return r?esc(r[1]):'—';}
+function _llenarRubroRT54(valor){
+  const sel=document.getElementById('cuenta-rubro-rt54');if(!sel)return;
+  sel.innerHTML='<option value="">— sin rubro —</option>'+RUBROS_RT54.map(r=>`<option value="${r[0]}">${esc(r[1])} <span>(${r[2].replace(',','/')})</span></option>`).join('');
+  sel.value=valor||'';
 }
 function openModalCuenta(id){
   document.getElementById('modal-cuenta-title').textContent=id?'Editar cuenta':'Nueva cuenta';
@@ -6633,6 +6661,7 @@ function openModalCuenta(id){
   document.getElementById('cuenta-imputable').checked=true;
   document.getElementById('cuenta-activa').checked=true;
   document.getElementById('cuenta-es-ajustable').checked=false;
+  _llenarRubroRT54('');
   // padre selector — solo cuentas agrupadoras (imputable=false), excluyendo la cuenta actual
   const padreSel=document.getElementById('cuenta-padre');
   const opts=cuentasContables.filter(c=>c.imputable===false&&c.id!==id).sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'',undefined,{numeric:true}));
@@ -6647,6 +6676,7 @@ function openModalCuenta(id){
     document.getElementById('cuenta-imputable').checked=c.imputable!==false;
     document.getElementById('cuenta-activa').checked=c.activa!==false;
     document.getElementById('cuenta-es-ajustable').checked=c.es_ajustable===true;
+    _llenarRubroRT54(c.rubro_rt54);
     document.getElementById('cuenta-observaciones').value=c.observaciones||'';
   }
   openModal('modal-cuenta');
@@ -6657,7 +6687,7 @@ async function saveCuenta(){
   if(!g('cuenta-codigo')||!g('cuenta-nombre'))return notify('Código y nombre son obligatorios','err');
   setBusy('btn-save-cuenta',true);
   try{
-    const data={empresa_id:currentEmpresa.id,codigo:g('cuenta-codigo'),nombre:g('cuenta-nombre'),tipo:g('cuenta-tipo'),cuenta_padre_id:g('cuenta-padre')||null,imputable:document.getElementById('cuenta-imputable').checked,activa:document.getElementById('cuenta-activa').checked,es_ajustable:document.getElementById('cuenta-es-ajustable').checked,observaciones:g('cuenta-observaciones')||null};
+    const data={empresa_id:currentEmpresa.id,codigo:g('cuenta-codigo'),nombre:g('cuenta-nombre'),tipo:g('cuenta-tipo'),cuenta_padre_id:g('cuenta-padre')||null,imputable:document.getElementById('cuenta-imputable').checked,activa:document.getElementById('cuenta-activa').checked,es_ajustable:document.getElementById('cuenta-es-ajustable').checked,rubro_rt54:g('cuenta-rubro-rt54')||null,observaciones:g('cuenta-observaciones')||null};
     if(id)await PATCH('cuentas_contables',data,`?id=eq.${id}`);else await POST('cuentas_contables',data);
     await reload('cuentas_contables');closeModal('modal-cuenta',true);renderAll();notify(id?'Cuenta actualizada':'Cuenta creada');
   }catch(e){notify(msgError(e),'err');}
@@ -9175,13 +9205,15 @@ function renderBalanceGeneral(){
 }
 
 // ─── RATIOS FINANCIEROS ───────────────────────────────────────
-// Heurística de clasificación corriente / no corriente por código de cuenta:
-// Activo: 1.1.*, 1.2.*, 1.3.* = corriente; 1.4.* = no corriente
-// Pasivo: 2.1.* (excepto 2.1.08 préstamos) = corriente; resto = no corriente
-function _esActivoCorriente(c){return c.tipo==='activo'&&(/^1\.[123]\./.test(c.codigo||''));}
-function _esActivoNoCorriente(c){return c.tipo==='activo'&&(/^1\.4\./.test(c.codigo||''));}
-function _esPasivoCorriente(c){return c.tipo==='pasivo'&&(/^2\.1\./.test(c.codigo||''))&&c.codigo!=='2.1.08';}
-function _esPasivoNoCorriente(c){return c.tipo==='pasivo'&&((/^2\.[2-9]/.test(c.codigo||''))||c.codigo==='2.1.08');}
+// Clasificación corriente / no corriente por prefijo del plan Vitalmet (misma
+// regla que el Bimonetario, _grupoBimon) y rubros RT 54 de cada cuenta (mig 072).
+// Antes filtraba por códigos con puntos (1.1., 5.1.01) que no existen en el
+// plan de 6 dígitos y todos los ratios daban cero (hallazgo E-04, auditoría RT 54).
+function _esActivoCorriente(c){return _grupoBimon(c)==='AC';}
+function _esActivoNoCorriente(c){return _grupoBimon(c)==='ANC';}
+function _esPasivoCorriente(c){return _grupoBimon(c)==='PC';}
+function _esPasivoNoCorriente(c){return _grupoBimon(c)==='PNC';}
+function _esRubro(c,...rubros){return rubros.includes(c.rubro_rt54);}
 function _saldoNat(c,m){const tD=['activo','egreso'].includes(c.tipo);return tD?(parseFloat(m.debe||0)-parseFloat(m.haber||0)):(parseFloat(m.haber||0)-parseFloat(m.debe||0));}
 function _sumPor(filtro,por){return cuentasContables.filter(c=>filtro(c)&&por[c.id]).reduce((s,c)=>s+_saldoNat(c,por[c.id]),0);}
 
@@ -9202,19 +9234,19 @@ function renderRatios(){
   const pnc=_sumPor(_esPasivoNoCorriente,porSaldo);
   const pt=pc+pnc;
   const pnPlano=_sumPor(c=>c.tipo==='patrimonio',porSaldo);
-  const inventarios=cuentasContables.filter(c=>/^1\.3\./.test(c.codigo||'')&&porSaldo[c.id]).reduce((s,c)=>s+_saldoNat(c,porSaldo[c.id]),0);
-  const disponibilidades=cuentasContables.filter(c=>/^1\.1\./.test(c.codigo||'')&&porSaldo[c.id]).reduce((s,c)=>s+_saldoNat(c,porSaldo[c.id]),0);
-  const cuentasACobrar=cuentasContables.filter(c=>c.codigo==='1.2.01'&&porSaldo[c.id]).reduce((s,c)=>s+_saldoNat(c,porSaldo[c.id]),0);
-  const proveedores=cuentasContables.filter(c=>c.codigo==='2.1.01'&&porSaldo[c.id]).reduce((s,c)=>s+_saldoNat(c,porSaldo[c.id]),0);
+  const inventarios=cuentasContables.filter(c=>_esRubro(c,'bienes_cambio')&&porSaldo[c.id]).reduce((s,c)=>s+_saldoNat(c,porSaldo[c.id]),0);
+  const disponibilidades=cuentasContables.filter(c=>_esRubro(c,'caja_bancos','inversiones')&&porSaldo[c.id]).reduce((s,c)=>s+_saldoNat(c,porSaldo[c.id]),0);
+  const cuentasACobrar=cuentasContables.filter(c=>_esRubro(c,'cuentas_cobrar_clientes')&&porSaldo[c.id]).reduce((s,c)=>s+_saldoNat(c,porSaldo[c.id]),0);
+  const proveedores=cuentasContables.filter(c=>_esRubro(c,'proveedores')&&porSaldo[c.id]).reduce((s,c)=>s+_saldoNat(c,porSaldo[c.id]),0);
 
   // ─── Flujos del período (para rentabilidad y actividad) ───
-  const ventas=cuentasContables.filter(c=>/^4\.1\./.test(c.codigo||'')&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
-  const otrosIng=cuentasContables.filter(c=>c.tipo==='ingreso'&&!(/^4\.1\./.test(c.codigo||''))&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
+  const ventas=cuentasContables.filter(c=>_esRubro(c,'ventas')&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
+  const otrosIng=cuentasContables.filter(c=>c.tipo==='ingreso'&&!_esRubro(c,'ventas')&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
   const ingresosT=ventas+otrosIng;
-  const cmv=cuentasContables.filter(c=>c.codigo==='5.1.01'&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
-  const gastosOp=cuentasContables.filter(c=>/^5\.2\.|^5\.3\./.test(c.codigo||'')&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
-  const gastosFin=cuentasContables.filter(c=>/^5\.4\./.test(c.codigo||'')&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
-  const intereses=cuentasContables.filter(c=>c.codigo==='5.4.01'&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
+  const cmv=cuentasContables.filter(c=>_esRubro(c,'cmv')&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
+  const gastosOp=cuentasContables.filter(c=>_esRubro(c,'gastos_comercializacion','gastos_administracion')&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
+  const gastosFin=cuentasContables.filter(c=>c.tipo==='egreso'&&_esRubro(c,'rfyt')&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
+  const intereses=cuentasContables.filter(c=>c.tipo==='egreso'&&_esRubro(c,'rfyt')&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
   const egresosT=cuentasContables.filter(c=>c.tipo==='egreso'&&porPeriodo[c.id]).reduce((s,c)=>s+_saldoNat(c,porPeriodo[c.id]),0);
   const resultadoBruto=ventas-cmv;
   const resultadoOp=resultadoBruto-gastosOp;
@@ -9316,7 +9348,7 @@ function renderRatios(){
     seccion('ENDEUDAMIENTO Y SOLVENCIA','var(--coral)',endeudamiento)+
     seccion('RENTABILIDAD','var(--green)',rentabilidad)+
     seccion('ACTIVIDAD Y EFICIENCIA','var(--accent)',actividad)+
-    `<div style="margin-top:24px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);font-size:11px;color:var(--text3);line-height:1.6"><b style="color:var(--text2)">Notas metodológicas:</b><br>• Activo Corriente = cuentas con código 1.1, 1.2 y 1.3. Activo No Corriente = código 1.4. Pasivo Corriente = 2.1.x (excepto préstamos 2.1.08).<br>• Para ratios de actividad (días, rotación) se usan los flujos del rango "Período desde / hasta".<br>• Para ratios patrimoniales (liquidez, endeudamiento) se usan saldos acumulados hasta "Saldos hasta".<br>• Si dejás los filtros vacíos, el cálculo toma todo el histórico.</div>`;
+    `<div style="margin-top:24px;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);font-size:11px;color:var(--text3);line-height:1.6"><b style="color:var(--text2)">Notas metodológicas:</b><br>• Corriente / no corriente por prefijo del plan (11 / 12 activo, 21 / 22 pasivo). Inventarios, cuentas a cobrar, proveedores, ventas, CMV y gastos salen del <b>rubro RT 54</b> de cada cuenta (Plan de cuentas → Editar).<br>• Para ratios de actividad (días, rotación) se usan los flujos del rango "Período desde / hasta".<br>• Para ratios patrimoniales (liquidez, endeudamiento) se usan saldos acumulados hasta "Saldos hasta".<br>• Si dejás los filtros vacíos, el cálculo toma todo el histórico.</div>`;
 }
 
 // ─── ASIENTO AUTOMÁTICO DESDE COMPRA (recepción de OC) ────────
@@ -10390,6 +10422,14 @@ function renderImputacionContable(){
   _llenarSelectCuentas('cfg-cta-sueldos-a-pagar',['pasivo'],c.cta_sueldos_a_pagar);
   _llenarSelectCuentas('cfg-cta-cargas-a-pagar',['pasivo'],c.cta_cargas_a_pagar);
   _llenarSelectCuentas('cfg-cta-provision-sac',['pasivo'],c.cta_provision_sac);
+  _llenarSelectCuentas('cfg-cta-prov-vacaciones',['pasivo'],c.cta_prov_vacaciones);
+  _llenarSelectCuentas('cfg-cta-cmv',['egreso'],c.cta_cmv);
+  _llenarSelectCuentas('cfg-cta-dif-cambio',['egreso','ingreso'],c.cta_dif_cambio);
+  _llenarSelectCuentas('cfg-cta-prev-incobrables',['activo'],c.cta_prev_incobrables);
+  _llenarSelectCuentas('cfg-cta-gasto-incobrables',['egreso'],c.cta_gasto_incobrables);
+  _llenarSelectCuentas('cfg-cta-iigg',['egreso'],c.cta_iigg);
+  _llenarSelectCuentas('cfg-cta-iigg-a-pagar',['pasivo'],c.cta_iigg_a_pagar);
+  _llenarSelectCuentas('cfg-cta-anticipos-clientes',['pasivo'],c.cta_anticipos_clientes);
   document.getElementById('cfg-iva-alicuota').value=c.iva_alicuota!=null?(Number(c.iva_alicuota)*100).toFixed(2).replace(/\.?0+$/,''):'21';
   document.getElementById('cfg-punto-venta').value=c.punto_venta||1;
   document.getElementById('cfg-precios-con-iva').checked=c.precios_incluyen_iva===true;
@@ -10420,6 +10460,14 @@ async function saveConfigContable(){
     cta_cheques_cartera:v('cfg-cta-cheques-cartera'),
     cta_cheques_emitidos:v('cfg-cta-cheques-emitidos'),
     cta_ret_ganancias:v('cfg-cta-ret-ganancias'),
+    cta_prov_vacaciones:v('cfg-cta-prov-vacaciones'),
+    cta_cmv:v('cfg-cta-cmv'),
+    cta_dif_cambio:v('cfg-cta-dif-cambio'),
+    cta_prev_incobrables:v('cfg-cta-prev-incobrables'),
+    cta_gasto_incobrables:v('cfg-cta-gasto-incobrables'),
+    cta_iigg:v('cfg-cta-iigg'),
+    cta_iigg_a_pagar:v('cfg-cta-iigg-a-pagar'),
+    cta_anticipos_clientes:v('cfg-cta-anticipos-clientes'),
     cta_ret_iibb:v('cfg-cta-ret-iibb'),
     cta_ret_suss:v('cfg-cta-ret-suss'),
     cta_ret_iva:v('cfg-cta-ret-iva'),
