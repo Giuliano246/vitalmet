@@ -709,8 +709,10 @@ Audita la numeración de asientos: detecta **huecos** o **duplicados**. Revisalo
 ### 11.8 Cierre, períodos y ajuste por inflación
 
 - **Períodos mensuales:** cerrás un mes para que **nadie cargue asientos en él**. Si necesitás corregir, lo reabre el administrador.
-- **Índices IPC:** cargá el IPC del INDEC mes a mes. Es la base para el ajuste por inflación.
-- **Ajuste por inflación (RT 6):** elegí el período, **Calcular preview**, revisá y **Generar asiento** (reexpresa las cuentas no monetarias contra RECPAM). Necesitás al menos 2 meses de IPC cargados.
+- **Índices IPC:** cargá el IPC del INDEC mes a mes (es la misma serie que publica la FACPCE). Es la base para el ajuste por inflación; cuanto más completa, más exacta la anticuación.
+- **Ajuste por inflación (RT 54):** elegí el **mes de cierre**, **Calcular preview**, revisá y **Generar asiento**. Cada partida de las cuentas no monetarias se reexpresa por el índice de su mes de origen (anticuación mensual); si ya registraste un ajuste anterior, lo previo a esa fecha se lleva con un solo coeficiente y lo posterior mes a mes. El Capital se ajusta contra **Ajuste de capital** (312000) y la contrapartida es el **RECPAM**. Pasá el mouse por una fila para ver el detalle por mes. Si falta el IPC de algún mes, se usa el anterior y el sistema avisa. Hacé el ajuste **antes** de refundir resultados.
+- **Histórico vs Ajustado:** muestra cada cuenta a valor nominal y reexpresada desde cero a la fecha de corte (no cuenta los ajustes ya registrados).
+- **Comparativo entre ejercicios:** con **Moneda homogénea** tildado, el período A se lleva a moneda del período B (IPC B / IPC A) para que las cifras sean comparables, como pide la RT 54.
 - **Cierre y apertura:** cierre del ejercicio en pasos (refundición de resultados → pasaje a resultados no asignados → cierre patrimonial → apertura). Usá **Calcular preview** antes de **Generar asientos**.
 - **Ajustes de cierre RT 54 (antes de refundir):** en la misma página, el panel **Ajustes de cierre RT 54** genera los cinco asientos que pide la norma para Entidades Pequeñas. Cargá el **TC de cierre** y, paso por paso, **Preview** → **Generar asiento** (salen en borrador; confirmalos en Asientos):
   1. **Impuesto a las ganancias:** el importe determinado que te pasa la contadora.
