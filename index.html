@@ -1117,6 +1117,19 @@ body.no-costos .solo-costos{display:none!important}
               <div class="table-wrap" style="max-height:none;margin-top:10px"><table><thead><tr><th>Cuenta</th><th>Detalle</th><th style="text-align:right">Debe</th><th style="text-align:right">Haber</th></tr></thead><tbody id="rt54-existencias-tbody"></tbody><tfoot id="rt54-existencias-tfoot"></tfoot></table></div>
             </details>
 
+            <details style="border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px">
+              <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--text)">6 · Depreciación de bienes de uso <span style="font-weight:400;color:var(--text3);font-size:11px">— lineal por meses según el subledger de Bienes de uso</span></summary>
+              <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:10px">
+                <div style="font-size:11px;color:var(--text3);padding-bottom:8px;max-width:60ch">Toma los bienes activos (y los dados de baja dentro del ejercicio) con vida útil y cuentas cargadas. Los que ya tienen la depreciación de este cierre registrada se muestran atenuados y no se repiten.</div>
+                <div style="flex:1"></div>
+                <button class="btn btn-ghost" onclick="previewDepreciacionCierre()">Preview</button>
+                <button class="btn btn-primary" id="rt54-depreciacion-gen" onclick="generarDepreciacionCierre()" disabled style="opacity:.4">Generar asiento</button>
+              </div>
+              <div id="rt54-depreciacion-info" style="font-size:11px;margin-top:8px"></div>
+              <div class="table-wrap" style="max-height:none;margin-top:10px"><table><thead><tr><th>Bien</th><th>Cálculo</th><th style="text-align:right">Depreciación</th><th style="text-align:right">Valor neto</th></tr></thead><tbody id="rt54-depreciacion-tbody"></tbody><tfoot id="rt54-depreciacion-tfoot"></tfoot></table></div>
+            </details>
+
+
           </div>
         </div>
         <!-- Info banner + stats + tablas -->
@@ -1163,6 +1176,20 @@ body.no-costos .solo-costos{display:none!important}
         <div class="table-wrap"><table><thead><tr><th>Código</th><th>Cuenta</th><th>Tipo</th><th style="text-align:right">Saldo actual (ARS)</th><th style="text-align:right">Saldo ajustado</th><th style="text-align:right">Debe</th><th style="text-align:right">Haber</th></tr></thead><tbody id="ajuste-tbody"></tbody><tfoot id="ajuste-tfoot"></tfoot></table></div>
       </div>
     </div>
+    <!-- CONTABILIDAD: Bienes de uso (Sprint C RT 54 · mig 073) -->
+    <div class="page" id="page-bienesuso">
+      <div class="page-header"><div class="page-title">Bienes de uso</div><div class="page-sub">// activos fijos e intangibles · depreciación lineal por meses · anexo RT 54</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="bu-stats"></div>
+        <div class="toolbar">
+          <div class="search-box"><input type="text" placeholder="Buscar por nombre, N° o rubro..." oninput="renderBienesUso(this.value)"></div>
+          <button class="btn btn-ghost" onclick="openModalBienUso()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Nuevo bien</button>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.6">Mes de alta completo, mes de baja incluido. La depreciación del ejercicio se genera desde <b>Cierre y apertura → Ajustes de cierre RT 54 → paso 6</b>; el anexo Bienes de uso se exporta desde <b>Exportables</b>. Valores nominales: la reexpresión a moneda de cierre la hace el ajuste por inflación sobre las cuentas.</div>
+        <div class="table-wrap"><table><thead><tr><th>N°</th><th>Bien</th><th>Rubro</th><th>Alta</th><th style="text-align:right">Valor origen</th><th style="text-align:right">Vida útil</th><th style="text-align:right">Amort. acum.</th><th style="text-align:right">Neto</th><th>Estado / cuentas</th><th></th></tr></thead><tbody id="bu-tbody"></tbody></table></div>
+      </div>
+    </div>
+
     <!-- CONTABILIDAD: Índices IPC -->
     <div class="page" id="page-ipc">
       <div class="page-header"><div class="page-title">Índices IPC</div><div class="page-sub">// IPC INDEC mensual (serie FACPCE) · base para el ajuste por inflación RT 54</div><div class="tabs"><div class="tab active">Histórico</div></div></div>
@@ -1521,6 +1548,37 @@ body.no-costos .solo-costos{display:none!important}
       <div class="form-row" style="grid-template-columns:1fr 2fr"><div class="form-group"><label>Fuente</label><input type="text" id="ipc-fuente" value="INDEC" placeholder="INDEC"></div><div class="form-group"><label>Observaciones</label><input type="text" id="ipc-observaciones" placeholder="Notas opcionales"></div></div>
     </div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-indice-ipc')">Cancelar</button><button class="btn btn-primary" id="btn-save-ipc" onclick="saveIndiceIPC()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Bien de uso -->
+<div class="modal-overlay" id="modal-bien-uso">
+  <div class="modal" style="width:720px;max-width:95vw">
+    <div class="modal-header"><div class="modal-title" id="modal-bu-title">Nuevo bien de uso</div><button class="modal-close" onclick="closeModal('modal-bien-uso')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="bu-edit-id">
+      <div class="form-row" style="grid-template-columns:2fr 1.2fr"><div class="form-group"><label>Bien *</label><input type="text" id="bu-nombre" placeholder="Torno CNC Haas ST-20"></div><div class="form-group"><label>Rubro *</label><select id="bu-rubro" onchange="onRubroBUChange()"></select></div></div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr"><div class="form-group"><label>Fecha de alta *</label><input type="date" id="bu-fecha-alta"></div><div class="form-group"><label>Valor de origen ARS *</label><input type="number" step="0.01" id="bu-valor" placeholder="0,00"></div><div class="form-group"><label>Valor residual ARS</label><input type="number" step="0.01" id="bu-residual" value="0"></div><div class="form-group"><label>Vida útil (meses)</label><input type="number" id="bu-vida" placeholder="120"></div></div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr"><div class="form-group"><label>Cuenta de activo</label><select id="bu-cta-activo"></select></div><div class="form-group"><label>Amortización acumulada</label><select id="bu-cta-amort"></select></div><div class="form-group"><label>Depreciación (gasto)</label><select id="bu-cta-dep"></select></div></div>
+      <div class="form-row" style="grid-template-columns:1.4fr 1fr 1fr 1fr"><div class="form-group"><label>Proveedor</label><input type="text" id="bu-proveedor"></div><div class="form-group"><label>Comprobante / OC</label><input type="text" id="bu-comprobante" placeholder="FC A 0004-00001234"></div><div class="form-group"><label>Valor USD (info)</label><input type="number" step="0.01" id="bu-valor-usd"></div><div class="form-group"><label>TC (info)</label><input type="number" step="0.01" id="bu-tc"></div></div>
+      <div class="form-row single"><div class="form-group"><label>Observaciones</label><input type="text" id="bu-observaciones"></div></div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.5">Vida útil sugerida por rubro: edificios 600 m (50 años) · maquinarias e instalaciones 120 m · rodados 60 m · muebles 120 m · herramientas y software 36 m. Terrenos y obras en curso: 0 (no se deprecian).</div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-bien-uso')">Cancelar</button><button class="btn btn-primary" id="btn-save-bu" onclick="saveBienUso()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: Baja de bien de uso -->
+<div class="modal-overlay" id="modal-baja-bien">
+  <div class="modal" style="width:460px;max-width:95vw">
+    <div class="modal-header"><div class="modal-title">Baja de bien de uso</div><button class="modal-close" onclick="closeModal('modal-baja-bien')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="bu-baja-id">
+      <div class="mono" id="bu-baja-nombre" style="margin-bottom:12px;color:var(--text2)"></div>
+      <div class="form-row" style="grid-template-columns:1fr 2fr"><div class="form-group"><label>Fecha de baja *</label><input type="date" id="bu-baja-fecha"></div><div class="form-group"><label>Motivo *</label><input type="text" id="bu-baja-motivo" placeholder="Venta / siniestro / obsolescencia"></div></div>
+      <div style="font-size:11px;color:var(--text3);line-height:1.5">La depreciación se calcula hasta el mes de baja inclusive. El asiento de baja (dar de baja el activo y su amortización acumulada contra el resultado) se registra a mano en Asientos.</div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-baja-bien')">Cancelar</button><button class="btn btn-primary" id="btn-save-baja-bu" onclick="saveBajaBien()">Confirmar baja</button></div>
   </div>
 </div>
 
@@ -2880,6 +2938,7 @@ let cuentasBancarias=[],extractoBancario=[];
 let documentosControlados=[],pqpPlantillas=[],pqpPlantillaOps=[],calibraciones=[],registrosCalidad=[],noConformidades=[],accionesCapa=[];
 let certEmitidos=[],revisionesDir=[],auditoriasInt=[],auditoriaHallazgos=[],competenciasList=[];
 let planosList=[],planoFileData=null,planoFileName=null;
+let bienesUso=[],depreciaciones=[];  // mig 073 (Sprint C RT 54)
 let presupuestos=[],presupItemsList=[],presupItemsDraft=[];
 let certFileData=null,certFileName=null;
 
@@ -3419,6 +3478,7 @@ const EXPORT_BUILDERS=[
   {titulo:'Libro IVA Digital — Compras alícuotas (TXT ARCA)',fn:expLidComprasAlic},
   {titulo:'Libro IVA Digital — Excel para revisar (XLSX)',fn:expLibroIvaExcel},
   {titulo:'Valuación de inventario',fn:(d,h)=>expValuacionInventario()},
+  {titulo:'Anexo Bienes de uso (RT 54)',fn:expAnexoBienesUso},
   {titulo:'Plan de cuentas',fn:(d,h)=>expPlanCuentas()},
 ];
 // Foto valorizada del stock a HOY (no depende del mes elegido)
@@ -3784,6 +3844,8 @@ const TBL={
   indices_ipc:{label:'Índices IPC',q:'?order=anio.desc,mes.desc',set:r=>{indicesIpc=r||[];}},
   config_contable:{label:'Config. contable',q:'?limit=1',set:r=>{configContable=(r&&r[0])||null;}},
   ejercicios:{label:'Ejercicios',q:'?order=numero.asc',set:r=>{ejercicios=r||[];}},
+  bienes_uso:{label:'Bienes de uso',q:'?order=nro.asc',set:r=>{bienesUso=r||[];}},
+  depreciaciones:{label:'Depreciaciones',q:'?order=hasta.desc',set:r=>{depreciaciones=r||[];}},
   cheques:{label:'Cheques',q:'?order=fecha_pago.asc',set:r=>{cheques=r||[];}},
   facturas_recibidas:{label:'Facturas recibidas',q:'?order=created_at.desc',set:r=>{facturasRecibidas=r||[];}},
   periodos_contables:{label:'Períodos',q:'?order=anio.desc,mes.desc',set:r=>{periodosContables=r||[];}},
@@ -3831,7 +3893,7 @@ async function loadAll(){
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',planos:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',mailings:'ventas',precios:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',kpiscalidad:'calidad',revdir:'calidad',auditorias:'calidad',competencias:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',exportables:'contabilidad',sueldos:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',planos:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',mailings:'ventas',precios:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',kpiscalidad:'calidad',revdir:'calidad',auditorias:'calidad',competencias:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',bienesuso:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',exportables:'contabilidad',sueldos:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
   produccion:[{k:'op',l:'Órdenes'},{k:'planos',l:'Planos'},{k:'eficiencia',l:'Eficiencia'}],
@@ -3847,7 +3909,7 @@ const GROUP_TABS={
     {k:'libros',l:'Libros',sub:[{k:'librodiario',l:'Diario'},{k:'libromayor',l:'Mayor'}]},
     {k:'estados',l:'Estados contables',sub:[{k:'balance',l:'Balance comprob.'},{k:'estado',l:'Estado de Rdos.'},{k:'balgral',l:'Balance general'}]},
     {k:'analisis',l:'Análisis',sub:[{k:'ratios',l:'Ratios'},{k:'bimon',l:'Bimonetario'},{k:'compha',l:'Hist. vs Ajust.'},{k:'compej',l:'Compar. ejerc.'}]},
-    {k:'cierreinf',l:'Cierre e inflación',sub:[{k:'periodos',l:'Períodos mensuales'},{k:'ipc',l:'Índices IPC'},{k:'ajuste',l:'Ajuste inflación'},{k:'cierre',l:'Cierre y apertura'}]}
+    {k:'cierreinf',l:'Cierre e inflación',sub:[{k:'periodos',l:'Períodos mensuales'},{k:'ipc',l:'Índices IPC'},{k:'ajuste',l:'Ajuste inflación'},{k:'bienesuso',l:'Bienes de uso'},{k:'cierre',l:'Cierre y apertura'}]}
   ],
   ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'},{k:'ctacte',l:'Cta. corriente'},{k:'mailings',l:'Mailings'},{k:'precios',l:'Precios'}],
   analisis:[{k:'costos',l:'Costos y rentabilidad'},{k:'trace',l:'Trazabilidad'}],
@@ -3859,7 +3921,7 @@ const PAGE_TO_PARENT={
   librodiario:'libros',libromayor:'libros',
   balance:'estados',estado:'estados',balgral:'estados',
   ratios:'analisis',bimon:'analisis',compha:'analisis',compej:'analisis',
-  ipc:'cierreinf',ajuste:'cierreinf',cierre:'cierreinf',periodos:'cierreinf'
+  ipc:'cierreinf',ajuste:'cierreinf',bienesuso:'cierreinf',cierre:'cierreinf',periodos:'cierreinf'
 };
 
 function toggleMobileNav(force){
@@ -6499,6 +6561,7 @@ const PAGE_RENDERS={
   ipc:[renderIndicesIPC],
   ajuste:[renderAjuste],
   cierre:[renderCierre,renderCierreRT54],
+  bienesuso:[renderBienesUso],
   compha:[renderComparativoHA],
   compej:[renderComparativoEjercicios],
   bimon:[renderBimonetario],
@@ -7751,6 +7814,269 @@ async function generarAsientoRT54(paso){
     notify(`Asiento N° ${r.numero} creado en borrador. Revisalo en Asientos y confirmalo.`);
   }catch(e){notify(e.message||'Error generando el asiento','err');}
   setBusy(btnId,false,'Generar asiento');
+}
+
+// ─── BIENES DE USO Y DEPRECIACIONES (Sprint C RT 54 · migración 073) ──
+// Subledger de bienes de uso e intangibles con depreciación lineal por
+// meses (mes de alta completo, mes de baja incluido) y anexo "Bienes de
+// uso" del modelo RT 54. Las puras computeDepreciacion /
+// computeAnexoBienesUso tienen tests en tests/bienes-uso.test.js. El
+// asiento de depreciación lo crea la RPC registrar_depreciacion (borrador,
+// origen_tipo 'depreciacion') desde el paso 6 del panel de cierre RT 54.
+const RUBROS_BU=[
+  ['terrenos','Terrenos',['122005',null,null]],
+  ['edificios','Edificios',['122005','122014','422016']],
+  ['maquinarias','Maquinarias',['122007','122013','421019']],
+  ['rodados','Rodados',['122001','122010','422016']],
+  ['instalaciones','Instalaciones',['122002','122011','421019']],
+  ['muebles_utiles','Muebles y útiles',['122003','122012','422016']],
+  ['herramientas','Herramientas',['122008','122015','421019']],
+  ['sistemas','Sistemas y programas (intangible)',['122004','123010','422016']],
+  ['obras_en_curso','Obras en curso',['122006',null,null]],
+  ['otros','Otros',['122006','122016','421019']],
+];
+function _rubroBULabel(r){const x=RUBROS_BU.find(y=>y[0]===r);return x?x[1]:(r||'—');}
+function _mesIdx(f){const [a,m]=String(f).slice(0,7).split('-').map(Number);return a*12+(m-1);}
+
+function computeDepreciacion(bien,desde,hasta,previas){
+  const r2=n=>Math.round((Number(n)||0)*100)/100;
+  const vida=parseInt(bien.vida_util_meses)||0;
+  const origen=Number(bien.valor_origen)||0,residual=Number(bien.valor_residual)||0;
+  const base=r2(origen-residual);
+  const prev=(previas||[]).filter(d=>d.bien_id===bien.id);
+  const mesesPrevios=prev.reduce((s,d)=>s+(parseInt(d.meses)||0),0);
+  const acumPrevio=r2(prev.reduce((s,d)=>s+(Number(d.importe)||0),0));
+  const out={cuota:0,meses:0,importe:0,acumPrevio,acumPosterior:acumPrevio,valorNeto:r2(origen-acumPrevio)};
+  if(vida<=0||base<=0)return out;
+  out.cuota=r2(base/vida);
+  if(!bien.fecha_alta||bien.fecha_alta>hasta)return out;
+  const ini=Math.max(_mesIdx(bien.fecha_alta),_mesIdx(desde));
+  const finFecha=(bien.fecha_baja&&bien.fecha_baja<hasta)?bien.fecha_baja:hasta;
+  const fin=_mesIdx(finFecha);
+  let meses=fin-ini+1;
+  if(meses<=0)return out;
+  meses=Math.min(meses,Math.max(0,vida-mesesPrevios));
+  if(meses<=0)return out;
+  let importe=r2(out.cuota*meses);
+  const restante=r2(base-acumPrevio);
+  if(mesesPrevios+meses>=vida||importe>restante)importe=restante;
+  if(importe<0.01)return out;
+  out.meses=meses;out.importe=importe;
+  out.acumPosterior=r2(acumPrevio+importe);
+  out.valorNeto=r2(origen-out.acumPosterior);
+  return out;
+}
+
+function computeAnexoBienesUso(bienes,deprecs,desde,hasta){
+  const r2=n=>Math.round((Number(n)||0)*100)/100;
+  const por={};
+  const row=r=>por[r]||(por[r]={rubro:r,label:_rubroBULabel(r),valorInicio:0,altas:0,bajas:0,valorCierre:0,amortInicio:0,amortEjercicio:0,amortBajas:0,amortCierre:0,netoInicio:0,netoCierre:0});
+  (bienes||[]).forEach(b=>{
+    const vo=Number(b.valor_origen)||0;
+    const f=row(b.rubro||'otros');
+    const dep=(deprecs||[]).filter(d=>d.bien_id===b.id);
+    const amortAntes=dep.filter(d=>d.hasta<desde).reduce((s,d)=>s+(Number(d.importe)||0),0);
+    const amortEj=dep.filter(d=>d.hasta>=desde&&d.hasta<=hasta).reduce((s,d)=>s+(Number(d.importe)||0),0);
+    const vivoAlInicio=b.fecha_alta<desde&&(!b.fecha_baja||b.fecha_baja>=desde);
+    if(vivoAlInicio){f.valorInicio+=vo;f.amortInicio+=amortAntes;}
+    if(b.fecha_alta>=desde&&b.fecha_alta<=hasta)f.altas+=vo;
+    f.amortEjercicio+=amortEj;
+    if(b.fecha_baja&&b.fecha_baja>=desde&&b.fecha_baja<=hasta){f.bajas+=vo;f.amortBajas+=amortAntes+amortEj;}
+  });
+  const filas=RUBROS_BU.map(r=>por[r[0]]).filter(Boolean);
+  Object.keys(por).forEach(k=>{if(!RUBROS_BU.some(r=>r[0]===k))filas.push(por[k]);});
+  const total={rubro:'total',label:'Total',valorInicio:0,altas:0,bajas:0,valorCierre:0,amortInicio:0,amortEjercicio:0,amortBajas:0,amortCierre:0,netoInicio:0,netoCierre:0};
+  filas.forEach(f=>{
+    f.valorCierre=r2(f.valorInicio+f.altas-f.bajas);
+    f.amortCierre=r2(f.amortInicio+f.amortEjercicio-f.amortBajas);
+    f.netoInicio=r2(f.valorInicio-f.amortInicio);
+    f.netoCierre=r2(f.valorCierre-f.amortCierre);
+    ['valorInicio','altas','bajas','valorCierre','amortInicio','amortEjercicio','amortBajas','amortCierre','netoInicio','netoCierre'].forEach(k=>{f[k]=r2(f[k]);total[k]=r2(total[k]+f[k]);});
+  });
+  return {filas,total};
+}
+
+// Depreciaciones cuyo asiento sigue vivo (un asiento anulado deja la fila huérfana hasta rehacer el período)
+function depreciacionesVivas(){
+  const anulados=new Set(asientos.filter(a=>a.estado==='anulado').map(a=>a.id));
+  return (depreciaciones||[]).filter(d=>!d.asiento_id||!anulados.has(d.asiento_id));
+}
+function _ejercicioVigente(){
+  const ab=ejercicios.filter(e=>e.estado==='abierto').sort((a,b)=>(b.numero||0)-(a.numero||0))[0];
+  if(ab)return {desde:ab.fecha_inicio,hasta:ab.fecha_fin};
+  const hoy=new Date();const anio=hoy.getMonth()===11?hoy.getFullYear():hoy.getFullYear()-1;
+  return {desde:`${anio}-01-01`,hasta:`${anio}-12-31`};
+}
+
+function renderBienesUso(filter=''){
+  const tbody=document.getElementById('bu-tbody');if(!tbody)return;
+  const f=(filter||'').toLowerCase();
+  const vivas=depreciacionesVivas();
+  const acumDe=id=>vivas.filter(d=>d.bien_id===id).reduce((s,d)=>s+(Number(d.importe)||0),0);
+  const list=(bienesUso||[]).filter(b=>!f||(b.nombre||'').toLowerCase().includes(f)||(b.nro||'').toLowerCase().includes(f)||_rubroBULabel(b.rubro).toLowerCase().includes(f))
+    .sort((a,b)=>(a.estado===b.estado?(b.fecha_alta||'').localeCompare(a.fecha_alta||''):(a.estado==='activo'?-1:1)));
+  const activos=(bienesUso||[]).filter(b=>b.estado==='activo');
+  const totOrigen=activos.reduce((s,b)=>s+(Number(b.valor_origen)||0),0);
+  const totAcum=activos.reduce((s,b)=>s+acumDe(b.id),0);
+  const ej=_ejercicioVigente();
+  const depEj=activos.reduce((s,b)=>s+computeDepreciacion(b,ej.desde,ej.hasta,vivas.filter(d=>d.hasta<ej.desde)).importe,0);
+  const statsEl=document.getElementById('bu-stats');
+  if(statsEl)statsEl.innerHTML=`
+    <div class="stat-card"><div class="stat-label">Bienes activos</div><div class="stat-value" style="color:var(--blue)">${activos.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Valor de origen</div><div class="stat-value mono" style="color:var(--text);font-size:14px">${fmtARS(totOrigen)}</div></div>
+    <div class="stat-card"><div class="stat-label">Amortización acumulada</div><div class="stat-value mono" style="color:var(--coral);font-size:14px">${fmtARS(totAcum)}</div></div>
+    <div class="stat-card"><div class="stat-label">Depreciación ejercicio ${ej.desde.slice(0,4)}</div><div class="stat-value mono" style="color:var(--accent);font-size:14px">${fmtARS(depEj)}</div></div>`;
+  if(!list.length){
+    tbody.innerHTML=`<tr><td colspan="10" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div><div class="empty-title">Sin bienes de uso cargados</div><div class="empty-msg">Cargá tornos, CNC, rodados, instalaciones y demás activos fijos con su fecha de alta, valor de origen y vida útil. La depreciación se calcula sola en el cierre.</div></div></td></tr>`;
+    return;
+  }
+  const ctaNom=id=>{const c=cuentasContables.find(x=>x.id===id);return c?esc(c.codigo):'<span style="color:var(--red)">falta</span>';};
+  tbody.innerHTML=list.map(b=>{
+    const acum=acumDe(b.id);const neto=(Number(b.valor_origen)||0)-acum;
+    const badge=b.estado==='activo'?'<span class="badge badge-ok">ACTIVO</span>':`<span class="badge badge-coral" title="${esc(b.motivo_baja||'')}">BAJA ${fmtFecha(b.fecha_baja)}</span>`;
+    return`<tr><td class="mono td-primary">${esc(b.nro||'')}</td><td>${esc(b.nombre)}<div style="font-size:10px;color:var(--text3)">${esc(b.proveedor||'')}${b.comprobante?' · '+esc(b.comprobante):''}</div></td><td>${esc(_rubroBULabel(b.rubro))}</td><td class="mono">${fmtFecha(b.fecha_alta)}</td><td class="mono" style="text-align:right">${fmtARS(b.valor_origen)}</td><td class="mono" style="text-align:right;color:var(--text3)">${b.vida_util_meses>0?b.vida_util_meses+' m':'—'}</td><td class="mono" style="text-align:right;color:var(--coral)">${acum>0?fmtARS(acum):'—'}</td><td class="mono" style="text-align:right">${fmtARS(neto)}</td><td>${badge}<div class="mono" style="font-size:10px;color:var(--text3)">${ctaNom(b.cuenta_activo_id)} / ${ctaNom(b.cuenta_amort_acum_id)} / ${ctaNom(b.cuenta_depreciacion_id)}</div></td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="openModalBienUso('${b.id}')">Editar</button>${b.estado==='activo'?`<button class="btn btn-ghost btn-sm" onclick="openModalBajaBien('${b.id}')">Baja</button>`:''}</td></tr>`;
+  }).join('');
+}
+
+function _llenarSelectCuentasBU(selId,tipos,valorActual){_llenarSelectCuentas(selId,tipos,valorActual);}
+function _ctaIdPorCodigo(cod){const c=cod&&cuentasContables.find(x=>x.codigo===cod);return c?c.id:'';}
+function onRubroBUChange(){
+  const r=document.getElementById('bu-rubro').value;
+  const def=(RUBROS_BU.find(x=>x[0]===r)||[])[2]||[null,null,null];
+  document.getElementById('bu-cta-activo').value=_ctaIdPorCodigo(def[0]);
+  document.getElementById('bu-cta-amort').value=_ctaIdPorCodigo(def[1]);
+  document.getElementById('bu-cta-dep').value=_ctaIdPorCodigo(def[2]);
+  const vida=document.getElementById('bu-vida');
+  if(!vida.value){const sug={edificios:600,maquinarias:120,rodados:60,instalaciones:120,muebles_utiles:120,herramientas:36,sistemas:36,otros:60}[r];vida.value=sug||0;}
+}
+function openModalBienUso(id){
+  document.getElementById('modal-bu-title').textContent=id?'Editar bien de uso':'Nuevo bien de uso';
+  document.getElementById('bu-edit-id').value=id||'';
+  ['bu-nombre','bu-fecha-alta','bu-valor','bu-residual','bu-vida','bu-proveedor','bu-comprobante','bu-valor-usd','bu-tc','bu-observaciones'].forEach(i=>{const el=document.getElementById(i);if(el)el.value='';});
+  const rubroSel=document.getElementById('bu-rubro');
+  rubroSel.innerHTML=RUBROS_BU.map(r=>`<option value="${r[0]}">${esc(r[1])}</option>`).join('');
+  _llenarSelectCuentasBU('bu-cta-activo',['activo'],'');
+  _llenarSelectCuentasBU('bu-cta-amort',['activo'],'');
+  _llenarSelectCuentasBU('bu-cta-dep',['egreso'],'');
+  if(id){
+    const b=bienesUso.find(x=>x.id===id);if(!b)return;
+    document.getElementById('bu-nombre').value=b.nombre||'';
+    rubroSel.value=b.rubro||'maquinarias';
+    document.getElementById('bu-fecha-alta').value=b.fecha_alta||'';
+    document.getElementById('bu-valor').value=b.valor_origen||'';
+    document.getElementById('bu-residual').value=b.valor_residual||0;
+    document.getElementById('bu-vida').value=b.vida_util_meses||0;
+    document.getElementById('bu-cta-activo').value=b.cuenta_activo_id||'';
+    document.getElementById('bu-cta-amort').value=b.cuenta_amort_acum_id||'';
+    document.getElementById('bu-cta-dep').value=b.cuenta_depreciacion_id||'';
+    document.getElementById('bu-proveedor').value=b.proveedor||'';
+    document.getElementById('bu-comprobante').value=b.comprobante||'';
+    document.getElementById('bu-valor-usd').value=b.valor_usd||'';
+    document.getElementById('bu-tc').value=b.tipo_cambio||'';
+    document.getElementById('bu-observaciones').value=b.observaciones||'';
+  }else{
+    rubroSel.value='maquinarias';
+    document.getElementById('bu-fecha-alta').value=hoyLocal();
+    onRubroBUChange();
+  }
+  openModal('modal-bien-uso');
+}
+async function saveBienUso(){
+  const id=g('bu-edit-id');
+  const nombre=g('bu-nombre');const fecha=g('bu-fecha-alta');
+  const valor=parseFloat(g('bu-valor'));const residual=parseFloat(g('bu-residual'))||0;const vida=parseInt(g('bu-vida'))||0;
+  if(!nombre||!fecha)return notify('Nombre y fecha de alta son obligatorios','err');
+  if(!(valor>=0))return notify('Valor de origen inválido','err');
+  if(residual>valor)return notify('El valor residual no puede superar el valor de origen','err');
+  if(vida>0&&(!g('bu-cta-amort')||!g('bu-cta-dep')))return notify('Un bien que se deprecia necesita cuenta de amortización acumulada y de depreciación','err');
+  const ejC=esFechaEnEjercicioCerrado(fecha);
+  if(!id&&ejC&&!confirm(`La fecha de alta cae en el ejercicio N° ${ejC.numero}, que está cerrado. ¿Cargarlo igual (sin asiento)?`))return;
+  setBusy('btn-save-bu',true);
+  try{
+    const data={empresa_id:currentEmpresa.id,nombre,rubro:g('bu-rubro'),fecha_alta:fecha,valor_origen:valor,valor_residual:residual,vida_util_meses:vida,
+      cuenta_activo_id:g('bu-cta-activo')||null,cuenta_amort_acum_id:g('bu-cta-amort')||null,cuenta_depreciacion_id:g('bu-cta-dep')||null,
+      proveedor:g('bu-proveedor')||null,comprobante:g('bu-comprobante')||null,valor_usd:parseFloat(g('bu-valor-usd'))||null,tipo_cambio:parseFloat(g('bu-tc'))||null,observaciones:g('bu-observaciones')||null};
+    if(id)await PATCH('bienes_uso',data,`?id=eq.${id}`);else await POST('bienes_uso',data);
+    await reload('bienes_uso');closeModal('modal-bien-uso',true);renderAll();notify(id?'Bien actualizado':'Bien de uso cargado. El alta contable (activo contra proveedor/banco) va por Asientos o por la factura de compra.');
+  }catch(e){notify(msgError(e),'err');}
+  setBusy('btn-save-bu',false,'Guardar');
+}
+function openModalBajaBien(id){
+  const b=bienesUso.find(x=>x.id===id);if(!b)return;
+  document.getElementById('bu-baja-id').value=id;
+  document.getElementById('bu-baja-nombre').textContent=`${b.nro} · ${b.nombre}`;
+  document.getElementById('bu-baja-fecha').value=hoyLocal();
+  document.getElementById('bu-baja-motivo').value='';
+  openModal('modal-baja-bien');
+}
+async function saveBajaBien(){
+  const id=g('bu-baja-id');const fecha=g('bu-baja-fecha');const motivo=g('bu-baja-motivo');
+  if(!fecha||!motivo)return notify('Fecha y motivo de baja son obligatorios','err');
+  const b=bienesUso.find(x=>x.id===id);if(!b)return;
+  if(fecha<b.fecha_alta)return notify('La baja no puede ser anterior al alta','err');
+  setBusy('btn-save-baja-bu',true);
+  try{
+    await PATCH('bienes_uso',{estado:'baja',fecha_baja:fecha,motivo_baja:motivo},`?id=eq.${id}`);
+    await reload('bienes_uso');closeModal('modal-baja-bien',true);renderAll();
+    notify('Bien dado de baja. Registrá el asiento de baja (activo, amortización acumulada y resultado por la venta o el siniestro) en Asientos.');
+  }catch(e){notify(msgError(e),'err');}
+  setBusy('btn-save-baja-bu',false,'Confirmar baja');
+}
+
+// Paso 6 del panel de cierre RT 54: depreciación del ejercicio
+function previewDepreciacionCierre(){
+  const {desde,hasta}=_rt54Fechas();
+  if(!desde||!hasta)return notify('Definí inicio y cierre del ejercicio (panel Ejercicio)','err');
+  const vivas=depreciacionesVivas();
+  const previas=vivas.filter(d=>d.hasta<desde);
+  const yaEstePeriodo=new Set(vivas.filter(d=>d.hasta===hasta).map(d=>d.bien_id));
+  const filas=[];const items=[];let total=0;const sinCta=[];
+  (bienesUso||[]).filter(b=>b.estado==='activo'||(b.fecha_baja&&b.fecha_baja>=desde)).forEach(b=>{
+    const d=computeDepreciacion(b,desde,hasta,previas);
+    if(d.importe<0.01)return;
+    if(!b.cuenta_amort_acum_id||!b.cuenta_depreciacion_id){sinCta.push(b.nro);return;}
+    const ya=yaEstePeriodo.has(b.id);
+    filas.push({b,d,ya});
+    if(!ya){items.push({bien_id:b.id,meses:d.meses,importe:d.importe});total+=d.importe;}
+  });
+  const tb=document.getElementById('rt54-depreciacion-tbody');
+  tb.innerHTML=filas.length?filas.map(({b,d,ya})=>`<tr style="${ya?'opacity:.5':''}"><td class="mono">${esc(b.nro)} · ${esc(b.nombre)}</td><td style="font-size:11px;color:var(--text2)">${esc(_rubroBULabel(b.rubro))} · ${d.meses} m × ${fmtARS(d.cuota)}${ya?' · <b>ya registrada</b>':''}</td><td class="mono" style="text-align:right;color:var(--green)">${fmtARS(d.importe)}</td><td class="mono" style="text-align:right;color:var(--text3)">neto ${fmtARS(d.valorNeto)}</td></tr>`).join('')
+    :`<tr><td colspan="4" class="empty-cell" style="padding:16px;text-align:center;color:var(--text3);font-size:12px">Nada que depreciar en ${fmtFecha(desde)} – ${fmtFecha(hasta)}</td></tr>`;
+  document.getElementById('rt54-depreciacion-tfoot').innerHTML=items.length?`<tr style="border-top:2px solid var(--border2);font-weight:600;background:var(--surface2)"><td colspan="2" style="padding:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-size:11px">Depreciación a registrar (${items.length} bienes)</td><td class="mono" style="text-align:right;padding:8px;color:var(--green)">${fmtARS(total)}</td><td></td></tr>`:'';
+  const info=document.getElementById('rt54-depreciacion-info');
+  if(info)info.innerHTML=sinCta.length?`<span style="color:var(--red)">Sin cuentas de amortización/depreciación (se omiten): ${sinCta.map(esc).join(', ')}. Completalas en Bienes de uso → Editar.</span>`:'';
+  rt54Preview.depreciacion=items.length?{items,desde,hasta,total}:null;
+  _rt54Habilitar('depreciacion',items.length>0);
+}
+async function generarDepreciacionCierre(){
+  const p=rt54Preview.depreciacion;
+  if(!p)return notify('Calculá el preview primero','err');
+  const {fechaReg}=_rt54Fechas();
+  const ejCerrado=esFechaEnEjercicioCerrado(fechaReg);
+  if(ejCerrado)return notify(`La fecha ${fmtFecha(fechaReg)} cae en el ejercicio N° ${ejCerrado.numero}, que está cerrado`,'err');
+  if(!confirm(`¿Registrar la depreciación de ${p.items.length} bienes por ${fmtARS(p.total)} (ejercicio ${fmtFecha(p.desde)} – ${fmtFecha(p.hasta)}, asiento con fecha ${fmtFecha(fechaReg)})?\n\nEl asiento se crea en BORRADOR.`))return;
+  setBusy('rt54-depreciacion-gen',true);
+  try{
+    const r=await RPC('registrar_depreciacion',{p_desde:p.desde,p_hasta:p.hasta,p_fecha:fechaReg,p_items:p.items});
+    await loadAll();renderAll();
+    rt54Preview.depreciacion=null;_rt54Habilitar('depreciacion',false);
+    notify(`Asiento N° ${r.numero} de depreciación creado en borrador (${r.filas} bienes).`);
+  }catch(e){notify(msgError(e),'err');}
+  setBusy('rt54-depreciacion-gen',false,'Generar asiento');
+}
+
+// Exportable: Anexo Bienes de uso (RT 54) del ejercicio vigente o del rango elegido
+async function expAnexoBienesUso(d,h){
+  const ej=_ejercicioVigente();
+  const desde=d||ej.desde,hasta=h||ej.hasta;
+  const r=computeAnexoBienesUso(bienesUso,depreciacionesVivas(),desde,hasta);
+  const filas=[['Rubro','Valor al inicio','Altas','Bajas','Valor al cierre','Amort. acum. al inicio','Amort. del ejercicio','Amort. de bajas','Amort. acum. al cierre','Neto al cierre','Neto ejercicio anterior']];
+  r.filas.concat([r.total]).forEach(f=>filas.push([f.label,csvNum(f.valorInicio),csvNum(f.altas),csvNum(f.bajas),csvNum(f.valorCierre),csvNum(f.amortInicio),csvNum(f.amortEjercicio),csvNum(f.amortBajas),csvNum(f.amortCierre),csvNum(f.netoCierre),csvNum(f.netoInicio)]));
+  filas.push([]);filas.push(['Detalle por bien','Nro','Rubro','Alta','Baja','Valor origen','Vida (meses)','Amort. acum. al cierre','Neto']);
+  const vivas=depreciacionesVivas();
+  bienesUso.forEach(b=>{const ac=vivas.filter(x=>x.bien_id===b.id&&x.hasta<=hasta).reduce((s,x)=>s+(Number(x.importe)||0),0);filas.push([b.nombre,b.nro,_rubroBULabel(b.rubro),b.fecha_alta,b.fecha_baja||'',csvNum(b.valor_origen),String(b.vida_util_meses||0),csvNum(ac),csvNum((Number(b.valor_origen)||0)-ac)]);});
+  return {nombre:`anexo_bienes_de_uso_${desde}_a_${hasta}.csv`,contenido:csvArmar(filas),
+          resumen:`Anexo Bienes de uso ${fmtFecha(desde)} – ${fmtFecha(hasta)}: valor al cierre ${fmtARS(r.total.valorCierre)} · amort. del ejercicio ${fmtARS(r.total.amortEjercicio)} · neto ${fmtARS(r.total.netoCierre)} (valores nominales; la reexpresión va por el ajuste por inflación)`};
 }
 
 // ─── AJUSTE POR INFLACIÓN (RT 54 · anticuación mensual, Sprint B) ──
@@ -11192,7 +11518,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op','planos','eficiencia'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte','mailings','precios'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl','sgc'],contabilidad:['cuentas','asientosp','cobpag','cheques','sueldos','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','cierre','periodos','correlatividad','conciliacion','exportables']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op','planos','eficiencia'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte','mailings','precios'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl','sgc'],contabilidad:['cuentas','asientosp','cobpag','cheques','sueldos','librodiario','libromayor','balance','estado','balgral','bimon','ratios','compha','compej','ipc','ajuste','bienesuso','cierre','periodos','correlatividad','conciliacion','exportables']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
