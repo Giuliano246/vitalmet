@@ -971,10 +971,7 @@ body.no-costos .solo-costos{display:none!important}
       <div class="page-content">
         <div style="display:flex;gap:14px;align-items:end;margin-bottom:18px;flex-wrap:wrap;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm)">
           <div class="form-group" style="margin:0;width:180px"><label>Fecha de corte</label><input type="date" id="compha-fecha"></div>
-          <div style="display:flex;gap:6px;align-items:end">
-            <div class="form-group" style="margin:0;width:130px"><label>IPC base mes</label><select id="compha-mes"></select></div>
-            <div class="form-group" style="margin:0;width:100px"><label>Año</label><select id="compha-anio"></select></div>
-          </div>
+          <div style="font-size:11px;color:var(--text3);padding-bottom:8px;max-width:56ch">Anticuación mensual desde el origen de cada partida. Los asientos de ajuste ya registrados no se cuentan: la columna “ajustado” es la reexpresión desde cero.</div>
           <button class="btn btn-ghost" onclick="renderComparativoHA()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></span>Actualizar</button>
         </div>
         <div id="compha-info" style="margin-bottom:14px"></div>
@@ -993,6 +990,7 @@ body.no-costos .solo-costos{display:none!important}
           <button class="btn btn-ghost" onclick="renderComparativoEjercicios()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></span>Actualizar</button>
           <div style="flex:1"></div>
           <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--text2);cursor:pointer"><input type="checkbox" id="compej-solo-saldo" checked style="margin:0" onchange="renderComparativoEjercicios()">Solo cuentas con saldo</label>
+          <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--text2);cursor:pointer"><input type="checkbox" id="compej-homogenea" checked style="margin:0" onchange="renderComparativoEjercicios()">Moneda homogénea (A reexpresado a moneda de B)</label>
         </div>
         <div id="compej-info" style="margin-bottom:14px"></div>
         <div class="stats-bar" id="compej-stats" style="margin-bottom:14px"></div>
@@ -1148,22 +1146,18 @@ body.no-costos .solo-costos{display:none!important}
     </div>
     <!-- CONTABILIDAD: Ajuste por inflación -->
     <div class="page" id="page-ajuste">
-      <div class="page-header"><div class="page-title">Ajuste por inflación</div><div class="page-sub">// reexpresión RT 6 · genera asiento contra RECPAM (412004)</div><div class="tabs"><div class="tab active">Generar</div></div></div>
+      <div class="page-header"><div class="page-title">Ajuste por inflación</div><div class="page-sub">// reexpresión RT 54 · anticuación mensual por partida · asiento contra RECPAM (412004)</div><div class="tabs"><div class="tab active">Generar</div></div></div>
       <div class="page-content">
         <div style="display:flex;gap:14px;align-items:end;margin-bottom:18px;flex-wrap:wrap;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm)">
           <div style="display:flex;gap:6px;align-items:end">
-            <div class="form-group" style="margin:0;width:130px"><label>Desde mes</label><select id="ajuste-mes-desde"></select></div>
-            <div class="form-group" style="margin:0;width:100px"><label>Año</label><select id="ajuste-anio-desde"></select></div>
-          </div>
-          <div style="color:var(--text3);padding-bottom:8px">→</div>
-          <div style="display:flex;gap:6px;align-items:end">
-            <div class="form-group" style="margin:0;width:130px"><label>Hasta mes</label><select id="ajuste-mes-hasta"></select></div>
+            <div class="form-group" style="margin:0;width:130px"><label>Mes de cierre</label><select id="ajuste-mes-hasta"></select></div>
             <div class="form-group" style="margin:0;width:100px"><label>Año</label><select id="ajuste-anio-hasta"></select></div>
           </div>
           <button class="btn btn-ghost" onclick="calcularPreviewAjuste()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>Calcular preview</button>
           <div style="flex:1"></div>
           <button class="btn btn-primary" id="btn-gen-ajuste" onclick="generarAsientoAjusteInflacion()" disabled style="opacity:.4">Generar asiento</button>
         </div>
+        <div id="ajuste-contexto" style="font-size:11px;color:var(--text2);margin-bottom:10px;line-height:1.6"></div>
         <div id="ajuste-preview-info" style="margin-bottom:14px"></div>
         <div class="stats-bar" id="ajuste-stats" style="margin-bottom:14px"></div>
         <div class="table-wrap"><table><thead><tr><th>Código</th><th>Cuenta</th><th>Tipo</th><th style="text-align:right">Saldo actual (ARS)</th><th style="text-align:right">Saldo ajustado</th><th style="text-align:right">Debe</th><th style="text-align:right">Haber</th></tr></thead><tbody id="ajuste-tbody"></tbody><tfoot id="ajuste-tfoot"></tfoot></table></div>
@@ -1171,7 +1165,7 @@ body.no-costos .solo-costos{display:none!important}
     </div>
     <!-- CONTABILIDAD: Índices IPC -->
     <div class="page" id="page-ipc">
-      <div class="page-header"><div class="page-title">Índices IPC</div><div class="page-sub">// IPC INDEC mensual · base para ajuste por inflación (RT 6)</div><div class="tabs"><div class="tab active">Histórico</div></div></div>
+      <div class="page-header"><div class="page-title">Índices IPC</div><div class="page-sub">// IPC INDEC mensual (serie FACPCE) · base para el ajuste por inflación RT 54</div><div class="tabs"><div class="tab active">Histórico</div></div></div>
       <div class="page-content">
         <div class="stats-bar" id="ipc-stats"></div>
         <div class="toolbar">
@@ -1510,7 +1504,7 @@ body.no-costos .solo-costos{display:none!important}
       <div class="form-row"><div class="form-group"><label>Tipo *</label><select id="cuenta-tipo"><option value="activo">Activo</option><option value="pasivo">Pasivo</option><option value="patrimonio">Patrimonio</option><option value="ingreso">Ingreso</option><option value="egreso">Egreso</option></select></div><div class="form-group"><label>Cuenta padre</label><select id="cuenta-padre"><option value="">— sin padre (raíz) —</option></select></div></div>
       <div class="form-row"><div class="form-group" style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" id="cuenta-imputable" checked style="margin:0"><label for="cuenta-imputable" style="cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text2)">Imputable (se pueden cargar asientos en esta cuenta)</label></div><div class="form-group" style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" id="cuenta-activa" checked style="margin:0"><label for="cuenta-activa" style="cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text2)">Cuenta activa</label></div></div>
       <div class="form-row single"><div class="form-group"><label>Rubro RT 54 (exposición en los estados contables)</label><select id="cuenta-rubro-rt54"></select></div></div>
-      <div class="form-row single"><div class="form-group" style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" id="cuenta-es-ajustable" style="margin:0"><label for="cuenta-es-ajustable" style="cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text2)">No monetaria — se ajusta por inflación (RT 6)</label></div></div>
+      <div class="form-row single"><div class="form-group" style="flex-direction:row;gap:8px;align-items:center"><input type="checkbox" id="cuenta-es-ajustable" style="margin:0"><label for="cuenta-es-ajustable" style="cursor:pointer;text-transform:none;letter-spacing:0;font-size:12px;color:var(--text2)">No monetaria — se ajusta por inflación (RT 54)</label></div></div>
       <div class="form-row single"><div class="form-group"><label>Observaciones</label><input type="text" id="cuenta-observaciones" placeholder="Notas internas"></div></div>
     </div>
     <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('modal-cuenta')">Cancelar</button><button class="btn btn-primary" id="btn-save-cuenta" onclick="saveCuenta()">Guardar</button></div>
@@ -7759,108 +7753,164 @@ async function generarAsientoRT54(paso){
   setBusy(btnId,false,'Generar asiento');
 }
 
-// ─── AJUSTE POR INFLACIÓN (RT 6) ──────────────────────────────
+// ─── AJUSTE POR INFLACIÓN (RT 54 · anticuación mensual, Sprint B) ──
+// Cada partida se reexpresa por el coeficiente IPC_cierre / IPC_(mes de
+// origen). Si existe un asiento de ajuste previo confirmado (origen_tipo
+// 'ajuste_inflacion'), todo lo anterior a esa fecha ya está en moneda de
+// ese mes y se reexpresa con un solo coeficiente; lo posterior se anticúa
+// mes a mes. El Capital (rubro 'capital') no se ajusta contra sí mismo: su
+// ajuste va a la cuenta con rubro 'ajuste_capital' (RT 54, Nota 2.16).
+// RECPAM = contrapartida de cuadre. Tests en tests/ajuste-inflacion.test.js.
 let ajustePreview=null;
 const CTA_RECPAM_CODIGO='412004';
 
+// Índice del mes exacto o el anterior más cercano; si no hay anterior, el primero.
+function ipcMasCercano(indicesMap,mes){
+  const keys=Object.keys(indicesMap||{}).sort();
+  if(!keys.length)return null;
+  if(indicesMap[mes]!=null)return {indice:Number(indicesMap[mes]),mesUsado:mes};
+  let usado=null;
+  keys.forEach(k=>{if(k<=mes)usado=k;});
+  if(!usado)usado=keys[0];
+  return {indice:Number(indicesMap[usado]),mesUsado:usado};
+}
+function _ipcMap(indices){
+  const m={};(indices||[]).forEach(i=>{const k=`${i.anio}-${String(i.mes).padStart(2,'0')}`;if(Number(i.indice)>0)m[k]=Number(i.indice);});
+  return m;
+}
+function _finDeMes(mes){const [a,m]=mes.split('-').map(Number);const d=new Date(a,m,0);return `${a}-${String(m).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+
+function computeAnticuacion(o){
+  const r2=n=>Math.round((Number(n)||0)*100)/100;
+  const idx=_ipcMap(o.indices);
+  if(!Object.keys(idx).length)return {error:'Sin índices IPC cargados'};
+  const hasta=o.hasta||'';const mesHasta=hasta.slice(0,7);
+  if(!idx[mesHasta])return {error:`Falta el índice IPC de ${mesHasta} (mes de cierre). Cargalo en Índices IPC.`};
+  const ipcCierre=idx[mesHasta];
+  if(!o.recpamId)return {error:`No se encontró la cuenta RECPAM (${CTA_RECPAM_CODIGO}). Corré la migración 009.`};
+  const byCta={};(o.cuentas||[]).forEach(c=>{byCta[c.id]=c;});
+  const advertencias=[];
+  const ctaAjCap=o.ajusteCapitalId?byCta[o.ajusteCapitalId]:null;
+  if(!ctaAjCap)advertencias.push('No hay cuenta con rubro "Ajuste de capital" (312000): el ajuste del Capital se registra sobre la misma cuenta. Corré la migración 072 o asigná el rubro.');
+  // Asientos confirmados hasta la fecha
+  const asMap={};(o.asientos||[]).forEach(a=>{if(a.estado==='confirmado'&&a.fecha&&a.fecha<=hasta)asMap[a.id]=a;});
+  let ultimoAjuste=null;
+  if(!o.ignorarAjustes){
+    Object.values(asMap).forEach(a=>{if(a.origen_tipo==='ajuste_inflacion'&&(!ultimoAjuste||a.fecha>ultimoAjuste.fecha))ultimoAjuste=a;});
+  }
+  const mesBase=ultimoAjuste?ultimoAjuste.fecha.slice(0,7):null;
+  if(Object.values(asMap).some(a=>a.tipo==='auto-cierre-resultados'&&(!ultimoAjuste||a.fecha>ultimoAjuste.fecha)))
+    advertencias.push('La refundición de resultados ya está registrada en este período: el ajuste debe ir ANTES. Anulá la refundición, generá el ajuste y volvé a refundir.');
+  const elegible=c=>c&&c.imputable!==false&&c.activa!==false&&c.id!==o.recpamId&&(c.es_ajustable||c.rubro_rt54==='capital');
+  // Movimientos por cuenta y mes (ARS, debe positivo)
+  const por={};
+  (o.lineas||[]).forEach(l=>{
+    const a=asMap[l.asiento_id];if(!a)return;
+    const c=byCta[l.cuenta_id];if(!elegible(c))return;
+    const monto=(toARS(l.debe,a)||0)-(toARS(l.haber,a)||0);
+    if(!monto)return;
+    const mes=(mesBase&&a.fecha<=ultimoAjuste.fecha)?mesBase:a.fecha.slice(0,7);
+    if(!por[c.id])por[c.id]={};
+    por[c.id][mes]=(por[c.id][mes]||0)+monto;
+  });
+  const sinIdx=new Set();
+  const filas=[];
+  Object.keys(por).forEach(cid=>{
+    const c=byCta[cid];
+    let saldoHist=0,ajuste=0;const detalle=[];
+    Object.keys(por[cid]).sort().forEach(mes=>{
+      const monto=por[cid][mes];
+      const ipc=ipcMasCercano(idx,mes);
+      if(ipc.mesUsado!==mes)sinIdx.add(mes);
+      const coef=Math.round(ipcCierre/ipc.indice*1e6)/1e6;
+      const aj=r2(monto*(coef-1));
+      saldoHist+=monto;ajuste+=aj;
+      detalle.push({mes,monto:r2(monto),coef,ajuste:aj});
+    });
+    saldoHist=r2(saldoHist);ajuste=r2(ajuste);
+    if(Math.abs(saldoHist)<0.01&&Math.abs(ajuste)<0.01)return;
+    if(Math.abs(ajuste)<0.01)return;
+    const destino=(c.rubro_rt54==='capital'&&ctaAjCap)?ctaAjCap:c;
+    filas.push({cuenta:c,destino,saldoHist,ajuste,saldoAjustado:r2(saldoHist+ajuste),coefPromedio:saldoHist?r2((saldoHist+ajuste)/saldoHist):1,detalle});
+  });
+  filas.sort((a,b)=>(a.cuenta.codigo||'').localeCompare(b.cuenta.codigo||'',undefined,{numeric:true}));
+  // Líneas agregadas por cuenta destino (Capital + Ajuste de capital → una sola línea en 312000)
+  const porDestino={};const orden=[];
+  filas.forEach(f=>{if(!porDestino[f.destino.id]){porDestino[f.destino.id]={cuenta:f.destino,ajuste:0};orden.push(f.destino.id);}porDestino[f.destino.id].ajuste+=f.ajuste;});
+  const lineas=[];let o2=0,totDebe=0,totHaber=0;
+  orden.forEach(id=>{
+    const x=porDestino[id];const aj=r2(x.ajuste);if(Math.abs(aj)<0.01)return;
+    const desc=`Reexpresión a moneda de ${mesHasta}`;
+    if(aj>0){lineas.push({cuenta_id:id,debe:aj,haber:0,descripcion:desc,orden:o2++});totDebe+=aj;}
+    else{lineas.push({cuenta_id:id,debe:0,haber:-aj,descripcion:desc,orden:o2++});totHaber+=-aj;}
+  });
+  totDebe=r2(totDebe);totHaber=r2(totHaber);
+  const diff=r2(totDebe-totHaber);
+  const recpamDebe=diff<0?-diff:0,recpamHaber=diff>0?diff:0;
+  if(recpamDebe||recpamHaber)lineas.push({cuenta_id:o.recpamId,debe:recpamDebe,haber:recpamHaber,descripcion:`RECPAM — resultado por exposición a la inflación al ${mesHasta}`,orden:o2++});
+  const mesesSinIndice=[...sinIdx].sort();
+  if(mesesSinIndice.length)advertencias.push(`Meses sin índice IPC (se usó el anterior más cercano): ${mesesSinIndice.join(', ')}. Cargalos en Índices IPC para un ajuste exacto.`);
+  return {mesHasta,ipcCierre,fechaAsiento:_finDeMes(mesHasta),ultimoAjuste,filas,lineas,totDebe,totHaber,recpamDebe,recpamHaber,mesesSinIndice,advertencias};
+}
+
+function _ctaRubro(rubro){return cuentasContables.find(c=>c.rubro_rt54===rubro&&c.imputable!==false&&c.activa!==false)||null;}
+function _ajusteOpts(hasta,ignorarAjustes){
+  const recpam=cuentasContables.find(c=>c.codigo===CTA_RECPAM_CODIGO);
+  const ajcap=_ctaRubro('ajuste_capital');
+  return {lineas:asientoLineas,asientos,cuentas:cuentasContables,indices:indicesIpc,hasta,recpamId:recpam?recpam.id:null,ajusteCapitalId:ajcap?ajcap.id:null,ignorarAjustes:!!ignorarAjustes};
+}
+
 function renderAjuste(){
-  const selMD=document.getElementById('ajuste-mes-desde');
-  const selAD=document.getElementById('ajuste-anio-desde');
-  const selMH=document.getElementById('ajuste-mes-hasta');
-  const selAH=document.getElementById('ajuste-anio-hasta');
-  if(!selMD)return;
-  // construir lista de períodos disponibles a partir de indicesIpc
+  const selM=document.getElementById('ajuste-mes-hasta');
+  const selA=document.getElementById('ajuste-anio-hasta');
+  if(!selM)return;
   const periodos=[...indicesIpc].sort((a,b)=>(a.anio-b.anio)||(a.mes-b.mes));
   if(!periodos.length){
-    selMD.innerHTML=selAD.innerHTML=selMH.innerHTML=selAH.innerHTML='<option value="">— sin índices —</option>';
-    document.getElementById('ajuste-tbody').innerHTML=`<tr><td colspan="7" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/></svg></div><div class="empty-title">Sin índices IPC cargados</div><div class="empty-msg">Cargá al menos dos meses en <b>Índices IPC</b> antes de generar un ajuste por inflación.</div></div></td></tr>`;
+    selM.innerHTML=selA.innerHTML='<option value="">— sin índices —</option>';
+    document.getElementById('ajuste-tbody').innerHTML=`<tr><td colspan="7" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/></svg></div><div class="empty-title">Sin índices IPC cargados</div><div class="empty-msg">Cargá la serie mensual en <b>Índices IPC</b> antes de generar un ajuste por inflación.</div></div></td></tr>`;
     document.getElementById('ajuste-stats').innerHTML='';
     return;
   }
-  const anios=[...new Set(periodos.map(p=>p.anio))].sort();
-  const meses=[1,2,3,4,5,6,7,8,9,10,11,12];
-  const optAnio=anios.map(a=>`<option value="${a}">${a}</option>`).join('');
-  const optMes=meses.map(m=>`<option value="${m}">${MES_NOMBRE[m]}</option>`).join('');
-  selMD.innerHTML=optMes;selAD.innerHTML=optAnio;
-  selMH.innerHTML=optMes;selAH.innerHTML=optAnio;
-  // defaults: Hasta = último período cargado, Desde = mismo mes año anterior si existe, sino el primero
-  const ult=periodos[periodos.length-1];
-  selMH.value=ult.mes;selAH.value=ult.anio;
-  const pref={anio:ult.anio-1,mes:ult.mes};
-  const desdeMatch=periodos.find(p=>p.anio===pref.anio&&p.mes===pref.mes)||periodos[0];
-  selMD.value=desdeMatch.mes;selAD.value=desdeMatch.anio;
-  // si ya hay preview previo, redibujar; si no, pintar tabla vacía instructiva
+  if(!selM.options.length||selM.options[0].value===''){
+    const anios=[...new Set(periodos.map(p=>p.anio))].sort();
+    selM.innerHTML=[1,2,3,4,5,6,7,8,9,10,11,12].map(m=>`<option value="${m}">${MES_NOMBRE[m]}</option>`).join('');
+    selA.innerHTML=anios.map(a=>`<option value="${a}">${a}</option>`).join('');
+    // default: fin del último ejercicio abierto si existe, si no el último IPC cargado
+    const ult=periodos[periodos.length-1];
+    const ej=ejercicios.filter(e=>e.estado==='abierto').sort((a,b)=>(b.numero||0)-(a.numero||0))[0];
+    if(ej){const [a,m]=ej.fecha_fin.split('-').map(Number);selM.value=m;selA.value=a;if(selA.value!==String(a)){selM.value=ult.mes;selA.value=ult.anio;}}
+    else{selM.value=ult.mes;selA.value=ult.anio;}
+  }
+  // Panel de contexto: último ajuste registrado
+  const ctx=document.getElementById('ajuste-contexto');
+  if(ctx){
+    const prev=asientos.filter(a=>a.origen_tipo==='ajuste_inflacion'&&a.estado!=='anulado').sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''))[0];
+    ctx.innerHTML=prev?`Último ajuste registrado: <span class="mono">N° ${prev.numero} · ${fmtFecha(prev.fecha)} [${prev.estado}]</span>. Lo anterior a esa fecha se reexpresa con un solo coeficiente; lo posterior, mes a mes.`:'Sin ajustes previos: se anticúa todo el historial por mes de origen.';
+  }
   if(ajustePreview){pintarPreviewAjuste();}
   else{
-    document.getElementById('ajuste-tbody').innerHTML=`<tr><td colspan="7" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="empty-title">Elegí el período y calculá el preview</div><div class="empty-msg">El ajuste reexpresa todas las cuentas marcadas como <b>no monetarias</b> aplicando el coeficiente <code>IPC_hasta / IPC_desde</code> sobre el saldo al cierre del período.</div></div></td></tr>`;
+    document.getElementById('ajuste-tbody').innerHTML=`<tr><td colspan="7" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="empty-title">Elegí el mes de cierre y calculá el preview</div><div class="empty-msg">Cada partida de las cuentas <b>no monetarias</b> se reexpresa con <code>IPC_cierre / IPC_(mes de origen)</code>. El Capital se ajusta contra <b>Ajuste de capital</b>; la contrapartida es el RECPAM.</div></div></td></tr>`;
     document.getElementById('ajuste-stats').innerHTML='';
     document.getElementById('ajuste-preview-info').innerHTML='';
     document.getElementById('ajuste-tfoot').innerHTML='';
   }
 }
 
-function calcularAjusteInflacion(mesDesde,anioDesde,mesHasta,anioHasta){
-  const idxDesde=indicesIpc.find(i=>i.anio===anioDesde&&i.mes===mesDesde);
-  const idxHasta=indicesIpc.find(i=>i.anio===anioHasta&&i.mes===mesHasta);
-  if(!idxDesde)throw new Error(`Falta el índice IPC de ${MES_NOMBRE[mesDesde]} ${anioDesde}`);
-  if(!idxHasta)throw new Error(`Falta el índice IPC de ${MES_NOMBRE[mesHasta]} ${anioHasta}`);
-  const idxD=Number(idxDesde.indice),idxH=Number(idxHasta.indice);
-  if(!(idxD>0)||!(idxH>0))throw new Error('Índices con valor inválido');
-  const coef=idxH/idxD;
-  // fecha del asiento: último día del mes Hasta
-  const fechaAsiento=new Date(anioHasta,mesHasta,0).toISOString().slice(0,10);
-  // saldos acumulados hasta esa fecha (todo histórico)
-  const saldos=_agregarSaldos('',fechaAsiento);
-  // RECPAM cuenta
-  const ctaRecpam=cuentasContables.find(c=>c.codigo===CTA_RECPAM_CODIGO);
-  if(!ctaRecpam)throw new Error(`No se encontró la cuenta RECPAM (${CTA_RECPAM_CODIGO}). Corré la migration 009.`);
-  // ajustes por cuenta ajustable
-  const ajustes=[];
-  cuentasContables.forEach(c=>{
-    if(!c.es_ajustable||c.imputable===false||!c.activa)return;
-    if(c.id===ctaRecpam.id)return; // RECPAM no se ajusta a sí misma
-    const m=saldos[c.id];if(!m)return;
-    const debe=m.debe||0,haber=m.haber||0;
-    const saldoSigned=debe-haber;
-    const saldoAbs=Math.abs(saldoSigned);
-    if(saldoAbs<0.01)return;
-    const saldoAjustado=saldoAbs*coef;
-    const ajusteAbs=saldoAjustado-saldoAbs;
-    if(ajusteAbs<0.01&&ajusteAbs>-0.01)return;
-    // si el saldo está del lado deudor (debe>haber): el ajuste también va al debe (sube la cuenta)
-    // si el saldo está del lado acreedor (haber>debe): el ajuste va al haber (sube la cuenta)
-    const ajDebe=saldoSigned>0?ajusteAbs:0;
-    const ajHaber=saldoSigned<0?ajusteAbs:0;
-    ajustes.push({cuenta:c,saldoSigned,saldoAjustado:saldoSigned>0?saldoAjustado:-saldoAjustado,coef,ajusteAbs,debe:ajDebe,haber:ajHaber});
-  });
-  ajustes.sort((a,b)=>(a.cuenta.codigo||'').localeCompare(b.cuenta.codigo||'',undefined,{numeric:true}));
-  // RECPAM como contracuenta (cuadre)
-  const totDebe=ajustes.reduce((s,a)=>s+a.debe,0);
-  const totHaber=ajustes.reduce((s,a)=>s+a.haber,0);
-  const diff=totDebe-totHaber;
-  const recpamDebe=diff<0?Math.abs(diff):0;
-  const recpamHaber=diff>0?diff:0;
-  return {mesDesde,anioDesde,mesHasta,anioHasta,idxDesde,idxHasta,coef,fechaAsiento,ajustes,totDebe,totHaber,recpamDebe,recpamHaber,ctaRecpam};
-}
-
 function calcularPreviewAjuste(){
   try{
-    const mD=parseInt(document.getElementById('ajuste-mes-desde').value,10);
-    const aD=parseInt(document.getElementById('ajuste-anio-desde').value,10);
-    const mH=parseInt(document.getElementById('ajuste-mes-hasta').value,10);
-    const aH=parseInt(document.getElementById('ajuste-anio-hasta').value,10);
-    if(!mD||!aD||!mH||!aH)return notify('Seleccioná los dos períodos','err');
-    // validar orden cronológico
-    if(aD*100+mD>=aH*100+mH)return notify('El período "Desde" debe ser anterior al "Hasta"','err');
-    ajustePreview=calcularAjusteInflacion(mD,aD,mH,aH);
+    const m=parseInt(document.getElementById('ajuste-mes-hasta').value,10);
+    const a=parseInt(document.getElementById('ajuste-anio-hasta').value,10);
+    if(!m||!a)return notify('Seleccioná el mes de cierre','err');
+    const hasta=_finDeMes(`${a}-${String(m).padStart(2,'0')}`);
+    const r=computeAnticuacion(_ajusteOpts(hasta,false));
+    if(r.error)throw new Error(r.error);
+    ajustePreview=r;
     pintarPreviewAjuste();
-    document.getElementById('btn-gen-ajuste').disabled=false;
-    document.getElementById('btn-gen-ajuste').style.opacity='1';
+    const btn=document.getElementById('btn-gen-ajuste');btn.disabled=!r.lineas.length;btn.style.opacity=r.lineas.length?'1':'.4';
   }catch(e){
     notify(e.message||'Error calculando preview','err');
     ajustePreview=null;
-    document.getElementById('btn-gen-ajuste').disabled=true;
-    document.getElementById('btn-gen-ajuste').style.opacity='.4';
+    const btn=document.getElementById('btn-gen-ajuste');btn.disabled=true;btn.style.opacity='.4';
   }
 }
 
@@ -7868,43 +7918,46 @@ function pintarPreviewAjuste(){
   if(!ajustePreview)return;
   const p=ajustePreview;
   const tipoBadge={activo:'badge-ok',pasivo:'badge-coral',patrimonio:'badge-purple',ingreso:'badge-blue',egreso:'badge-warn'};
-  // info banner
-  document.getElementById('ajuste-preview-info').innerHTML=`<div style="padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r-sm);font-size:12px;color:var(--text2);line-height:1.6"><b style="color:var(--text)">Período:</b> ${MES_NOMBRE[p.mesDesde]} ${p.anioDesde} → ${MES_NOMBRE[p.mesHasta]} ${p.anioHasta} <span style="color:var(--text3)">·</span> <b style="color:var(--text)">IPC Desde:</b> <span class="mono">${Number(p.idxDesde.indice).toFixed(4)}</span> <span style="color:var(--text3)">·</span> <b style="color:var(--text)">IPC Hasta:</b> <span class="mono">${Number(p.idxHasta.indice).toFixed(4)}</span> <span style="color:var(--text3)">·</span> <b style="color:var(--text)">Coeficiente:</b> <span class="mono" style="color:var(--accent);font-weight:600">${p.coef.toFixed(6)}</span> <span style="color:var(--text3)">·</span> <b style="color:var(--text)">Fecha del asiento:</b> <span class="mono">${fmtFecha(p.fechaAsiento)}</span></div>`;
-  // stats
-  const inflacionPct=(p.coef-1)*100;
-  const resultadoRecpam=p.recpamHaber-p.recpamDebe; // positivo = ganancia, negativo = pérdida
+  const base=p.ultimoAjuste?`ajuste previo del ${fmtFecha(p.ultimoAjuste.fecha)}`:'sin ajustes previos (anticuación completa)';
+  document.getElementById('ajuste-preview-info').innerHTML=`<div style="padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r-sm);font-size:12px;color:var(--text2);line-height:1.6"><b style="color:var(--text)">Cierre:</b> ${fmtFecha(p.fechaAsiento)} <span style="color:var(--text3)">·</span> <b style="color:var(--text)">IPC cierre:</b> <span class="mono">${p.ipcCierre.toFixed(4)}</span> <span style="color:var(--text3)">·</span> <b style="color:var(--text)">Base:</b> ${base} <span style="color:var(--text3)">·</span> <b style="color:var(--text)">Fecha del asiento:</b> <span class="mono">${fmtFecha(p.fechaAsiento)}</span></div>`
+    +(p.advertencias.length?`<div style="margin-top:8px;padding:8px 14px;background:rgba(255,165,0,.08);border:1px solid rgba(255,165,0,.3);border-left:3px solid var(--accent);border-radius:var(--r-sm);color:var(--accent);font-size:11px;line-height:1.5">${p.advertencias.map(a=>`⚠ ${esc(a)}`).join('<br>')}</div>`:'');
+  const resultadoRecpam=p.recpamHaber-p.recpamDebe;
   document.getElementById('ajuste-stats').innerHTML=`
-    <div class="stat-card"><div class="stat-label">Inflación del período</div><div class="stat-value mono" style="color:${inflacionPct>=0?'var(--coral)':'var(--green)'}">${inflacionPct>=0?'+':''}${inflacionPct.toFixed(2)}%</div></div>
-    <div class="stat-card"><div class="stat-label">Cuentas a ajustar</div><div class="stat-value" style="color:var(--blue)">${p.ajustes.length}</div></div>
-    <div class="stat-card"><div class="stat-label">Total ajuste (Debe)</div><div class="stat-value mono" style="color:var(--green);font-size:14px">${fmtARS(p.totDebe)}</div></div>
+    <div class="stat-card"><div class="stat-label">Cuentas reexpresadas</div><div class="stat-value" style="color:var(--blue)">${p.filas.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Ajuste al debe</div><div class="stat-value mono" style="color:var(--green);font-size:14px">${fmtARS(p.totDebe)}</div></div>
+    <div class="stat-card"><div class="stat-label">Ajuste al haber</div><div class="stat-value mono" style="color:var(--coral);font-size:14px">${fmtARS(p.totHaber)}</div></div>
     <div class="stat-card"><div class="stat-label">RECPAM ${resultadoRecpam>=0?'(ganancia)':'(pérdida)'}</div><div class="stat-value mono" style="color:${resultadoRecpam>=0?'var(--green)':'var(--red)'};font-size:14px">${fmtARS(Math.abs(resultadoRecpam))}</div></div>`;
-  // tabla
   const tbody=document.getElementById('ajuste-tbody');
-  if(!p.ajustes.length){
-    tbody.innerHTML=`<tr><td colspan="7" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg></div><div class="empty-title">Sin cuentas no monetarias con saldo</div><div class="empty-msg">Hasta la fecha <b>${fmtFecha(p.fechaAsiento)}</b> no hay saldos en cuentas marcadas como ajustables. Verificá que tengas asientos confirmados y cuentas marcadas como "No monetaria" en el plan.</div></div></td></tr>`;
+  if(!p.filas.length){
+    tbody.innerHTML=`<tr><td colspan="7" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/></svg></div><div class="empty-title">Nada que ajustar</div><div class="empty-msg">Hasta ${fmtFecha(p.fechaAsiento)} no hay partidas no monetarias pendientes de reexpresión (o ya están en moneda de cierre).</div></div></td></tr>`;
     document.getElementById('ajuste-tfoot').innerHTML='';
     return;
   }
-  tbody.innerHTML=p.ajustes.map(a=>{
-    const c=a.cuenta;
-    return`<tr><td class="mono td-primary">${esc(c.codigo)}</td><td>${esc(c.nombre)}</td><td><span class="badge ${tipoBadge[c.tipo]||'badge-warn'}">${(c.tipo||'').toUpperCase()}</span></td><td class="mono" style="text-align:right;color:${a.saldoSigned>0?'var(--green)':'var(--coral)'}">${fmtARS(Math.abs(a.saldoSigned))}</td><td class="mono" style="text-align:right;color:var(--text2)">${fmtARS(Math.abs(a.saldoAjustado))}</td><td class="mono" style="text-align:right;color:${a.debe>0?'var(--green)':'var(--text3)'}">${a.debe>0?fmtARS(a.debe):'—'}</td><td class="mono" style="text-align:right;color:${a.haber>0?'var(--coral)':'var(--text3)'}">${a.haber>0?fmtARS(a.haber):'—'}</td></tr>`;
-  }).join('')+`<tr style="background:var(--surface2);border-top:1px solid var(--border)"><td class="mono td-primary" style="color:var(--accent)">${p.ctaRecpam.codigo}</td><td style="font-weight:500">${esc(p.ctaRecpam.nombre)} <span style="color:var(--text3);font-weight:400">— contracuenta automática</span></td><td><span class="badge badge-purple">RECPAM</span></td><td style="text-align:right;color:var(--text3)">—</td><td style="text-align:right;color:var(--text3)">—</td><td class="mono" style="text-align:right;color:${p.recpamDebe>0?'var(--green)':'var(--text3)'}">${p.recpamDebe>0?fmtARS(p.recpamDebe):'—'}</td><td class="mono" style="text-align:right;color:${p.recpamHaber>0?'var(--coral)':'var(--text3)'}">${p.recpamHaber>0?fmtARS(p.recpamHaber):'—'}</td></tr>`;
+  const nat=(f,v)=>['activo','egreso'].includes(f.cuenta.tipo)?v:-v; // mostrar saldos en su signo natural
+  tbody.innerHTML=p.filas.map(f=>{
+    const c=f.cuenta;
+    const det=f.detalle.map(d=>`${d.mes}: ${fmtARS(d.monto)} × ${d.coef.toFixed(4)} → ${fmtARS(d.ajuste)}`).join('\n');
+    const dest=f.destino.id!==c.id?` <span style="font-size:10px;color:var(--accent)">→ ${esc(f.destino.codigo)}</span>`:'';
+    return`<tr title="${esc(det)}"><td class="mono td-primary">${esc(c.codigo)}</td><td>${esc(c.nombre)}${dest}</td><td><span class="badge ${tipoBadge[c.tipo]||'badge-warn'}">${(c.tipo||'').toUpperCase()}</span></td><td class="mono" style="text-align:right">${fmtARS(nat(f,f.saldoHist))}</td><td class="mono" style="text-align:right;color:var(--text2)">${fmtARS(nat(f,f.saldoAjustado))}</td><td class="mono" style="text-align:right;color:${f.ajuste>0?'var(--green)':'var(--text3)'}">${f.ajuste>0?fmtARS(f.ajuste):'—'}</td><td class="mono" style="text-align:right;color:${f.ajuste<0?'var(--coral)':'var(--text3)'}">${f.ajuste<0?fmtARS(-f.ajuste):'—'}</td></tr>`;
+  }).join('')+`<tr style="background:var(--surface2);border-top:1px solid var(--border)"><td class="mono td-primary" style="color:var(--accent)">${CTA_RECPAM_CODIGO}</td><td style="font-weight:500">RECPAM <span style="color:var(--text3);font-weight:400">— contrapartida automática</span></td><td><span class="badge badge-purple">RECPAM</span></td><td style="text-align:right;color:var(--text3)">—</td><td style="text-align:right;color:var(--text3)">—</td><td class="mono" style="text-align:right;color:${p.recpamDebe>0?'var(--green)':'var(--text3)'}">${p.recpamDebe>0?fmtARS(p.recpamDebe):'—'}</td><td class="mono" style="text-align:right;color:${p.recpamHaber>0?'var(--coral)':'var(--text3)'}">${p.recpamHaber>0?fmtARS(p.recpamHaber):'—'}</td></tr>`;
   const totD=p.totDebe+p.recpamDebe,totH=p.totHaber+p.recpamHaber;
   const cuadra=Math.abs(totD-totH)<0.01;
-  document.getElementById('ajuste-tfoot').innerHTML=`<tr style="border-top:2px solid var(--border2);font-weight:600;background:var(--surface2)"><td colspan="5" class="mono" style="padding:10px 8px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-size:11px">TOTALES ${cuadra?'<span style="color:var(--green)">· ✓ cuadra</span>':'<span style="color:var(--red)">· ✗ no cuadra</span>'}</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--green)">${fmtARS(totD)}</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--coral)">${fmtARS(totH)}</td></tr>`;
+  document.getElementById('ajuste-tfoot').innerHTML=`<tr style="border-top:2px solid var(--border2);font-weight:600;background:var(--surface2)"><td colspan="5" class="mono" style="padding:10px 8px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-size:11px">TOTALES ${cuadra?'<span style="color:var(--green)">· ✓ cuadra</span>':'<span style="color:var(--red)">· ✗ no cuadra</span>'} <span style="color:var(--text3);text-transform:none;letter-spacing:0">· pasá el mouse por una fila para ver el detalle por mes</span></td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--green)">${fmtARS(totD)}</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--coral)">${fmtARS(totH)}</td></tr>`;
 }
 
 async function generarAsientoAjusteInflacion(){
   if(!ajustePreview)return notify('Calculá el preview antes de generar','err');
   const p=ajustePreview;
-  if(!p.ajustes.length)return notify('No hay cuentas para ajustar','err');
-  const msg=`¿Generar asiento de ajuste por inflación del ${MES_NOMBRE[p.mesDesde]} ${p.anioDesde} → ${MES_NOMBRE[p.mesHasta]} ${p.anioHasta}?\n\nCoeficiente: ${p.coef.toFixed(4)}\nCuentas afectadas: ${p.ajustes.length}\nRECPAM: ${fmtARS(p.recpamHaber-p.recpamDebe)} (${p.recpamHaber>p.recpamDebe?'ganancia':'pérdida'})\n\nEl asiento se crea en estado BORRADOR para que lo revises antes de confirmar.`;
+  if(!p.lineas.length)return notify('No hay cuentas para ajustar','err');
+  const ejCerrado=esFechaEnEjercicioCerrado(p.fechaAsiento);
+  if(ejCerrado)return notify(`La fecha ${fmtFecha(p.fechaAsiento)} cae en el ejercicio N° ${ejCerrado.numero}, que está cerrado`,'err');
+  const msg=`¿Generar asiento de ajuste por inflación al ${fmtFecha(p.fechaAsiento)}?\n\nIPC cierre: ${p.ipcCierre.toFixed(4)}\nCuentas reexpresadas: ${p.filas.length}\nRECPAM: ${fmtARS(p.recpamHaber-p.recpamDebe)} (${p.recpamHaber>p.recpamDebe?'ganancia':'pérdida'})${p.advertencias.length?'\n\n⚠ '+p.advertencias.join('\n⚠ '):''}\n\nEl asiento se crea en estado BORRADOR para que lo revises antes de confirmar.`;
   if(!confirm(msg))return;
   setBusy('btn-gen-ajuste',true);
   try{
     const cabecera={
       fecha:p.fechaAsiento,
-      descripcion:`Ajuste por inflación ${MES_NOMBRE[p.mesDesde]} ${p.anioDesde} → ${MES_NOMBRE[p.mesHasta]} ${p.anioHasta} (coef ${p.coef.toFixed(4)})`,
+      descripcion:`Ajuste por inflación al ${fmtFecha(p.fechaAsiento)} — anticuación mensual (IPC ${p.ipcCierre.toFixed(4)})`,
       comprobante_nro:null,
       tipo:'auto-ajuste-inflacion',
       origen_tipo:'ajuste_inflacion',
@@ -7914,24 +7967,13 @@ async function generarAsientoAjusteInflacion(){
       tipo_cambio:null,
       tc_tipo:null,
     };
-    const lineas=[];
-    let orden=0;
-    p.ajustes.forEach(a=>{
-      lineas.push({cuenta_id:a.cuenta.id,debe:a.debe||0,haber:a.haber||0,descripcion:`Reexpresión coef ${p.coef.toFixed(4)}`,orden:orden++});
-    });
-    // RECPAM (siempre la última línea)
-    if(p.recpamDebe>0||p.recpamHaber>0){
-      lineas.push({cuenta_id:p.ctaRecpam.id,debe:p.recpamDebe||0,haber:p.recpamHaber||0,descripcion:`RECPAM período ${MES_NOMBRE[p.mesDesde]} ${p.anioDesde} → ${MES_NOMBRE[p.mesHasta]} ${p.anioHasta}`,orden:orden++});
-    }
-    // Atómico (RPC): cabecera + líneas juntas, numeración en la DB.
-    const r=await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas});
+    const r=await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:p.lineas});
     await loadAll();renderAll();
     notify(`Asiento N° ${r.numero} creado en borrador. Revisalo en "Asientos" y confirmalo cuando esté ok.`);
     ajustePreview=null;
     document.getElementById('btn-gen-ajuste').disabled=true;
     document.getElementById('btn-gen-ajuste').style.opacity='.4';
-    // recalcular preview limpio
-    pintarPreviewAjuste();
+    renderAjuste();
   }catch(e){
     notify(e.message||'Error generando asiento','err');
   }
@@ -7965,103 +8007,67 @@ function _saldoSigned(m,tipo){
 }
 
 // ── Histórico vs Ajustado ───────────────────────────────────────
+// Saldos nominales (sin asientos de ajuste) contra su reexpresión por
+// anticuación mensual desde el origen de cada partida (mismo motor que el
+// asiento de ajuste, con ignorarAjustes para partir de cero).
 function renderComparativoHA(){
   const tbody=document.getElementById('compha-tbody');if(!tbody)return;
-  // poblar selects de IPC base si están vacíos o con cambios
-  const selMes=document.getElementById('compha-mes');
-  const selAnio=document.getElementById('compha-anio');
   const fechaInput=document.getElementById('compha-fecha');
-  if(!selMes.options.length){
-    const periodos=[...indicesIpc].sort((a,b)=>(a.anio-b.anio)||(a.mes-b.mes));
-    if(!periodos.length){
-      tbody.innerHTML=`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/></svg></div><div class="empty-title">Sin índices IPC cargados</div><div class="empty-msg">Cargá al menos dos meses en <b>Índices IPC</b> para poder calcular el ajuste.</div></div></td></tr>`;
-      document.getElementById('compha-stats').innerHTML='';
-      document.getElementById('compha-info').innerHTML='';
-      document.getElementById('compha-tfoot').innerHTML='';
-      return;
-    }
-    const anios=[...new Set(periodos.map(p=>p.anio))].sort();
-    const meses=[1,2,3,4,5,6,7,8,9,10,11,12];
-    selMes.innerHTML=meses.map(m=>`<option value="${m}">${MES_NOMBRE[m]}</option>`).join('');
-    selAnio.innerHTML=anios.map(a=>`<option value="${a}">${a}</option>`).join('');
-    // defaults: IPC base = primer período cargado; fecha corte = hoy
-    const pri=periodos[0];
-    selMes.value=pri.mes;selAnio.value=pri.anio;
-  }
-  // Default fecha: último día del mes del último IPC cargado
-  // (no usar "hoy" porque INDEC publica con ~14 días de retraso → siempre falta el mes corriente)
-  if(!fechaInput.value){
-    const periodosCarg=[...indicesIpc].sort((a,b)=>(a.anio-b.anio)||(a.mes-b.mes));
-    if(periodosCarg.length){
-      const u=periodosCarg[periodosCarg.length-1];
-      const ultDia=new Date(u.anio,u.mes,0).getDate();
-      fechaInput.value=`${u.anio}-${String(u.mes).padStart(2,'0')}-${String(ultDia).padStart(2,'0')}`;
-    }else{
-      fechaInput.value=hoyLocal();
-    }
-  }
-  const fecha=fechaInput.value;
-  const mesBase=parseInt(selMes.value,10);
-  const anioBase=parseInt(selAnio.value,10);
-  if(!mesBase||!anioBase){return;}
-  const idxBase=indicesIpc.find(i=>i.anio===anioBase&&i.mes===mesBase);
-  if(!idxBase){
-    notify(`Falta índice IPC de ${MES_NOMBRE[mesBase]} ${anioBase}`,'err');
+  const periodos=[...indicesIpc].sort((a,b)=>(a.anio-b.anio)||(a.mes-b.mes));
+  if(!periodos.length){
+    tbody.innerHTML=`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/></svg></div><div class="empty-title">Sin índices IPC cargados</div><div class="empty-msg">Cargá la serie mensual en <b>Índices IPC</b> para poder reexpresar.</div></div></td></tr>`;
+    document.getElementById('compha-stats').innerHTML='';
+    document.getElementById('compha-info').innerHTML='';
+    document.getElementById('compha-tfoot').innerHTML='';
     return;
   }
-  // IPC del mes de "fecha corte" — con fallback al más reciente disponible
-  // (INDEC publica con ~14 días de delay → el mes corriente y a veces el anterior no existen aún)
-  const [aF,mF]=fecha.split('-').map(s=>parseInt(s,10));
-  let idxFin=indicesIpc.find(i=>i.anio===aF&&i.mes===mF);
-  let warningFallback=null;
-  if(!idxFin){
-    const sortedDesc=[...indicesIpc].sort((a,b)=>(b.anio-a.anio)||(b.mes-a.mes));
-    idxFin=sortedDesc.find(i=>i.anio<aF||(i.anio===aF&&i.mes<=mF));
-    if(!idxFin){
-      document.getElementById('compha-info').innerHTML=`<div style="padding:10px 14px;background:rgba(224,82,82,.08);border:1px solid rgba(224,82,82,.3);border-radius:var(--r-sm);color:var(--red);font-size:12px">⚠ No hay ningún índice IPC anterior o igual a <b>${MES_NOMBRE[mF]} ${aF}</b>. Cargá uno en la tab Índices IPC.</div>`;
-      document.getElementById('compha-stats').innerHTML='';
-      tbody.innerHTML='';document.getElementById('compha-tfoot').innerHTML='';
-      return;
-    }
-    warningFallback=`IPC de ${MES_NOMBRE[mF]} ${aF} aún no publicado por INDEC (sale ~día 14 del mes siguiente). Se usa el más reciente disponible: ${MES_NOMBRE[idxFin.mes]} ${idxFin.anio}.`;
+  // Default fecha: último día del mes del último IPC cargado (INDEC publica con ~14 días de retraso)
+  if(!fechaInput.value){const u=periodos[periodos.length-1];fechaInput.value=_finDeMes(`${u.anio}-${String(u.mes).padStart(2,'0')}`);}
+  const fecha=fechaInput.value;
+  const r=computeAnticuacion(_ajusteOpts(fecha,true));
+  if(r.error){
+    document.getElementById('compha-info').innerHTML=`<div style="padding:10px 14px;background:rgba(224,82,82,.08);border:1px solid rgba(224,82,82,.3);border-radius:var(--r-sm);color:var(--red);font-size:12px">⚠ ${esc(r.error)}</div>`;
+    document.getElementById('compha-stats').innerHTML='';
+    tbody.innerHTML='';document.getElementById('compha-tfoot').innerHTML='';
+    return;
   }
-  const coef=Number(idxFin.indice)/Number(idxBase.indice);
-  const infoBanner=`<div style="padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r-sm);font-size:12px;color:var(--text2);line-height:1.6"><b style="color:var(--text)">Fecha corte:</b> ${fecha} <span style="color:var(--text3)">·</span> <b style="color:var(--text)">IPC final:</b> ${MES_NOMBRE[idxFin.mes]} ${idxFin.anio} (${Number(idxFin.indice).toFixed(4)}) <span style="color:var(--text3)">·</span> <b style="color:var(--text)">IPC Base:</b> ${MES_NOMBRE[mesBase]} ${anioBase} (${Number(idxBase.indice).toFixed(4)}) <span style="color:var(--text3)">·</span> <b style="color:var(--text)">Coeficiente:</b> <span class="mono" style="color:var(--accent);font-weight:600">${coef.toFixed(6)}</span></div>`;
-  const warnBanner=warningFallback?`<div style="margin-top:8px;padding:8px 14px;background:rgba(255,165,0,.08);border:1px solid rgba(255,165,0,.3);border-left:3px solid var(--accent);border-radius:var(--r-sm);color:var(--accent);font-size:11px;line-height:1.5">⚠ ${warningFallback}</div>`:'';
-  document.getElementById('compha-info').innerHTML=infoBanner+warnBanner;
-  // saldos nominales (excluyendo asientos de ajuste para no doble-contar)
+  const infoBanner=`<div style="padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r-sm);font-size:12px;color:var(--text2);line-height:1.6"><b style="color:var(--text)">Fecha corte:</b> ${fmtFecha(fecha)} <span style="color:var(--text3)">·</span> <b style="color:var(--text)">IPC cierre:</b> ${r.mesHasta} (<span class="mono">${r.ipcCierre.toFixed(4)}</span>) <span style="color:var(--text3)">·</span> <b style="color:var(--text)">Método:</b> anticuación mensual desde el origen de cada partida (sin contar asientos de ajuste ya registrados)</div>`;
+  const warn=r.advertencias.filter(a=>/IPC/.test(a));
+  document.getElementById('compha-info').innerHTML=infoBanner+(warn.length?`<div style="margin-top:8px;padding:8px 14px;background:rgba(255,165,0,.08);border:1px solid rgba(255,165,0,.3);border-left:3px solid var(--accent);border-radius:var(--r-sm);color:var(--accent);font-size:11px;line-height:1.5">⚠ ${esc(warn.join(' '))}</div>`:'');
   const saldos=_saldosNominalesHasta(fecha);
+  const ajustePor={};r.filas.forEach(f=>{ajustePor[f.cuenta.id]=f;});
   const tipoBadge={activo:'badge-ok',pasivo:'badge-coral',patrimonio:'badge-purple',ingreso:'badge-blue',egreso:'badge-warn'};
-  // recorrer todas las cuentas con saldo
   const filas=[];
   let totHist=0,totAj=0,totVar=0,nAj=0;
   cuentasContables.forEach(c=>{
     if(c.imputable===false||c.activa===false)return;
-    const m=saldos[c.id];if(!m)return;
+    const m=saldos[c.id];const f=ajustePor[c.id];
     const saldoHist=_saldoSigned(m,c.tipo);
-    if(Math.abs(saldoHist)<0.01)return;
-    const saldoAj=c.es_ajustable?saldoHist*coef:saldoHist;
+    if(Math.abs(saldoHist)<0.01&&!f)return;
+    const ajNat=f?(['activo','egreso'].includes(c.tipo)?f.ajuste:-f.ajuste):0;
+    const saldoAj=saldoHist+ajNat;
     const variacion=saldoAj-saldoHist;
     const varPct=saldoHist!==0?(variacion/Math.abs(saldoHist))*100:0;
-    filas.push({c,saldoHist,saldoAj,variacion,varPct});
+    filas.push({c,f,saldoHist,saldoAj,variacion,varPct});
     totHist+=saldoHist;totAj+=saldoAj;totVar+=variacion;
-    if(c.es_ajustable)nAj++;
+    if(f)nAj++;
   });
   filas.sort((a,b)=>(a.c.codigo||'').localeCompare(b.c.codigo||'',undefined,{numeric:true}));
   document.getElementById('compha-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Cuentas con saldo</div><div class="stat-value" style="color:var(--blue)">${filas.length}</div></div>
     <div class="stat-card"><div class="stat-label">Cuentas reexpresadas</div><div class="stat-value" style="color:var(--accent)">${nAj}</div></div>
-    <div class="stat-card"><div class="stat-label">Inflación período</div><div class="stat-value mono" style="color:${coef>=1?'var(--coral)':'var(--green)'}">${coef>=1?'+':''}${((coef-1)*100).toFixed(2)}%</div></div>
-    <div class="stat-card"><div class="stat-label">Variación total (RECPAM equiv.)</div><div class="stat-value mono" style="color:${totVar>=0?'var(--green)':'var(--red)'};font-size:14px">${totVar>=0?'+':''}${fmtARS(totVar)}</div></div>`;
+    <div class="stat-card"><div class="stat-label">Ajuste no monetario</div><div class="stat-value mono" style="color:var(--text);font-size:14px">${fmtARS(r.totDebe-r.totHaber)}</div></div>
+    <div class="stat-card"><div class="stat-label">RECPAM equivalente</div><div class="stat-value mono" style="color:${(r.recpamHaber-r.recpamDebe)>=0?'var(--green)':'var(--red)'};font-size:14px">${fmtARS(r.recpamHaber-r.recpamDebe)}</div></div>`;
   if(!filas.length){
-    tbody.innerHTML=`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/></svg></div><div class="empty-title">Sin cuentas con saldo</div><div class="empty-msg">No hay movimientos contables confirmados hasta la fecha <b>${fecha}</b>.</div></div></td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/></svg></div><div class="empty-title">Sin cuentas con saldo</div><div class="empty-msg">No hay movimientos contables confirmados hasta el <b>${fmtFecha(fecha)}</b>.</div></div></td></tr>`;
     document.getElementById('compha-tfoot').innerHTML='';
     return;
   }
-  tbody.innerHTML=filas.map(f=>{
-    const c=f.c;
-    const ajIcon=c.es_ajustable?`<span class="badge badge-purple" style="font-size:9px">AJ</span>`:`<span class="mono" style="color:var(--text3);font-size:11px">—</span>`;
-    return`<tr><td class="mono td-primary">${esc(c.codigo)}</td><td>${esc(c.nombre)}</td><td><span class="badge ${tipoBadge[c.tipo]||'badge-warn'}">${(c.tipo||'').toUpperCase()}</span></td><td style="text-align:center">${ajIcon}</td><td class="mono" style="text-align:right;color:${f.saldoHist>=0?'var(--text)':'var(--coral)'}">${f.saldoHist>=0?'':'-'}${fmtARS(Math.abs(f.saldoHist))}</td><td class="mono" style="text-align:right;color:${c.es_ajustable?'var(--accent)':'var(--text3)'};font-weight:${c.es_ajustable?'500':'400'}">${f.saldoAj>=0?'':'-'}${fmtARS(Math.abs(f.saldoAj))}</td><td class="mono" style="text-align:right;color:${f.variacion>=0?'var(--green)':'var(--red)'}">${f.variacion>=0?'+':''}${fmtARS(f.variacion)}</td><td class="mono" style="text-align:right;color:${f.varPct>=0?'var(--green)':'var(--red)'};font-size:11px">${f.varPct>=0?'+':''}${f.varPct.toFixed(2)}%</td></tr>`;
+  tbody.innerHTML=filas.map(x=>{
+    const c=x.c;
+    const ajIcon=x.f?`<span class="badge badge-purple" style="font-size:9px" title="coef. promedio ${x.f.coefPromedio.toFixed(4)}">AJ</span>`:(c.es_ajustable?`<span class="badge badge-purple" style="font-size:9px;opacity:.4">AJ</span>`:`<span class="mono" style="color:var(--text3);font-size:11px">—</span>`);
+    const det=x.f?x.f.detalle.map(d=>`${d.mes}: ${fmtARS(d.monto)} × ${d.coef.toFixed(4)}`).join('\n'):'';
+    return`<tr title="${esc(det)}"><td class="mono td-primary">${esc(c.codigo)}</td><td>${esc(c.nombre)}</td><td><span class="badge ${tipoBadge[c.tipo]||'badge-warn'}">${(c.tipo||'').toUpperCase()}</span></td><td style="text-align:center">${ajIcon}</td><td class="mono" style="text-align:right;color:${x.saldoHist>=0?'var(--text)':'var(--coral)'}">${x.saldoHist>=0?'':'-'}${fmtARS(Math.abs(x.saldoHist))}</td><td class="mono" style="text-align:right;color:${x.f?'var(--accent)':'var(--text3)'};font-weight:${x.f?'500':'400'}">${x.saldoAj>=0?'':'-'}${fmtARS(Math.abs(x.saldoAj))}</td><td class="mono" style="text-align:right;color:${x.variacion>=0?'var(--green)':'var(--red)'}">${x.variacion>=0?'+':''}${fmtARS(x.variacion)}</td><td class="mono" style="text-align:right;color:${x.varPct>=0?'var(--green)':'var(--red)'};font-size:11px">${x.varPct>=0?'+':''}${x.varPct.toFixed(2)}%</td></tr>`;
   }).join('');
   document.getElementById('compha-tfoot').innerHTML=`<tr style="border-top:2px solid var(--border2);font-weight:600;background:var(--surface2)"><td colspan="4" class="mono" style="padding:10px 8px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-size:11px">TOTALES</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--text)">${totHist>=0?'':'-'}${fmtARS(Math.abs(totHist))}</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--accent)">${totAj>=0?'':'-'}${fmtARS(Math.abs(totAj))}</td><td class="mono" style="text-align:right;padding:10px 8px;color:${totVar>=0?'var(--green)':'var(--red)'}">${totVar>=0?'+':''}${fmtARS(totVar)}</td><td class="mono" style="text-align:right;padding:10px 8px;color:var(--text3);font-size:11px">—</td></tr>`;
 }
@@ -8080,17 +8086,25 @@ function renderComparativoEjercicios(){
     if(!fechaB.value)fechaB.value=`${anioB}-12-31`;
   }
   const fA=fechaA.value,fB=fechaB.value;
-  document.getElementById('compej-th-a').textContent=`Saldo al ${fA}`;
+  const homogenea=document.getElementById('compej-homogenea')?.checked!==false;
+  document.getElementById('compej-th-a').textContent=`Saldo al ${fA}`+(homogenea?' (moneda de B)':'');
   document.getElementById('compej-th-b').textContent=`Saldo al ${fB}`;
   const soloSaldo=document.getElementById('compej-solo-saldo')?.checked!==false;
   if(!fA||!fB){return;}
-  const saldosA=_saldosNominalesHasta(fA);
-  const saldosB=_saldosNominalesHasta(fB);
+  let coefA=1,notaHomog='';
+  if(homogenea){
+    const idx=_ipcMap(indicesIpc);const iA=ipcMasCercano(idx,fA.slice(0,7)),iB=ipcMasCercano(idx,fB.slice(0,7));
+    if(iA&&iB){coefA=iB.indice/iA.indice;notaHomog=` · A reexpresado × ${coefA.toFixed(4)} (IPC ${iB.mesUsado} / IPC ${iA.mesUsado})`;}
+    else notaHomog=' · sin índices IPC: valores nominales';
+  }
+  // Moneda homogénea: saldos CON los asientos de ajuste (están en moneda de su fecha) y A llevado a moneda de B.
+  const saldosA=homogenea?_agregarSaldos('',fA):_saldosNominalesHasta(fA);
+  const saldosB=homogenea?_agregarSaldos('',fB):_saldosNominalesHasta(fB);
   const tipoBadge={activo:'badge-ok',pasivo:'badge-coral',patrimonio:'badge-purple',ingreso:'badge-blue',egreso:'badge-warn'};
   const filas=[];
   cuentasContables.forEach(c=>{
     if(c.imputable===false||c.activa===false)return;
-    const sA=_saldoSigned(saldosA[c.id],c.tipo);
+    const sA=_saldoSigned(saldosA[c.id],c.tipo)*coefA;
     const sB=_saldoSigned(saldosB[c.id],c.tipo);
     if(soloSaldo&&Math.abs(sA)<0.01&&Math.abs(sB)<0.01)return;
     const variacion=sB-sA;
@@ -8112,7 +8126,7 @@ function renderComparativoEjercicios(){
     return`<div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value mono" style="color:${color};font-size:12px;line-height:1.5">${fmtARS(v.sB)}<div style="font-size:10px;color:${dif>=0?'var(--green)':'var(--red)'};font-weight:400">${dif>=0?'+':''}${pct.toFixed(1)}% vs A</div></div></div>`;
   };
   document.getElementById('compej-stats').innerHTML=card('Activos','activo','var(--green)')+card('Pasivos','pasivo','var(--coral)')+card('Patrimonio Neto','patrimonio','var(--purple)')+card('Ingresos','ingreso','var(--blue)')+card('Egresos','egreso','var(--warn)');
-  document.getElementById('compej-info').innerHTML=`<div style="padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r-sm);font-size:12px;color:var(--text2);line-height:1.6"><b style="color:var(--text)">Período A:</b> hasta ${fA} <span style="color:var(--text3)">·</span> <b style="color:var(--text)">Período B:</b> hasta ${fB} <span style="color:var(--text3)">·</span> <b style="color:var(--text)">Cuentas comparadas:</b> ${filas.length}</div>`;
+  document.getElementById('compej-info').innerHTML=`<div style="padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r-sm);font-size:12px;color:var(--text2);line-height:1.6"><b style="color:var(--text)">Período A:</b> hasta ${fA}${notaHomog} <span style="color:var(--text3)">·</span> <b style="color:var(--text)">Período B:</b> hasta ${fB} <span style="color:var(--text3)">·</span> <b style="color:var(--text)">Cuentas comparadas:</b> ${filas.length}</div>`;
   if(!filas.length){
     tbody.innerHTML=`<tr><td colspan="7" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/></svg></div><div class="empty-title">Sin movimientos en los períodos</div><div class="empty-msg">No hay asientos confirmados hasta las fechas indicadas, o todas las cuentas tienen saldo cero.</div></div></td></tr>`;
     document.getElementById('compej-tfoot').innerHTML='';
