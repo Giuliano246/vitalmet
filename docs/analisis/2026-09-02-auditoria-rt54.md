@@ -7,6 +7,10 @@
 
 ---
 
+> **Estado de implementación (2026-09-02):** los cuatro sprints de la sección 6 están implementados. Sprint A (mig 072, ajustes de cierre), B (inflación con anticuación), C (mig 073, bienes de uso) y D (estados RT 54 exportables) LIVE. Quedan a cargo de Vitalmet: cargar los bienes de uso reales, asignar rubro a las cuentas que la 072 dejó sin clasificar, unificar RNA 314000/314002 con la contadora, y redactar las notas de políticas contables sobre el modelo del Consejo.
+
+---
+
 ## 1. Veredicto
 
 La **base registral es sólida** y cumple con lo que la norma da por supuesto: partida doble validada en la base, asientos inmutables, períodos mensuales bloqueados, ejercicios con cierre y apertura, Libro Diario y Mayores exportables, audit log, IPC cargado.
