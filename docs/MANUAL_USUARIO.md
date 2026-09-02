@@ -712,6 +712,13 @@ Audita la numeración de asientos: detecta **huecos** o **duplicados**. Revisalo
 - **Índices IPC:** cargá el IPC del INDEC mes a mes. Es la base para el ajuste por inflación.
 - **Ajuste por inflación (RT 6):** elegí el período, **Calcular preview**, revisá y **Generar asiento** (reexpresa las cuentas no monetarias contra RECPAM). Necesitás al menos 2 meses de IPC cargados.
 - **Cierre y apertura:** cierre del ejercicio en pasos (refundición de resultados → pasaje a resultados no asignados → cierre patrimonial → apertura). Usá **Calcular preview** antes de **Generar asientos**.
+- **Ajustes de cierre RT 54 (antes de refundir):** en la misma página, el panel **Ajustes de cierre RT 54** genera los cinco asientos que pide la norma para Entidades Pequeñas. Cargá el **TC de cierre** y, paso por paso, **Preview** → **Generar asiento** (salen en borrador; confirmalos en Asientos):
+  1. **Impuesto a las ganancias:** el importe determinado que te pasa la contadora.
+  2. **Previsión para incobrables:** por antigüedad de la cartera (usa el aging de Cta. corriente × TC); ajustá los % por tramo. Ajusta la previsión existente al objetivo (constituye o revierte).
+  3. **Provisión vacaciones y cargas s/SAC:** vacaciones devengadas por centro (fábrica / administración) más las contribuciones sobre el SAC ya provisionado.
+  4. **Diferencia de cambio:** revalúa al TC de cierre las cuentas monetarias con saldo en dólares (sólo lo registrado en asientos en USD: una factura en pesos no se revalúa).
+  5. **Variación de existencias / CMV:** lleva las cuentas de stock a la existencia final (prellenada con la valuación de inventario × TC) y la diferencia es el **costo de los bienes vendidos**.
+- **Rubro RT 54:** cada cuenta imputable tiene un rubro (Plan de cuentas → Editar) que define dónde se expone en los estados contables y alimenta el reporte de Ratios.
 
 ---
 
@@ -740,6 +747,7 @@ El catálogo de tipos de acero / normas que después elegís en barras y certifi
 - **Caja y banco:** cuenta de caja (efectivo), cuenta de banco (transferencias), **cheques en cartera** (recibidos) y **cheques emitidos** (a pagar).
 - **Retenciones sufridas:** las cuentas de crédito fiscal donde van las retenciones que te aplican los clientes (Ganancias, IIBB, SUSS, IVA). Vienen preconfiguradas con las cuentas del plan de Vitalmet.
 - **Stock y ajustes de inventario:** las cuentas de stock (materia prima, producto terminado, insumos) y la cuenta de resultado **AJUSTES DE INVENTARIO** contra la que se asientan las diferencias de ajustes y conteos físicos. Vienen preconfiguradas (114002 / 114001 / 114003 / 421099).
+- **Cierre RT 54:** costo de los bienes vendidos (511000), diferencias de cambio (424006), previsión para incobrables (112090) y su gasto (423007), impuesto a las ganancias (425001) y a pagar (213005), provisión vacaciones (214009) y anticipos de clientes (215001). Preconfiguradas por la migración 072; son las que usan los ajustes de cierre.
 
 Completá y tocá **Guardar configuración**. Si dejás un campo en blanco, ese tipo de asiento automático queda desactivado.
 
