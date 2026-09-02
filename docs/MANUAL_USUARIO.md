@@ -720,6 +720,7 @@ Audita la numeración de asientos: detecta **huecos** o **duplicados**. Revisalo
   3. **Provisión vacaciones y cargas s/SAC:** vacaciones devengadas por centro (fábrica / administración) más las contribuciones sobre el SAC ya provisionado.
   4. **Diferencia de cambio:** revalúa al TC de cierre las cuentas monetarias con saldo en dólares (sólo lo registrado en asientos en USD: una factura en pesos no se revalúa).
   5. **Variación de existencias / CMV:** lleva las cuentas de stock a la existencia final (prellenada con la valuación de inventario × TC) y la diferencia es el **costo de los bienes vendidos**.
+- **Bienes de uso:** cargá cada activo fijo (tornos, CNC, rodados, instalaciones, herramientas, software) con **fecha de alta**, **valor de origen** en pesos, **valor residual** y **vida útil en meses** (el rubro sugiere las cuentas y la vida útil). La depreciación es lineal por meses: mes de alta completo, mes de baja incluido. En el cierre, **paso 6** del panel RT 54 calcula la depreciación del ejercicio de todos los bienes y genera el asiento (gasto contra amortización acumulada) en borrador. **Baja**: fecha y motivo; el asiento de baja se hace en Asientos. El **Anexo Bienes de uso** (valores de origen, altas, bajas, amortización del ejercicio y acumulada por rubro) se exporta desde Exportables.
 - **Rubro RT 54:** cada cuenta imputable tiene un rubro (Plan de cuentas → Editar) que define dónde se expone en los estados contables y alimenta el reporte de Ratios.
 
 ---
