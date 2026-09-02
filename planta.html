@@ -198,11 +198,14 @@ async function verPlano(){
   const isPDF=/^data:application\/pdf;base64,[A-Za-z0-9+/=]+$/.test(fd);
   const isImg=/^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(fd);
   if(!isPDF&&!isImg){win.close();alert('Archivo de plano inválido');return;}
-  wdoc.body.innerHTML='';
   if(isPDF){
-    wdoc.body.style.cssText='margin:0';
-    const e=wdoc.createElement('embed');e.setAttribute('src',fd);e.setAttribute('type','application/pdf');e.style.width='100%';e.style.height='100vh';wdoc.body.appendChild(e);
+    // Chrome bloquea data: URLs en <embed> — blob: + visor nativo del navegador
+    const bin=atob(fd.slice(fd.indexOf(',')+1));
+    const bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+    win.location.replace(URL.createObjectURL(new Blob([bytes],{type:'application/pdf'})));
   }else{
+    wdoc.body.innerHTML='';
     const img=wdoc.createElement('img');img.setAttribute('src',fd);img.style.maxWidth='100%';wdoc.body.appendChild(img);
   }
 }

@@ -6307,6 +6307,14 @@ function showTrace(type,id){
 }
 
 
+// Chrome bloquea data: URLs en <embed>/<object> — los PDFs se sirven como blob: y se navega la ventana al visor nativo
+function pdfBlobURL(fd){
+  const bin=atob(fd.slice(fd.indexOf(',')+1));
+  const bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+  return URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+}
+
 async function openPDF(certId){
   const cert=certs.find(c=>c.id===certId);if(!cert||(!cert.file_name&&!cert.file_data))return;
   // Abrir la ventana ANTES del fetch: un window.open después de un await lo bloquea el popup blocker
@@ -6326,11 +6334,10 @@ async function openPDF(certId){
   const isImg=/^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(fd);
   if(!isPDF&&!isImg){win.close();notify('Archivo invalido o adulterado','err');return;}
   // Construir DOM con setAttribute en lugar de document.write con concat
-  doc.body.innerHTML='';
   if(isPDF){
-    doc.body.style.cssText='margin:0';
-    const e=doc.createElement('embed');e.setAttribute('src',fd);e.setAttribute('type','application/pdf');e.style.width='100%';e.style.height='100vh';doc.body.appendChild(e);
+    win.location.replace(pdfBlobURL(fd));
   }else{
+    doc.body.innerHTML='';
     doc.body.style.cssText='margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh';
     const img=doc.createElement('img');img.setAttribute('src',fd);img.style.cssText='max-width:100%;max-height:100vh';doc.body.appendChild(img);
   }
@@ -9248,11 +9255,10 @@ async function openPlanoView(idOrCodigo){
   const isPDF=/^data:application\/pdf;base64,[A-Za-z0-9+/=]+$/.test(fd);
   const isImg=/^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(fd);
   if(!isPDF&&!isImg){win.close();notify('Archivo inválido o adulterado','err');return;}
-  doc.body.innerHTML='';
   if(isPDF){
-    doc.body.style.cssText='margin:0';
-    const e=doc.createElement('embed');e.setAttribute('src',fd);e.setAttribute('type','application/pdf');e.style.width='100%';e.style.height='100vh';doc.body.appendChild(e);
+    win.location.replace(pdfBlobURL(fd));
   }else{
+    doc.body.innerHTML='';
     const img=doc.createElement('img');img.setAttribute('src',fd);img.style.maxWidth='100%';doc.body.appendChild(img);
   }
 }
@@ -10272,11 +10278,10 @@ async function openTratPDF(tratId){
   const isPDF=/^data:application\/pdf;base64,[A-Za-z0-9+/=]+$/.test(fd);
   const isImg=/^data:image\/(png|jpe?g|gif|webp);base64,[A-Za-z0-9+/=]+$/.test(fd);
   if(!isPDF&&!isImg){win.close();notify('Archivo invalido o adulterado','err');return;}
-  doc.body.innerHTML='';
   if(isPDF){
-    doc.body.style.cssText='margin:0';
-    const e=doc.createElement('embed');e.setAttribute('src',fd);e.setAttribute('type','application/pdf');e.style.width='100%';e.style.height='100vh';doc.body.appendChild(e);
+    win.location.replace(pdfBlobURL(fd));
   }else{
+    doc.body.innerHTML='';
     doc.body.style.cssText='margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh';
     const img=doc.createElement('img');img.setAttribute('src',fd);img.style.cssText='max-width:100%;max-height:100vh';doc.body.appendChild(img);
   }
