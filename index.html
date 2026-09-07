@@ -590,7 +590,11 @@ body.no-costos .solo-costos{display:none!important}
         <div id="compras-tab-facturas" style="display:none">
           <div class="stats-bar" id="fr-stats"></div>
           <div class="toolbar">
-            <div class="search-box"><input type="text" placeholder="Buscar por nro, proveedor..." oninput="renderFacturasRecibidas(this.value)"></div>
+            <div class="search-box"><input type="text" placeholder="Buscar por nro, proveedor, OC..." oninput="renderFacturasRecibidas(this.value)"></div>
+            <select id="frf-prov" onchange="_frRerender()" title="Filtrar por proveedor" style="width:auto;max-width:220px"><option value="">Todos los proveedores</option></select>
+            <select id="frf-tipo" onchange="_frRerender()" title="Filtrar por tipo de comprobante" style="width:auto"><option value="">Todos los tipos</option><option value="factura">Facturas</option><option value="nota_credito">Notas de crédito</option><option value="nota_debito">Notas de débito</option></select>
+            <input type="date" id="frf-fdesde" onchange="_frRerender()" title="Desde (fecha de emisión)" style="width:auto"><input type="date" id="frf-fhasta" onchange="_frRerender()" title="Hasta (fecha de emisión)" style="width:auto">
+            <button class="btn btn-ghost" onclick="exportFacturasRecibidasCSV()" title="Exportar la lista filtrada a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
             <button class="btn btn-primary btn-sm" onclick="openFacturaSinOCModal()">+ Factura sin OC</button>
           </div>
           <div class="table-wrap"><table><thead><tr><th>Tipo</th><th>OC</th><th>Proveedor</th><th>Nro</th><th>Fecha</th><th>Vto.</th><th>Mon.</th><th>Neto</th><th>IVA</th><th>Total</th><th>Saldo</th><th>Match</th><th>Asiento</th><th></th></tr></thead><tbody id="fr-tbody"></tbody></table></div>
@@ -670,10 +674,27 @@ body.no-costos .solo-costos{display:none!important}
       <div class="page-content">
         <div class="stats-bar" id="ventas-stats"></div>
         <div class="toolbar">
-          <div class="search-box"><input type="text" placeholder="Buscar por cliente, remito..." oninput="renderVentas(this.value)"></div><button class="btn btn-ghost" id="btn-fact-lote" onclick="facturarEntregadas()" style="border-color:var(--green);color:var(--green);display:none">Facturar entregadas</button><button class="btn btn-ghost" onclick="openFacturaDirecta()" style="border-color:var(--teal);color:var(--teal)">+ Factura directa</button><button class="btn btn-ghost" onclick="openFacturasDirectas()">Ver facturas directas</button><button class="btn btn-ghost" onclick="openNotaLibre()" style="border-color:var(--coral,#e5484d);color:var(--coral,#e5484d)" title="NC/ND con CAE sin factura del ERP: asociada a un período o a un comprobante propio externo">+ NC/ND libre</button><button class="btn btn-ghost" id="btn-regen-asientos" onclick="regenerarAsientosFaltantes()" style="border-color:var(--amber,#d99a2b);color:var(--amber,#d99a2b)" title="Genera el asiento contable de las facturas y NC con CAE que no lo tengan (backfill)">Regenerar asientos</button><input type="date" id="ventasf-fdesde" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Desde" style="width:auto"><input type="date" id="ventasf-fhasta" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Hasta" style="width:auto">
+          <div class="search-box"><input type="text" placeholder="Buscar por cliente, remito..." oninput="renderVentas(this.value)"></div><button class="btn btn-ghost" id="btn-fact-lote" onclick="facturarEntregadas()" style="border-color:var(--green);color:var(--green);display:none">Facturar entregadas</button><button class="btn btn-ghost" onclick="openFacturaDirecta()" style="border-color:var(--teal);color:var(--teal)">+ Factura directa</button><button class="btn btn-ghost" onclick="showPage('femitidas')" title="Listado de todas las facturas, NC y ND emitidas, con filtros por cliente, tipo y fecha">Facturas emitidas</button><button class="btn btn-ghost" onclick="openNotaLibre()" style="border-color:var(--coral,#e5484d);color:var(--coral,#e5484d)" title="NC/ND con CAE sin factura del ERP: asociada a un período o a un comprobante propio externo">+ NC/ND libre</button><button class="btn btn-ghost" id="btn-regen-asientos" onclick="regenerarAsientosFaltantes()" style="border-color:var(--amber,#d99a2b);color:var(--amber,#d99a2b)" title="Genera el asiento contable de las facturas y NC con CAE que no lo tengan (backfill)">Regenerar asientos</button><input type="date" id="ventasf-fdesde" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Desde" style="width:auto"><input type="date" id="ventasf-fhasta" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Hasta" style="width:auto">
           <button class="btn btn-ghost" onclick="exportVentasCSV()" title="Exportar a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Nro. remito</th><th>Cliente</th><th>Fecha</th><th>Piezas</th><th>Total unid.</th><th>Importe</th><th>Estado</th><th></th></tr></thead><tbody id="ventas-tbody"></tbody></table></div>
+      </div>
+    </div>
+    <!-- VENTAS: Facturas emitidas (sprint 3 hoja 2026-09-07) -->
+    <div class="page" id="page-femitidas">
+      <div class="page-header"><div class="page-title">Facturas emitidas</div><div class="page-sub">// facturas, NC y ND con CAE · con venta, directas y libres</div><div class="tabs"><div class="tab active">Todas</div></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="fem-stats"></div>
+        <div class="toolbar">
+          <div class="search-box"><input type="text" placeholder="Buscar por cliente, CUIT, número, CAE, remito..." oninput="renderFacturasEmitidas()"></div>
+          <select id="femf-cliente" onchange="renderFacturasEmitidas()" title="Filtrar por cliente" style="width:auto;max-width:220px"><option value="">Todos los clientes</option></select>
+          <select id="femf-tipo" onchange="renderFacturasEmitidas()" title="Filtrar por tipo de comprobante" style="width:auto"><option value="">Todos los tipos</option><option value="fa">Facturas</option><option value="nc">Notas de crédito</option><option value="nd">Notas de débito</option></select>
+          <input type="date" id="femf-fdesde" onchange="renderFacturasEmitidas()" title="Desde" style="width:auto"><input type="date" id="femf-fhasta" onchange="renderFacturasEmitidas()" title="Hasta" style="width:auto">
+          <button class="btn btn-ghost" onclick="exportFacturasEmitidasCSV()" title="Exportar la lista filtrada a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
+          <button class="btn btn-ghost" onclick="openFacturaDirecta()" style="border-color:var(--teal);color:var(--teal)">+ Factura directa</button>
+          <button class="btn btn-ghost" onclick="openNotaLibre()" style="border-color:var(--coral,#e5484d);color:var(--coral,#e5484d)" title="NC/ND con CAE sin factura del ERP: asociada a un período o a un comprobante propio externo">+ NC/ND libre</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Comprobante</th><th>Cliente</th><th>CUIT / Doc</th><th>Origen</th><th style="text-align:right">Neto</th><th style="text-align:right">IVA</th><th style="text-align:right">Total</th><th>CAE</th><th>Asiento</th><th></th></tr></thead><tbody id="fem-tbody"></tbody></table></div>
       </div>
     </div>
     <!-- CLIENTES -->
@@ -1862,18 +1883,6 @@ body.no-costos .solo-costos{display:none!important}
     </div>
   </div>
 </div>
-<div class="modal-overlay" id="modal-facturas-directas">
-  <div class="modal" style="width:740px">
-    <div class="modal-header"><div class="modal-title">Facturas directas y notas libres</div><button class="modal-close" onclick="closeModal('modal-facturas-directas')">×</button></div>
-    <div class="modal-body">
-      <p style="margin:0 0 10px 0;color:var(--text3);font-size:12px">Facturas directas (sin venta) y notas de crédito/débito libres, todas con CAE de AFIP. Desde una factura podés emitir su NC/ND.</p>
-      <div id="fd-lista" style="font-size:12px"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-facturas-directas')">Cerrar</button>
-    </div>
-  </div>
-</div>
 <div class="modal-overlay" id="modal-entrega-parcial">
   <div class="modal" style="width:640px">
     <div class="modal-header"><div class="modal-title">Entrega parcial <span id="ep-venta-nro" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="modal-close" onclick="closeModal('modal-entrega-parcial')">×</button></div>
@@ -3028,6 +3037,7 @@ let insumos=[],herramientas=[];
 let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[],cheques=[],empleados=[],liquidaciones=[];
 let facturasRecibidas=[];
 let ordenesPago=[];
+let facturasEmitidas=[]; // listado unificado Ventas → Facturas emitidas (sprint 3 hoja 2026-09-07)
 let periodosContables=[];
 let correlatividad=[];
 let cuentasBancarias=[],extractoBancario=[];
@@ -3945,6 +3955,7 @@ const TBL={
   cheques:{label:'Cheques',q:'?order=fecha_pago.asc',set:r=>{cheques=r||[];}},
   facturas_recibidas:{label:'Facturas recibidas',q:'?order=created_at.desc',set:r=>{facturasRecibidas=r||[];}},
   ordenes_pago:{label:'Órdenes de pago',q:'?order=fecha.desc,nro.desc&select=*,orden_pago_medios(*),orden_pago_imputaciones(*)',set:r=>{ordenesPago=r||[];}},
+  facturas_emitidas:{label:'Facturas emitidas',q:'?order=fecha.desc,punto_venta.asc,numero.desc&select=id,venta_id,factura_asociada_id,tipo_comprobante,punto_venta,numero,fecha,doc_tipo,doc_nro,imp_neto,imp_iva,imp_total,moneda,cotizacion_moneda,cae,cae_vto,resultado,afip_environment,periodo_asoc_desde,periodo_asoc_hasta,cbte_asoc_externo,created_at',set:r=>{facturasEmitidas=r||[];_dirtyPages.add('femitidas');}},
   periodos_contables:{label:'Períodos',q:'?order=anio.desc,mes.desc',set:r=>{periodosContables=r||[];}},
   v_correlatividad:{label:'Correlatividad',q:'?select=*',set:r=>{correlatividad=r||[];}},
   cuentas_bancarias:{label:'Cuentas bancarias',q:'?order=nombre.asc',set:r=>{cuentasBancarias=r||[];}},
@@ -3990,7 +4001,7 @@ async function loadAll(){
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',planos:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',clientes:'ventas',ctacte:'ventas',mailings:'ventas',precios:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',kpiscalidad:'calidad',revdir:'calidad',auditorias:'calidad',competencias:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',eecc:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',bienesuso:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',exportables:'contabilidad',sueldos:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',planos:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',femitidas:'ventas',clientes:'ventas',ctacte:'ventas',mailings:'ventas',precios:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',kpiscalidad:'calidad',revdir:'calidad',auditorias:'calidad',competencias:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',eecc:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',bienesuso:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',exportables:'contabilidad',sueldos:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
   produccion:[{k:'op',l:'Órdenes'},{k:'planos',l:'Planos'},{k:'eficiencia',l:'Eficiencia'}],
@@ -4008,7 +4019,7 @@ const GROUP_TABS={
     {k:'analisis',l:'Análisis',sub:[{k:'ratios',l:'Ratios'},{k:'bimon',l:'Bimonetario'},{k:'compha',l:'Hist. vs Ajust.'},{k:'compej',l:'Compar. ejerc.'}]},
     {k:'cierreinf',l:'Cierre e inflación',sub:[{k:'periodos',l:'Períodos mensuales'},{k:'ipc',l:'Índices IPC'},{k:'ajuste',l:'Ajuste inflación'},{k:'bienesuso',l:'Bienes de uso'},{k:'cierre',l:'Cierre y apertura'}]}
   ],
-  ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'clientes',l:'Clientes'},{k:'ctacte',l:'Cta. corriente'},{k:'mailings',l:'Mailings'},{k:'precios',l:'Precios'}],
+  ventas:[{k:'presupuestos',l:'Presupuestos'},{k:'ventas',l:'Ventas'},{k:'femitidas',l:'Facturas emitidas'},{k:'clientes',l:'Clientes'},{k:'ctacte',l:'Cta. corriente'},{k:'mailings',l:'Mailings'},{k:'precios',l:'Precios'}],
   analisis:[{k:'costos',l:'Costos y rentabilidad'},{k:'trace',l:'Trazabilidad'}],
   calidad:[{k:'ncr',l:'NCR / CAPA'},{k:'doccontrol',l:'Documentos'},{k:'pqptpl',l:'Plantillas PQP'},{k:'sgc',l:'SGC',sub:[{k:'kpiscalidad',l:'Tablero'},{k:'revdir',l:'Revisión dirección'},{k:'auditorias',l:'Auditorías'},{k:'competencias',l:'Competencias'}]}],
 };
@@ -4571,7 +4582,7 @@ async function emitirFactura(ventaId,skipConfirm){
       // Asiento contable automático con los datos reales del CAE (no bloquea si falla)
       await generarAsientoFactura(facturaEmitidaId,data,venta).catch(e=>{console.warn('Asiento de factura no generado:',e);notify(`⚠ La factura tiene CAE pero NO se generó el asiento contable: ${e.message}. Usá "Regenerar asientos" para reintentar.`,'err');});
     }
-    await reload('ventas','asientos','asiento_lineas');renderVentas(document.querySelector('#page-ventas .search-box input')?.value||'');
+    await reload('ventas','asientos','asiento_lineas','facturas_emitidas');renderVentas(document.querySelector('#page-ventas .search-box input')?.value||'');
     checkAsientosFaltantes();
     notify(`✓ CAE ${data.cae} — Factura ${cbte.letra} ${String(data.punto_venta).padStart(5,'0')}-${String(data.numero).padStart(8,'0')} · TC $${tc}`,'ok');
     return true;
@@ -4708,32 +4719,102 @@ async function emitirFacturaDirecta(){
     const fid=Array.isArray(rows)?rows[0]?.id:rows?.id;
     if(fid)await generarAsientoFactura(fid,data,{cliente:cli.nombre}).catch(e=>{console.warn('Asiento de factura directa no generado:',e);notify(`⚠ La factura tiene CAE pero NO se generó el asiento contable: ${e.message}. Usá "Regenerar asientos" para reintentar.`,'err');});
     checkAsientosFaltantes();
-    await reload('asientos','asiento_lineas');
+    await reload('asientos','asiento_lineas','facturas_emitidas');
     _modalDirty['modal-factura-directa']=false;closeModal('modal-factura-directa',true);fdItems=[];
     notify(`✓ CAE ${data.cae} — Factura ${cbte.letra} ${String(data.punto_venta).padStart(5,'0')}-${String(data.numero).padStart(8,'0')}${moneda==='USD'?` · TC $${tc}`:''}`,'ok');
   }catch(e){notify(`Error al facturar: ${e.message}`,'err');}
   finally{const b=document.getElementById('btn-emitir-fd');if(b){b.disabled=false;b.textContent='Emitir factura (CAE)';}}
 }
-async function openFacturasDirectas(){
-  openModal('modal-facturas-directas');
-  const cont=document.getElementById('fd-lista');
-  cont.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3)">Cargando…</div>';
-  const fs=await GET('facturas_emitidas','?venta_id=is.null&order=fecha.desc,numero.desc&select=id,fecha,tipo_comprobante,punto_venta,numero,doc_nro,imp_total,cae,factura_asociada_id,cbte_asoc_externo,periodo_asoc_desde,periodo_asoc_hasta').catch(()=>[]);
-  renderFacturasDirectas(fs);
+// ═══ FACTURAS EMITIDAS — listado unificado (sprint 3 hoja 2026-09-07) ═══
+// Página Ventas → Facturas emitidas: todas las facturas, NC y ND con CAE
+// (con venta, directas y libres) con filtros cliente × tipo × fecha × texto.
+// Reemplaza al modal "Ver facturas directas". Puras → tests/listados-facturas.test.js.
+function cbteLabel(f){
+  const t=Number(f?.tipo_comprobante);const c=claseNota(t);
+  const letra=c?NOTA_LETRA[t]:(Object.keys(FACTURA_TIPO_BY_LETRA).find(k=>FACTURA_TIPO_BY_LETRA[k]===t)||'?');
+  return `${c?c.toUpperCase():'FA'}-${letra} ${_fmtCbte(f?.punto_venta||0,f?.numero||0)}`;
 }
-function renderFacturasDirectas(fs){
-  const cont=document.getElementById('fd-lista');if(!cont)return;
-  if(!fs||!fs.length){cont.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3)">No hay facturas directas emitidas todavía.</div>';return;}
-  const tipoStr={1:'A',2:'NC-A',3:'ND-A',6:'B',7:'NC-B',8:'ND-B',11:'C',12:'NC-C',13:'ND-C',51:'M',52:'NC-M',53:'ND-M'};
-  const rows=fs.map(f=>`<tr style="border-bottom:1px solid var(--border)">
-    <td class="mono" style="padding:6px 4px">${esc(fmtFecha(f.fecha))||'—'}</td>
-    <td class="mono" style="padding:6px 4px">${tipoStr[f.tipo_comprobante]||f.tipo_comprobante} ${String(f.punto_venta).padStart(5,'0')}-${String(f.numero).padStart(8,'0')}</td>
-    <td class="mono" style="padding:6px 4px">${esc(f.doc_nro)||'—'}${f.cbte_asoc_externo?`<div style="font-size:10px;color:var(--text3)">s/ ${esc(f.cbte_asoc_externo)}</div>`:f.periodo_asoc_desde?`<div style="font-size:10px;color:var(--text3)">período ${fmtFecha(f.periodo_asoc_desde)}–${fmtFecha(f.periodo_asoc_hasta)}</div>`:''}</td>
-    <td class="mono" style="padding:6px 4px;text-align:right;${claseNota(f.tipo_comprobante)==='nc'?'color:var(--coral)':''}">${claseNota(f.tipo_comprobante)==='nc'?'−':''}${fmtARS(Number(f.imp_total)||0)}</td>
-    <td class="mono" style="padding:6px 4px;font-size:11px">${esc(f.cae)||'—'}</td>
-    <td style="padding:6px 4px;white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="verFactura('${f.id}')">Ver CAE</button>${claseNota(f.tipo_comprobante)?'':`<button class="btn btn-ghost btn-sm" onclick="openNotaSobreFactura('${f.id}')" style="color:var(--coral,#e5484d)" title="Nota de crédito o débito con CAE sobre esta factura">NC/ND</button>`}</td>
-  </tr>`).join('');
-  cont.innerHTML=`<table style="width:100%;border-collapse:collapse"><thead><tr style="font-size:9px;color:var(--text3);text-transform:uppercase;text-align:left"><th style="padding:4px">Fecha</th><th style="padding:4px">Comprobante</th><th style="padding:4px">Doc receptor</th><th style="padding:4px;text-align:right">Total</th><th style="padding:4px">CAE</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+function origenFacturaEmitida(f,{venta,asociada}={}){
+  if(venta)return `Remito ${venta.nro_remito||venta.nro_pedido||''}`.trim();
+  if(asociada)return `s/ ${cbteLabel(asociada)}`;
+  if(f?.cbte_asoc_externo)return `s/ ${f.cbte_asoc_externo}`;
+  if(f?.periodo_asoc_desde)return `Período ${fmtFecha(f.periodo_asoc_desde)}–${fmtFecha(f.periodo_asoc_hasta)}`;
+  if(f?.factura_asociada_id)return 's/ factura';
+  return 'Directa';
+}
+function filtrarFacturasEmitidas(list,{texto='',clienteId='',tipo='',desde='',hasta=''}={},{ventas:vs=[],clientes:cs=[]}={}){
+  const t=(texto||'').toLowerCase().trim();
+  const byId=new Map((list||[]).map(f=>[f.id,f]));
+  return (list||[]).map(f=>{
+    const venta=f.venta_id?(vs||[]).find(v=>v.id===f.venta_id)||null:null;
+    const {cliente,cliente_id}=resolverClienteFactura(f,vs,cs);
+    const clase=claseNota(f.tipo_comprobante)||'fa';
+    return {f,venta,cliente,cliente_id,clase,signo:clase==='nc'?-1:1,asociada:f.factura_asociada_id?byId.get(f.factura_asociada_id)||null:null};
+  }).filter(x=>{
+    if(clienteId&&x.cliente_id!==clienteId)return false;
+    if(tipo&&x.clase!==tipo)return false;
+    if(!enRango(x.f.fecha,desde,hasta))return false;
+    if(!t)return true;
+    return [x.cliente,x.f.doc_nro,x.f.cae,cbteLabel(x.f),x.venta?.nro_remito,x.f.cbte_asoc_externo].filter(Boolean).join(' ').toLowerCase().includes(t);
+  });
+}
+function resumenFacturasEmitidas(rows){
+  const s={n:0,fa:0,nc:0,nd:0,neto:0};
+  (rows||[]).forEach(x=>{s.n++;s[x.clase]=(s[x.clase]||0)+(parseFloat(x.f?.imp_total)||0);});
+  const r2=n=>Math.round(n*100)/100;
+  s.fa=r2(s.fa);s.nc=r2(s.nc);s.nd=r2(s.nd);s.neto=r2(s.fa-s.nc+s.nd);
+  return s;
+}
+// Repuebla un select conservando la selección (opciones {id,nombre}).
+function _fillSelectKeep(sel,opciones,placeholder){
+  if(!sel)return;const prev=sel.value;
+  sel.innerHTML=`<option value="">${esc(placeholder)}</option>`+(opciones||[]).map(o=>`<option value="${esc(o.id)}">${esc(o.nombre)}</option>`).join('');
+  if(prev&&[...sel.options].some(o=>o.value===prev))sel.value=prev;
+}
+function _femFiltros(){
+  const g=id=>document.getElementById(id)?.value||'';
+  return {texto:document.querySelector('#page-femitidas .search-box input')?.value||'',clienteId:g('femf-cliente'),tipo:g('femf-tipo'),desde:g('femf-fdesde'),hasta:g('femf-fhasta')};
+}
+function renderFacturasEmitidas(){
+  const tb=document.getElementById('fem-tbody');if(!tb)return;
+  const conFact=new Set(facturasEmitidas.map(f=>resolverClienteFactura(f,ventas,clientes).cliente_id).filter(Boolean));
+  _fillSelectKeep(document.getElementById('femf-cliente'),clientes.filter(c=>conFact.has(c.id)).sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'')),'Todos los clientes');
+  const rows=filtrarFacturasEmitidas(facturasEmitidas,_femFiltros(),{ventas,clientes});
+  const s=resumenFacturasEmitidas(rows);
+  const filtrado=rows.length!==facturasEmitidas.length;
+  document.getElementById('fem-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Comprobantes${filtrado?' (filtrados)':''}</div><div class="stat-value" style="color:var(--accent)">${s.n}</div></div>
+    <div class="stat-card solo-costos"><div class="stat-label">Facturado</div><div class="stat-value" style="color:var(--green);font-size:14px">${fmtARS(s.fa)}</div></div>
+    <div class="stat-card solo-costos"><div class="stat-label">Notas de crédito</div><div class="stat-value" style="color:var(--coral);font-size:14px">${fmtARS(s.nc)}</div></div>
+    <div class="stat-card solo-costos"><div class="stat-label">Notas de débito</div><div class="stat-value" style="color:var(--amber,#d99a2b);font-size:14px">${fmtARS(s.nd)}</div></div>
+    <div class="stat-card solo-costos" title="Facturas − notas de crédito + notas de débito"><div class="stat-label">Neto</div><div class="stat-value" style="color:var(--blue);font-size:14px">${fmtARS(s.neto)}</div></div>`;
+  const asientoDe=new Map(asientos.filter(a=>a.origen_id&&a.estado!=='anulado'&&['factura','nota-credito','nota-debito'].includes(a.origen_tipo)).map(a=>[a.origen_id,a]));
+  const badge={fa:'badge-blue',nc:'badge-coral',nd:'badge-warn'};
+  tb.innerHTML=rows.length?rows.map(x=>{
+    const f=x.f,rojo=x.signo<0?'color:var(--coral)':'';
+    const lbl=cbteLabel(f).split(' ');
+    const as=asientoDe.get(f.id);
+    const origen=esc(origenFacturaEmitida(f,x));
+    return `<tr data-id="${f.id}">
+      <td class="mono">${fmtFecha(f.fecha)||'—'}</td>
+      <td><span class="badge ${badge[x.clase]}">${lbl[0]}</span> <span class="mono">${lbl[1]}</span></td>
+      <td style="font-weight:500">${x.cliente_id?`<span onclick="showPage('clientes','${x.cliente_id}')" style="cursor:pointer;text-decoration:underline dotted" title="Ver cliente">${esc(x.cliente)}</span>`:esc(x.cliente)}</td>
+      <td class="mono">${esc(f.doc_nro||'')||'—'}</td>
+      <td style="font-size:11px">${x.venta?`<span onclick="showPage('ventas','${x.venta.id}')" style="cursor:pointer;text-decoration:underline dotted" title="Ver la venta">${origen}</span>`:`<span style="color:var(--text3)">${origen}</span>`}</td>
+      <td class="mono" style="text-align:right;${rojo}">${fmtARS(x.signo*(parseFloat(f.imp_neto)||0))}</td>
+      <td class="mono" style="text-align:right;${rojo}">${fmtARS(x.signo*(parseFloat(f.imp_iva)||0))}</td>
+      <td class="mono" style="text-align:right;font-weight:600;${rojo}">${fmtARS(x.signo*(parseFloat(f.imp_total)||0))}</td>
+      <td class="mono" style="font-size:11px">${esc(f.cae||'')||'—'}${f.afip_environment&&f.afip_environment!=='produccion'?' <span class="badge badge-warn" style="font-size:9px" title="Emitida en homologación (prueba)">HOMO</span>':''}</td>
+      <td class="mono" style="font-size:11px">${as?`<span onclick="showPage('asientosp','${as.id}')" style="cursor:pointer;color:var(--accent)" title="Ver asiento">#${esc(String(as.numero??''))}</span>`:'<span style="color:var(--coral)" title="Sin asiento contable — usá «Regenerar asientos» en Ventas">sin asiento</span>'}</td>
+      <td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="verFactura('${f.id}')">Ver CAE</button>${x.clase==='fa'?`<button class="btn btn-ghost btn-sm" onclick="openNotaSobreFactura('${f.id}')" style="color:var(--coral,#e5484d)" title="Nota de crédito o débito con CAE sobre esta factura">NC/ND</button>`:''}</td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="11" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">${filtrado?'Nada con esos filtros':'Sin comprobantes emitidos'}</div><div class="empty-msg">${filtrado?'Probá ampliar el rango de fechas o sacar el filtro de cliente.':'Las facturas salen desde el botón <b>CAE</b> de una venta entregada, o con <b>+ Factura directa</b>.'}</div></div></td></tr>`;
+}
+function exportFacturasEmitidasCSV(){
+  const rows=filtrarFacturasEmitidas(facturasEmitidas,_femFiltros(),{ventas,clientes});
+  if(!rows.length){notify('No hay comprobantes para exportar con esos filtros','err');return;}
+  exportCSV(`facturas_emitidas_${hoyLocal()}.csv`,['Fecha','Tipo','Comprobante','Cliente','CUIT/Doc','Origen','Neto','IVA','Total','CAE','Vto CAE'],
+    rows.map(x=>{const l=cbteLabel(x.f).split(' ');return [fmtFecha(x.f.fecha),l[0],l[1],x.cliente,x.f.doc_nro||'',origenFacturaEmitida(x.f,x),_numAR(x.signo*(parseFloat(x.f.imp_neto)||0)),_numAR(x.signo*(parseFloat(x.f.imp_iva)||0)),_numAR(x.signo*(parseFloat(x.f.imp_total)||0)),x.f.cae||'',fmtFecha(x.f.cae_vto)];}));
 }
 // Backfill: genera el asiento de las facturas/NC con CAE que no lo tengan,
 // y muestra el motivo exacto si alguna falla (diagnóstico + arreglo).
@@ -5066,7 +5147,7 @@ async function emitirNotaCredito(){
     const notaId=Array.isArray(rows)?rows[0]?.id:rows?.id;
     _guardada=true;
     if(notaId)await generarAsientoNota(notaId,data,_nota.cliente,motivo).catch(e=>{console.warn('Asiento de nota no generado:',e);notify(`⚠ La nota tiene CAE pero NO se generó el asiento contable: ${e.message}. Usá "Regenerar asientos" para reintentar.`,'err');});
-    await reload('asientos','asiento_lineas');
+    await reload('asientos','asiento_lineas','facturas_emitidas');
     _modalDirty['modal-nota-credito']=false;closeModal('modal-nota-credito',true);
     _nota=null;
     renderAll();
@@ -5239,7 +5320,7 @@ async function emitirNotaLibre(){
     const nid=Array.isArray(rows)?rows[0]?.id:rows?.id;
     if(nid)await generarAsientoNota(nid,data,{cliente:cli.nombre,cliente_id:cli.id},obsUser).catch(e=>{console.warn('Asiento de nota libre no generado:',e);notify(`⚠ La nota tiene CAE pero NO se generó el asiento contable: ${e.message}. Usá "Regenerar asientos" para reintentar.`,'err');});
     checkAsientosFaltantes();
-    await reload('asientos','asiento_lineas');
+    await reload('asientos','asiento_lineas','facturas_emitidas');
     _modalDirty['modal-nota-libre']=false;closeModal('modal-nota-libre',true);nlItems=[];
     renderAll();
     notify(`✓ CAE ${data.cae} — ${lbl} ${cbte.letra} ${_fmtCbte(data.punto_venta,data.numero)} a ${cli.nombre}`,'ok');
@@ -6819,6 +6900,7 @@ const PAGE_RENDERS={
   compras:[renderCompras,renderInspeccion,renderProveedores,renderFacturasRecibidas,renderOrdenesPago],
   presupuestos:[renderPresupuestos],
   ventas:[renderVentas],
+  femitidas:[renderFacturasEmitidas],
   clientes:[renderClientes],
   ctacte:[renderCtaCte],
   costos:[renderCostos],
@@ -14669,16 +14751,44 @@ function _calcValorRecibidoOC(ocId,{completo=false}={}){
 }
 
 
+// Filtros de Compras → Facturas recibidas (sprint 3 hoja 2026-09-07):
+// proveedor × tipo × fecha de emisión × texto. Pura (tests/listados-facturas.test.js).
+function filtrarFacturasRecibidas(list,{texto='',proveedorId='',tipo='',desde='',hasta=''}={},{proveedores:ps=[],ordenesCompra:ocs=[]}={}){
+  const t=(texto||'').toLowerCase().trim();
+  return (list||[]).map(r=>({r,prov:(ps||[]).find(p=>p.id===r.proveedor_id)||null,oc:r.oc_id?(ocs||[]).find(o=>o.id===r.oc_id)||null:null,tipo:r.tipo||'factura',signo:r.tipo==='nota_credito'?-1:1}))
+    .filter(x=>{
+      if(proveedorId&&x.r.proveedor_id!==proveedorId)return false;
+      if(tipo&&x.tipo!==tipo)return false;
+      if(!enRango(x.r.fecha,desde,hasta))return false;
+      if(!t)return true;
+      return [x.oc?.nro,x.prov?.nombre,x.r.nro].filter(Boolean).join(' ').toLowerCase().includes(t);
+    });
+}
+function _frFiltros(texto){
+  const g=id=>document.getElementById(id)?.value||'';
+  return {texto:texto??(document.querySelector('#compras-tab-facturas .search-box input')?.value||''),proveedorId:g('frf-prov'),tipo:g('frf-tipo'),desde:g('frf-fdesde'),hasta:g('frf-fhasta')};
+}
+function _frRerender(){renderFacturasRecibidas(document.querySelector('#compras-tab-facturas .search-box input')?.value||'');}
+function exportFacturasRecibidasCSV(){
+  const rows=filtrarFacturasRecibidas(facturasRecibidas,_frFiltros(),{proveedores,ordenesCompra});
+  if(!rows.length){notify('No hay comprobantes para exportar con esos filtros','err');return;}
+  const _vivas=imputacionesVivas(ordenesPago);
+  const tipoTxt={factura:'FA',nota_credito:'NC',nota_debito:'ND'};
+  exportCSV(`facturas_recibidas_${hoyLocal()}.csv`,['Tipo','Letra','Proveedor','CUIT','Nro','OC','Fecha','Fecha contable','Vencimiento','Moneda','Neto','IVA','Total','Saldo','Match','Asiento'],
+    rows.map(({r,prov,oc,tipo,signo:sg})=>{const sf=tipo==='factura'?saldoFacturaProveedor(r,facturasRecibidas,_vivas):null;return [tipoTxt[tipo]||tipo,r.letra||'',prov?.nombre||'',prov?.cuit||'',r.nro||'',oc?.nro||'',fmtFecha(r.fecha),fmtFecha(r.fecha_contable||r.fecha),fmtFecha(r.fecha_vto),r.moneda||'ARS',_numAR(sg*(parseFloat(r.neto)||0)),_numAR(sg*(parseFloat(r.iva)||0)),_numAR(sg*(parseFloat(r.total)||0)),sf?_numAR(sf.saldo):'',r.estado_match||'',r.asiento_id||''];}));
+}
 function renderFacturasRecibidas(filter=''){
-  const f=(filter||'').toLowerCase();
-  const signo=r=>(r.tipo==='nota_credito'?-1:1);
-  const total=facturasRecibidas.length;
-  const matchOk=facturasRecibidas.filter(r=>r.estado_match==='ok').length;
-  const ncnd=facturasRecibidas.filter(r=>(r.tipo||'factura')!=='factura').length;
-  const totalARS=facturasRecibidas.filter(r=>(r.moneda||'ARS')==='ARS').reduce((a,r)=>a+signo(r)*(parseFloat(r.total)||0),0);
-  const totalUSD=facturasRecibidas.filter(r=>r.moneda==='USD').reduce((a,r)=>a+signo(r)*(parseFloat(r.total)||0),0);
+  const conFact=new Set(facturasRecibidas.map(r=>r.proveedor_id).filter(Boolean));
+  _fillSelectKeep(document.getElementById('frf-prov'),proveedores.filter(p=>conFact.has(p.id)),'Todos los proveedores');
+  const rows=filtrarFacturasRecibidas(facturasRecibidas,_frFiltros(filter),{proveedores,ordenesCompra});
+  const filtrado=rows.length!==facturasRecibidas.length;
+  const total=rows.length;
+  const matchOk=rows.filter(x=>x.r.estado_match==='ok').length;
+  const ncnd=rows.filter(x=>x.tipo!=='factura').length;
+  const totalARS=rows.filter(x=>(x.r.moneda||'ARS')==='ARS').reduce((a,x)=>a+x.signo*(parseFloat(x.r.total)||0),0);
+  const totalUSD=rows.filter(x=>x.r.moneda==='USD').reduce((a,x)=>a+x.signo*(parseFloat(x.r.total)||0),0);
   document.getElementById('fr-stats').innerHTML=`
-    <div class="stat-card"><div class="stat-label">Comprobantes</div><div class="stat-value" style="color:var(--accent)">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Comprobantes${filtrado?' (filtrados)':''}</div><div class="stat-value" style="color:var(--accent)">${total}</div></div>
     <div class="stat-card"><div class="stat-label">Match OK</div><div class="stat-value" style="color:var(--green)">${matchOk}</div></div>
     <div class="stat-card"><div class="stat-label">NC / ND</div><div class="stat-value" style="color:var(--coral)">${ncnd}</div></div>
     <div class="stat-card solo-costos"><div class="stat-label">Total ARS (neto NC)</div><div class="stat-value" style="color:var(--green)">${fmtARS(totalARS)}</div></div>
@@ -14691,18 +14801,9 @@ function renderFacturasRecibidas(filter=''){
     if(tp==='nota_debito')return `<span class="badge badge-warn">ND-${esc(l)}</span>`;
     return `<span class="badge badge-blue">FA-${esc(l)}</span>`;
   };
-  const list=facturasRecibidas.filter(r=>{
-    if(!f)return true;
-    const oc=ordenesCompra.find(o=>o.id===r.oc_id);
-    const prov=proveedores.find(p=>p.id===r.proveedor_id);
-    return (oc?.nro||'').toLowerCase().includes(f)||(prov?.nombre||'').toLowerCase().includes(f)||(r.nro||'').toLowerCase().includes(f);
-  });
-  document.getElementById('fr-tbody').innerHTML=list.length?list.map(r=>{
-    const oc=ordenesCompra.find(o=>o.id===r.oc_id);
-    const prov=proveedores.find(p=>p.id===r.proveedor_id);
+  document.getElementById('fr-tbody').innerHTML=rows.length?rows.map(({r,prov,oc,signo:s})=>{
     const mon=r.moneda||'ARS';
     const fmt=mon==='USD'?fmtUSD:fmtARS;
-    const s=signo(r);
     const estado=r.estado_match||'pendiente';
     const matchCell=r.oc_id&&(r.tipo||'factura')==='factura'
       ?`<span class="badge ${matchBadges[estado]||''}">${{ok:'MATCH OK',override:'OVERRIDE',pendiente:'PENDIENTE'}[estado]||esc(estado)}</span>`
@@ -14724,7 +14825,7 @@ function renderFacturasRecibidas(filter=''){
       <td class="mono" style="font-size:11px;color:var(--text3)">${r.asiento_id?esc(r.asiento_id):'—'}</td>
       <td style="display:flex;gap:4px">${(r.tipo||'factura')==='factura'&&saldoFacturaProveedor(r,facturasRecibidas,_vivas).saldo>0.005?`<button class="btn btn-ghost btn-sm" onclick="irAPagarFactura('${r.id}')" title="Orden de pago — abre la OP con esta factura tildada" style="color:var(--teal)"><span class="btn-icon"><svg viewBox="0 0 24 24"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Pagar</button><button class="btn btn-ghost btn-sm" onclick="openNCNDModal('${r.id}')">NC/ND</button>`:''}<button class="btn btn-ghost btn-sm" onclick="corregirFacturaRecibida('${r.id}')" title="Anula este comprobante y reabre el formulario precargado para corregirlo">Corregir</button><button class="btn btn-danger btn-sm" onclick="anularFacturaRecibida('${r.id}')" title="Anula el comprobante (el asiento queda anulado, el motivo va al audit log)">Anular</button></td>
     </tr>`;
-  }).join(''):'<tr><td colspan="14" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">Sin comprobantes</div><div class="empty-msg">Registrá facturas con el botón <b>Factura</b> de una OC recibida, o <b>+ Factura sin OC</b> para gastos.</div></div></td></tr>';
+  }).join(''):`<tr><td colspan="14" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">${filtrado?'Nada con esos filtros':'Sin comprobantes'}</div><div class="empty-msg">${filtrado?'Probá ampliar el rango de fechas o sacar el filtro de proveedor.':'Registrá facturas con el botón <b>Factura</b> de una OC recibida, o <b>+ Factura sin OC</b> para gastos.'}</div></div></td></tr>`;
 }
 
 // ═══════════════════════════════════════════════════════════

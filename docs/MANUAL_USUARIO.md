@@ -77,8 +77,8 @@ A la izquierda tenés el **menú lateral** con 9 grandes grupos. Al entrar a un 
 | **Métricas** | Tablero de inicio con indicadores y alertas del día |
 | **Inventario** | Materia prima, Productos terminados, Certificados MTC, Insumos, Herramientas |
 | **Producción** | Órdenes de producción (con captura de tiempos, PQP y ensayos) |
-| **Compras** | Órdenes de compra, **Inspección de entrada**, Proveedores (con AVL), Facturas recibidas |
-| **Ventas** | Presupuestos, Ventas, Clientes, Cuenta corriente |
+| **Compras** | Órdenes de compra, **Inspección de entrada**, Proveedores (con AVL), Facturas recibidas, Órdenes de pago |
+| **Ventas** | Presupuestos, Ventas, **Facturas emitidas**, Clientes, Cuenta corriente, Mailings, Precios |
 | **Análisis** | Costos y rentabilidad, Trazabilidad |
 | **Calidad** | NCR / CAPA, Documentos controlados, Plantillas PQP |
 | **Contabilidad** | Plan de cuentas, asientos, cobros/pagos, cheques, libros, balances, ajuste por inflación, cierre… |
@@ -87,6 +87,10 @@ A la izquierda tenés el **menú lateral** con 9 grandes grupos. Al entrar a un 
 **En el celular:** el menú se esconde. Tocá el botón ☰ (hamburguesa) arriba para abrirlo.
 
 **Tema claro/oscuro:** botón ☀ en el pie del menú.
+
+**Ordenar una tabla:** hacé click en el **encabezado** de cualquier columna (Fecha, Proveedor, Total…) y la tabla se ordena por esa columna; un segundo click invierte el orden (▲/▼). Funciona en todas las tablas del sistema y se mantiene aunque la tabla se refresque.
+
+**Filtros combinables:** en los listados con filtros (Facturas recibidas, Facturas emitidas, Órdenes de compra, Ventas) el buscador de texto, los selectores y las fechas **desde/hasta** se combinan entre sí. Los números de la barra de arriba se recalculan sobre lo filtrado.
 
 > Si **no ves** un grupo o una sección, es porque tu usuario no tiene ese módulo habilitado. Pedíselo al administrador.
 
@@ -398,6 +402,8 @@ El exportable **IVA compras** (Contabilidad → Exportables) sale en formato lib
 
 La columna **Saldo** muestra lo que falta pagar de cada factura (total − NC asociadas − lo ya imputado en órdenes de pago). Cuando llega a cero aparece **PAGADA**. El botón **$** de la fila abre una orden de pago con esa factura ya tildada.
 
+**Filtros e informes por proveedor y fecha:** arriba de la tabla tenés buscador de texto (número, proveedor, OC), selector de **proveedor**, selector de **tipo** (facturas / NC / ND) y fechas **desde / hasta** (por fecha de emisión). Se combinan: por ejemplo, proveedor "Aceros Sur" + agosto = todas sus facturas del mes, con el total en la barra de arriba. El botón **Excel** exporta exactamente lo que estás viendo (con saldo, match y asiento). Para ordenar, click en el encabezado de la columna.
+
 ### 7.5 Órdenes de pago
 
 Es la forma de **pagarle a un proveedor**. Una orden de pago (OP-nnnn) tiene un proveedor, **uno o más medios** y **las facturas que cancela**:
@@ -489,7 +495,7 @@ pendiente entrega → entregado → facturado
   - **Nota de crédito** (resta): devolución, error de facturación, descuento. Total o parcial; el sistema no deja acreditar más que el saldo de la factura (las NC anteriores se descuentan, las ND no).
   - **Nota de débito** (suma): intereses por mora, diferencia de precio, gastos. No tiene tope.
   - El asiento se arma solo y la cuenta corriente del cliente baja (NC) o sube (ND). La letra es la de la factura original.
-- **Facturas directas y notas libres** (botones de la barra): una **factura directa** se emite sin venta (ver más abajo) y desde su fila también podés sacar su NC/ND. **+ NC/ND libre** emite una nota que **no corrige ninguna factura del ERP**: ARCA exige asociarla a un **período** (desde/hasta: descuentos por volumen, intereses del mes, ajustes globales) o a un **comprobante propio** emitido fuera del sistema (punto de venta y número de esa factura, misma letra). Elegís cliente, tipo, moneda e ítems con concepto libre, igual que en la factura directa.
+- **Facturas directas y notas libres** (botones de la barra): una **factura directa** se emite sin venta (ver más abajo) y desde su fila en **Facturas emitidas** (sección 8.4) también podés sacar su NC/ND. **+ NC/ND libre** emite una nota que **no corrige ninguna factura del ERP**: ARCA exige asociarla a un **período** (desde/hasta: descuentos por volumen, intereses del mes, ajustes globales) o a un **comprobante propio** emitido fuera del sistema (punto de venta y número de esa factura, misma letra). Elegís cliente, tipo, moneda e ítems con concepto libre, igual que en la factura directa.
 - **Anular** — da de baja la venta (queda registro de auditoría).
 - **Excel** — exporta el listado.
 
@@ -497,7 +503,17 @@ Al pasar una venta a **entregado**, el sistema encola un mail de **"pedido despa
 
 > **Ojo:** una vez que la venta tiene **CAE**, no se puede editar (lo bloquea el sistema). Revisá bien **antes** de facturar.
 
-### 8.4 Cuenta corriente
+### 8.4 Facturas emitidas
+
+Pestaña **Ventas → Facturas emitidas**: el listado único de **todo lo que salió con CAE**: facturas de ventas, facturas directas, notas de crédito y notas de débito (sobre factura o libres). Antes esto estaba repartido entre el botón CAE de cada venta y el modal "Ver facturas directas"; ahora está todo acá.
+
+- **Filtros:** buscador (cliente, CUIT, número, CAE, remito), **cliente**, **tipo** (facturas / NC / ND) y **desde / hasta**. Se combinan; la barra de arriba muestra comprobantes, facturado, NC, ND y **neto** (facturas − NC + ND) de lo filtrado. Ejemplo: cliente YPF + trimestre = cuánto le facturaste neto.
+- **Columnas:** fecha, comprobante (FA/NC/ND con letra, punto de venta y número), cliente (click → ficha), CUIT, **origen** (remito de la venta con link, "Directa", o sobre qué factura / período / comprobante externo va la nota), neto, IVA, total (las NC en rojo y en negativo), CAE y **asiento** (click → asiento; si dice "sin asiento", usá **Regenerar asientos** en Ventas).
+- **Acciones:** **Ver CAE** (comprobante con QR para imprimir o mandar) y **NC/ND** sobre cualquier factura.
+- **Excel:** exporta el listado filtrado. Para ordenar, click en el encabezado de la columna.
+- Los botones **+ Factura directa** y **+ NC/ND libre** también están acá.
+
+### 8.5 Cuenta corriente
 
 Muestra cuánto te debe cada cliente y desde hace cuánto.
 
@@ -508,7 +524,7 @@ Muestra cuánto te debe cada cliente y desde hace cuánto.
 
 Tocá un cliente para ver el detalle por factura. Exportás con **Excel**.
 
-### 8.5 Mailings (recordatorios y avisos automáticos)
+### 8.6 Mailings (recordatorios y avisos automáticos)
 
 El ERP genera mails solos, pero **nada sale sin tu aprobación**: todo pasa por la cola de **Ventas → Mailings**.
 
