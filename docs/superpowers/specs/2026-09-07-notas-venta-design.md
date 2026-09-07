@@ -1,7 +1,7 @@
 # NC/ND de venta sobre cualquier factura y NC/ND libre — Diseño (sprint 2 de la hoja 2026-09-07)
 
 **Fecha:** 2026-09-07
-**Estado:** implementado en rama `feat/notas-venta` (2026-09-07) · 15 tests nuevos, suite 257/257 verde · Edge Function tipada con `deno check` · pendiente: correr la 075 en el SQL Editor, redeployar la Edge Function, mergear y probar E2E (primera NC/ND real contra ARCA).
+**Estado:** LIVE en producción 2026-09-07 (migración 075 corrida en Supabase, Edge Function `facturacion` redeployada, merge a main 82919ca, deploy Netlify verificado) · 15 tests nuevos, suite 257/257 verde · pendiente user: primera NC/ND real contra ARCA (NC sobre factura directa + ND libre por período).
 **Origen:** hoja manuscrita, sección VENTAS: "cómo hago NC/ND no a partir de FC" + Pieza B pendiente del spec de factura directa (2026-08-13).
 
 ## Contexto
