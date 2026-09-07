@@ -560,6 +560,7 @@ body.no-costos .solo-costos{display:none!important}
           <div class="tab" onclick="switchComprasTab('inspeccion')">Inspección de entrada</div>
           <div class="tab" onclick="switchComprasTab('prov')">Proveedores</div>
           <div class="tab" onclick="switchComprasTab('facturas')">Facturas recibidas</div>
+          <div class="tab" onclick="switchComprasTab('op')">Órdenes de pago</div>
         </div>
       </div>
       <div class="page-content">
@@ -592,7 +593,15 @@ body.no-costos .solo-costos{display:none!important}
             <div class="search-box"><input type="text" placeholder="Buscar por nro, proveedor..." oninput="renderFacturasRecibidas(this.value)"></div>
             <button class="btn btn-primary btn-sm" onclick="openFacturaSinOCModal()">+ Factura sin OC</button>
           </div>
-          <div class="table-wrap"><table><thead><tr><th>Tipo</th><th>OC</th><th>Proveedor</th><th>Nro</th><th>Fecha</th><th>Vto.</th><th>Mon.</th><th>Neto</th><th>IVA</th><th>Total</th><th>Match</th><th>Asiento</th><th></th></tr></thead><tbody id="fr-tbody"></tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>Tipo</th><th>OC</th><th>Proveedor</th><th>Nro</th><th>Fecha</th><th>Vto.</th><th>Mon.</th><th>Neto</th><th>IVA</th><th>Total</th><th>Saldo</th><th>Match</th><th>Asiento</th><th></th></tr></thead><tbody id="fr-tbody"></tbody></table></div>
+        </div>
+        <div id="compras-tab-op" style="display:none">
+          <div class="stats-bar" id="op-stats"></div>
+          <div class="toolbar">
+            <div class="search-box"><input type="text" placeholder="Buscar por nro, proveedor..." oninput="renderOrdenesPago(this.value)"></div>
+            <button class="btn btn-primary btn-sm" onclick="openOrdenPagoModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Orden de pago</button>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Nro</th><th>Fecha</th><th>Proveedor</th><th>Medios</th><th>Imputado a</th><th style="text-align:right">A cuenta</th><th style="text-align:right">Total</th><th>Asiento</th><th></th></tr></thead><tbody id="op-tbody"></tbody></table></div>
         </div>
       </div>
     </div>
@@ -1376,6 +1385,7 @@ body.no-costos .solo-costos{display:none!important}
             <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--green);font-weight:600;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Caja y Banco</div>
             <div class="form-row"><div class="form-group"><label>Caja (default cobros/pagos en efectivo)</label><select id="cfg-cta-caja"></select></div><div class="form-group"><label>Banco (default cobros/pagos por transferencia)</label><select id="cfg-cta-banco"></select></div></div>
             <div class="form-row"><div class="form-group"><label>Cheques en cartera (recibidos)</label><select id="cfg-cta-cheques-cartera"></select></div><div class="form-group"><label>Cheques emitidos (a pagar)</label><select id="cfg-cta-cheques-emitidos"></select></div></div>
+            <div class="form-row"><div class="form-group"><label>Tarjeta de crédito a pagar (órdenes de pago)</label><select id="cfg-cta-tarjeta-credito"></select></div><div class="form-group"></div></div>
           </div>
 
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:18px;margin-bottom:14px">
@@ -2441,6 +2451,34 @@ body.no-costos .solo-costos{display:none!important}
   </div>
 </div>
 
+<!-- MODAL: Orden de pago a proveedor (mig 074) -->
+<div class="modal-overlay" id="modal-orden-pago">
+  <div class="modal" style="width:860px;max-width:95vw">
+    <div class="modal-header"><div class="modal-title">Orden de pago <span style="color:var(--text3);font-weight:400;font-size:13px">(medios múltiples + imputación a facturas)</span></div><button class="modal-close" onclick="closeModal('modal-orden-pago')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row" style="grid-template-columns:2fr 1fr 1fr 1fr">
+        <div class="form-group"><label>Proveedor *</label><select id="op-prov" onchange="opOnProveedorChange()"></select></div>
+        <div class="form-group"><label>Fecha *</label><input type="date" id="op-fecha"></div>
+        <div class="form-group"><label>Moneda</label><select id="op-moneda" onchange="opOnMonedaChange()"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
+        <div class="form-group"><label>TC (si USD)</label><input type="number" id="op-tc" step="0.01" min="0" placeholder="auto" oninput="opRenderFacturas();opRecalc()"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 4px">
+        <label style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Facturas pendientes — tildá las que cancelás (podés imputar parcial)</label>
+        <button class="btn btn-ghost btn-sm" onclick="opAutoImputar()" title="Reparte el total de los medios entre las facturas, la más vieja primero">Imputar automático</button>
+      </div>
+      <div id="op-facturas" style="margin-bottom:12px;max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:var(--r-sm);padding:4px 8px"></div>
+      <label style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Medios de pago</label>
+      <div id="op-medios" style="margin:4px 0"></div>
+      <button class="btn btn-ghost btn-sm" onclick="opAddMedio()">+ Agregar medio</button>
+      <div id="op-totales" style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-top:12px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);font-size:12px;color:var(--text2)"></div>
+      <div class="form-group" style="margin-top:10px"><label>Observaciones</label><input type="text" id="op-obs" placeholder="Ej: pago parcial según acuerdo" maxlength="200"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-orden-pago')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-op" onclick="registrarOrdenPago()">Registrar orden de pago</button>
+    </div>
+  </div>
+</div>
 <!-- MODAL: Registrar comprobante de proveedor (fiscal completo + 3-way match) -->
 <div class="modal-overlay" id="modal-factura-recibida">
   <div class="modal" style="width:760px;max-width:95vw">
@@ -2951,6 +2989,7 @@ let preciosBase=[];
 let insumos=[],herramientas=[];
 let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[],cheques=[],empleados=[],liquidaciones=[];
 let facturasRecibidas=[];
+let ordenesPago=[];
 let periodosContables=[];
 let correlatividad=[];
 let cuentasBancarias=[],extractoBancario=[];
@@ -3867,6 +3906,7 @@ const TBL={
   depreciaciones:{label:'Depreciaciones',q:'?order=hasta.desc',set:r=>{depreciaciones=r||[];}},
   cheques:{label:'Cheques',q:'?order=fecha_pago.asc',set:r=>{cheques=r||[];}},
   facturas_recibidas:{label:'Facturas recibidas',q:'?order=created_at.desc',set:r=>{facturasRecibidas=r||[];}},
+  ordenes_pago:{label:'Órdenes de pago',q:'?order=fecha.desc,nro.desc&select=*,orden_pago_medios(*),orden_pago_imputaciones(*)',set:r=>{ordenesPago=r||[];}},
   periodos_contables:{label:'Períodos',q:'?order=anio.desc,mes.desc',set:r=>{periodosContables=r||[];}},
   v_correlatividad:{label:'Correlatividad',q:'?select=*',set:r=>{correlatividad=r||[];}},
   cuentas_bancarias:{label:'Cuentas bancarias',q:'?order=nombre.asc',set:r=>{cuentasBancarias=r||[];}},
@@ -6142,8 +6182,8 @@ function computeAlertas(){
   // sin OC (gastos) — las NC no vencen.
   const en7dF=hoyLocal(7);
   const vencibles=[
-    ...ordenesCompra.filter(o=>o.factura_vto&&o.estado!=='anulada').map(o=>({ref:o.nro||'',vto:o.factura_vto})),
-    ...facturasRecibidas.filter(r=>!r.oc_id&&r.fecha_vto&&(r.tipo||'factura')!=='nota_credito').map(r=>({ref:(r.nro||'')+' (s/OC)',vto:r.fecha_vto})),
+    ...ocsSinFacturaRegistrada().filter(o=>o.factura_vto&&o.estado!=='anulada').map(o=>({ref:o.nro||'',vto:o.factura_vto})),
+    ...facturasProveedorConSaldo().filter(r=>r.fecha_vto).map(r=>({ref:r.nro||'',vto:r.fecha_vto})),
   ];
   const factVencidas=vencibles.filter(x=>x.vto<hoy);
   if(factVencidas.length)out.push({sev:'crit',page:'compras',count:factVencidas.length,
@@ -6349,7 +6389,7 @@ function renderDash(){
         <div style="font-size:12px;color:var(--text2);margin-top:8px">Este mes: <b style="color:var(--coral)">${fmtUSD(act.total)}</b> · mes anterior: ${fmtUSD(ant?.total||0)}${delta!==null?` · <b style="color:${delta>=0?'var(--green)':'var(--red)'}">${delta>=0?'+':''}${delta}%</b>`:''}</div></div>`;
     })()}
     ${(()=>{ // Cash-flow proyectado 30/60/90
-      const cf=computeCashflowProyectado({cuentas:computeCtaCte(),cheques,ocs:ordenesCompra,facturas:facturasRecibidas,
+      const cf=computeCashflowProyectado({cuentas:computeCtaCte(),cheques,ocs:ocsSinFacturaRegistrada(),facturas:facturasProveedorConSaldo(),
         liquidaciones:liquidaciones.map(l=>({...l,tc:parseFloat(l.tipo_cambio)||parseFloat(cotizacion?.venta)||0,
           pagado_netos:_liqPagada(l.id,'netos'),pagado_cargas:_liqPagada(l.id,'cargas')}))},hoyLocal());
       const col=v=>v>=0?'var(--green)':'var(--red)';
@@ -6552,7 +6592,7 @@ const PAGE_RENDERS={
   eficiencia:[renderEficiencia],
   mailings:[renderMailings],
   precios:[renderPrecios],
-  compras:[renderCompras,renderInspeccion,renderProveedores,renderFacturasRecibidas],
+  compras:[renderCompras,renderInspeccion,renderProveedores,renderFacturasRecibidas,renderOrdenesPago],
   presupuestos:[renderPresupuestos],
   ventas:[renderVentas],
   clientes:[renderClientes],
@@ -8838,6 +8878,8 @@ function renderComparativoEjercicios(){
 let cobPagModo='cobro';
 
 function switchCobPag(modo){
+  // Pago a proveedor = Orden de pago (mig 074): multi-medio + imputación.
+  if(modo==='pago'){openOrdenPagoModal();return;}
   cobPagModo=modo;
   document.getElementById('cp-tab-cobro').style.background=modo==='cobro'?'var(--accent)':'';
   document.getElementById('cp-tab-cobro').style.color=modo==='cobro'?'#fff':'';
@@ -8932,10 +8974,410 @@ function irACobrarVenta(id){
   notify('Cobro precargado — elegí el método y ajustá el monto si el pago es parcial');
 }
 function irAPagarFactura(id){
-  const r=facturasRecibidas.find(x=>x.id===id);if(!r)return;
-  const prov=proveedores.find(p=>p.id===r.proveedor_id);
-  _prefillCobPag({modo:'pago',tercero:prov?.nombre||'',monto:parseFloat(r.total)||0,moneda:r.moneda||'ARS',tc:parseFloat(r.tipo_cambio)||0,obs:`Factura ${r.nro||''}`.trim()});
-  notify('Pago precargado — elegí el método y registrá');
+  // Abre la Orden de pago con la factura ya tildada (mig 074).
+  openOrdenPagoModal({facturaId:id});
+}
+
+// ═══════════════════════════════════════════════════════════
+// 💸 ÓRDENES DE PAGO A PROVEEDORES (migración 074)
+// ═══════════════════════════════════════════════════════════
+// Una OP = un proveedor, N medios (caja / transferencia desde una cuenta
+// bancaria real / cheque diferido emitido en la misma transacción /
+// tarjeta de crédito) y M imputaciones a facturas recibidas; el
+// remanente queda "a cuenta". El asiento (debe Proveedores / haber cada
+// medio) lo arma la RPC registrar_orden_pago; el saldo de cada factura
+// se valida server-side con lock. Puras con tests en tests/ordenes-pago.test.js.
+
+// ── Puras ──────────────────────────────────────────────────────────
+function imputacionesVivas(ordenesPagoList){
+  const out=[];
+  (ordenesPagoList||[]).forEach(o=>{
+    if(o.estado!=='confirmada')return;
+    (o.orden_pago_imputaciones||[]).forEach(i=>out.push({...i,orden_pago_id:o.id}));
+  });
+  return out;
+}
+// Saldo pendiente de una factura de proveedor, en SU moneda:
+// total − NC asociadas + ND asociadas − imputaciones de OPs confirmadas.
+function saldoFacturaProveedor(f,facturas,imputVivas){
+  const r2=n=>Math.round(n*100)/100;
+  const total=r2(parseFloat(f.total)||0);
+  const asoc=(facturas||[]).filter(x=>x.factura_asociada_id===f.id);
+  const nc=asoc.filter(x=>x.tipo==='nota_credito').reduce((a,x)=>a+(parseFloat(x.total)||0),0);
+  const nd=asoc.filter(x=>x.tipo==='nota_debito').reduce((a,x)=>a+(parseFloat(x.total)||0),0);
+  const pagado=(imputVivas||[]).filter(i=>i.factura_id===f.id).reduce((a,i)=>a+(parseFloat(i.monto_factura)||0),0);
+  return {total,nc:r2(nc),nd:r2(nd),pagado:r2(pagado),saldo:Math.max(0,r2(total-nc+nd-pagado))};
+}
+// Convierte un monto entre la moneda de la OP y la de la factura por el
+// TC de la OP (misma moneda: sin cambio; sin TC entre distintas: null).
+function convertirMontoImputacion(monto,monedaDesde,tc,monedaHasta){
+  monto=parseFloat(monto)||0;tc=parseFloat(tc)||0;
+  const r2=n=>Math.round(n*100)/100;
+  if((monedaDesde||'ARS')===(monedaHasta||'ARS'))return r2(monto);
+  if(tc<=0)return null;
+  return monedaDesde==='USD'?r2(monto*tc):r2(monto/tc);
+}
+function validarOrdenPago({total,medios,imputaciones,saldos}){
+  const errores=[];const r2=n=>Math.round(n*100)/100;
+  total=r2(parseFloat(total)||0);medios=medios||[];imputaciones=imputaciones||[];saldos=saldos||{};
+  if(!medios.length)errores.push('Agregá al menos un medio de pago');
+  medios.forEach((m,i)=>{
+    if((parseFloat(m.monto)||0)<=0)errores.push(`Medio ${i+1}: monto inválido`);
+    if(!m.cuenta_contable_id)errores.push(`Medio ${i+1}: falta la cuenta contable del medio "${m.tipo}" (Configuración → Imputación / Bancos)`);
+    if(m.tipo==='cheque'&&(!m.cheque||!m.cheque.numero||!m.cheque.fecha_pago))errores.push(`Medio ${i+1}: el cheque necesita número y fecha de pago`);
+  });
+  const sumMedios=r2(medios.reduce((a,m)=>a+(parseFloat(m.monto)||0),0));
+  if(medios.length&&Math.abs(sumMedios-total)>=0.01)errores.push(`Los medios suman ${_numAR(sumMedios)} y el total es ${_numAR(total)}`);
+  const sumImputado=r2(imputaciones.reduce((a,i)=>a+(parseFloat(i.monto)||0),0));
+  if(sumImputado>total+0.005)errores.push(`Las imputaciones (${_numAR(sumImputado)}) superan el total de la orden (${_numAR(total)})`);
+  imputaciones.forEach(i=>{
+    const mf=parseFloat(i.monto_factura)||0;
+    if(mf<=0)errores.push(`Imputación a ${i.nro||'factura'} con monto inválido`);
+    const s=saldos[i.factura_id];
+    if(s!==undefined&&mf>s+0.005)errores.push(`La factura ${i.nro||''} tiene saldo ${_numAR(s)} y se le imputan ${_numAR(mf)}`);
+  });
+  return {ok:!errores.length,errores,sumMedios,sumImputado,aCuenta:r2(Math.max(0,total-sumImputado))};
+}
+const OP_MEDIO_LABEL={caja:'Caja',banco:'Transf.',cheque:'Cheque',tarjeta:'Tarjeta'};
+function resumenMediosOP(medios){
+  const n={},orden=[];
+  (medios||[]).forEach(m=>{if(!n[m.tipo]){n[m.tipo]=0;orden.push(m.tipo);}n[m.tipo]++;});
+  const parts=orden.map(t=>t==='cheque'&&n[t]>1?`${n[t]} cheques`:(OP_MEDIO_LABEL[t]||t));
+  return parts.length?parts.join(' + '):'—';
+}
+// Cuenta corriente de proveedores (USD): facturas con saldo (por el TC de
+// cada factura) menos pagos a cuenta — remanentes de OPs confirmadas y
+// asientos auto-pago viejos (Cobros y Pagos, origen_tipo 'pago').
+function computeCtaCteProveedores({proveedores,facturas,ordenesPago,asientos,asientoLineas,tcHoy}){
+  const r2=n=>Math.round(n*100)/100;
+  const vivas=imputacionesVivas(ordenesPago);
+  const aUSD=(monto,moneda,tc)=>{monto=parseFloat(monto)||0;if((moneda||'ARS')==='USD')return monto;tc=parseFloat(tc)||0;return tc>0?monto/tc:0;};
+  return (proveedores||[]).map(p=>{
+    const nombreL=(p.nombre||'').toLowerCase();
+    const fs=(facturas||[]).filter(f=>f.proveedor_id===p.id&&(f.tipo||'factura')==='factura').map(f=>{
+      const s=saldoFacturaProveedor(f,facturas,vivas);
+      return {id:f.id,nro:f.nro,fecha:f.fecha,vto:f.fecha_vto,moneda:f.moneda||'ARS',tipo_cambio:f.tipo_cambio,total:s.total,saldo:s.saldo,saldoUSD:r2(aUSD(s.saldo,f.moneda,f.tipo_cambio))};
+    }).filter(f=>f.saldo>0.005);
+    const deudaFacturasUSD=r2(fs.reduce((a,f)=>a+f.saldoUSD,0));
+    let aCuenta=0;
+    (ordenesPago||[]).filter(o=>o.estado==='confirmada'&&o.proveedor_id===p.id).forEach(o=>{
+      const imp=(o.orden_pago_imputaciones||[]).reduce((a,i)=>a+(parseFloat(i.monto)||0),0);
+      const rem=(parseFloat(o.total)||0)-imp;
+      if(rem>0.005)aCuenta+=aUSD(rem,o.moneda,o.tipo_cambio||tcHoy);
+    });
+    (asientos||[]).filter(a=>a.tipo==='auto-pago'&&a.estado==='confirmado'&&a.origen_tipo!=='orden_pago').forEach(a=>{
+      let mio=a.proveedor_id===p.id;
+      if(!a.proveedor_id){const m=(a.descripcion||'').match(/^Pago a (.+?)(?:\s+—|$)/);mio=!!m&&m[1].toLowerCase()===nombreL;}
+      if(!mio)return;
+      const tot=(asientoLineas||[]).filter(l=>l.asiento_id===a.id).reduce((s,l)=>s+(parseFloat(l.debe)||0),0);
+      aCuenta+=aUSD(tot,a.moneda,a.tipo_cambio||tcHoy);
+    });
+    aCuenta=r2(aCuenta);
+    return {proveedor:p,facturas:fs,deudaFacturasUSD,aCuentaUSD:aCuenta,saldoUSD:r2(deudaFacturasUSD-aCuenta)};
+  });
+}
+
+// ── Helpers de datos ───────────────────────────────────────────────
+function _tcHoy(){return parseFloat(cotizacion?.venta)||0;}
+// Facturas de proveedor con el TOTAL reemplazado por el saldo pendiente y
+// sin oc_id (para cashflow/alertas, que tratan las "con OC" vía la OC).
+// Las OCs que ya tienen factura registrada se excluyen del otro lado.
+function facturasProveedorConSaldo(){
+  const vivas=imputacionesVivas(ordenesPago);
+  return facturasRecibidas.filter(r=>(r.tipo||'factura')==='factura')
+    .map(r=>({...r,oc_id:null,total:saldoFacturaProveedor(r,facturasRecibidas,vivas).saldo}))
+    .filter(r=>r.total>0.005);
+}
+function ocsSinFacturaRegistrada(){
+  const conFactura=new Set(facturasRecibidas.filter(r=>r.oc_id).map(r=>r.oc_id));
+  return ordenesCompra.filter(o=>!conFactura.has(o.id));
+}
+function _opCuentaMedio(m){
+  const cfg=configContable||{};
+  if(m.tipo==='caja')return cfg.cta_caja_default||null;
+  if(m.tipo==='cheque')return cfg.cta_cheques_emitidos||null;
+  if(m.tipo==='tarjeta')return cfg.cta_tarjeta_credito||null;
+  if(m.tipo==='banco'){const cb=cuentasBancarias.find(c=>c.id===m.cuenta_bancaria_id);return cb?.cuenta_contable_id||cfg.cta_banco_default||null;}
+  return null;
+}
+
+// ── Modal ──────────────────────────────────────────────────────────
+let _opDraft=null;
+function openOrdenPagoModal(opts={}){
+  if(!configContable)return notify('Falta configurar la imputación contable (Configuración → Imputación contable)','err');
+  const fact=opts.facturaId?facturasRecibidas.find(f=>f.id===opts.facturaId):null;
+  _opDraft={proveedorId:opts.proveedorId||fact?.proveedor_id||'',fecha:hoyLocal(),moneda:fact?.moneda||'ARS',tc:parseFloat(fact?.tipo_cambio)||_tcHoy()||'',
+    medios:[],imput:{},obs:''};
+  const sel=document.getElementById('op-prov');
+  sel.innerHTML='<option value="">— Seleccioná —</option>'+[...proveedores].sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'','es')).map(p=>`<option value="${p.id}">${esc(p.nombre||'')}</option>`).join('');
+  sel.value=_opDraft.proveedorId;
+  document.getElementById('op-fecha').value=_opDraft.fecha;
+  document.getElementById('op-moneda').value=_opDraft.moneda;
+  document.getElementById('op-tc').value=_opDraft.tc||'';
+  document.getElementById('op-obs').value='';
+  if(fact){_opDraft.imput[fact.id]={sel:true,monto:null};}
+  if(!_opDraft.medios.length)opAddMedio(fact?{monto:null}:null);
+  opRenderFacturas();opRenderMedios();opRecalc();
+  openModal('modal-orden-pago');
+}
+function opOnProveedorChange(){_opDraft.proveedorId=document.getElementById('op-prov').value;_opDraft.imput={};opRenderFacturas();opRecalc();}
+async function opOnMonedaChange(){
+  _opDraft.moneda=document.getElementById('op-moneda').value;
+  if(_opDraft.moneda==='USD'&&!(parseFloat(document.getElementById('op-tc').value)>0)){
+    await fetchCotizacion();document.getElementById('op-tc').value=_tcHoy()||'';
+  }
+  opRenderFacturas();opRecalc();
+}
+function _opTc(){return parseFloat(document.getElementById('op-tc').value)||0;}
+function _opFacturasPendientes(){
+  if(!_opDraft?.proveedorId)return [];
+  const vivas=imputacionesVivas(ordenesPago);
+  return facturasRecibidas.filter(f=>f.proveedor_id===_opDraft.proveedorId&&(f.tipo||'factura')==='factura')
+    .map(f=>({f,s:saldoFacturaProveedor(f,facturasRecibidas,vivas)})).filter(x=>x.s.saldo>0.005)
+    .sort((a,b)=>(a.f.fecha_vto||a.f.fecha||'').localeCompare(b.f.fecha_vto||b.f.fecha||''));
+}
+function opRenderFacturas(){
+  const w=document.getElementById('op-facturas');if(!w)return;
+  const list=_opFacturasPendientes();
+  if(!_opDraft.proveedorId){w.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">Elegí el proveedor para ver sus facturas pendientes.</div>';return;}
+  if(!list.length){w.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">Este proveedor no tiene facturas con saldo — el pago queda <b>a cuenta</b>.</div>';return;}
+  const monOP=document.getElementById('op-moneda').value,tc=_opTc(),hoy=hoyLocal();
+  w.innerHTML=`<table style="width:100%;font-size:12px"><thead><tr><th></th><th>Comprobante</th><th>Fecha</th><th>Vto.</th><th style="text-align:right">Saldo</th><th style="text-align:right">Imputar (${esc(monOP)})</th></tr></thead><tbody>`+list.map(({f,s})=>{
+    const im=_opDraft.imput[f.id]||{sel:false,monto:null};
+    const mon=f.moneda||'ARS';const fmt=mon==='USD'?fmtUSD:fmtARS;
+    const saldoOP=convertirMontoImputacion(s.saldo,mon,tc,monOP);
+    const venc=f.fecha_vto&&f.fecha_vto<hoy;
+    const val=im.sel?(im.monto==null?(saldoOP==null?'':saldoOP):im.monto):'';
+    return `<tr>
+      <td><input type="checkbox" ${im.sel?'checked':''} onchange="opToggleFactura('${f.id}',this.checked)" style="accent-color:var(--teal)"></td>
+      <td class="mono">${esc(f.nro||'—')}</td>
+      <td>${fmtFecha(f.fecha)||'—'}</td>
+      <td style="${venc?'color:var(--coral)':'color:var(--text3)'}">${fmtFecha(f.fecha_vto)||'—'}${venc?' <span class="badge badge-coral" style="font-size:9px">VENCIDA</span>':''}</td>
+      <td class="mono" style="text-align:right">${fmt(s.saldo)}${s.pagado>0?`<div style="font-size:10px;color:var(--text3)">de ${fmt(s.total)}</div>`:''}</td>
+      <td style="text-align:right"><input type="number" step="0.01" min="0" value="${val===''?'':val}" ${im.sel?'':'disabled'} onchange="opSetImputacion('${f.id}',this.value)" style="width:120px;text-align:right;font-family:var(--mono)"></td>
+    </tr>`;
+  }).join('')+'</tbody></table>';
+}
+function opToggleFactura(id,sel){_opDraft.imput[id]={sel,monto:null};opRenderFacturas();opRecalc();}
+function opSetImputacion(id,v){if(!_opDraft.imput[id])_opDraft.imput[id]={sel:true};_opDraft.imput[id].monto=parseFloat(v)||0;opRecalc();}
+// Reparte el total de los medios entre las facturas tildadas, la más vieja primero.
+function opAutoImputar(){
+  const monOP=document.getElementById('op-moneda').value,tc=_opTc();
+  let resto=_opDraft.medios.reduce((a,m)=>a+(parseFloat(m.monto)||0),0);
+  const list=_opFacturasPendientes();
+  const marcadas=list.filter(x=>_opDraft.imput[x.f.id]?.sel);
+  (marcadas.length?marcadas:list).forEach(({f,s})=>{
+    const saldoOP=convertirMontoImputacion(s.saldo,f.moneda,tc,monOP);
+    if(saldoOP==null)return;
+    const apl=Math.min(resto,saldoOP);
+    _opDraft.imput[f.id]={sel:apl>0,monto:apl>0?Math.round(apl*100)/100:null};
+    resto=Math.max(0,resto-apl);
+  });
+  opRenderFacturas();opRecalc();
+}
+function opAddMedio(pre){
+  const bancoDefault=cuentasBancarias.find(c=>c.activa!==false&&c.cuenta_contable_id);
+  _opDraft.medios.push({tipo:'banco',monto:pre?.monto??null,cuenta_bancaria_id:bancoDefault?.id||'',detalle:'',cheque:{numero:'',banco:'',fecha_pago:'',echeq:false}});
+  opRenderMedios();opRecalc();
+}
+function opDelMedio(i){_opDraft.medios.splice(i,1);opRenderMedios();opRecalc();}
+function opMedioChange(i,campo,v){
+  const m=_opDraft.medios[i];if(!m)return;
+  if(campo.startsWith('cheque.'))m.cheque[campo.slice(7)]=v;
+  else m[campo]=campo==='monto'?(parseFloat(v)||0):v;
+  if(campo==='tipo')opRenderMedios();
+  opRecalc();
+}
+function opRenderMedios(){
+  const w=document.getElementById('op-medios');if(!w)return;
+  const inp='background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-xs);padding:4px 6px;color:var(--text);font-size:11px;width:100%';
+  const bancos=cuentasBancarias.filter(c=>c.activa!==false);
+  w.innerHTML=_opDraft.medios.map((m,i)=>{
+    let extra='';
+    if(m.tipo==='banco')extra=`<select onchange="opMedioChange(${i},'cuenta_bancaria_id',this.value)" style="${inp}"><option value="">Cuenta banco por defecto</option>${bancos.map(c=>`<option value="${c.id}" ${m.cuenta_bancaria_id===c.id?'selected':''}>${esc(c.nombre)}${c.cuenta_contable_id?'':' (sin cta contable)'}</option>`).join('')}</select>`;
+    else if(m.tipo==='cheque')extra=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;align-items:center">
+        <input type="text" placeholder="Nº cheque *" value="${esc(m.cheque.numero)}" oninput="opMedioChange(${i},'cheque.numero',this.value)" style="${inp}">
+        <input type="text" placeholder="Banco" value="${esc(m.cheque.banco)}" oninput="opMedioChange(${i},'cheque.banco',this.value)" style="${inp}">
+        <input type="date" value="${m.cheque.fecha_pago}" title="Fecha de pago *" onchange="opMedioChange(${i},'cheque.fecha_pago',this.value)" style="${inp}">
+        <label style="font-size:11px;white-space:nowrap;display:flex;align-items:center;gap:4px"><input type="checkbox" ${m.cheque.echeq?'checked':''} onchange="opMedioChange(${i},'cheque.echeq',this.checked)"> echeq</label></div>`;
+    else extra=`<input type="text" placeholder="${m.tipo==='caja'?'Recibo / detalle':'Tarjeta / cuotas'}" value="${esc(m.detalle||'')}" oninput="opMedioChange(${i},'detalle',this.value)" style="${inp}">`;
+    const cta=cuentasContables.find(c=>c.id===_opCuentaMedio(m));
+    return `<div style="display:grid;grid-template-columns:130px 1fr 130px 28px;gap:6px;align-items:start;padding:6px 0;border-bottom:1px solid var(--border)">
+      <div><select onchange="opMedioChange(${i},'tipo',this.value)" style="${inp}">${['banco','cheque','caja','tarjeta'].map(t=>`<option value="${t}" ${m.tipo===t?'selected':''}>${{banco:'Transferencia',cheque:'Cheque diferido',caja:'Caja (efectivo)',tarjeta:'Tarjeta de crédito'}[t]}</option>`).join('')}</select>
+        <div style="font-size:10px;color:${cta?'var(--text3)':'var(--coral)'};margin-top:3px;font-family:var(--mono)">${cta?esc(cta.codigo+' '+cta.nombre):'sin cuenta contable'}</div></div>
+      <div>${extra}${m.tipo==='banco'?`<input type="text" placeholder="Referencia de la transferencia" value="${esc(m.detalle||'')}" oninput="opMedioChange(${i},'detalle',this.value)" style="${inp};margin-top:4px">`:''}</div>
+      <input type="number" step="0.01" min="0" placeholder="0.00" value="${m.monto==null?'':m.monto}" onchange="opMedioChange(${i},'monto',this.value)" style="${inp};text-align:right;color:var(--coral)">
+      <button class="btn btn-ghost btn-sm" onclick="opDelMedio(${i})" style="padding:2px 6px" title="Quitar">×</button>
+    </div>`;
+  }).join('')||'<div style="color:var(--text3);font-size:12px;padding:8px 0">Agregá un medio de pago.</div>';
+}
+function _opArmarPayload(){
+  const monOP=document.getElementById('op-moneda').value,tc=_opTc();
+  const vivas=imputacionesVivas(ordenesPago);
+  const medios=_opDraft.medios.map(m=>({tipo:m.tipo,monto:Math.round((parseFloat(m.monto)||0)*100)/100,cuenta_contable_id:_opCuentaMedio(m),
+    cuenta_bancaria_id:m.tipo==='banco'?(m.cuenta_bancaria_id||null):null,detalle:m.detalle||null,
+    cheque:m.tipo==='cheque'?{numero:(m.cheque.numero||'').trim(),banco:(m.cheque.banco||'').trim(),fecha_pago:m.cheque.fecha_pago||'',echeq:!!m.cheque.echeq}:undefined}));
+  const saldos={},imputaciones=[];
+  Object.entries(_opDraft.imput).forEach(([fid,im])=>{
+    if(!im.sel)return;
+    const f=facturasRecibidas.find(x=>x.id===fid);if(!f)return;
+    const s=saldoFacturaProveedor(f,facturasRecibidas,vivas);saldos[fid]=s.saldo;
+    const saldoOP=convertirMontoImputacion(s.saldo,f.moneda,tc,monOP);
+    const monto=im.monto==null?saldoOP:im.monto;
+    if(!(monto>0))return;
+    imputaciones.push({factura_id:fid,nro:f.nro,monto:Math.round(monto*100)/100,monto_factura:convertirMontoImputacion(monto,monOP,tc,f.moneda)});
+  });
+  const total=Math.round(medios.reduce((a,m)=>a+m.monto,0)*100)/100;
+  return {monOP,tc,medios,imputaciones,saldos,total};
+}
+function opRecalc(){
+  const t=document.getElementById('op-totales');if(!t||!_opDraft)return;
+  const p=_opArmarPayload();
+  const fmt=p.monOP==='USD'?fmtUSD:fmtARS;
+  const v=validarOrdenPago(p);
+  t.innerHTML=`<span>Total medios <b class="mono">${fmt(p.total)}</b></span><span>Imputado <b class="mono">${fmt(v.sumImputado)}</b></span><span>A cuenta <b class="mono" style="color:${v.aCuenta>0?'var(--amber,#d99a2b)':'var(--text2)'}">${fmt(v.aCuenta)}</b></span>`
+    +(p.monOP==='USD'&&p.tc>0?`<span style="color:var(--text3);font-size:11px">TC ${_numAR(p.tc)}</span>`:'')
+    +(!v.ok&&p.medios.length?`<div style="flex-basis:100%;color:var(--coral);font-size:11px">${esc(v.errores[0])}</div>`:'');
+}
+async function registrarOrdenPago(){
+  if(!_opDraft)return;
+  const proveedorId=document.getElementById('op-prov').value,fecha=document.getElementById('op-fecha').value;
+  if(!validarCampos([['op-prov',!!proveedorId,'Elegí el proveedor'],['op-fecha',!!fecha,'Cargá la fecha']]))return;
+  const p=_opArmarPayload();
+  if(p.monOP==='USD'&&!(p.tc>0))return notify('Cargá el tipo de cambio para una orden en USD','err');
+  const v=validarOrdenPago(p);
+  if(!v.ok)return notify(v.errores[0],'err');
+  if(p.imputaciones.some(i=>i.monto_factura==null))return notify('Falta el tipo de cambio para imputar facturas en otra moneda','err');
+  const prov=proveedores.find(x=>x.id===proveedorId);
+  const fmt=p.monOP==='USD'?fmtUSD:fmtARS;
+  if(v.aCuenta>0.005&&!confirm(`${fmt(v.aCuenta)} quedan A CUENTA de ${prov?.nombre||'el proveedor'} (sin imputar a ninguna factura).\n\n¿Registrar igual?`))return;
+  setBusy('btn-save-op',true);
+  try{
+    const r=await RPC('registrar_orden_pago',{
+      p_cabecera:{fecha,proveedor_id:proveedorId,moneda:p.monOP,tipo_cambio:p.monOP==='USD'?p.tc:null,total:p.total,observaciones:g('op-obs')||null},
+      p_medios:p.medios.map(m=>({...m,cheque:m.cheque||null})),
+      p_imputaciones:p.imputaciones.map(i=>({factura_id:i.factura_id,monto:i.monto,monto_factura:i.monto_factura})),
+    });
+    await reload('ordenes_pago','asientos','asiento_lineas','cheques');
+    _modalDirty['modal-orden-pago']=false;closeModal('modal-orden-pago',true);_opDraft=null;
+    renderAll();
+    notify(`✓ ${r.nro} registrada · Asiento N° ${r.asiento_numero}${r.a_cuenta>0?` · ${fmt(r.a_cuenta)} a cuenta`:''}`);
+    if(confirm(`${r.nro} registrada.\n\n¿Generar el PDF de la orden de pago para el proveedor?`))generarOrdenPagoPDF(r.id);
+  }catch(e){notify(msgError(e),'err');}
+  setBusy('btn-save-op',false,'Registrar orden de pago');
+}
+async function anularOrdenPago(id){
+  const o=ordenesPago.find(x=>x.id===id);if(!o)return;
+  const motivo=(prompt(`Vas a anular la ${o.nro}.\n\nEl asiento queda ANULADO (no se borra), las facturas imputadas vuelven a tener saldo y los cheques que emitió esta orden pasan a anulados. Si algún cheque ya fue debitado, no se puede anular.\n\nMotivo (obligatorio):`)||'').trim();
+  if(!motivo)return;
+  try{
+    await RPC('anular_orden_pago',{p_id:id,p_motivo:motivo});
+    await reload('ordenes_pago','asientos','asiento_lineas','cheques');
+    renderAll();notify(`${o.nro} anulada`);
+  }catch(e){notify(msgError(e),'err');}
+}
+
+// ── Listado (Compras → Órdenes de pago) ────────────────────────────
+function renderOrdenesPago(filter=''){
+  const f=(filter||'').toLowerCase();
+  const stats=document.getElementById('op-stats'),tbody=document.getElementById('op-tbody');if(!stats||!tbody)return;
+  const cc=computeCtaCteProveedores({proveedores,facturas:facturasRecibidas,ordenesPago,asientos,asientoLineas,tcHoy:_tcHoy()});
+  const deudaUSD=cc.reduce((a,c)=>a+Math.max(0,c.saldoUSD),0);
+  const hoy=hoyLocal();
+  const vencidas=cc.reduce((a,c)=>a+c.facturas.filter(x=>x.vto&&x.vto<hoy).length,0);
+  const mes=hoy.slice(0,7);
+  const opsMes=ordenesPago.filter(o=>o.estado==='confirmada'&&(o.fecha||'').startsWith(mes));
+  const opsMesUSD=opsMes.reduce((a,o)=>{const t=parseFloat(o.total)||0;return a+(o.moneda==='USD'?t:(parseFloat(o.tipo_cambio)||_tcHoy())>0?t/(parseFloat(o.tipo_cambio)||_tcHoy()):0);},0);
+  stats.innerHTML=`
+    <div class="stat-card solo-costos"><div class="stat-label">Deuda a proveedores</div><div class="stat-value" style="color:var(--coral)">${fmtUSD(deudaUSD)}</div></div>
+    <div class="stat-card"><div class="stat-label">Facturas vencidas</div><div class="stat-value" style="color:${vencidas?'var(--coral)':'var(--green)'}">${vencidas}</div></div>
+    <div class="stat-card"><div class="stat-label">OPs del mes</div><div class="stat-value" style="color:var(--accent)">${opsMes.length}</div></div>
+    <div class="stat-card solo-costos"><div class="stat-label">Pagado en el mes</div><div class="stat-value" style="color:var(--blue)">${fmtUSD(opsMesUSD)}</div></div>`;
+  const list=ordenesPago.filter(o=>{
+    if(!f)return true;
+    const prov=proveedores.find(p=>p.id===o.proveedor_id);
+    return (o.nro||'').toLowerCase().includes(f)||(prov?.nombre||'').toLowerCase().includes(f);
+  }).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')||(b.nro||'').localeCompare(a.nro||''));
+  tbody.innerHTML=list.length?list.map(o=>{
+    const prov=proveedores.find(p=>p.id===o.proveedor_id);
+    const fmt=o.moneda==='USD'?fmtUSD:fmtARS;
+    const medios=o.orden_pago_medios||[],imps=o.orden_pago_imputaciones||[];
+    const imputado=imps.reduce((a,i)=>a+(parseFloat(i.monto)||0),0);
+    const aCuenta=Math.max(0,(parseFloat(o.total)||0)-imputado);
+    const anulada=o.estado==='anulada';
+    const asiento=asientos.find(a=>a.id===o.asiento_id);
+    const facts=imps.map(i=>facturasRecibidas.find(x=>x.id===i.factura_id)?.nro||'?').join(', ');
+    return `<tr style="${anulada?'opacity:.55':''}">
+      <td class="mono td-primary">${esc(o.nro)}${anulada?' <span class="badge badge-coral" style="font-size:9px">ANULADA</span>':''}</td>
+      <td>${fmtFecha(o.fecha)||'—'}</td>
+      <td style="font-weight:500">${esc(prov?.nombre||'—')}</td>
+      <td style="font-size:11px">${esc(resumenMediosOP(medios))}${medios.filter(m=>m.tipo==='cheque').map(m=>{const ch=cheques.find(c=>c.id===m.cheque_id);return ch?`<div style="font-size:10px;color:var(--text3);font-family:var(--mono)">ch ${esc(ch.numero)} · ${fmtFecha(ch.fecha_pago)} · ${esc(ch.estado)}</div>`:'';}).join('')}</td>
+      <td class="mono" style="font-size:11px" title="${esc(facts)}">${imps.length?`${imps.length} fact.`:'—'}<div style="font-size:10px;color:var(--text3);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(facts)}</div></td>
+      <td class="mono" style="text-align:right;color:${aCuenta>0.005?'var(--amber,#d99a2b)':'var(--text3)'}">${aCuenta>0.005?fmt(aCuenta):'—'}</td>
+      <td class="mono" style="text-align:right;font-weight:600">${fmt(parseFloat(o.total)||0)}</td>
+      <td class="mono" style="font-size:11px;color:var(--text3)">${asiento?`N° ${asiento.numero}`:'—'}</td>
+      <td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="generarOrdenPagoPDF('${o.id}')" title="Orden de pago (PDF)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h3"/></svg></span>PDF</button>${anulada?'':`<button class="btn btn-danger btn-sm" onclick="anularOrdenPago('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></span>Anular</button>`}</td>
+    </tr>`;
+  }).join(''):'<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-title">Sin órdenes de pago</div><div class="empty-msg">Registrá la primera con <b>+ Orden de pago</b>: elegís el proveedor, tildás las facturas que cancelás y cargás uno o más medios (transferencia, cheques, caja, tarjeta).</div></div></td></tr>';
+}
+
+// ── PDF ────────────────────────────────────────────────────────────
+function generarOrdenPagoPDF(id){
+  const o=ordenesPago.find(x=>x.id===id);if(!o)return notify('Orden no encontrada','err');
+  if(!window.jspdf){notify('Librería PDF no cargada. Recargá la página.','err');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const prov=proveedores.find(p=>p.id===o.proveedor_id)||{};
+  const fmtN=n=>(o.moneda==='USD'?'US$ ':'$ ')+(parseFloat(n)||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  if(VITALMET_LOGO_DATAURL){try{doc.addImage(VITALMET_LOGO_DATAURL,'JPEG',14,10,42,25);}catch(e){}}
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100,100,100);
+  const xEmp=VITALMET_LOGO_DATAURL?60:14;
+  doc.text('Perú 246, Villa Martelli, Buenos Aires',xEmp,18);
+  doc.text('CUIT: 34-59751980-1',xEmp,22);
+  doc.text('Tel: 11-5998-3767  ·  administracion@vitalmetsa.com',xEmp,26);
+  doc.setFont('helvetica','bold');doc.setFontSize(20);doc.setTextColor(40,40,40);
+  doc.text('ORDEN DE PAGO',196,22,{align:'right'});
+  doc.setFont('helvetica','normal');doc.setFontSize(11);doc.setTextColor(60,130,90);
+  doc.text(`Nº ${o.nro||'—'}`,196,30,{align:'right'});
+  doc.setTextColor(60,60,60);doc.setFontSize(10);
+  doc.text(`Fecha: ${fmtFecha(o.fecha)}`,196,36,{align:'right'});
+  let y=48;
+  doc.setDrawColor(200);doc.line(14,y-4,196,y-4);
+  doc.setFont('helvetica','bold');doc.text('Proveedor:',14,y);doc.setFont('helvetica','normal');doc.text(prov.nombre||'—',40,y);
+  if(prov.cuit){y+=5;doc.setFont('helvetica','bold');doc.text('CUIT:',14,y);doc.setFont('helvetica','normal');doc.text(prov.cuit,40,y);}
+  y+=5;doc.setFont('helvetica','bold');doc.text('Moneda:',14,y);doc.setFont('helvetica','normal');doc.text(o.moneda+(o.moneda==='USD'&&o.tipo_cambio?`  (TC ${_numAR(o.tipo_cambio)})`:''),40,y);
+  if(o.estado==='anulada'){y+=5;doc.setTextColor(200,60,60);doc.setFont('helvetica','bold');doc.text(`ANULADA${o.motivo_anulacion?': '+o.motivo_anulacion:''}`,14,y);doc.setTextColor(60,60,60);doc.setFont('helvetica','normal');}
+  y+=8;
+  const imps=o.orden_pago_imputaciones||[];
+  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('Comprobantes cancelados',14,y);y+=2;
+  if(imps.length){
+    doc.autoTable({startY:y+1,margin:{left:14,right:14},styles:{fontSize:9},headStyles:{fillColor:[40,40,40]},
+      head:[['Comprobante','Fecha','Vencimiento','Total factura','Imputado']],
+      body:imps.map(i=>{const f=facturasRecibidas.find(x=>x.id===i.factura_id)||{};const fm=(f.moneda||'ARS')==='USD'?'US$ ':'$ ';
+        return [f.nro||'—',fmtFecha(f.fecha)||'—',fmtFecha(f.fecha_vto)||'—',fm+(parseFloat(f.total)||0).toLocaleString('es-AR',{minimumFractionDigits:2}),fmtN(i.monto)];}),
+      columnStyles:{3:{halign:'right'},4:{halign:'right'}}});
+    y=doc.lastAutoTable.finalY+8;
+  }else{doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text('Pago a cuenta (sin imputación a comprobantes).',14,y+5);y+=12;}
+  const medios=o.orden_pago_medios||[];
+  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text('Medios de pago',14,y);
+  doc.autoTable({startY:y+3,margin:{left:14,right:14},styles:{fontSize:9},headStyles:{fillColor:[40,40,40]},
+    head:[['Medio','Detalle','Importe']],
+    body:medios.map(m=>{
+      let det=m.detalle||'';
+      if(m.tipo==='cheque'){const ch=cheques.find(c=>c.id===m.cheque_id);if(ch)det=`Cheque ${ch.echeq?'electrónico ':''}Nº ${ch.numero}${ch.banco?' · '+ch.banco:''} · pago ${fmtFecha(ch.fecha_pago)}`;}
+      if(m.tipo==='banco'){const cb=cuentasBancarias.find(c=>c.id===m.cuenta_bancaria_id);det=[cb?.nombre,m.detalle].filter(Boolean).join(' · ');}
+      return [{caja:'Efectivo',banco:'Transferencia',cheque:'Cheque diferido',tarjeta:'Tarjeta de crédito'}[m.tipo]||m.tipo,det,fmtN(m.monto)];
+    }),columnStyles:{2:{halign:'right'}}});
+  y=doc.lastAutoTable.finalY+6;
+  const imputado=imps.reduce((a,i)=>a+(parseFloat(i.monto)||0),0);
+  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text(`TOTAL: ${fmtN(o.total)}`,196,y,{align:'right'});
+  if((parseFloat(o.total)||0)-imputado>0.005){y+=5;doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text(`A cuenta: ${fmtN((parseFloat(o.total)||0)-imputado)}`,196,y,{align:'right'});}
+  if(o.observaciones){y+=8;doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text(`Observaciones: ${o.observaciones}`,14,y);}
+  y=Math.max(y+30,240);
+  doc.setDrawColor(120);doc.line(20,y,85,y);doc.line(125,y,190,y);
+  doc.setFontSize(8);doc.setTextColor(100);doc.text('Por VITALMET S.A.',52,y+5,{align:'center'});doc.text('Recibí conforme (firma, aclaración y sello)',157,y+5,{align:'center'});
+  const safe=(prov.nombre||'prov').replace(/[^a-z0-9]/gi,'_').slice(0,30);
+  doc.save(`OrdenPago_${o.nro||'sin-nro'}_${safe}.pdf`);
 }
 
 function renderCobPag(){
@@ -8969,6 +9411,7 @@ function renderCobPag(){
 
 async function anularCobPag(id){
   const a=asientos.find(x=>x.id===id);if(!a)return;
+  if(a.origen_tipo==='orden_pago')return notify('Este pago es una Orden de pago: anulala desde Compras → Órdenes de pago (revierte imputaciones y cheques)','err');
   if(!confirm(`¿Anular asiento N° ${a.numero} (${a.tipo})?\nQueda con estado "anulado", no se borra.`))return;
   try{await PATCH('asientos',{estado:'anulado'},`?id=eq.${id}`);await reload('asientos','asiento_lineas','cheques');renderAll();notify('Movimiento anulado');}
   catch(e){notify(msgError(e),'err');}
@@ -11112,6 +11555,7 @@ function renderImputacionContable(){
   _llenarSelectCuentas('cfg-cta-banco',['activo'],c.cta_banco_default);
   _llenarSelectCuentas('cfg-cta-cheques-cartera',['activo'],c.cta_cheques_cartera);
   _llenarSelectCuentas('cfg-cta-cheques-emitidos',['pasivo'],c.cta_cheques_emitidos);
+  _llenarSelectCuentas('cfg-cta-tarjeta-credito',['pasivo'],c.cta_tarjeta_credito);
   _llenarSelectCuentas('cfg-cta-ret-ganancias',['activo'],c.cta_ret_ganancias);
   _llenarSelectCuentas('cfg-cta-ret-iibb',['activo'],c.cta_ret_iibb);
   _llenarSelectCuentas('cfg-cta-ret-suss',['activo'],c.cta_ret_suss);
@@ -11164,6 +11608,7 @@ async function saveConfigContable(){
     cta_banco_default:v('cfg-cta-banco'),
     cta_cheques_cartera:v('cfg-cta-cheques-cartera'),
     cta_cheques_emitidos:v('cfg-cta-cheques-emitidos'),
+    cta_tarjeta_credito:v('cfg-cta-tarjeta-credito'),
     cta_ret_ganancias:v('cfg-cta-ret-ganancias'),
     cta_prov_vacaciones:v('cfg-cta-prov-vacaciones'),
     cta_cmv:v('cfg-cta-cmv'),
@@ -12496,6 +12941,7 @@ function buildPaletteIndex(){
   ix.push({cat:'Acciones',label:'Nuevo presupuesto',run:()=>openPresupuestoModal()});
   ix.push({cat:'Acciones',label:'Nueva orden de producción',run:()=>openModal('modal-op')});
   ix.push({cat:'Acciones',label:'Nueva orden de compra',run:()=>openOCModal()});
+  ix.push({cat:'Acciones',label:'Nueva orden de pago',run:()=>openOrdenPagoModal()});
   return ix;
 }
 function openPalette(){
@@ -12972,11 +13418,9 @@ async function saveRegistroCalidad(){
 // ═══════════════════════════════════════════════════════════
 
 function switchComprasTab(tab){
-  document.querySelectorAll('#page-compras .tab').forEach((t,i)=>{t.classList.toggle('active',(i===0&&tab==='oc')||(i===1&&tab==='inspeccion')||(i===2&&tab==='prov')||(i===3&&tab==='facturas'));});
-  document.getElementById('compras-tab-oc').style.display=tab==='oc'?'':'none';
-  document.getElementById('compras-tab-inspeccion').style.display=tab==='inspeccion'?'':'none';
-  document.getElementById('compras-tab-prov').style.display=tab==='prov'?'':'none';
-  document.getElementById('compras-tab-facturas').style.display=tab==='facturas'?'':'none';
+  const orden=['oc','inspeccion','prov','facturas','op'];
+  document.querySelectorAll('#page-compras .tab').forEach((t,i)=>{t.classList.toggle('active',orden[i]===tab);});
+  orden.forEach(k=>{const el=document.getElementById('compras-tab-'+k);if(el)el.style.display=k===tab?'':'none';});
 }
 
 // ─── Inspección de entrada (Q1 5.7.4) ─────────────────────────────
@@ -13327,7 +13771,8 @@ function renderProveedores(filter=''){
   const f=filter.toLowerCase();
   const totalProv=proveedores.length;
   const ocPorProv={};proveedores.forEach(p=>{ocPorProv[p.id]=ordenesCompra.filter(o=>o.proveedor_id===p.id).length;});
-  const deudaPorProv={};proveedores.forEach(p=>{deudaPorProv[p.id]=ordenesCompra.filter(o=>o.proveedor_id===p.id&&o.estado==='facturada').reduce((a,o)=>a+parseFloat(o.total||0),0);});
+  // Deuda real (mig 074): facturas con saldo menos pagos a cuenta, en USD.
+  const deudaPorProv={};computeCtaCteProveedores({proveedores,facturas:facturasRecibidas,ordenesPago,asientos,asientoLineas,tcHoy:_tcHoy()}).forEach(c=>{deudaPorProv[c.proveedor.id]=Math.max(0,c.saldoUSD);});
   document.getElementById('prov-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Proveedores</div><div class="stat-value" style="color:var(--accent)">${totalProv}</div></div>
     <div class="stat-card"><div class="stat-label">Deuda total</div><div class="stat-value" style="color:var(--coral);font-size:14px">${fmtUSD(Object.values(deudaPorProv).reduce((a,b)=>a+b,0))}</div></div>`;
@@ -14009,6 +14454,7 @@ function renderFacturasRecibidas(filter=''){
     <div class="stat-card solo-costos"><div class="stat-label">Total ARS (neto NC)</div><div class="stat-value" style="color:var(--green)">${fmtARS(totalARS)}</div></div>
     <div class="stat-card solo-costos"><div class="stat-label">Total USD (neto NC)</div><div class="stat-value" style="color:var(--blue)">${fmtUSD(totalUSD)}</div></div>`;
   const matchBadges={ok:'badge-ok',override:'badge-warn',pendiente:'',discrepancia:'badge-coral'};
+  const _vivas=imputacionesVivas(ordenesPago);
   const tipoBadge=r=>{
     const tp=r.tipo||'factura',l=r.letra||'A';
     if(tp==='nota_credito')return `<span class="badge badge-coral">NC-${esc(l)}</span>`;
@@ -14043,11 +14489,12 @@ function renderFacturasRecibidas(filter=''){
       <td class="mono" style="text-align:right;${rojo}">${fmt(s*parseFloat(r.neto||0))}</td>
       <td class="mono" style="text-align:right;${rojo}">${fmt(s*parseFloat(r.iva||0))}</td>
       <td class="mono" style="text-align:right;font-weight:600;${rojo}">${fmt(s*parseFloat(r.total||0))}</td>
+      <td class="mono" style="text-align:right">${(()=>{if((r.tipo||'factura')!=='factura')return '<span style="color:var(--text3)">—</span>';const sf=saldoFacturaProveedor(r,facturasRecibidas,_vivas);return sf.saldo<=0.005?'<span class="badge badge-green">PAGADA</span>':`<span style="color:${sf.pagado>0||sf.nc>0?'var(--amber,#d99a2b)':'var(--coral)'}">${fmt(sf.saldo)}</span>`;})()}</td>
       <td>${matchCell}</td>
       <td class="mono" style="font-size:11px;color:var(--text3)">${r.asiento_id?esc(r.asiento_id):'—'}</td>
-      <td style="display:flex;gap:4px">${(r.tipo||'factura')==='factura'?`<button class="btn btn-ghost btn-sm" onclick="irAPagarFactura('${r.id}')" title="Registrar el pago — abre Cobros y Pagos con proveedor y monto precargados" style="color:var(--teal)"><span class="btn-icon"><svg viewBox="0 0 24 24"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Pagar</button><button class="btn btn-ghost btn-sm" onclick="openNCNDModal('${r.id}')">NC/ND</button>`:''}<button class="btn btn-ghost btn-sm" onclick="corregirFacturaRecibida('${r.id}')" title="Anula este comprobante y reabre el formulario precargado para corregirlo">Corregir</button><button class="btn btn-danger btn-sm" onclick="anularFacturaRecibida('${r.id}')" title="Anula el comprobante (el asiento queda anulado, el motivo va al audit log)">Anular</button></td>
+      <td style="display:flex;gap:4px">${(r.tipo||'factura')==='factura'&&saldoFacturaProveedor(r,facturasRecibidas,_vivas).saldo>0.005?`<button class="btn btn-ghost btn-sm" onclick="irAPagarFactura('${r.id}')" title="Orden de pago — abre la OP con esta factura tildada" style="color:var(--teal)"><span class="btn-icon"><svg viewBox="0 0 24 24"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Pagar</button><button class="btn btn-ghost btn-sm" onclick="openNCNDModal('${r.id}')">NC/ND</button>`:''}<button class="btn btn-ghost btn-sm" onclick="corregirFacturaRecibida('${r.id}')" title="Anula este comprobante y reabre el formulario precargado para corregirlo">Corregir</button><button class="btn btn-danger btn-sm" onclick="anularFacturaRecibida('${r.id}')" title="Anula el comprobante (el asiento queda anulado, el motivo va al audit log)">Anular</button></td>
     </tr>`;
-  }).join(''):'<tr><td colspan="13" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">Sin comprobantes</div><div class="empty-msg">Registrá facturas con el botón <b>Factura</b> de una OC recibida, o <b>+ Factura sin OC</b> para gastos.</div></div></td></tr>';
+  }).join(''):'<tr><td colspan="14" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">Sin comprobantes</div><div class="empty-msg">Registrá facturas con el botón <b>Factura</b> de una OC recibida, o <b>+ Factura sin OC</b> para gastos.</div></div></td></tr>';
 }
 
 // ═══════════════════════════════════════════════════════════

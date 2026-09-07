@@ -396,6 +396,24 @@ Al registrar una factura elegís **tipo** (Factura / Nota de débito / Nota de c
 
 El exportable **IVA compras** (Contabilidad → Exportables) sale en formato libro real: una columna por alícuota, no gravado, exento, percepciones por tipo con jurisdicción de IIBB, y las NC en negativo.
 
+La columna **Saldo** muestra lo que falta pagar de cada factura (total − NC asociadas − lo ya imputado en órdenes de pago). Cuando llega a cero aparece **PAGADA**. El botón **$** de la fila abre una orden de pago con esa factura ya tildada.
+
+### 7.5 Órdenes de pago
+
+Es la forma de **pagarle a un proveedor**. Una orden de pago (OP-nnnn) tiene un proveedor, **uno o más medios** y **las facturas que cancela**:
+
+1. **+ Orden de pago** (o el botón $ de una factura, o Contabilidad → Cobros y pagos → Pago a proveedor).
+2. Elegí el **proveedor**: aparecen sus **facturas pendientes** con el saldo de cada una (las vencidas en rojo). Tildá las que cancelás; el monto a imputar se completa con el saldo y podés bajarlo para un **pago parcial**. **Imputar automático** reparte el total de los medios entre las facturas, la más vieja primero.
+3. Cargá los **medios**: **Transferencia** (elegís la cuenta bancaria real), **Cheque diferido** (número, banco, fecha de pago, echeq — el cheque queda registrado en Cheques como emitido/entregado), **Caja** o **Tarjeta de crédito**. Podés combinar los que quieras: una transferencia más dos cheques para la misma factura, por ejemplo.
+4. La barra de abajo muestra **Total medios**, **Imputado** y **A cuenta** (lo que no imputaste a ninguna factura: queda como saldo a favor con el proveedor y descuenta de su deuda). Si hay diferencia el sistema te avisa antes de registrar.
+5. **Registrar orden de pago** → se arma el asiento (Proveedores contra cada medio) y te ofrece el **PDF** de la orden para entregar al proveedor con los cheques (lleva las facturas canceladas, los medios y un espacio para "recibí conforme").
+
+**Moneda:** la OP puede ser en pesos o dólares. Si la factura está en otra moneda se convierte por el **TC** de la orden.
+
+**Anular:** desde la lista, con motivo. El asiento queda anulado (no se borra), las facturas recuperan su saldo y los cheques que emitió la orden pasan a anulados. Si un cheque ya fue **debitado**, la OP no se puede anular (la plata ya salió): corregilo con un asiento manual.
+
+La **deuda por proveedor** (tab Proveedores) y la deuda total del tab Órdenes de pago salen de las facturas con saldo menos los pagos a cuenta. El **cash-flow proyectado** del tablero y las alertas de facturas vencidas también usan el saldo real, no el total de la factura.
+
 ---
 
 ## 8. Ventas
@@ -651,11 +669,11 @@ Lista de todos los asientos (debe = haber).
 
 El lugar para registrar **plata que entra o sale**.
 
-1. Elegí la pestaña: **Cobro de cliente** o **Pago a proveedor**.
-2. Completá **Fecha**, **Tercero** (cliente/proveedor), **Monto**, **Moneda** (y **TC** si es en pesos), **Método** (caja / banco / cheque diferido), **Comprobante / recibo**, **Observaciones**.
+1. Elegí la pestaña: **Cobro de cliente** o **Pago a proveedor** (esta última abre directamente una **orden de pago** — ver 7.5 — con medios múltiples e imputación a facturas).
+2. Para un cobro completá **Fecha**, **Cliente**, **Monto**, **Moneda** (y **TC** si es en pesos), **Método** (caja / banco / cheque diferido), **Comprobante / recibo**, **Observaciones**.
 3. **Registrar.**
 
-El asiento se arma **automáticamente** (caja/banco contra deudores o proveedores) y el cobro se imputa **FIFO** a las facturas más viejas.
+El asiento se arma **automáticamente** (caja/banco contra deudores) y el cobro se imputa **FIFO** a las facturas más viejas. Los pagos hechos por orden de pago aparecen en la lista de "Últimos movimientos" pero se anulan desde Compras → Órdenes de pago.
 
 **Retenciones sufridas (clave con clientes grandes):** si el cliente te paga **neto de retenciones** (Ganancias, IIBB, SUSS, IVA — YPF y las mineras lo hacen siempre), cargá el **monto cobrado** en Monto y agregá cada certificado con **+ Retención** (impuesto, Nº de certificado, jurisdicción si es IIBB, y monto retenido). El sistema:
 - arma el asiento completo: banco + cada retención al debe, deudores por el **total** al haber — la cta. cte. del cliente queda saldada de verdad;
