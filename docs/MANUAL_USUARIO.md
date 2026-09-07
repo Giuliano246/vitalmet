@@ -485,6 +485,11 @@ pendiente entrega → entregado → facturado
   - La venta está en USD y **se factura en pesos al tipo de cambio vendedor BNA del día** (el TC usado se muestra al emitir).
   - El **punto de venta** se configura en Configuración → Imputación contable.
 - **CAE** — una vez facturada, este botón te deja ver/descargar la factura.
+- **NC/ND** — emite una **nota de crédito o de débito con CAE** sobre esa factura. Elegís la clase arriba del modal:
+  - **Nota de crédito** (resta): devolución, error de facturación, descuento. Total o parcial; el sistema no deja acreditar más que el saldo de la factura (las NC anteriores se descuentan, las ND no).
+  - **Nota de débito** (suma): intereses por mora, diferencia de precio, gastos. No tiene tope.
+  - El asiento se arma solo y la cuenta corriente del cliente baja (NC) o sube (ND). La letra es la de la factura original.
+- **Facturas directas y notas libres** (botones de la barra): una **factura directa** se emite sin venta (ver más abajo) y desde su fila también podés sacar su NC/ND. **+ NC/ND libre** emite una nota que **no corrige ninguna factura del ERP**: ARCA exige asociarla a un **período** (desde/hasta: descuentos por volumen, intereses del mes, ajustes globales) o a un **comprobante propio** emitido fuera del sistema (punto de venta y número de esa factura, misma letra). Elegís cliente, tipo, moneda e ítems con concepto libre, igual que en la factura directa.
 - **Anular** — da de baja la venta (queda registro de auditoría).
 - **Excel** — exporta el listado.
 

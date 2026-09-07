@@ -312,6 +312,9 @@ interface FacturaReq {
   // NC/ND (tipos 2,3,7,8,12,13): comprobante(s) que corrige — ARCA exige
   // el bloque CbtesAsoc (RG 4540)
   comprobantes_asociados?: CbteAsoc[];
+  // NC/ND sin comprobante puntual (RG 4540): período asociado — ARCA
+  // exige CbtesAsoc O PeriodoAsoc. Fechas yyyy-mm-dd.
+  periodo_asociado?: { desde: string; hasta: string };
   // Trazabilidad (migración 067): el ERP los manda para que la bitácora
   // afip_eventos quede vinculada a la venta/empresa. No van a ARCA.
   venta_id?: string;
@@ -372,13 +375,22 @@ async function solicitarCAE(req: FacturaReq) {
   // NC/ND: obligatorio referenciar el comprobante original (RG 4540).
   // El Cuit del CbteAsoc es el del EMISOR del comprobante original —
   // acá siempre nosotros, porque solo asociamos comprobantes propios.
-  const esNCND = [2, 3, 7, 8, 12, 13].includes(req.tipo_comprobante);
-  if (esNCND && !req.comprobantes_asociados?.length) {
+  const esNCND = [2, 3, 7, 8, 12, 13, 52, 53].includes(req.tipo_comprobante);
+  const per = req.periodo_asociado;
+  const tienePeriodo = !!(per?.desde && per?.hasta);
+  if (esNCND && !req.comprobantes_asociados?.length && !tienePeriodo) {
     throw new AfipError(
-      "Una NC/ND requiere comprobantes_asociados (el comprobante que corrige)",
+      "Una NC/ND requiere comprobantes_asociados (el comprobante que corrige) o periodo_asociado {desde, hasta}",
       400,
     );
   }
+  if (tienePeriodo && per!.hasta < per!.desde) {
+    throw new AfipError("periodo_asociado: hasta debe ser >= desde", 400);
+  }
+  // PeriodoAsoc va DESPUÉS de Iva en el orden del WSDL (FECAEDetRequest)
+  const periodoXml = tienePeriodo
+    ? `<ar:PeriodoAsoc><ar:FchDesde>${per!.desde.replace(/-/g, "")}</ar:FchDesde><ar:FchHasta>${per!.hasta.replace(/-/g, "")}</ar:FchHasta></ar:PeriodoAsoc>`
+    : "";
   const asocXml = req.comprobantes_asociados?.length
     ? `<ar:CbtesAsoc>${
       req.comprobantes_asociados.map((a) =>
@@ -412,6 +424,7 @@ async function solicitarCAE(req: FacturaReq) {
         <ar:CondicionIVAReceptorId>${condIva}</ar:CondicionIVAReceptorId>
         ${asocXml}
         ${ivaXml}
+        ${periodoXml}
       </ar:FECAEDetRequest></ar:FeDetReq>
     </ar:FeCAEReq>`,
   );

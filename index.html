@@ -670,7 +670,7 @@ body.no-costos .solo-costos{display:none!important}
       <div class="page-content">
         <div class="stats-bar" id="ventas-stats"></div>
         <div class="toolbar">
-          <div class="search-box"><input type="text" placeholder="Buscar por cliente, remito..." oninput="renderVentas(this.value)"></div><button class="btn btn-ghost" id="btn-fact-lote" onclick="facturarEntregadas()" style="border-color:var(--green);color:var(--green);display:none">Facturar entregadas</button><button class="btn btn-ghost" onclick="openFacturaDirecta()" style="border-color:var(--teal);color:var(--teal)">+ Factura directa</button><button class="btn btn-ghost" onclick="openFacturasDirectas()">Ver facturas directas</button><button class="btn btn-ghost" id="btn-regen-asientos" onclick="regenerarAsientosFaltantes()" style="border-color:var(--amber,#d99a2b);color:var(--amber,#d99a2b)" title="Genera el asiento contable de las facturas y NC con CAE que no lo tengan (backfill)">Regenerar asientos</button><input type="date" id="ventasf-fdesde" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Desde" style="width:auto"><input type="date" id="ventasf-fhasta" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Hasta" style="width:auto">
+          <div class="search-box"><input type="text" placeholder="Buscar por cliente, remito..." oninput="renderVentas(this.value)"></div><button class="btn btn-ghost" id="btn-fact-lote" onclick="facturarEntregadas()" style="border-color:var(--green);color:var(--green);display:none">Facturar entregadas</button><button class="btn btn-ghost" onclick="openFacturaDirecta()" style="border-color:var(--teal);color:var(--teal)">+ Factura directa</button><button class="btn btn-ghost" onclick="openFacturasDirectas()">Ver facturas directas</button><button class="btn btn-ghost" onclick="openNotaLibre()" style="border-color:var(--coral,#e5484d);color:var(--coral,#e5484d)" title="NC/ND con CAE sin factura del ERP: asociada a un período o a un comprobante propio externo">+ NC/ND libre</button><button class="btn btn-ghost" id="btn-regen-asientos" onclick="regenerarAsientosFaltantes()" style="border-color:var(--amber,#d99a2b);color:var(--amber,#d99a2b)" title="Genera el asiento contable de las facturas y NC con CAE que no lo tengan (backfill)">Regenerar asientos</button><input type="date" id="ventasf-fdesde" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Desde" style="width:auto"><input type="date" id="ventasf-fhasta" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Hasta" style="width:auto">
           <button class="btn btn-ghost" onclick="exportVentasCSV()" title="Exportar a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Nro. remito</th><th>Cliente</th><th>Fecha</th><th>Piezas</th><th>Total unid.</th><th>Importe</th><th>Estado</th><th></th></tr></thead><tbody id="ventas-tbody"></tbody></table></div>
@@ -1781,13 +1781,17 @@ body.no-costos .solo-costos{display:none!important}
   </div>
 </div>
 <div class="modal-overlay" id="modal-nota-credito">
-  <div class="modal" style="width:560px">
-    <div class="modal-header"><div class="modal-title">Nota de crédito <span id="nc-factura-ref" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="modal-close" onclick="closeModal('modal-nota-credito')">×</button></div>
+  <div class="modal" style="width:580px">
+    <div class="modal-header"><div class="modal-title">Nota de crédito / débito <span id="nc-factura-ref" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="modal-close" onclick="closeModal('modal-nota-credito')">×</button></div>
     <div class="modal-body">
-      <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Se solicita a ARCA una <b>Nota de Crédito con CAE propio</b>, referenciando la factura original. Anula total o parcialmente el comprobante (devolución, error de facturación, descuento). La operación NO se puede deshacer.</p>
+      <div style="display:flex;gap:16px;margin-bottom:10px;font-size:12px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="nota-clase" value="nc" checked onchange="notaOnClaseChange()"> <b>Nota de crédito</b> <span style="color:var(--text3)">(resta)</span></label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="nota-clase" value="nd" onchange="notaOnClaseChange()"> <b>Nota de débito</b> <span style="color:var(--text3)">(suma)</span></label>
+      </div>
+      <p id="nc-explica" style="margin:0 0 12px 0;color:var(--text3);font-size:12px"></p>
       <div id="nc-factura-info" style="font-size:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-md);padding:10px 12px;margin-bottom:12px"></div>
       <div class="form-row" style="grid-template-columns:1fr 1fr">
-        <div class="form-group"><label>Monto de la NC (ARS, IVA incluido) *</label><input type="number" id="nc-monto" step="0.01" min="0" oninput="ncOnInput()"></div>
+        <div class="form-group"><label id="nc-monto-label">Monto de la NC (ARS, IVA incluido) *</label><input type="number" id="nc-monto" step="0.01" min="0" oninput="ncOnInput()"></div>
         <div class="form-group"><label>Motivo</label><input type="text" id="nc-motivo" placeholder="Devolución de mercadería" maxlength="120"></div>
       </div>
       <div id="nc-resumen" style="margin-top:4px;font-size:12px;color:var(--text2)"></div>
@@ -1795,6 +1799,40 @@ body.no-costos .solo-costos{display:none!important}
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-nota-credito')">Cancelar</button>
       <button class="btn btn-primary" id="btn-save-nc" onclick="emitirNotaCredito()">Emitir NC (CAE)</button>
+    </div>
+  </div>
+</div>
+<!-- MODAL: NC/ND libre — sin factura del ERP (mig 075, RG 4540: período o comprobante asociado) -->
+<div class="modal-overlay" id="modal-nota-libre">
+  <div class="modal" style="width:720px">
+    <div class="modal-header"><div class="modal-title">NC / ND libre <span style="color:var(--text3);font-weight:400;font-size:13px">(sin factura del ERP)</span></div><button class="modal-close" onclick="closeModal('modal-nota-libre')">×</button></div>
+    <div class="modal-body">
+      <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Emite una <b>nota de crédito o débito con CAE</b> que no corrige una factura cargada en el ERP. ARCA exige asociarla a un <b>período</b> (descuentos, intereses, ajustes globales) o a un <b>comprobante propio</b> emitido fuera del sistema. NO se puede deshacer.</p>
+      <div class="form-row" style="grid-template-columns:2fr 1fr 1fr">
+        <div class="form-group"><label>Cliente *</label><input type="text" id="nl-cliente" placeholder="Razón social" list="clientes-datalist" oninput="nlOnClienteChange()"></div>
+        <div class="form-group"><label>CUIT</label><input type="text" id="nl-cuit" placeholder="—" readonly></div>
+        <div class="form-group"><label>Tipo *</label><select id="nl-clase"><option value="nc">Nota de crédito (resta)</option><option value="nd">Nota de débito (suma)</option></select></div>
+      </div>
+      <div id="nl-cliente-info" style="font-size:11px;color:var(--text3);margin:-6px 0 10px 0;min-height:14px"></div>
+      <div class="form-row" style="grid-template-columns:1fr 2fr">
+        <div class="form-group"><label>Moneda</label><select id="nl-moneda" onchange="nlOnMonedaChange()"><option value="ARS">Pesos (ARS)</option><option value="USD">Dólares (USD)</option></select></div>
+        <div class="form-group"><label>&nbsp;</label><div id="nl-tc-info" style="font-size:11px;padding:8px 0;color:var(--text3)">Importes en pesos</div></div>
+      </div>
+      <label style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Ítems — precio unitario NETO (sin IVA)</label>
+      <div id="nl-items-wrap" style="margin:6px 0"></div>
+      <button class="btn btn-ghost btn-sm" onclick="nlAddItem()">+ Agregar ítem</button>
+      <div id="nl-resumen" style="margin-top:8px;font-size:13px;text-align:right;color:var(--text2)"></div>
+      <div class="form-row" style="grid-template-columns:1fr 2fr;margin-top:10px">
+        <div class="form-group"><label>Asociada a *</label><select id="nl-asoc-modo" onchange="nlOnAsocChange()"><option value="periodo">Un período</option><option value="externo">Un comprobante propio externo</option></select></div>
+        <div id="nl-asoc-periodo" class="form-row" style="grid-template-columns:1fr 1fr;margin:0"><div class="form-group"><label>Desde *</label><input type="date" id="nl-desde"></div><div class="form-group"><label>Hasta *</label><input type="date" id="nl-hasta"></div></div>
+        <div id="nl-asoc-externo" class="form-row" style="grid-template-columns:1fr 1fr 1fr;margin:0;display:none"><div class="form-group"><label>Punto de venta *</label><input type="number" id="nl-ext-pv" min="1" placeholder="3"></div><div class="form-group"><label>Nº factura *</label><input type="number" id="nl-ext-nro" min="1" placeholder="1520"></div><div class="form-group"><label>Fecha</label><input type="date" id="nl-ext-fecha"></div></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin:-4px 0 8px">La letra de la nota sale de la condición fiscal del cliente; el comprobante externo debe ser de la misma letra y emitido por Vitalmet.</div>
+      <div class="form-group"><label>Observaciones</label><input type="text" id="nl-obs" placeholder="Ej: descuento por volumen agosto" maxlength="120"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-nota-libre')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-emitir-nl" onclick="emitirNotaLibre()">Emitir nota (CAE)</button>
     </div>
   </div>
 </div>
@@ -1826,9 +1864,9 @@ body.no-costos .solo-costos{display:none!important}
 </div>
 <div class="modal-overlay" id="modal-facturas-directas">
   <div class="modal" style="width:740px">
-    <div class="modal-header"><div class="modal-title">Facturas directas emitidas</div><button class="modal-close" onclick="closeModal('modal-facturas-directas')">×</button></div>
+    <div class="modal-header"><div class="modal-title">Facturas directas y notas libres</div><button class="modal-close" onclick="closeModal('modal-facturas-directas')">×</button></div>
     <div class="modal-body">
-      <p style="margin:0 0 10px 0;color:var(--text3);font-size:12px">Facturas emitidas sin venta asociada (con CAE de AFIP).</p>
+      <p style="margin:0 0 10px 0;color:var(--text3);font-size:12px">Facturas directas (sin venta) y notas de crédito/débito libres, todas con CAE de AFIP. Desde una factura podés emitir su NC/ND.</p>
       <div id="fd-lista" style="font-size:12px"></div>
     </div>
     <div class="modal-footer">
@@ -4680,7 +4718,7 @@ async function openFacturasDirectas(){
   openModal('modal-facturas-directas');
   const cont=document.getElementById('fd-lista');
   cont.innerHTML='<div style="text-align:center;padding:16px;color:var(--text3)">Cargando…</div>';
-  const fs=await GET('facturas_emitidas','?venta_id=is.null&order=fecha.desc,numero.desc&select=id,fecha,tipo_comprobante,punto_venta,numero,doc_nro,imp_total,cae').catch(()=>[]);
+  const fs=await GET('facturas_emitidas','?venta_id=is.null&order=fecha.desc,numero.desc&select=id,fecha,tipo_comprobante,punto_venta,numero,doc_nro,imp_total,cae,factura_asociada_id,cbte_asoc_externo,periodo_asoc_desde,periodo_asoc_hasta').catch(()=>[]);
   renderFacturasDirectas(fs);
 }
 function renderFacturasDirectas(fs){
@@ -4690,10 +4728,10 @@ function renderFacturasDirectas(fs){
   const rows=fs.map(f=>`<tr style="border-bottom:1px solid var(--border)">
     <td class="mono" style="padding:6px 4px">${esc(fmtFecha(f.fecha))||'—'}</td>
     <td class="mono" style="padding:6px 4px">${tipoStr[f.tipo_comprobante]||f.tipo_comprobante} ${String(f.punto_venta).padStart(5,'0')}-${String(f.numero).padStart(8,'0')}</td>
-    <td class="mono" style="padding:6px 4px">${esc(f.doc_nro)||'—'}</td>
-    <td class="mono" style="padding:6px 4px;text-align:right">${fmtARS(Number(f.imp_total)||0)}</td>
+    <td class="mono" style="padding:6px 4px">${esc(f.doc_nro)||'—'}${f.cbte_asoc_externo?`<div style="font-size:10px;color:var(--text3)">s/ ${esc(f.cbte_asoc_externo)}</div>`:f.periodo_asoc_desde?`<div style="font-size:10px;color:var(--text3)">período ${fmtFecha(f.periodo_asoc_desde)}–${fmtFecha(f.periodo_asoc_hasta)}</div>`:''}</td>
+    <td class="mono" style="padding:6px 4px;text-align:right;${claseNota(f.tipo_comprobante)==='nc'?'color:var(--coral)':''}">${claseNota(f.tipo_comprobante)==='nc'?'−':''}${fmtARS(Number(f.imp_total)||0)}</td>
     <td class="mono" style="padding:6px 4px;font-size:11px">${esc(f.cae)||'—'}</td>
-    <td style="padding:6px 4px"><button class="btn btn-ghost btn-sm" onclick="verFactura('${f.id}')">Ver CAE</button></td>
+    <td style="padding:6px 4px;white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="verFactura('${f.id}')">Ver CAE</button>${claseNota(f.tipo_comprobante)?'':`<button class="btn btn-ghost btn-sm" onclick="openNotaSobreFactura('${f.id}')" style="color:var(--coral,#e5484d)" title="Nota de crédito o débito con CAE sobre esta factura">NC/ND</button>`}</td>
   </tr>`).join('');
   cont.innerHTML=`<table style="width:100%;border-collapse:collapse"><thead><tr style="font-size:9px;color:var(--text3);text-transform:uppercase;text-align:left"><th style="padding:4px">Fecha</th><th style="padding:4px">Comprobante</th><th style="padding:4px">Doc receptor</th><th style="padding:4px;text-align:right">Total</th><th style="padding:4px">CAE</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
 }
@@ -4703,7 +4741,7 @@ function renderFacturasDirectas(fs){
 // asiento contable — antes solo se avisaba con un notify al emitir y el
 // estado se perdía al recargar. Pura (tests en asiento-visible.test.js):
 function facturasSinAsiento(facturas,asientosList){
-  const con=new Set((asientosList||[]).filter(a=>a.origen_tipo==='factura'||a.origen_tipo==='nota-credito').map(a=>a.origen_id));
+  const con=new Set((asientosList||[]).filter(a=>a.origen_tipo==='factura'||a.origen_tipo==='nota-credito'||a.origen_tipo==='nota-debito').map(a=>a.origen_id));
   return (facturas||[]).filter(f=>f.cae&&!con.has(f.id));
 }
 // H-03 (auditoría 2026-08): recuperación automática del vínculo
@@ -4746,9 +4784,8 @@ async function regenerarAsientosFaltantes(){
   if(btn){btn.disabled=true;btn.textContent='Revisando...';}
   try{
     const fs=await GET('facturas_emitidas','?order=fecha.asc,numero.asc&select=id,venta_id,factura_asociada_id,tipo_comprobante,punto_venta,numero,fecha,doc_nro,imp_neto,imp_iva,imp_total,moneda,cotizacion_moneda,cae');
-    const as=await GET('asientos','?origen_tipo=in.(factura,nota-credito)&select=origen_id');
+    const as=await GET('asientos','?origen_tipo=in.(factura,nota-credito,nota-debito)&select=origen_id');
     const conAsiento=new Set((as||[]).map(a=>a.origen_id));
-    const NC_TIPOS=new Set([3,8,13,53]);
     const faltan=(fs||[]).filter(f=>f.cae&&!conAsiento.has(f.id));
     if(!faltan.length){notify('Todas las facturas con CAE ya tienen su asiento ✓','ok');return;}
     let ok=0;const errores=[];
@@ -4758,7 +4795,7 @@ async function regenerarAsientosFaltantes(){
         let venta=null;
         if(f.venta_id){const vl=await GET('ventas',`?id=eq.${f.venta_id}&select=id,cliente,cliente_id`).catch(()=>[]);venta=vl&&vl[0]||null;}
         if(!venta){const c=clientes.find(x=>(x.cuit||'').replace(/\D/g,'')===String(f.doc_nro||'').replace(/\D/g,''));venta={cliente:c?.nombre||'cliente',cliente_id:c?.id||null};}
-        if(NC_TIPOS.has(f.tipo_comprobante))await generarAsientoNC(f.id,f,venta,'');
+        if(claseNota(f.tipo_comprobante))await generarAsientoNota(f.id,f,{cliente:venta.cliente,cliente_id:venta.cliente_id||null},'');
         else await generarAsientoFactura(f.id,f,venta);
         ok++;
       }catch(e){errores.push(`${fmt}: ${e.message}`);}
@@ -4847,15 +4884,27 @@ async function generarAsientoFactura(facturaEmitidaId,factura,venta){
 // Corrige una factura emitida (devolución, error, descuento): NC con
 // CAE propio referenciando el original (CbtesAsoc, RG 4540). Total o
 // parcial por monto. Asiento inverso automático + impacto en cta cte.
-const NC_TIPO_BY_FACTURA={1:3,6:8,11:13,51:53}; // factura → NC de la misma letra
-const NC_LETRA={3:'A',8:'B',13:'C',53:'M'};
-let _ncFactura=null,_ncVentaId=null,_ncAcreditado=0;
+// ─── NOTAS DE CRÉDITO / DÉBITO DE VENTA (mig 067 + 075) ─────────────
+// Una sola pantalla para NC y ND sobre cualquier factura del ERP (con
+// venta o directa) y una segunda para NC/ND "libre" (sin factura del
+// ERP: período asociado o comprobante propio externo, RG 4540).
+// Puras con tests en tests/nota-credito.test.js y tests/notas-venta.test.js.
+const NOTA_TIPOS={nc:{1:3,6:8,11:13,51:53},nd:{1:2,6:7,11:12,51:52}};
+const NOTA_LETRA={2:'A',3:'A',7:'B',8:'B',12:'C',13:'C',52:'M',53:'M'};
+const FACTURA_TIPO_BY_LETRA={A:1,B:6,C:11,M:51};
+const NC_TIPO_BY_FACTURA=NOTA_TIPOS.nc; // compat
+const NC_LETRA=NOTA_LETRA;             // compat
+function tipoNota(tipoFactura,clase){const t=NOTA_TIPOS[clase]?.[Number(tipoFactura)];return t==null?null:t;}
+function tipoNotaPorLetra(letra,clase){const tf=FACTURA_TIPO_BY_LETRA[letra];return tf?tipoNota(tf,clase):null;}
+function claseNota(tipo){const t=Number(tipo);if([3,8,13,53].includes(t))return 'nc';if([2,7,12,52].includes(t))return 'nd';return null;}
+function notaLabel(tipo){const c=claseNota(tipo);return c?`${c.toUpperCase()}-${NOTA_LETRA[Number(tipo)]}`:String(tipo);}
+let _nota=null; // {f, clase, cliente:{cliente,cliente_id}, acreditado}
 function _fmtCbte(pv,nro){return`${String(pv).padStart(5,'0')}-${String(nro).padStart(8,'0')}`;}
-// Saldo disponible para acreditar por NC (pura, tests en nota-credito.test.js).
-// El control AUTORITATIVO es server-side (RPC nc_reservar + trigger
-// trg_nc_tope, mig 069) — esto es solo el preview del modal.
+// Saldo disponible para acreditar por NC (pura). Las ND asociadas a la
+// factura NO reducen el saldo. El control AUTORITATIVO es server-side
+// (RPC nc_reservar + trigger trg_nc_tope, mig 069/075) — esto es preview.
 function computeSaldoNC(impTotal,previas){
-  const acreditado=Math.round((previas||[]).reduce((s,x)=>s+(parseFloat(x.imp_total)||0),0)*100)/100;
+  const acreditado=Math.round((previas||[]).filter(x=>claseNota(x.tipo_comprobante)!=='nd').reduce((s,x)=>s+(parseFloat(x.imp_total)||0),0)*100)/100;
   return {acreditado,saldo:Math.max(0,Math.round(((parseFloat(impTotal)||0)-acreditado)*100)/100)};
 }
 function _ncIvaPct(f){
@@ -4865,98 +4914,146 @@ function _ncIvaPct(f){
   const raw=iva/neto*100;
   return [0,2.5,5,10.5,21,27].reduce((a,b)=>Math.abs(b-raw)<Math.abs(a-raw)?b:a);
 }
-async function openNotaCredito(ventaId){
+// Líneas del asiento de una nota (pura). NC = reversa de la venta (debe
+// Ventas + IVA Débito / haber Deudores); ND = como una factura (debe
+// Deudores / haber Ventas + IVA Débito).
+function armarLineasNota({clase,neto,iva,total,ctaVentas,ctaIvaDeb,ctaDeudores,fmt,cliente}){
+  neto=Number(neto)||0;iva=Number(iva)||0;total=Number(total)||0;
+  const aplicaIVA=!!ctaIvaDeb&&iva>0.005;
+  const tot=aplicaIVA?total:neto;
+  if(clase==='nd'){
+    const l=[{cuenta_id:ctaDeudores.id,debe:tot,haber:0,descripcion:`Cargo a ${cliente} s/${fmt}`,orden:0},
+             {cuenta_id:ctaVentas.id,debe:0,haber:neto,descripcion:`Venta s/${fmt}`,orden:1}];
+    if(aplicaIVA)l.push({cuenta_id:ctaIvaDeb.id,debe:0,haber:iva,descripcion:`IVA Débito s/${fmt}`,orden:2});
+    return l;
+  }
+  const l=[{cuenta_id:ctaVentas.id,debe:neto,haber:0,descripcion:`Reversa venta s/${fmt}`,orden:0}];
+  if(aplicaIVA)l.push({cuenta_id:ctaIvaDeb.id,debe:iva,haber:0,descripcion:`Reversa IVA Débito s/${fmt}`,orden:1});
+  l.push({cuenta_id:ctaDeudores.id,debe:0,haber:tot,descripcion:`Crédito a ${cliente} s/${fmt}`,orden:l.length});
+  return l;
+}
+// Cliente de una factura emitida: por la venta si la tiene; si es directa,
+// por CUIT (doc_nro) contra la lista de clientes (pura).
+function resolverClienteFactura(f,ventasList,clientesList){
+  const v=f?.venta_id?(ventasList||[]).find(x=>x.id===f.venta_id):null;
+  if(v){
+    const c=(clientesList||[]).find(x=>x.id===v.cliente_id)||(clientesList||[]).find(x=>(x.nombre||'').toLowerCase()===(v.cliente||'').toLowerCase());
+    return {cliente:v.cliente||c?.nombre||'cliente',cliente_id:v.cliente_id||c?.id||null};
+  }
+  const doc=String(f?.doc_nro||'').replace(/\D/g,'');
+  const c=doc&&doc!=='0'?(clientesList||[]).find(x=>(x.cuit||'').replace(/\D/g,'')===doc):null;
+  return c?{cliente:c.nombre,cliente_id:c.id}:{cliente:'cliente',cliente_id:null};
+}
+// Asociación de una nota libre (pura): período (PeriodoAsoc) o
+// comprobante propio externo (CbtesAsoc con la misma letra de la nota).
+function validarAsociacionNota({modo,desde,hasta,letra,pv,nro,fecha}){
+  if(modo==='periodo'){
+    if(!desde||!hasta)return {ok:false,error:'Cargá el período asociado (desde y hasta)'};
+    if(hasta<desde)return {ok:false,error:'El período asociado está invertido (hasta < desde)'};
+    return {ok:true,periodo_asociado:{desde,hasta},comprobantes_asociados:null,cbte_asoc_externo:null};
+  }
+  if(modo==='externo'){
+    const tipo=FACTURA_TIPO_BY_LETRA[letra];
+    const p=parseInt(pv,10),n=parseInt(nro,10);
+    if(!tipo)return {ok:false,error:'Letra inválida para el comprobante asociado'};
+    if(!(p>=1&&p<=99999))return {ok:false,error:'Punto de venta del comprobante asociado inválido'};
+    if(!(n>=1))return {ok:false,error:'Cargá el número del comprobante asociado'};
+    return {ok:true,periodo_asociado:null,comprobantes_asociados:[{tipo,punto_venta:p,numero:n,fecha:fecha||undefined}],cbte_asoc_externo:`FA-${letra} ${_fmtCbte(p,n)}`};
+  }
+  return {ok:false,error:'Elegí cómo se asocia la nota (período o comprobante)'};
+}
+async function _emitirComprobanteAFIP(payload){
+  const res=await fetch(`${BILLING_URL}/facturar`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${currentSession.access_token}`},body:JSON.stringify(payload)});
+  if(!res.ok){const eb=await res.json().catch(()=>({}));const d=eb.detail;throw new Error(typeof d==='string'?d:(d?.mensaje||JSON.stringify(d)||res.statusText));}
+  return res.json();
+}
+const COND_IVA_AFIP_NOTA={RI:1,exento:4,consumidor_final:5,monotributo:6};
+
+// ── Modal NC/ND sobre una factura del ERP ──────────────────────────
+async function openNotaCredito(ventaId){ // compat: desde la fila de ventas
   const v=ventas.find(x=>x.id===ventaId);
   if(!v?.factura_emitida_id)return notify('La venta no tiene factura emitida','err');
-  const list=await GET('facturas_emitidas',`?id=eq.${v.factura_emitida_id}`).catch(()=>[]);
+  return openNotaSobreFactura(v.factura_emitida_id);
+}
+async function openNotaSobreFactura(facturaId){
+  const list=await GET('facturas_emitidas',`?id=eq.${facturaId}`).catch(()=>[]);
   const f=list[0];
   if(!f)return notify('Factura no encontrada','err');
-  if(!NC_TIPO_BY_FACTURA[f.tipo_comprobante])return notify('Este tipo de comprobante no soporta NC desde el ERP','err');
-  const previas=await GET('facturas_emitidas',`?factura_asociada_id=eq.${f.id}&afip_environment=eq.${f.afip_environment}`).catch(()=>[]);
-  _ncFactura=f;_ncVentaId=ventaId;
+  if(claseNota(f.tipo_comprobante))return notify('Es una nota: las NC/ND se emiten sobre la factura original','err');
+  if(!tipoNota(f.tipo_comprobante,'nc'))return notify('Este tipo de comprobante no soporta NC/ND desde el ERP','err');
+  const previas=await GET('facturas_emitidas',`?factura_asociada_id=eq.${f.id}&afip_environment=eq.${f.afip_environment}&select=tipo_comprobante,imp_total`).catch(()=>[]);
+  const cliente=resolverClienteFactura(f,ventas,clientes);
   const {acreditado,saldo}=computeSaldoNC(f.imp_total,previas);
-  _ncAcreditado=acreditado;
+  _nota={f,clase:'nc',cliente,acreditado,saldo};
+  document.querySelectorAll('input[name="nota-clase"]').forEach(r=>{r.checked=r.value==='nc';});
   document.getElementById('nc-factura-ref').textContent=_fmtCbte(f.punto_venta,f.numero);
   document.getElementById('nc-factura-info').innerHTML=
-    `Factura <b>${_fmtCbte(f.punto_venta,f.numero)}</b> a <b>${esc(v.cliente)}</b> — Total <span class="mono">${fmtARS(parseFloat(f.imp_total)||0)}</span> (neto ${fmtARS(parseFloat(f.imp_neto)||0)} + IVA ${fmtARS(parseFloat(f.imp_iva)||0)}) · CAE ${esc(f.cae)}`+
-    (_ncAcreditado>0?`<br><span style="color:var(--amber,#d99a2b)">Ya acreditado por NC anteriores: ${fmtARS(_ncAcreditado)} — queda ${fmtARS(saldo)}</span>`:'');
-  document.getElementById('nc-monto').value=saldo?saldo.toFixed(2):'';
+    `Factura <b>${_fmtCbte(f.punto_venta,f.numero)}</b> a <b>${esc(cliente.cliente)}</b>${f.venta_id?'':' <span class="badge badge-teal" style="font-size:9px">DIRECTA</span>'} — Total <span class="mono">${fmtARS(parseFloat(f.imp_total)||0)}</span> (neto ${fmtARS(parseFloat(f.imp_neto)||0)} + IVA ${fmtARS(parseFloat(f.imp_iva)||0)}) · CAE ${esc(f.cae)}`+
+    (acreditado>0?`<br><span style="color:var(--amber,#d99a2b)">Ya acreditado por NC anteriores: ${fmtARS(acreditado)} — queda ${fmtARS(saldo)}</span>`:'');
   document.getElementById('nc-motivo').value='';
-  ncOnInput();
+  notaOnClaseChange();
   openModal('modal-nota-credito');
 }
+function notaOnClaseChange(){
+  if(!_nota)return;
+  _nota.clase=document.querySelector('input[name="nota-clase"]:checked')?.value||'nc';
+  const nc=_nota.clase==='nc';
+  document.getElementById('nc-monto-label').textContent=nc?'Monto de la NC (ARS, IVA incluido) *':'Monto de la ND (ARS, IVA incluido) *';
+  document.getElementById('nc-explica').innerHTML=nc
+    ?'Se solicita a ARCA una <b>Nota de Crédito con CAE propio</b>, referenciando la factura original. Anula total o parcialmente el comprobante (devolución, error de facturación, descuento). La operación NO se puede deshacer.'
+    :'Se solicita a ARCA una <b>Nota de Débito con CAE propio</b>, referenciando la factura original. <b>Aumenta</b> lo que el cliente debe (intereses por mora, diferencia de precio, gastos). No tiene tope. La operación NO se puede deshacer.';
+  document.getElementById('nc-monto').value=nc?(_nota.saldo?_nota.saldo.toFixed(2):''):'';
+  document.getElementById('nc-motivo').placeholder=nc?'Devolución de mercadería':'Intereses por mora';
+  document.getElementById('btn-save-nc').textContent=nc?'Emitir NC (CAE)':'Emitir ND (CAE)';
+  ncOnInput();
+}
 function ncOnInput(){
-  const f=_ncFactura;if(!f)return;
+  if(!_nota)return;
+  const f=_nota.f,nc=_nota.clase==='nc';
   const monto=parseFloat(document.getElementById('nc-monto').value)||0;
-  const max=Math.round(((parseFloat(f.imp_total)||0)-_ncAcreditado)*100)/100;
+  const max=Math.round(((parseFloat(f.imp_total)||0)-_nota.acreditado)*100)/100;
   const d=computeNetoIvaDesdeTotal(monto,_ncIvaPct(f));
   const res=document.getElementById('nc-resumen');
   let ok=false;
-  if(monto<=0)res.innerHTML='<span style="color:var(--text3)">Ingresá el monto a acreditar (por defecto, el total pendiente).</span>';
-  else if(monto>max+0.01)res.innerHTML=`<span style="color:var(--coral,#e5484d)">El monto supera lo pendiente de acreditar (${fmtARS(max)}).</span>`;
-  else{ok=true;res.innerHTML=`Se emite NC por <b class="mono">${fmtARS(d.total)}</b> — neto ${fmtARS(d.neto)} + IVA ${_ncIvaPct(f)}% ${fmtARS(d.iva)}${Math.abs(d.total-monto)>0.005?` <span style="color:var(--text3)">(ajuste por redondeo AFIP)</span>`:''}`;}
+  if(monto<=0)res.innerHTML=`<span style="color:var(--text3)">${nc?'Ingresá el monto a acreditar (por defecto, el total pendiente).':'Ingresá el monto a debitar.'}</span>`;
+  else if(nc&&monto>max+0.01)res.innerHTML=`<span style="color:var(--coral,#e5484d)">El monto supera lo pendiente de acreditar (${fmtARS(max)}).</span>`;
+  else{ok=true;res.innerHTML=`Se emite ${nc?'NC':'ND'} por <b class="mono">${fmtARS(d.total)}</b> — neto ${fmtARS(d.neto)} + IVA ${_ncIvaPct(f)}% ${fmtARS(d.iva)}${Math.abs(d.total-monto)>0.005?` <span style="color:var(--text3)">(ajuste por redondeo AFIP)</span>`:''}`;}
   const btn=document.getElementById('btn-save-nc');if(btn)btn.disabled=!ok;
 }
 async function emitirNotaCredito(){
-  const f=_ncFactura,v=ventas.find(x=>x.id===_ncVentaId);
-  if(!f||!v)return;
+  if(!_nota)return;
+  const f=_nota.f,clase=_nota.clase,nc=clase==='nc';
   if(!currentSession?.access_token)return notify('Sesión vencida — volvé a loguearte','err');
   const monto=parseFloat(document.getElementById('nc-monto').value)||0;
   const motivo=(document.getElementById('nc-motivo').value||'').trim();
   const ivaPct=_ncIvaPct(f);
   const d=computeNetoIvaDesdeTotal(monto,ivaPct);
   if(!(d.total>0))return notify('Monto inválido','err');
-  const ncTipo=NC_TIPO_BY_FACTURA[f.tipo_comprobante];
-  const letra=NC_LETRA[ncTipo];
+  const tipo=tipoNota(f.tipo_comprobante,clase);
+  const letra=NOTA_LETRA[tipo];
   const fmtOrig=_fmtCbte(f.punto_venta,f.numero);
-  // H-08 (RG 5616): si al cliente le borraron la condición fiscal después de
-  // facturar, condicion_iva_receptor_id saldría undefined — avisar antes del CAE.
-  const _cliNC=clientes.find(c=>c.id===v.cliente_id)||clientes.find(c=>c.nombre===v.cliente);
-  if(_cliNC&&!['RI','exento','consumidor_final','monotributo'].includes(_cliNC.condicion_fiscal))return notify(`Definí la condición fiscal de "${v.cliente}" (Clientes → Editar) antes de emitir la NC`,'err');
-  if(!confirm(`¿Emitir Nota de Crédito ${letra} por ${fmtARS(d.total)} sobre la Factura ${fmtOrig}?\n\nEsto solicita un CAE a AFIP y NO se puede deshacer.`))return;
+  const cli=_nota.cliente.cliente_id?clientes.find(c=>c.id===_nota.cliente.cliente_id):null;
+  // H-08 (RG 5616): condición fiscal del receptor obligatoria en el CAE.
+  if(cli&&!['RI','exento','consumidor_final','monotributo'].includes(cli.condicion_fiscal))return notify(`Definí la condición fiscal de "${cli.nombre}" (Clientes → Editar) antes de emitir la nota`,'err');
+  const lbl=nc?'Nota de Crédito':'Nota de Débito';
+  if(!confirm(`¿Emitir ${lbl} ${letra} por ${fmtARS(d.total)} sobre la Factura ${fmtOrig}?\n\nEsto solicita un CAE a AFIP y NO se puede deshacer.`))return;
   setBusy('btn-save-nc',true);
-  // H-02 (mig 069): el tope de NC es server-side. nc_reservar valida el
-  // monto contra el saldo REAL (NC emitidas + otras emisiones en curso,
-  // con lock) ANTES de tocar ARCA — el _ncAcreditado cacheado del modal
-  // es solo preview. La reserva se libera al terminar; si el CAE salió
-  // pero el INSERT falló, se deja viva (sostiene el saldo, vence a 15').
-  let _reservaId=null,_caeOk=false,_ncGuardada=false;
+  // H-02 (mig 069): el tope de NC es server-side (nc_reservar con lock).
+  // La ND no tiene tope ni reserva.
+  let _reservaId=null,_caeOk=false,_guardada=false;
   try{
-    const _reserva=await RPC('nc_reservar',{p_factura_id:f.id,p_monto:d.total});
-    _reservaId=_reserva?.reserva_id||null;
-    const cli=clientes.find(c=>c.id===v.cliente_id)||clientes.find(c=>c.nombre===v.cliente);
-    const COND_IVA_AFIP={RI:1,exento:4,consumidor_final:5,monotributo:6};
-    const payload={
-      punto_venta:f.punto_venta,
-      tipo_comprobante:ncTipo,
-      concepto:1,
-      doc_tipo:f.doc_tipo,
-      doc_nro:f.doc_nro,
-      fecha:hoyLocal(),
-      moneda:'PES',
-      cotizacion_moneda:1,
-      condicion_iva_receptor_id:COND_IVA_AFIP[cli?.condicion_fiscal]||undefined,
-      items:[{descripcion:(`Nota de crédito s/ Factura ${letra} ${fmtOrig}`+(motivo?` — ${motivo}`:'')).slice(0,200),cantidad:1,precio_unit:d.neto,iva_pct:ivaPct}],
+    if(nc){const _reserva=await RPC('nc_reservar',{p_factura_id:f.id,p_monto:d.total});_reservaId=_reserva?.reserva_id||null;}
+    const data=await _emitirComprobanteAFIP({
+      punto_venta:f.punto_venta,tipo_comprobante:tipo,concepto:1,
+      doc_tipo:f.doc_tipo,doc_nro:f.doc_nro,fecha:hoyLocal(),moneda:'PES',cotizacion_moneda:1,
+      condicion_iva_receptor_id:COND_IVA_AFIP_NOTA[cli?.condicion_fiscal]||undefined,
+      items:[{descripcion:(`${lbl} s/ Factura ${letra} ${fmtOrig}`+(motivo?` — ${motivo}`:'')).slice(0,200),cantidad:1,precio_unit:d.neto,iva_pct:ivaPct}],
       comprobantes_asociados:[{tipo:f.tipo_comprobante,punto_venta:f.punto_venta,numero:f.numero,fecha:f.fecha}],
-      venta_id:v.id,
-      empresa_id:currentEmpresa.id,
-    };
-    const res=await fetch(`${BILLING_URL}/facturar`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${currentSession.access_token}`},
-      body:JSON.stringify(payload),
+      venta_id:f.venta_id||null,empresa_id:currentEmpresa.id,
     });
-    if(!res.ok){
-      const errBody=await res.json().catch(()=>({}));
-      const detail=errBody.detail;
-      throw new Error(typeof detail==='string'?detail:(detail?.mensaje||JSON.stringify(detail)||res.statusText));
-    }
-    const data=await res.json();
     _caeOk=true;
     const rows=await POST('facturas_emitidas',{
-      empresa_id:currentEmpresa.id,
-      venta_id:v.id,
-      factura_asociada_id:f.id,
+      empresa_id:currentEmpresa.id,venta_id:f.venta_id||null,factura_asociada_id:f.id,
       cae:data.cae,cae_vto:data.cae_vto,numero:data.numero,punto_venta:data.punto_venta,
       tipo_comprobante:data.tipo_comprobante,fecha:data.fecha,
       imp_neto:data.imp_neto,imp_iva:data.imp_iva,imp_total:data.imp_total,
@@ -4966,61 +5063,188 @@ async function emitirNotaCredito(){
       qr_url:data.qr_url,afip_environment:data.afip_environment||'produccion',
       created_by:currentUser?.id||null,
     });
-    const ncId=Array.isArray(rows)?rows[0]?.id:rows?.id;
-    _ncGuardada=true;
-    if(ncId)await generarAsientoNC(ncId,data,v,motivo).catch(e=>{console.warn('Asiento de NC no generado:',e);notify(`⚠ La NC tiene CAE pero NO se generó el asiento contable: ${e.message}. Usá "Regenerar asientos" para reintentar.`,'err');});
+    const notaId=Array.isArray(rows)?rows[0]?.id:rows?.id;
+    _guardada=true;
+    if(notaId)await generarAsientoNota(notaId,data,_nota.cliente,motivo).catch(e=>{console.warn('Asiento de nota no generado:',e);notify(`⚠ La nota tiene CAE pero NO se generó el asiento contable: ${e.message}. Usá "Regenerar asientos" para reintentar.`,'err');});
     await reload('asientos','asiento_lineas');
     _modalDirty['modal-nota-credito']=false;closeModal('modal-nota-credito',true);
-    _ncFactura=null;_ncVentaId=null;
+    _nota=null;
     renderAll();
-    notify(`✓ CAE ${data.cae} — Nota de Crédito ${letra} ${_fmtCbte(data.punto_venta,data.numero)} s/ Factura ${fmtOrig}`,'ok');
-  }catch(e){notify(`Error al emitir NC: ${e.message}`,'err');}
+    notify(`✓ CAE ${data.cae} — ${lbl} ${letra} ${_fmtCbte(data.punto_venta,data.numero)} s/ Factura ${fmtOrig}`,'ok');
+  }catch(e){notify(`Error al emitir ${nc?'NC':'ND'}: ${e.message}`,'err');}
   finally{
-    if(_reservaId&&(_ncGuardada||!_caeOk))RPC('nc_liberar',{p_reserva_id:_reservaId}).catch(()=>{});
+    if(_reservaId&&(_guardada||!_caeOk))RPC('nc_liberar',{p_reserva_id:_reservaId}).catch(()=>{});
     checkAsientosFaltantes();
-    setBusy('btn-save-nc',false,'Emitir NC (CAE)');
+    setBusy('btn-save-nc',false,nc?'Emitir NC (CAE)':'Emitir ND (CAE)');
   }
 }
-// Asiento inverso al de la factura: debe Ventas + IVA Débito, haber
-// Deudores. Con cliente_id y TC del día para que la cta cte (USD) lo
-// tome como crédito. Idempotente por origen_id.
-async function generarAsientoNC(ncId,nc,venta,motivo){
+// Asiento de una NC o ND (idempotente por origen_id). Con cliente_id y
+// TC del día para que la cta cte (USD) la tome como crédito (NC) o cargo (ND).
+async function generarAsientoNota(notaId,nota,cliente,motivo){
   if(!configContable)throw new Error('Falta la configuración contable (Configuración → Imputación contable)');
+  const clase=claseNota(nota.tipo_comprobante);
+  if(!clase)throw new Error('El comprobante no es una NC/ND');
   const ctaDeudores=cuentasContables.find(c=>c.id===configContable.cta_deudores);
   const ctaVentas=cuentasContables.find(c=>c.id===configContable.cta_ventas_default);
   const ctaIvaDeb=cuentasContables.find(c=>c.id===configContable.cta_iva_debito);
   if(!ctaDeudores||!ctaVentas)throw new Error('Faltan las cuentas Deudores o Ventas en Imputación contable');
-  const neto=Number(nc.imp_neto)||0,iva=Number(nc.imp_iva)||0,total=Number(nc.imp_total)||0;
-  if(total<=0)throw new Error('El total de la NC es 0 — no se puede armar el asiento');
-  if(iva>0.005&&!ctaIvaDeb)throw new Error('La NC tiene IVA pero no hay cuenta "IVA Débito Fiscal" configurada');
-  const aplicaIVA=ctaIvaDeb&&iva>0.005;
+  const neto=Number(nota.imp_neto)||0,iva=Number(nota.imp_iva)||0,total=Number(nota.imp_total)||0;
+  if(total<=0)throw new Error('El total de la nota es 0 — no se puede armar el asiento');
+  if(iva>0.005&&!ctaIvaDeb)throw new Error('La nota tiene IVA pero no hay cuenta "IVA Débito Fiscal" configurada');
   await fetchCotizacion();
   const tc=Number(cotizacion?.venta)||0;
-  const tipoStr={3:'NC-A',8:'NC-B',13:'NC-C',53:'NC-M'}[nc.tipo_comprobante]||('NC-'+nc.tipo_comprobante);
-  const fmt=`${tipoStr} ${_fmtCbte(nc.punto_venta,nc.numero)}`;
-  const cliente=(venta?.cliente||'cliente').toString().slice(0,80);
-  const existingArr=await GET('asientos',`?origen_tipo=eq.nota-credito&origen_id=eq.${ncId}`).catch(()=>[]);
+  const fmt=`${notaLabel(nota.tipo_comprobante)} ${_fmtCbte(nota.punto_venta,nota.numero)}`;
+  const nombre=(cliente?.cliente||'cliente').toString().slice(0,80);
+  const origen=clase==='nc'?'nota-credito':'nota-debito';
+  const existingArr=await GET('asientos',`?origen_tipo=eq.${origen}&origen_id=eq.${notaId}`).catch(()=>[]);
   const existing=existingArr&&existingArr[0];
   const cabecera={
-    fecha:nc.fecha||hoyLocal(),
-    descripcion:`Nota de crédito ${fmt} a ${cliente}`+(motivo?` — ${motivo}`:''),
+    fecha:nota.fecha||hoyLocal(),
+    descripcion:`${clase==='nc'?'Nota de crédito':'Nota de débito'} ${fmt} a ${nombre}`+(motivo?` — ${motivo}`:''),
     comprobante_nro:fmt,
-    tipo:'auto-nc',
-    origen_tipo:'nota-credito',
-    origen_id:ncId,
-    estado:'confirmado',
-    moneda:'ARS',
-    tipo_cambio:tc||1,
+    tipo:clase==='nc'?'auto-nc':'auto-nd',
+    origen_tipo:origen,origen_id:notaId,estado:'confirmado',
+    moneda:'ARS',tipo_cambio:tc||1,
     tc_tipo:null, // ARS → null ('oficial' no lo acepta asientos_tc_tipo_check)
-    cliente_id:venta?.cliente_id||null,
+    cliente_id:cliente?.cliente_id||null,
   };
-  const lineas=[
-    {cuenta_id:ctaVentas.id,debe:neto,haber:0,descripcion:`Reversa venta s/${fmt}`,orden:0},
-  ];
-  if(aplicaIVA)lineas.push({cuenta_id:ctaIvaDeb.id,debe:iva,haber:0,descripcion:`Reversa IVA Débito s/${fmt}`,orden:1});
-  lineas.push({cuenta_id:ctaDeudores.id,debe:0,haber:aplicaIVA?total:neto,descripcion:`Crédito a ${cliente} s/${fmt}`,orden:lineas.length});
+  const lineas=armarLineasNota({clase,neto,iva,total,ctaVentas,ctaIvaDeb,ctaDeudores,fmt,cliente:nombre});
   await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas,p_asiento_id:existing?existing.id:null});
-  console.log(`✓ Asiento contable generado para ${fmt} (CAE ${nc.cae})`);
+  console.log(`✓ Asiento contable generado para ${fmt} (CAE ${nota.cae})`);
+}
+async function generarAsientoNC(ncId,nc,venta,motivo){ // compat (backfill viejo)
+  return generarAsientoNota(ncId,nc,{cliente:venta?.cliente,cliente_id:venta?.cliente_id||null},motivo);
+}
+
+// ── NC/ND libre (sin factura del ERP) ──────────────────────────────
+let nlItems=[];
+function openNotaLibre(){
+  if(!configContable)return notify('Falta configurar la imputación contable (Configuración → Imputación contable)','err');
+  nlItems=[];
+  ['nl-cliente','nl-cuit','nl-obs','nl-desde','nl-hasta','nl-ext-pv','nl-ext-nro','nl-ext-fecha'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('nl-clase').value='nc';
+  document.getElementById('nl-moneda').value='ARS';
+  document.getElementById('nl-asoc-modo').value='periodo';
+  document.getElementById('nl-tc-info').textContent='Importes en pesos';
+  document.getElementById('nl-cliente-info').textContent='';
+  nlAddItem();nlOnAsocChange();
+  openModal('modal-nota-libre');
+}
+function nlOnClienteChange(){
+  const nombre=document.getElementById('nl-cliente').value.trim();
+  const cli=resolverClienteVenta({cliente:nombre},clientes);
+  document.getElementById('nl-cuit').value=cli?.cuit||'';
+  const info=document.getElementById('nl-cliente-info');
+  if(!cli){info.textContent=nombre?'Cliente no encontrado en la lista.':'';return;}
+  const cuit=cuitParaFacturar({},cli);
+  const cbte=tipoComprobanteVentaAFIP(cli.condicion_fiscal||null,cuit.length===11);
+  info.textContent=cbte?`Condición: ${cli.condicion_fiscal||'—'} · saldrá letra ${cbte.letra}`:`Definí la condición fiscal de "${cli.nombre}" en Clientes.`;
+}
+async function nlOnMonedaChange(){
+  const info=document.getElementById('nl-tc-info');
+  if(document.getElementById('nl-moneda').value==='USD'){
+    info.textContent='Buscando cotización…';
+    await fetchCotizacion();
+    const tc=Number(cotizacion?.venta)||0;
+    info.textContent=tc?`Se convierte a pesos al TC $${tc} (BNA vendedor)`:'Sin cotización — reintentá en unos minutos';
+  } else info.textContent='Importes en pesos';
+  nlUpdateTotal();
+}
+function nlOnAsocChange(){
+  const modo=document.getElementById('nl-asoc-modo').value;
+  document.getElementById('nl-asoc-periodo').style.display=modo==='periodo'?'':'none';
+  document.getElementById('nl-asoc-externo').style.display=modo==='externo'?'':'none';
+}
+function nlAddItem(){nlItems.push({descripcion:'',cantidad:1,precio:0,ivaPct:_fdIvaDefault()});renderNlItems();}
+function nlRemoveItem(i){nlItems.splice(i,1);renderNlItems();}
+function nlItemChange(i,f,v){nlItems[i][f]=v;nlUpdateTotal();}
+function renderNlItems(){
+  const w=document.getElementById('nl-items-wrap');if(!w)return;
+  if(!nlItems.length){w.innerHTML=`<div style="text-align:center;padding:12px;color:var(--text3);font-size:12px">Agregá ítems con el botón de abajo</div>`;nlUpdateTotal();return;}
+  const cols='2fr 64px 92px 66px 92px 28px';
+  const inp='background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-xs);padding:4px 6px;color:var(--text);font-size:11px;width:100%';
+  const hdr=`<div style="display:grid;grid-template-columns:${cols};gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em"><div>Concepto</div><div style="text-align:right">Cant.</div><div style="text-align:right">Precio</div><div style="text-align:right">% IVA</div><div style="text-align:right">Subtotal</div><div></div></div>`;
+  w.innerHTML=hdr+nlItems.map((it,i)=>{
+    const sub=Math.round((Number(it.cantidad)||0)*(Number(it.precio)||0)*100)/100;
+    return `<div style="display:grid;grid-template-columns:${cols};gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+      <input type="text" value="${esc(it.descripcion)}" placeholder="Ej: Descuento comercial agosto / Intereses por mora" oninput="nlItemChange(${i},'descripcion',this.value)" style="${inp}">
+      <input type="number" min="0" step="1" value="${it.cantidad}" onchange="nlItemChange(${i},'cantidad',+this.value)" style="${inp};text-align:right">
+      <input type="number" min="0" step="0.01" value="${it.precio||''}" placeholder="0.00" onchange="nlItemChange(${i},'precio',+this.value)" style="${inp};text-align:right;color:var(--coral)">
+      <input type="number" min="0" step="0.5" value="${it.ivaPct}" onchange="nlItemChange(${i},'ivaPct',+this.value)" style="${inp};text-align:right">
+      <div style="font-family:var(--mono);font-size:11px;text-align:right;color:var(--text2)">${_numAR(sub)}</div>
+      <button class="btn btn-ghost btn-sm" onclick="nlRemoveItem(${i})" style="padding:2px 6px" title="Quitar">×</button>
+    </div>`;
+  }).join('');
+  nlUpdateTotal();
+}
+function _nlTc(){return document.getElementById('nl-moneda')?.value==='USD'?(Number(cotizacion?.venta)||1):1;}
+function nlUpdateTotal(){
+  const t=facturaDirectaTotales(facturaDirectaItems(nlItems,_nlTc()));
+  const usd=document.getElementById('nl-moneda')?.value==='USD';
+  const el=document.getElementById('nl-resumen');
+  if(el)el.innerHTML=`Neto <b class="mono">${fmtARS(t.neto)}</b> + IVA <b class="mono">${fmtARS(t.iva)}</b> = Total <b class="mono">${fmtARS(t.total)}</b>${usd?' <span style="color:var(--text3)">(pesos, al TC del día)</span>':''}`;
+}
+async function emitirNotaLibre(){
+  if(!currentSession?.access_token)return notify('Sesión vencida — volvé a loguearte','err');
+  const nombre=document.getElementById('nl-cliente').value.trim();
+  const cli=resolverClienteVenta({cliente:nombre},clientes);
+  if(!cli)return notify('Elegí un cliente de la lista','err');
+  const cuit=cuitParaFacturar({},cli);
+  const cbte=tipoComprobanteVentaAFIP(cli.condicion_fiscal||null,cuit.length===11);
+  if(!cbte)return notify(`Definí la condición fiscal de "${cli.nombre}" (Clientes → Editar)`,'err');
+  const clase=document.getElementById('nl-clase').value;
+  const tipo=tipoNotaPorLetra(cbte.letra,clase);
+  if(!tipo)return notify('No se pudo determinar el tipo de comprobante','err');
+  if(cbte.letra==='A'&&cuit.length!==11)return notify('Para una nota A necesitás el CUIT del cliente cargado','err');
+  const moneda=document.getElementById('nl-moneda').value;
+  let tc=1;
+  if(moneda==='USD'){await fetchCotizacion();tc=Number(cotizacion?.venta)||0;if(!tc)return notify('Sin cotización del dólar — reintentá en unos minutos','err');}
+  const items=facturaDirectaItems(nlItems,tc);
+  if(!items.length)return notify('Cargá al menos un ítem con cantidad y precio','err');
+  const tot=facturaDirectaTotales(items);
+  if(!(tot.total>0))return notify('El total debe ser mayor a cero','err');
+  const asoc=validarAsociacionNota({modo:document.getElementById('nl-asoc-modo').value,desde:g('nl-desde'),hasta:g('nl-hasta'),letra:cbte.letra,pv:g('nl-ext-pv'),nro:g('nl-ext-nro'),fecha:g('nl-ext-fecha')});
+  if(!asoc.ok)return notify(asoc.error,'err');
+  const docTipo=cuit.length===11?80:99,docNro=cuit.length===11?cuit:'0';
+  const lbl=clase==='nc'?'Nota de Crédito':'Nota de Débito';
+  const ref=asoc.periodo_asociado?`período ${fmtFecha(asoc.periodo_asociado.desde)} a ${fmtFecha(asoc.periodo_asociado.hasta)}`:`comprobante ${asoc.cbte_asoc_externo}`;
+  if(!confirm(`¿Emitir ${lbl} ${cbte.letra} por ${fmtARS(tot.total)} a ${cli.nombre}, asociada a ${ref}?\n\nSolicita un CAE a AFIP. NO se puede deshacer.`))return;
+  const obsUser=(document.getElementById('nl-obs').value||'').trim();
+  const btn=document.getElementById('btn-emitir-nl');
+  if(btn){btn.disabled=true;btn.textContent='Solicitando CAE...';}
+  try{
+    const data=await _emitirComprobanteAFIP({
+      punto_venta:Number(configContable?.punto_venta)||1,
+      tipo_comprobante:tipo,concepto:1,doc_tipo:docTipo,doc_nro:docNro,
+      fecha:hoyLocal(),moneda:'PES',cotizacion_moneda:1,
+      condicion_iva_receptor_id:COND_IVA_AFIP_NOTA[cli.condicion_fiscal]||undefined,
+      items,
+      comprobantes_asociados:asoc.comprobantes_asociados||undefined,
+      periodo_asociado:asoc.periodo_asociado||undefined,
+      venta_id:null,empresa_id:currentEmpresa.id,
+    });
+    const notas=[obsUser,moneda==='USD'?`Emitida en USD a TC $${tc}`:'',asoc.cbte_asoc_externo?`Asociada a ${asoc.cbte_asoc_externo}`:'',(data.observaciones&&data.observaciones.length)?data.observaciones.join('; '):''].filter(Boolean).join(' · ')||null;
+    const rows=await POST('facturas_emitidas',{
+      empresa_id:currentEmpresa.id,venta_id:null,factura_asociada_id:null,
+      periodo_asoc_desde:asoc.periodo_asociado?.desde||null,periodo_asoc_hasta:asoc.periodo_asociado?.hasta||null,
+      cbte_asoc_externo:asoc.cbte_asoc_externo||null,
+      cae:data.cae,cae_vto:data.cae_vto,numero:data.numero,punto_venta:data.punto_venta,
+      tipo_comprobante:data.tipo_comprobante,fecha:data.fecha,
+      imp_neto:data.imp_neto,imp_iva:data.imp_iva,imp_total:data.imp_total,
+      moneda:'PES',cotizacion_moneda:1,doc_tipo:docTipo,doc_nro:docNro,
+      resultado:data.resultado,observaciones:notas,
+      qr_url:data.qr_url,afip_environment:data.afip_environment||'produccion',
+      created_by:currentUser?.id||null,
+    });
+    const nid=Array.isArray(rows)?rows[0]?.id:rows?.id;
+    if(nid)await generarAsientoNota(nid,data,{cliente:cli.nombre,cliente_id:cli.id},obsUser).catch(e=>{console.warn('Asiento de nota libre no generado:',e);notify(`⚠ La nota tiene CAE pero NO se generó el asiento contable: ${e.message}. Usá "Regenerar asientos" para reintentar.`,'err');});
+    checkAsientosFaltantes();
+    await reload('asientos','asiento_lineas');
+    _modalDirty['modal-nota-libre']=false;closeModal('modal-nota-libre',true);nlItems=[];
+    renderAll();
+    notify(`✓ CAE ${data.cae} — ${lbl} ${cbte.letra} ${_fmtCbte(data.punto_venta,data.numero)} a ${cli.nombre}`,'ok');
+  }catch(e){notify(`Error al emitir la nota: ${e.message}`,'err');}
+  finally{if(btn){btn.disabled=false;btn.textContent='Emitir nota (CAE)';}}
 }
 
 // ─── SUELDOS — nómina (migración 065) ───────────────────────────────
@@ -5968,7 +6192,7 @@ function renderVentas(filter=''){
     }else if(v.estado==='pendiente'&&v.fecha_entrega_hasta&&v.fecha_entrega_hasta<hoy){
       otdBadge=`<br><span class="badge badge-warn" style="font-size:9px" title="Fecha de entrega prometida: ${fmtFecha(v.fecha_entrega_hasta)}">ATRASADO</span>`;
     }
-    return`<tr data-id="${v.id}"><td class="mono td-primary">${esc(v.nro_remito)}${v.venta_padre_id?` <span class="badge badge-amber" style="font-size:9px" title="Saldo de una entrega parcial — pendiente de enviar y facturar">SALDO</span>`:''}</td><td style="font-weight:500"><span onclick="event.stopPropagation();linkCliente(this.dataset.n)" data-n="${esc(v.cliente)}" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="Ver ficha del cliente">${esc(v.cliente)}</span></td><td>${esc(fmtFecha(v.fecha))||'—'}${otdBadge}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(piezas)}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td>${estadoSelect('ventas',v.id,v.estado,['pendiente','entregado','facturado'],bE)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button>${v.estado==='pendiente'&&!v.factura_emitida_id&&totalU>1?`<button class="btn btn-ghost btn-sm" onclick="openEntregaParcial('${v.id}')" title="Entrega parcial — enviar y facturar una parte, el saldo queda pendiente" style="color:var(--amber,#d99a2b)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M21 3l-7 7"/><path d="M3 3l7 7"/><path d="M12 22v-8"/><path d="M8 18l4 4 4-4"/></svg></span>Parcial</button>`:''}${v.factura_emitida_id?`<button class="btn btn-ghost btn-sm" id="ver-factura-${v.id}" onclick="verFactura('${v.factura_emitida_id}')" title="CAE emitido — ver/descargar"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h3"/></svg></span>CAE</button><button class="btn btn-ghost btn-sm" onclick="openNotaCredito('${v.id}')" title="Nota de crédito con CAE — anula total o parcialmente la factura (devolución / error / descuento)" style="color:var(--coral,#e5484d)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></span>NC</button>`:`<button class="btn btn-ghost btn-sm" id="emitir-factura-${v.id}" onclick="emitirFactura('${v.id}')" title="Solicitar CAE a AFIP" style="color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m13 2-3 7h8l-9 13 3-9H4z"/></svg></span>Facturar</button>`}${v.estado==='entregado'||v.estado==='facturado'?`<button class="btn btn-ghost btn-sm" onclick="irACobrarVenta('${v.id}')" title="Registrar el cobro — abre Cobros y Pagos con cliente y monto precargados" style="color:var(--teal)"><span class="btn-icon"><svg viewBox="0 0 24 24"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Cobrar</button>`:''}<button class="btn btn-ghost btn-sm" onclick="generateRemitoPDF('${v.id}')" title="Remito de entrega (PDF)" aria-label="Remito PDF"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18h-5"/><path d="M20 18h2v-7l-3-5h-5v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span></button><button class="btn btn-ghost btn-sm" onclick="generateCertConformidadPDF('${v.id}')" title="Certificado de conformidad (PDF)" aria-label="Certificado de conformidad"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg></span></button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>Anular</button></td></tr>`;}):(`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></div><div class="empty-title">Sin ventas registradas</div><div class="empty-msg">Las ventas se generan al convertir un presupuesto aprobado. Andá a <b>Presupuestos</b> y aprobalo.</div></div></td></tr>`);
+    return`<tr data-id="${v.id}"><td class="mono td-primary">${esc(v.nro_remito)}${v.venta_padre_id?` <span class="badge badge-amber" style="font-size:9px" title="Saldo de una entrega parcial — pendiente de enviar y facturar">SALDO</span>`:''}</td><td style="font-weight:500"><span onclick="event.stopPropagation();linkCliente(this.dataset.n)" data-n="${esc(v.cliente)}" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="Ver ficha del cliente">${esc(v.cliente)}</span></td><td>${esc(fmtFecha(v.fecha))||'—'}${otdBadge}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(piezas)}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td>${estadoSelect('ventas',v.id,v.estado,['pendiente','entregado','facturado'],bE)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button>${v.estado==='pendiente'&&!v.factura_emitida_id&&totalU>1?`<button class="btn btn-ghost btn-sm" onclick="openEntregaParcial('${v.id}')" title="Entrega parcial — enviar y facturar una parte, el saldo queda pendiente" style="color:var(--amber,#d99a2b)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M21 3l-7 7"/><path d="M3 3l7 7"/><path d="M12 22v-8"/><path d="M8 18l4 4 4-4"/></svg></span>Parcial</button>`:''}${v.factura_emitida_id?`<button class="btn btn-ghost btn-sm" id="ver-factura-${v.id}" onclick="verFactura('${v.factura_emitida_id}')" title="CAE emitido — ver/descargar"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h3"/></svg></span>CAE</button><button class="btn btn-ghost btn-sm" onclick="openNotaCredito('${v.id}')" title="Nota de crédito o débito con CAE sobre esta factura (devolución / error / descuento / intereses)" style="color:var(--coral,#e5484d)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></span>NC/ND</button>`:`<button class="btn btn-ghost btn-sm" id="emitir-factura-${v.id}" onclick="emitirFactura('${v.id}')" title="Solicitar CAE a AFIP" style="color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m13 2-3 7h8l-9 13 3-9H4z"/></svg></span>Facturar</button>`}${v.estado==='entregado'||v.estado==='facturado'?`<button class="btn btn-ghost btn-sm" onclick="irACobrarVenta('${v.id}')" title="Registrar el cobro — abre Cobros y Pagos con cliente y monto precargados" style="color:var(--teal)"><span class="btn-icon"><svg viewBox="0 0 24 24"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Cobrar</button>`:''}<button class="btn btn-ghost btn-sm" onclick="generateRemitoPDF('${v.id}')" title="Remito de entrega (PDF)" aria-label="Remito PDF"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18h-5"/><path d="M20 18h2v-7l-3-5h-5v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span></button><button class="btn btn-ghost btn-sm" onclick="generateCertConformidadPDF('${v.id}')" title="Certificado de conformidad (PDF)" aria-label="Certificado de conformidad"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg></span></button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>Anular</button></td></tr>`;}):(`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></div><div class="empty-title">Sin ventas registradas</div><div class="empty-msg">Las ventas se generan al convertir un presupuesto aprobado. Andá a <b>Presupuestos</b> y aprobalo.</div></div></td></tr>`);
 }
 
 // ─── DIGEST DE ALERTAS — "Para hoy" ───────────────────────────────
@@ -9578,6 +9802,11 @@ function computeCtaCte(){
     const monto=_cobroEnUSD(a);if(monto<=0)return;
     cuentaDe(a.cliente_id,null).pagos.push({fecha:a.fecha,monto,ref:a.comprobante_nro||('#'+(a.numero||'')),tipo:'Nota de crédito'});
   });
+  // Notas de débito (mig 075): aumentan la deuda como una factura (vence el mismo día).
+  asientos.filter(a=>a.tipo==='auto-nd'&&a.estado==='confirmado'&&a.cliente_id).forEach(a=>{
+    const monto=_cobroEnUSD(a);if(monto<=0)return;
+    cuentaDe(a.cliente_id,null).cargos.push({fecha:a.fecha,venc:a.fecha,monto,ref:a.comprobante_nro||('#'+(a.numero||'')),tipo:'Nota de débito'});
+  });
   const res=Object.values(cuentas).map(c=>{
     c.cargos.sort((a,b)=>(a.venc||a.fecha||'').localeCompare(b.venc||b.fecha||''));
     const totCargos=c.cargos.reduce((s,x)=>s+x.monto,0);
@@ -12942,6 +13171,7 @@ function buildPaletteIndex(){
   ix.push({cat:'Acciones',label:'Nueva orden de producción',run:()=>openModal('modal-op')});
   ix.push({cat:'Acciones',label:'Nueva orden de compra',run:()=>openOCModal()});
   ix.push({cat:'Acciones',label:'Nueva orden de pago',run:()=>openOrdenPagoModal()});
+  ix.push({cat:'Acciones',label:'Nueva NC/ND libre',run:()=>openNotaLibre()});
   return ix;
 }
 function openPalette(){
