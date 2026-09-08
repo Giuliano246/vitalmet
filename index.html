@@ -25,9 +25,10 @@ html[data-theme="light"]{--bg:#f6f1e8;--surface:#fffefb;--surface2:#ede5d6;--bor
   --r-xs:2px;--r-sm:2px;--r-md:2px;--r-lg:2px;--r-pill:2px;--track:.14em;--th-rule:1.5px solid #2a241c;
   --grid-plano:linear-gradient(rgba(202,187,158,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(202,187,158,.14) 1px,transparent 1px)}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
 body{background:var(--bg);background-image:var(--grid-plano);background-size:24px 24px;color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh}
 /* Regla de la Brasa: un solo elemento "al rojo" por vista (se asigna con .hot desde el render) */
-.kpi.hot{border-color:rgba(224,100,46,.33);box-shadow:var(--canto),var(--glow)}
+.kpi.hot{border-color:rgba(224,100,46,.5);box-shadow:var(--canto)}
 html:not([data-theme="light"]) .kpi.hot .kpi-val{background:var(--ember);-webkit-background-clip:text;background-clip:text;color:transparent}
 html[data-theme="light"] .kpi.hot{border:1.5px solid #2a241c}
 html[data-theme="light"] .kpi.hot .kpi-val{color:var(--accent)}
@@ -45,8 +46,9 @@ html[data-theme="light"] .btn-primary:hover,html[data-theme="light"] .auth-btn:h
 .auth-logo-title{font-family:var(--mono);font-size:18px;font-weight:500;color:var(--accent);letter-spacing:.05em}
 .auth-logo-sub{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-top:3px}
 .auth-tabs{display:flex;border-bottom:1px solid var(--border)}
-.auth-tab{flex:1;padding:12px;text-align:center;font-size:13px;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;transition:all .15s}
+.auth-tab{flex:1;padding:12px;text-align:center;font:inherit;font-size:13px;cursor:pointer;color:var(--text3);background:transparent;border:0;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
 .auth-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.auth-tab:focus-visible{outline:2px solid var(--accent);outline-offset:-3px}
 .auth-body{padding:24px 32px 28px}
 .auth-form{display:flex;flex-direction:column;gap:14px}
 .auth-form-group{display:flex;flex-direction:column;gap:5px}
@@ -89,22 +91,34 @@ html[data-theme="light"] .logo-img{background:#003a8c}
 .btn-logout:hover{border-color:var(--red);color:var(--red)}
 .page-header{padding:22px 28px 0;border-bottom:1px solid var(--border)}
 .page-title{font-size:19px;font-weight:500;margin-bottom:3px}
-.page-sub{font-size:11px;color:var(--text3);font-family:var(--mono);margin-bottom:16px}
+.page-sub{font-size:12px;color:var(--text2);font-family:var(--sans);margin-bottom:16px}
 .tabs{display:flex}
 .tabs.has-sub{flex-direction:column;align-items:stretch}
 .tabs-main{display:flex;flex-wrap:wrap}
 .tabs-sub{display:flex;flex-wrap:wrap;gap:2px;padding:6px 0 4px;border-top:1px solid var(--border);margin-top:-1px}
-.tab{padding:7px 16px;font-size:12px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.tab{padding:8px 16px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.subtab{padding:4px 11px;font-size:11px;color:var(--text3);cursor:pointer;border-radius:var(--r-xs);transition:all .15s;font-family:var(--mono)}
+.subtab{padding:6px 11px;font-size:12px;color:var(--text2);cursor:pointer;border-radius:var(--r-xs);transition:all .15s;font-family:var(--sans)}
 .subtab:hover{background:var(--surface2);color:var(--text2)}
 .subtab.active{background:var(--surface2);color:var(--accent)}
 .page-content{padding:22px 28px;flex:1}
 .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
 .stat-card{background:var(--surface-grad);border:1px solid var(--border);border-radius:var(--r-sm);box-shadow:var(--canto);padding:12px 14px;position:relative}
-.stat-label{font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:var(--track);margin-bottom:5px}
+.stat-label{font-family:var(--sans);font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
 .stat-value{font-family:var(--mono);font-size:20px;font-weight:500}
 .toolbar{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.toolbar-filters{display:flex;align-items:flex-end;gap:6px}
+.toolbar-filter{display:flex;flex-direction:column;gap:3px;color:var(--text2);font-size:11px}
+.toolbar-filter input{min-height:32px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:6px 8px;color:var(--text);font:inherit;font-size:12px}
+.toolbar-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.action-menu{position:relative}
+.action-menu>summary{list-style:none;min-height:32px}
+.action-menu>summary::-webkit-details-marker{display:none}
+.action-menu>summary::after{content:'▾';font-size:10px;color:var(--text3)}
+.action-menu[open]>summary{background:var(--surface2);color:var(--text)}
+.action-menu-popover{position:absolute;right:0;top:calc(100% + 6px);z-index:30;width:230px;padding:6px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--r-md);box-shadow:0 12px 28px rgba(0,0,0,.28)}
+.action-menu-popover .btn{width:100%;justify-content:flex-start;border-color:transparent;color:var(--text2);box-shadow:none}
+.action-menu-popover .btn:hover{border-color:var(--border);color:var(--text)}
 .search-box{flex:1;max-width:300px;position:relative}
 .search-box input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 10px 7px 30px;color:var(--text);font-size:13px;font-family:var(--sans);outline:none}
 .search-box::before{content:'⌕';position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none}
@@ -124,19 +138,19 @@ html[data-theme="light"] .logo-img{background:#003a8c}
 .btn-danger:hover{background:rgba(224,82,82,.1)}
 .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);box-shadow:var(--canto);overflow:auto;max-height:calc(100vh - 230px)}
 table{width:100%;border-collapse:collapse;table-layout:auto}
-thead th{padding:8px 8px;text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:var(--track);font-family:var(--mono);font-weight:500;border-bottom:var(--th-rule);background:var(--surface2);white-space:nowrap;position:sticky;top:0;z-index:2;cursor:pointer;user-select:none}
+thead th{padding:9px 8px;text-align:left;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;font-family:var(--sans);font-weight:500;border-bottom:var(--th-rule);background:var(--surface2);white-space:nowrap;position:sticky;top:0;z-index:2;cursor:pointer;user-select:none}
 .sort-ind{color:var(--accent);font-size:9px}
 .row-flash{animation:rowFlash 2s ease-out}
 @keyframes rowFlash{0%{background:rgba(227,161,66,.35)}100%{background:transparent}}
 tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:var(--surface2)}
-tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
-#op-tbody td{padding:6px 6px;font-size:11.5px}
+tbody td{padding:8px 8px;font-size:13px;color:var(--text2)}
+#op-tbody td{padding:7px 6px;font-size:12px}
 #op-tbody .btn-sm{padding:3px 6px;font-size:10px}
 .mono{font-family:var(--mono);font-size:12px}
 .td-primary{color:var(--text)!important;font-weight:500}
-.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:var(--r-pill);font-size:10px;font-family:var(--mono);font-weight:500}
+.badge{display:inline-flex;align-items:center;padding:3px 7px;border-radius:var(--r-pill);font-size:11px;font-family:var(--sans);font-weight:500}
 .badge-ok{background:rgba(76,175,125,.12);color:var(--green);border:1px solid rgba(76,175,125,.25)}
 .badge-warn{background:rgba(232,160,48,.12);color:var(--accent);border:1px solid rgba(232,160,48,.25)}
 .badge-blue{background:rgba(74,158,221,.12);color:var(--blue);border:1px solid rgba(74,158,221,.25)}
@@ -157,7 +171,7 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
 .form-row.single{grid-template-columns:1fr}
 .form-row.triple{grid-template-columns:1fr 1fr 1fr}
 .form-group{display:flex;flex-direction:column;gap:4px}
-.form-group label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;font-weight:500}
+.form-group label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;font-weight:500}
 .form-group input,.form-group select,.form-group textarea{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans);outline:none;transition:border-color .15s;width:100%}
 .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent)}
 .form-group input:focus-visible,.form-group select:focus-visible,.form-group textarea:focus-visible,.auth-form-group input:focus-visible,.search-box input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
@@ -187,6 +201,14 @@ tbody td{padding:7px 8px;font-size:12px;color:var(--text2)}
 .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
 .dash-card{background:var(--surface-grad);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--canto);padding:16px;position:relative}
 .dash-card-title{font-family:var(--mono);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:var(--track);margin-bottom:12px;font-weight:500}
+.digest-card{padding:18px 18px 10px;border-color:var(--border2)}
+.digest-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:10px}
+.digest-title{font-size:17px;font-weight:500;color:var(--text)}
+.digest-summary{font-size:13px;color:var(--text2);margin-top:3px}
+.digest-date{font-size:11px;color:var(--text2);white-space:nowrap}
+.digest-row{padding:10px 0}
+.digest-row-title{font-size:13px;color:var(--text);font-weight:500}
+.digest-row-detail{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
 .chart-bar-wrap{display:flex;flex-direction:column;gap:6px}
 .chart-bar-row{display:flex;align-items:center;gap:8px;font-size:11px}
 .chart-bar-label{width:90px;color:var(--text2);text-align:right;flex-shrink:0;font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -270,7 +292,7 @@ tbody tr:hover{box-shadow:inset 2px 0 0 var(--accent)}
 
 /* Reduced motion preference */
 /* ─── MOBILE — vista taller ───────────────────────────────────── */
-.mobile-menu-btn{display:none;position:fixed;top:10px;left:10px;z-index:150;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r-sm);width:38px;height:38px;align-items:center;justify-content:center;cursor:pointer;color:var(--text)}
+.mobile-menu-btn{display:none;position:fixed;top:10px;left:10px;z-index:150;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r-sm);width:44px;height:44px;align-items:center;justify-content:center;cursor:pointer;color:var(--text)}
 .mobile-menu-btn svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round}
 .mobile-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:140}
 .kpi-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
@@ -290,6 +312,11 @@ body.modo-contador .app{height:calc(100vh - 34px)}
   .form-row{grid-template-columns:1fr !important}
   .toolbar{flex-wrap:wrap}
   .toolbar .search-box{flex:1 1 100%;max-width:none}
+  .toolbar-filters{flex:1 1 100%}
+  .toolbar-filter{flex:1}
+  .toolbar-filter input{width:100%}
+  .toolbar-actions{width:100%;margin-left:0;justify-content:flex-end}
+  .action-menu-popover{position:fixed;left:12px;right:12px;top:auto;bottom:12px;width:auto}
   .tabs{overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
   .tabs::-webkit-scrollbar{display:none}
   .modal{width:100vw;max-width:100vw;max-height:100vh;height:100%;border-radius:0;border-left:none;border-right:none}
@@ -304,6 +331,7 @@ body.modo-contador .app{height:calc(100vh - 34px)}
 body.no-costos .solo-costos{display:none!important}
 
 </style>
+<link rel="stylesheet" href="ui-workspace.css">
 </head>
 <body>
 
@@ -326,23 +354,23 @@ body.no-costos .solo-costos{display:none!important}
       <div class="logo-img" style="width:220px;height:85px;margin:0 auto 10px" role="img" aria-label="Vitalmet"></div>
       <div class="auth-logo-sub">Gestión Metalmecánica</div>
     </div>
-    <div class="auth-tabs">
-      <div class="auth-tab active" onclick="switchAuthTab('login')">Iniciar sesión</div>
-      <div class="auth-tab" onclick="switchAuthTab('register')">Nueva empresa</div>
-      <div class="auth-tab" onclick="switchAuthTab('join')">Unirse a empresa</div>
+    <div class="auth-tabs" role="tablist" aria-label="Acceso a VitalStock">
+      <button type="button" class="auth-tab active" id="auth-tab-login" role="tab" aria-selected="true" aria-controls="auth-login" onclick="switchAuthTab('login')">Iniciar sesión</button>
+      <button type="button" class="auth-tab" id="auth-tab-register" role="tab" aria-selected="false" aria-controls="auth-register" tabindex="-1" onclick="switchAuthTab('register')">Nueva empresa</button>
+      <button type="button" class="auth-tab" id="auth-tab-join" role="tab" aria-selected="false" aria-controls="auth-join" tabindex="-1" onclick="switchAuthTab('join')">Unirse a empresa</button>
     </div>
     <div class="auth-body">
 
       <!-- LOGIN -->
-      <div id="auth-login">
+      <div id="auth-login" role="tabpanel" aria-labelledby="auth-tab-login">
         <div class="auth-form">
-          <div class="auth-error" id="login-error"></div>
+          <div class="auth-error" id="login-error" role="alert"></div>
           <div class="auth-form-group">
-            <label>Email</label>
+            <label for="login-email">Email</label>
             <input type="email" id="login-email" placeholder="usuario@empresa.com" autocomplete="email">
           </div>
           <div class="auth-form-group">
-            <label>Contraseña</label>
+            <label for="login-pass">Contraseña</label>
             <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
           </div>
           <button class="auth-btn" id="btn-login" onclick="doLogin()">Entrar</button>
@@ -350,24 +378,24 @@ body.no-costos .solo-costos{display:none!important}
       </div>
 
       <!-- REGISTER -->
-      <div id="auth-register" style="display:none">
+      <div id="auth-register" role="tabpanel" aria-labelledby="auth-tab-register" hidden>
         <div class="auth-form">
-          <div class="auth-error" id="reg-error"></div>
-          <div class="auth-success" id="reg-success"></div>
+          <div class="auth-error" id="reg-error" role="alert"></div>
+          <div class="auth-success" id="reg-success" role="status"></div>
           <div class="auth-form-group">
-            <label>Nombre de la empresa</label>
+            <label for="reg-empresa">Nombre de la empresa</label>
             <input type="text" id="reg-empresa" placeholder="Metalmecánica García SA">
           </div>
           <div class="auth-form-group">
-            <label>Tu nombre</label>
+            <label for="reg-nombre">Tu nombre</label>
             <input type="text" id="reg-nombre" placeholder="Juan García">
           </div>
           <div class="auth-form-group">
-            <label>Email</label>
+            <label for="reg-email">Email</label>
             <input type="email" id="reg-email" placeholder="juan@empresa.com" autocomplete="email">
           </div>
           <div class="auth-form-group">
-            <label>Contraseña (mínimo 6 caracteres)</label>
+            <label for="reg-pass">Contraseña (mínimo 6 caracteres)</label>
             <input type="password" id="reg-pass" placeholder="••••••••" autocomplete="new-password">
           </div>
           <button class="auth-btn" id="btn-register" onclick="doRegister()">Crear empresa y cuenta</button>
@@ -376,27 +404,27 @@ body.no-costos .solo-costos{display:none!important}
       </div>
 
       <!-- UNIRSE A EMPRESA -->
-      <div id="auth-join" style="display:none">
+      <div id="auth-join" role="tabpanel" aria-labelledby="auth-tab-join" hidden>
         <div class="auth-form">
-          <div class="auth-error" id="join-error"></div>
-          <div class="auth-success" id="join-success"></div>
+          <div class="auth-error" id="join-error" role="alert"></div>
+          <div class="auth-success" id="join-success" role="status"></div>
           <div style="background:rgba(42,180,160,.08);border:1px solid rgba(42,180,160,.2);border-radius:var(--r-sm);padding:10px 12px;font-size:12px;color:var(--teal);margin-bottom:4px">
             Pedile el código de invitación al administrador de tu empresa
           </div>
           <div class="auth-form-group">
-            <label>Código de empresa</label>
+            <label for="join-codigo">Código de empresa</label>
             <input type="text" id="join-codigo" placeholder="Ej: VITALMET-a1b2" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
           </div>
           <div class="auth-form-group">
-            <label>Tu nombre</label>
+            <label for="join-nombre">Tu nombre</label>
             <input type="text" id="join-nombre" placeholder="Juan García">
           </div>
           <div class="auth-form-group">
-            <label>Email</label>
+            <label for="join-email">Email</label>
             <input type="email" id="join-email" placeholder="juan@empresa.com">
           </div>
           <div class="auth-form-group">
-            <label>Contraseña (mínimo 6 caracteres)</label>
+            <label for="join-pass">Contraseña (mínimo 6 caracteres)</label>
             <input type="password" id="join-pass" placeholder="••••••••">
           </div>
           <button class="auth-btn" id="btn-join" onclick="doJoin()">Unirse a la empresa</button>
@@ -414,7 +442,7 @@ body.no-costos .solo-costos{display:none!important}
   👁 Modo contador — solo lectura · <span id="contador-banner-empresa"></span>
 </div>
 <div id="app-screen">
-<div class="mobile-menu-btn" onclick="toggleMobileNav()" title="Menú"><svg viewBox="0 0 24 24"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg></div>
+<button type="button" class="mobile-menu-btn" onclick="toggleMobileNav()" aria-label="Abrir menú principal" aria-controls="primary-navigation" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg></button>
 <div class="mobile-backdrop" id="mobile-backdrop" onclick="toggleMobileNav(false)"></div>
 <div class="load-error-banner" id="load-error-banner" role="alert">
   <span class="leb-msg" id="load-error-msg"></span>
@@ -422,13 +450,13 @@ body.no-costos .solo-costos{display:none!important}
   <button class="btn btn-ghost" onclick="document.getElementById('load-error-banner').classList.remove('show')" aria-label="Cerrar aviso">✕</button>
 </div>
 <div class="app">
-  <aside class="sidebar">
+  <aside class="sidebar" id="primary-navigation">
     <div class="logo">
       <div class="logo-img" role="img" aria-label="Vitalmet"></div>
       <div class="logo-empresa" id="sidebar-empresa">—</div>
     </div>
     <div id="cotizacion-badge" style="padding:8px 14px;border-bottom:1px solid var(--border);background:var(--surface2)"><span style="color:var(--text3);font-size:10px">USD: —</span></div>
-    <nav class="nav">
+    <nav class="nav" aria-label="Navegación principal">
       <div class="nav-item active" tabindex="0" role="button" data-group="dash" onclick="showPage('dash')"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></span>Métricas<span class="nav-alert" id="nav-alert-dash" style="display:none"></span></div>
       <div class="nav-item" tabindex="0" role="button" data-group="inventario" onclick="showPage('mp')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg></span>Inventario</div>
       <div class="nav-item" tabindex="0" role="button" data-group="produccion" onclick="showPage('op')"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></svg></span>Producción</div>
@@ -448,6 +476,14 @@ body.no-costos .solo-costos{display:none!important}
   </aside>
 
   <main class="main">
+    <header class="workspace-bar" aria-label="Herramientas del espacio de trabajo">
+      <div class="workspace-location"><span>VitalStock</span><span aria-hidden="true">/</span><strong id="workspace-location">Inicio</strong></div>
+      <button class="workspace-search" onclick="openPalette()" aria-label="Buscar páginas y registros">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>
+        <span>Buscar en VitalStock</span><kbd>Ctrl K</kbd>
+      </button>
+      <button class="workspace-density" id="workspace-density" onclick="toggleWorkspaceDensity()" aria-pressed="false" title="Alternar filas cómodas o compactas">Vista compacta</button>
+    </header>
     <!-- DASHBOARD -->
     <div class="page active" id="page-dash">
       <div class="page-header"><div class="page-title">Métricas</div><div class="page-sub">// resumen operativo en tiempo real</div><div class="tabs"><div class="tab active">General</div></div></div>
@@ -4068,6 +4104,8 @@ function showPage(p,recordId){
   const pageEl=document.getElementById('page-'+p);
   if(!pageEl)return;
   pageEl.classList.add('active');
+  const workspaceLocation=document.getElementById('workspace-location');
+  if(workspaceLocation)workspaceLocation.textContent=pageEl.querySelector('.page-title')?.textContent||p;
   _currentPage=p;
   // Deep-link: el hash refleja la página activa (F5 y links compartibles)
   if(location.hash!=='#'+p)history.replaceState(null,'','#'+p);
@@ -4098,6 +4136,16 @@ function showPage(p,recordId){
 }
 
 // ─── MODALS ───────────────────────────────────────────────────────
+function toggleWorkspaceDensity(){
+  const compact=document.documentElement.classList.toggle('workspace-compact');
+  const button=document.getElementById('workspace-density');
+  button.setAttribute('aria-pressed',String(compact));
+  button.textContent=compact?'Vista cómoda':'Vista compacta';
+  try{localStorage.setItem('vitalstock-density',compact?'compact':'comfortable');}catch(e){}
+}
+try{
+  if(localStorage.getItem('vitalstock-density')==='compact')toggleWorkspaceDensity();
+}catch(e){}
 function openModal(id){
   if(id==='modal-pt'){openModalPT();return;}
   if(id==='modal-material'){openModalMaterial();return;}
