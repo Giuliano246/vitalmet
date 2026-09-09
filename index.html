@@ -3047,6 +3047,7 @@ body.no-costos .solo-costos{display:none!important}
         <label>Contracuenta *</label>
         <select id="ce-contracuenta"></select>
       </div>
+      <div class="form-group" id="ce-tc-group" hidden><label for="ce-tc">Tipo de cambio del movimiento (ARS por USD) *</label><input id="ce-tc" type="number" min="0.000001" step="any"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-asiento-extracto')">Cancelar</button>
@@ -3997,6 +3998,7 @@ const TBL={
   v_correlatividad:{label:'Correlatividad',q:'?select=*',set:r=>{correlatividad=r||[];}},
   cuentas_bancarias:{label:'Cuentas bancarias',q:'?order=nombre.asc',set:r=>{cuentasBancarias=r||[];}},
   extracto_bancario:{label:'Extracto bancario',q:'?order=fecha.desc',set:r=>{extractoBancario=r||[];},lazy:true}, // solo Conciliación (carga on-demand)
+  efe_clasificaciones:{label:'Clasificaciones EFE',q:'?select=linea_id,categoria',set:r=>{eeccClasificaciones=Object.fromEntries((r||[]).map(x=>[x.linea_id,x.categoria]));}},
   // Calidad (Fase 2 ISO/Q1) — sin file_data: los PDFs se bajan on-demand en openPDF()
   documentos_controlados:{label:'Documentos controlados',q:'?order=codigo.asc,revision.desc&select=id,empresa_id,codigo,titulo,tipo,revision,estado,fecha_vigencia,aprobado_por,file_name,observaciones,created_at',set:r=>{documentosControlados=r||[];}},
   pqp_plantillas:{label:'Plantillas PQP',q:'?order=codigo.asc',set:r=>{pqpPlantillas=r||[];}},
@@ -4895,9 +4897,9 @@ async function repararVinculosVentaFactura(){
 let _facturasSinAsiento=[];
 async function checkAsientosFaltantes(){
   try{
-    const fs=await GET('facturas_emitidas','?select=id,cae,punto_venta,numero,tipo_comprobante').catch(()=>[]);
+    const fs=await GET('facturas_emitidas','?select=id,fecha,cae,punto_venta,numero,tipo_comprobante');
     _facturasSinAsiento=facturasSinAsiento(fs,asientos);
-  }catch(e){_facturasSinAsiento=[];}
+  }catch(e){_loadFail('Comprobantes sin asiento',e);}
   const btn=document.getElementById('btn-regen-asientos');
   if(btn){
     const n=_facturasSinAsiento.length;
@@ -7341,7 +7343,7 @@ function computeRevisionCierre(o){
   const dentro=a=>a.fecha>=o.desde&&a.fecha<=o.hasta;
   const borradores=(o.asientos||[]).filter(a=>dentro(a)&&(!a.estado||a.estado==='borrador'));
   const faltantes=(o.faltantes||[]).filter(dentro);
-  const pendientesBanco=(o.extractos||[]).filter(e=>dentro(e)&&!e.conciliado).length;
+  const pendientesBanco=(o.extractos||[]).filter(e=>dentro(e)&&(!e.conciliado||!e.asiento_linea_id)).length;
   return {borradores,faltantes,pendientesBanco,erroresCarga:o.erroresCarga||[],puedeCerrar:!borradores.length&&!faltantes.length&&!pendientesBanco&&!(o.erroresCarga||[]).length};
 }
 function validarPaqueteEECC({p,erroresCarga=[]}){
@@ -7521,8 +7523,9 @@ async function cerrarPeriodo(anio,mes){
     const desde=`${anio}-${String(mes).padStart(2,'0')}-01`;
     const ultimo=new Date(anio,mes,0).getDate();
     const hasta=`${anio}-${String(mes).padStart(2,'0')}-${String(ultimo).padStart(2,'0')}`;
-    if(!_extractoLoaded){await reload('extracto_bancario');_extractoLoaded=true;}
-    const revision=computeRevisionCierre({desde,hasta,asientos,extractos:extractoBancario,faltantes:(_facturasSinAsiento||[]),erroresCarga:_loadErrors});
+    // Consultas estrictas: un error impide el cierre y nunca reutiliza un caché incompleto.
+    const [actuales,extractos,facturas]=await Promise.all([GET('asientos'),GET('extracto_bancario'),GET('facturas_emitidas','?select=id,fecha,cae')]);
+    const revision=computeRevisionCierre({desde,hasta,asientos:actuales,extractos,faltantes:facturasSinAsiento(facturas,actuales.filter(a=>a.estado==='confirmado')),erroresCarga:[]});
     const problemas=[];
     if(revision.borradores.length)problemas.push(`${revision.borradores.length} asiento(s) en borrador`);
     if(revision.faltantes.length)problemas.push(`${revision.faltantes.length} comprobante(s) sin asiento`);
@@ -8478,9 +8481,12 @@ function computeEFE(o){
 let eeccPreview=null;
 let eeccClasificaciones={};
 const EFE_CATEGORIAS={'op.cobros_clientes':'Cobros de clientes','op.pagos_proveedores':'Pagos a proveedores','op.sueldos_cargas':'Sueldos y cargas','op.impuestos':'Impuestos','op.otros':'Otros operativos / intereses','inv.altas':'Altas de bienes','inv.bajas':'Bajas de bienes','inv.inversiones':'Inversiones','fin.prestamos':'Capital de préstamos','fin.aportes_dividendos':'Aportes / distribuciones'};
-function cambiarClasificacionEFE(key,value){
+async function cambiarClasificacionEFE(key,value){
   if(!Object.hasOwn(EFE_CATEGORIAS,value))return;
-  eeccClasificaciones[key]=value;calcularEECC();
+  try{
+    await RPC('guardar_clasificacion_efe',{p_linea_id:key,p_categoria:value});
+    eeccClasificaciones[key]=value;calcularEECC();
+  }catch(e){notify('No se guardó la clasificación: '+e.message,'err');pintarEECC();}
 }
 function _eeccEjercicioSel(){
   const sel=document.getElementById('eecc-ejercicio');
@@ -8536,13 +8542,13 @@ function _eeccArmar(){
   r.notaCoef=notaCoef;r.antDesde=ant?ant.desde:null;r.antHasta=ant?ant.hasta:null;
   r.efe=computeEFE({lineas:asientoLineas,asientos,cuentas:cuentasContables,desde,hasta,saldosInicio:act.inicio,saldosCierre:act.saldos,clasificaciones:eeccClasificaciones});
   r.efeAnt=ant?computeEFE({lineas:asientoLineas,asientos,cuentas:cuentasContables,desde:ant.desde,hasta:ant.hasta,saldosInicio:ant.inicio,saldosCierre:ant.saldos,clasificaciones:eeccClasificaciones}):null;
-  r.bienesUso=computeAnexoBienesUso(bienesUso,depreciacionesVivas(),desde,hasta);
+  const confirmados=new Set(asientos.filter(a=>a.estado==='confirmado').map(a=>a.id));
+  const depConfirmadas=depreciaciones.filter(d=>d.asiento_id&&confirmados.has(d.asiento_id));
+  r.bienesUso=computeAnexoBienesUso(bienesUso,depConfirmadas,desde,hasta);
   r.me=tc>0?computeDiferenciaCambio(asientoLineas.filter(l=>{const a=asientos.find(x=>x.id===l.asiento_id);return a&&a.fecha<=hasta;}),asientos,cuentasContables,tc,{cta_dif_cambio:configContable?.cta_dif_cambio||'x'}):null;
   r.tc=tc;r.empresa={nombre:currentEmpresa?.nombre||'',cuit:currentEmpresa?.cuit||''};
-  const ctasBU=cuentasContables.filter(c=>['bienes_uso','intangibles'].includes(c.rubro_rt54)&&c.imputable!==false);
-  const netoLibro=ctasBU.reduce((s,c)=>s+_natural(c,act.saldos[c.id]),0);
-  const hayAjusteBU=asientos.some(a=>a.estado==='confirmado'&&a.fecha>=desde&&a.fecha<=hasta&&a.origen_tipo==='ajuste_inflacion');
-  r.buDiferencias=!hayAjusteBU&&Math.abs(netoLibro-(r.bienesUso.total?.netoCierre||0))>=.01?[{libro:netoLibro,anexo:r.bienesUso.total?.netoCierre||0}]:[];
+  r.buControl=computeConciliacionBU({bienes:bienesUso,depreciaciones:depConfirmadas,cuentas:cuentasContables,lineas:asientoLineas,asientos,desde,hasta});
+  r.buDiferencias=r.buControl.filter(c=>Math.abs(c.diferencia)>=.01);
   r.tcFaltantes=asientos.filter(a=>a.estado==='confirmado'&&a.fecha>=desde&&a.fecha<=hasta&&a.moneda==='USD'&&!(Number(a.tipo_cambio)>0));
   r.borradores=asientos.filter(a=>a.fecha>=desde&&a.fecha<=hasta&&(!a.estado||a.estado==='borrador'));
   r.validacion=validarPaqueteEECC({p:r,erroresCarga:_loadErrors});
@@ -8580,8 +8586,9 @@ function pintarEECC(){
   const controles=p.validacion||validarPaqueteEECC({p});
   const revision=`<section class="accounting-review" aria-label="Revisión de estados"><h3>${controles.valido?'Controles automáticos completos':'Borrador: pendientes de revisión'}</h3><p>Base: saldos registrados en ARS. Anexo de bienes de uso nominal; comparativo ${p.ipcExacto?'con IPC de cierre':'sin IPC exacto'}. La revisión profesional sigue siendo necesaria.</p>${controles.errores.length?'<ul>'+controles.errores.map(e=>`<li>${esc(e)}</li>`).join('')+'</ul>':''}</section>`;
   const detalles=[...(p.efe?.detalle||[]).map(d=>({...d,periodo:'Actual'})),...(p.efeAnt?.detalle||[]).map(d=>({...d,periodo:'Anterior'}))];
-  cont.innerHTML=revision+aviso+`<div class="accounting-report-grid">${card('Estado de situación patrimonial',esp)}<div>${card('Estado de resultados',er)}${card('Estado de flujos de efectivo (sintético)',efe)}</div></div>`+
-    `<details class="accounting-review"><summary>Revisar clasificación del flujo de efectivo (${detalles.length})</summary><p>Los cambios se aplican a este reporte, no modifican asientos. El Excel conserva el detalle de clasificación. Al recargar la aplicación se restablecen las sugerencias.</p><div class="table-wrap"><table><thead><tr><th>Período</th><th>Asiento</th><th>Cuenta</th><th>Importe ARS</th><th>Clasificación</th></tr></thead><tbody>${detalles.map(d=>`<tr><td>${d.periodo}</td><td><button class="btn btn-ghost btn-sm" onclick="editAsiento('${esc(d.asientoId)}')">${esc(d.numero)}</button></td><td>${esc(d.cuenta)}${d.revisar?' · Revisar':''}</td><td>${fmtARS(d.importe)}</td><td><select aria-label="Clasificación de ${esc(d.cuenta)}" onchange="cambiarClasificacionEFE('${esc(d.key)}',this.value)"><option value="">Elegí para confirmar</option>${Object.entries(EFE_CATEGORIAS).map(([k,l])=>`<option value="${k}" ${k===d.clasificacion?'selected':''}>${l}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div></details>`;
+  const puenteBU=`<details class="accounting-review"><summary>Conciliación de bienes de uso por cuenta</summary><p>Auxiliar nominal + ajuste por inflación registrado = mayor esperado. Las diferencias nominales requieren revisión.</p><div class="table-wrap"><table><thead><tr><th>Cuenta</th><th>Auxiliar nominal</th><th>Ajuste registrado</th><th>Mayor</th><th>Diferencia</th></tr></thead><tbody>${(p.buControl||[]).map(c=>`<tr><td>${esc(c.cuenta)}</td><td>${f(c.anexo)}</td><td>${f(c.ajuste)}</td><td>${f(c.libro)}</td><td>${f(c.diferencia)}</td></tr>`).join('')}</tbody></table></div></details>`;
+  cont.innerHTML=revision+aviso+puenteBU+`<div class="accounting-report-grid">${card('Estado de situación patrimonial',esp)}<div>${card('Estado de resultados',er)}${card('Estado de flujos de efectivo (sintético)',efe)}</div></div>`+
+    `<details class="accounting-review"><summary>Revisar clasificación del flujo de efectivo (${detalles.length})</summary><p>Las clasificaciones se guardan para la empresa y se conservan al recargar. El Excel incluye el detalle. Los importes de los asientos no cambian.</p><div class="table-wrap"><table><thead><tr><th>Período</th><th>Asiento</th><th>Cuenta</th><th>Importe ARS</th><th>Clasificación</th></tr></thead><tbody>${detalles.map(d=>`<tr><td>${d.periodo}</td><td><button class="btn btn-ghost btn-sm" onclick="editAsiento('${esc(d.asientoId)}')">${esc(d.numero)}</button></td><td>${esc(d.cuenta)}${d.revisar?' · Revisar':''}</td><td>${fmtARS(d.importe)}</td><td><select aria-label="Clasificación de ${esc(d.cuenta)}" onchange="cambiarClasificacionEFE('${esc(d.key)}',this.value)"><option value="">Elegí para confirmar</option>${Object.entries(EFE_CATEGORIAS).map(([k,l])=>`<option value="${k}" ${k===d.clasificacion?'selected':''}>${l}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div></details>`;
 }
 function eeccHojas(p){
   const H=s=>({v:s,s:'header'});const M=n=>({v:Math.round((Number(n)||0)*100)/100,t:'n',s:'money'});const MT=n=>({v:Math.round((Number(n)||0)*100)/100,t:'n',s:'moneyTotal'});const TT=s=>({v:s,s:'textTotal'});const TB=s=>({v:s,s:'textBold'});
@@ -8656,6 +8663,7 @@ function exportarEECC(validado=false){
     if(caratula)caratula.filas=caratula.filas.map(row=>row[0]==='Unidad de medida'?['Unidad de medida','ARS según asientos registrados; BU nominal; comparativo según IPC indicado']:row);
     hojas.unshift({nombre:'Controles y bases',cols:[36,100],filas:[[estado],['Generado',new Date().toISOString()],['Base estados','Saldos contables registrados en ARS. No se certifica reexpresión completa.'],['Base bienes de uso','Nominal del registro auxiliar; conciliar con mayor antes de emitir.'],['Comparativo',p.notaCoef||'No solicitado'],...p.validacion.errores.map(e=>['Pendiente',e]),...(p.buDiferencias||[]).map(d=>['Conciliación BU',`Libro ${d.libro}; anexo nominal ${d.anexo}`])]});
     hojas.push({nombre:'Detalle EFE',cols:[14,18,38,20,30],filas:[['Período','Asiento','Cuenta','Importe ARS','Clasificación'],...(p.efe.detalle||[]).map(d=>['Actual',String(d.numero),d.cuenta,d.importe,EFE_CATEGORIAS[d.clasificacion]]),...(p.efeAnt?.detalle||[]).map(d=>['Anterior',String(d.numero),d.cuenta,d.importe,EFE_CATEGORIAS[d.clasificacion]])]});
+    hojas.push({nombre:'Conciliación BU',cols:[45,20,20,20,20],filas:[['Cuenta','Auxiliar nominal','Ajuste registrado','Mayor','Diferencia'],...(p.buControl||[]).map(c=>[c.cuenta,c.anexo,c.ajuste,c.libro,c.diferencia])]});
     const bytes=xlsxBuild(hojas);
     descargarBytes(`EECC_${validado?'CONTROLADO':'BORRADOR'}_${p.hasta}.xlsx`,bytes,XLSX_MIME);
     notify(validado?'Exportado con controles completos. Pendiente revisión profesional.':'Borrador exportado con observaciones.');
@@ -8713,6 +8721,24 @@ function computeDepreciacion(bien,desde,hasta,previas){
   return out;
 }
 
+// Puente por cuenta: auxiliar nominal + ajuste registrado = saldo del mayor.
+// El ajuste se identifica por origen, incluyendo ejercicios anteriores.
+function computeConciliacionBU(o){
+  const nominal=saldosEECC(o.lineas,o.asientos,{hasta:o.hasta,ejercicioDesde:o.desde,excluirOrigen:['ajuste_inflacion']});
+  const total=saldosEECC(o.lineas,o.asientos,{hasta:o.hasta,ejercicioDesde:o.desde});
+  const auxiliar={};
+  const sumar=(id,v)=>{if(id)auxiliar[id]=(auxiliar[id]||0)+v;};
+  for(const b of o.bienes){
+    if(b.fecha_alta>o.hasta||(b.fecha_baja&&b.fecha_baja<=o.hasta))continue;
+    sumar(b.cuenta_activo_id,Number(b.valor_origen)||0);
+    sumar(b.cuenta_amort_acum_id,-o.depreciaciones.filter(d=>d.bien_id===b.id&&d.hasta<=o.hasta).reduce((s,d)=>s+Number(d.importe||0),0));
+  }
+  const red=n=>Math.round(n*100)/100;
+  return o.cuentas.filter(c=>Object.hasOwn(auxiliar,c.id)||(['bienes_uso','intangibles'].includes(c.rubro_rt54)&&c.imputable!==false)).map(c=>{
+    const libro=_natural(c,total[c.id]),nominalLibro=_natural(c,nominal[c.id]),anexo=auxiliar[c.id]||0;
+    return {cuenta:c.codigo+' '+c.nombre,libro:red(libro),nominal:red(nominalLibro),anexo:red(anexo),ajuste:red(libro-nominalLibro),diferencia:red(nominalLibro-anexo)};
+  });
+}
 function computeAnexoBienesUso(bienes,deprecs,desde,hasta){
   const r2=n=>Math.round((Number(n)||0)*100)/100;
   const por={};
@@ -16368,6 +16394,8 @@ function abrirAsientoExtracto(extractoId){
   const ex=_extractoActual;
   document.getElementById('ce-resumen').textContent=`${fmtFecha(ex.fecha)} · ${ex.descripcion||''} · ${fmtARS(ex.importe)}`;
   _llenarSelectCuentas('ce-contracuenta',null,'');
+  document.getElementById('ce-tc-group').hidden=cuentasBancarias.find(c=>c.id===ex.cuenta_bancaria_id)?.moneda!=='USD';
+  document.getElementById('ce-tc').value='';
   openModal('modal-asiento-extracto');
 }
 async function crearAsientoDesdeExtracto(btnId){
@@ -16378,26 +16406,15 @@ async function crearAsientoDesdeExtracto(btnId){
   if(!ctaBanco){notify('La cuenta bancaria no tiene cuenta contable asociada','err');return;}
   if(!ctaContra){notify('Elegí la contracuenta','err');return;}
   if(ctaContra===ctaBanco){notify('La contracuenta no puede ser la misma cuenta bancaria','err');return;}
-  const monto=Math.abs(parseFloat(ex.importe)||0),ingreso=(parseFloat(ex.importe)||0)>0;
+  const monto=Math.abs(parseFloat(ex.importe)||0);
   if(monto<0.01){notify('El importe es cero: no se puede crear un asiento','err');return;}
-  const lineas=ingreso
-    ?[{cuenta_id:ctaBanco,debe:monto,haber:0,descripcion:ex.descripcion||'Mov. banco',orden:0},
-      {cuenta_id:ctaContra,debe:0,haber:monto,descripcion:ex.descripcion||'',orden:1}]
-    :[{cuenta_id:ctaContra,debe:monto,haber:0,descripcion:ex.descripcion||'',orden:0},
-      {cuenta_id:ctaBanco,debe:0,haber:monto,descripcion:ex.descripcion||'Mov. banco',orden:1}];
-  const cabecera={fecha:ex.fecha,descripcion:ex.descripcion?`Banco: ${ex.descripcion}`:'Movimiento bancario',comprobante_nro:ex.referencia||null,tipo:'auto-banco',origen_tipo:'extracto_bancario',origen_id:ex.id,estado:'confirmado',moneda:cb?.moneda||'ARS'};
+  const tc=Number(document.getElementById('ce-tc').value);
+  if(cb.moneda==='USD'&&(!Number.isFinite(tc)||tc<=0)){notify('Ingresá el tipo de cambio del movimiento','err');return;}
   setBusy(btnId,true);
   try{
-    const as=await RPC('crear_asiento',{p_cabecera:cabecera,p_lineas:lineas});
+    await RPC('crear_asiento_extracto',{p_extracto_id:ex.id,p_contracuenta_id:ctaContra,p_tipo_cambio:cb.moneda==='USD'?tc:null});
     await reload('asientos','asiento_lineas','extracto_bancario');
-    const lineaBanco=asientoLineas.find(l=>l.asiento_id===as.id&&l.cuenta_id===ctaBanco);
-    if(lineaBanco){
-      await RPC('conciliar_extracto',{p_extracto_id:ex.id,p_asiento_linea_id:lineaBanco.id});
-      await reload('asientos','asiento_lineas','extracto_bancario');closeModal('modal-asiento-extracto',true);renderAll();notify('Asiento creado y línea conciliada');
-    }else{
-      await reload('asientos','asiento_lineas','extracto_bancario');closeModal('modal-asiento-extracto',true);renderAll();
-      notify('Asiento creado, pero no se pudo vincular la línea: recargá y conciliala manualmente','err');
-    }
+    closeModal('modal-asiento-extracto',true);renderAll();notify('Asiento registrado y línea conciliada');
   }catch(e){notify(e.message||'Error creando asiento','err');}
   finally{setBusy(btnId,false);}
 }
