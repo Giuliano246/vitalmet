@@ -1254,7 +1254,8 @@ body.no-costos .solo-costos{display:none!important}
           <label style="display:flex;gap:6px;align-items:center;font-size:11px;color:var(--text2);cursor:pointer;padding-bottom:8px"><input type="checkbox" id="eecc-comparativo" checked style="margin:0">Comparativo (ejercicio anterior reexpresado)</label>
           <button class="btn btn-ghost" onclick="calcularEECC()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg></span>Vista previa</button>
           <div style="flex:1"></div>
-          <button class="btn btn-primary" id="btn-eecc-xlsx" onclick="exportarEECC()" disabled style="opacity:.4">Exportar Excel</button>
+          <button class="btn btn-ghost" id="btn-eecc-xlsx" onclick="exportarEECC()" disabled style="opacity:.4">Exportar borrador</button>
+          <button class="btn btn-primary" id="btn-eecc-xlsx-validado" onclick="exportarEECC(true)" disabled style="opacity:.4">Exportar controlado</button>
         </div>
         <div id="eecc-empresa" style="font-size:11px;color:var(--text3);margin-bottom:10px"></div>
         <div id="eecc-content"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h8"/></svg></div><div class="empty-title">Elegí el ejercicio y calculá la vista previa</div><div class="empty-msg">Los estados salen del <b>rubro RT 54</b> de cada cuenta y de los asientos confirmados. Antes de exportar, corré los ajustes de cierre (panel RT 54) y el ajuste por inflación; el Excel trae carátula, ESP, ER, EEPN, EFE, notas de composición y los anexos (ME, bienes de uso, previsiones, CMV, gastos por naturaleza, partes relacionadas).</div></div></div>
@@ -7318,6 +7319,48 @@ async function importarExtracto(btnId){
   finally{setBusy(btnId,false);}
 }
 
+function computeConciliacion(o){
+  const r2=n=>Math.round(n*100)/100,errores=[];
+  const asMap=new Map((o.asientos||[]).filter(a=>a.estado==='confirmado').map(a=>[a.id,a]));
+  const vinculadas=new Set((o.extractos||[]).filter(e=>e.conciliado&&e.asiento_linea_id).map(e=>e.asiento_linea_id));
+  const todas=(o.lineas||[]).filter(l=>l.cuenta_id===o.cuenta.cuenta_contable_id&&asMap.has(l.asiento_id)).flatMap(l=>{
+    const a=asMap.get(l.asiento_id);if(a.fecha>o.hasta)return [];
+    const moneda=a.moneda||'ARS',tc=Number(a.tipo_cambio);
+    const factor=moneda===o.cuenta.moneda?1:(tc>0?(o.cuenta.moneda==='ARS'?tc:1/tc):null);
+    if(factor===null){errores.push(`Asiento ${a.numero||a.id}: falta tipo de cambio`);return [];}
+    return [{id:l.id,asiento_id:a.id,fecha:a.fecha,debe:r2(Number(l.debe||0)*factor),haber:r2(Number(l.haber||0)*factor),descripcion:l.descripcion||a.descripcion||''}];
+  });
+  const periodo=todas.filter(m=>m.fecha>=o.desde);
+  const lineas=(o.extractos||[]).filter(e=>e.cuenta_bancaria_id===o.cuenta.id&&e.fecha>=o.desde&&e.fecha<=o.hasta).slice().sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  const saldoLibro=errores.length?null:r2(todas.reduce((s,m)=>s+m.debe-m.haber,0));
+  const inicial=o.saldoInicial===null||o.saldoInicial===''||o.saldoInicial===undefined?null:Number(o.saldoInicial);
+  const saldoExtracto=inicial===null||!Number.isFinite(inicial)?null:r2(inicial+lineas.reduce((s,e)=>s+Number(e.importe||0),0));
+  return {lineas,movs:periodo.filter(m=>!vinculadas.has(m.id)),saldoLibro,saldoExtracto,diferencia:saldoLibro===null||saldoExtracto===null?null:r2(saldoLibro-saldoExtracto),errores};
+}
+function computeRevisionCierre(o){
+  const dentro=a=>a.fecha>=o.desde&&a.fecha<=o.hasta;
+  const borradores=(o.asientos||[]).filter(a=>dentro(a)&&(!a.estado||a.estado==='borrador'));
+  const faltantes=(o.faltantes||[]).filter(dentro);
+  const pendientesBanco=(o.extractos||[]).filter(e=>dentro(e)&&!e.conciliado).length;
+  return {borradores,faltantes,pendientesBanco,erroresCarga:o.erroresCarga||[],puedeCerrar:!borradores.length&&!faltantes.length&&!pendientesBanco&&!(o.erroresCarga||[]).length};
+}
+function validarPaqueteEECC({p,erroresCarga=[]}){
+  const errores=[];
+  if(erroresCarga.length)errores.push('Hay datos que no se pudieron cargar: '+erroresCarga.join(', '));
+  if(p.sinRubro?.length)errores.push('Cuentas sin rubro: '+p.sinRubro.join(', '));
+  if(!p.esp?.cuadra)errores.push('El estado patrimonial actual no cuadra.');
+  if(p.tieneAnterior&&Math.abs(p.esp?.difAnt||0)>=.01)errores.push('El estado patrimonial comparativo no cuadra.');
+  if(p.tieneAnterior&&!p.ipcExacto)errores.push('Falta IPC exacto de alguno de los cierres: el comparativo es nominal o usa un índice sustituto.');
+  for(const [label,efe] of [['actual',p.efe],['anterior',p.efeAnt]]){
+    if(Math.abs(efe?.recpamEfectivo||0)>=.01)errores.push(`El flujo de efectivo ${label} tiene una diferencia sin explicar.`);
+    if(efe?.pendientes?.length)errores.push(`Revisá las clasificaciones pendientes del flujo de efectivo ${label}.`);
+  }
+  if(p.buDiferencias?.length)errores.push('El anexo nominal de bienes de uso no concilia con las cuentas: revisá reexpresión, altas y bajas.');
+  if(p.tcFaltantes?.length)errores.push('Hay asientos en moneda extranjera sin tipo de cambio válido.');
+  if(Math.abs((p.anexoCMV?.cmv||0)-(p.anexoCMV?.cmvTotalER||0))>=.01)errores.push('El anexo de costo de ventas no concilia con el resultado.');
+  if(p.borradores?.length)errores.push('Hay asientos en borrador en el ejercicio.');
+  return {valido:!errores.length,errores};
+}
 function renderConciliacionTablero(){
   const el=document.getElementById('concil-tablero');if(!el)return;
   const activas=cuentasBancarias.filter(c=>c.activa!==false);
@@ -7326,6 +7369,9 @@ function renderConciliacionTablero(){
   const prevCb=document.getElementById(cbSelId)?.value||'';
   // Ventana days
   const prevVentana=document.getElementById('concil-ventana')?.value||'3';
+  const desde=document.getElementById('concil-desde')?.value||hoyLocal().slice(0,7)+'-01';
+  const hasta=document.getElementById('concil-hasta')?.value||hoyLocal();
+  const saldoInicial=document.getElementById('concil-inicial')?.value??'';
 
   // Render controls first
   el.innerHTML=`
@@ -7334,7 +7380,7 @@ function renderConciliacionTablero(){
       <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:14px">
         <div class="form-group" style="margin:0;min-width:220px">
           <label>Cuenta bancaria</label>
-          <select id="${cbSelId}" onchange="renderConciliacion()">
+          <select id="${cbSelId}" onchange="document.getElementById('concil-inicial').value='';renderConciliacionTablero()">
             <option value="">— Elegí la cuenta —</option>
             ${activas.map(c=>`<option value="${esc(c.id)}" ${prevCb===c.id?'selected':''}>${esc(c.nombre)} · ${esc(c.banco||'sin banco')}</option>`).join('')}
           </select>
@@ -7343,6 +7389,11 @@ function renderConciliacionTablero(){
           <label>Ventana de días</label>
           <input type="number" id="concil-ventana" min="0" value="${esc(prevVentana)}" onchange="renderConciliacion()" style="width:100%">
         </div>
+      </div>
+      <div class="toolbar">
+        <label class="toolbar-filter">Desde<input type="date" id="concil-desde" value="${esc(desde)}" onchange="document.getElementById('concil-inicial').value='';renderConciliacionTablero()"></label>
+        <label class="toolbar-filter">Hasta<input type="date" id="concil-hasta" value="${esc(hasta)}" onchange="renderConciliacionTablero()"></label>
+        <label class="toolbar-filter">Saldo del banco al inicio del período<input type="number" step="0.01" id="concil-inicial" value="${esc(saldoInicial)}" placeholder="Ingresá el saldo anterior" onchange="renderConciliacionTablero()"></label>
       </div>
       <div id="concil-tablero-body"></div>
     </div>`;
@@ -7354,29 +7405,19 @@ function renderConciliacionTablero(){
   }
   const cb=cuentasBancarias.find(c=>c.id===cbId);
   if(!cb){return;}
-  const ventana=Math.max(0,parseInt(document.getElementById('concil-ventana').value)||3);
+  const ventana=Math.max(0,Number(document.getElementById('concil-ventana').value)||0);
 
   // Compute ledger movs for this account (not yet linked to any extract line)
-  const linkedLineaIds=new Set(extractoBancario.filter(e=>e.asiento_linea_id).map(e=>e.asiento_linea_id));
-  const asConfMap={};asientos.forEach(a=>{asConfMap[a.id]=a;});
-  const movsBanco=asientoLineas
-    .filter(l=>l.cuenta_id===cb.cuenta_contable_id&&!linkedLineaIds.has(l.id))
-    .map(l=>{
-      const a=asConfMap[l.asiento_id];
-      return{id:l.id,fecha:a?.fecha,debe:parseFloat(l.debe)||0,haber:parseFloat(l.haber)||0,descripcion:l.descripcion};
-    })
-    .filter(m=>m.fecha);
+  if(!desde||!hasta||desde>hasta){document.getElementById('concil-tablero-body').textContent='Revisá las fechas del período.';return;}
+  const resultado=computeConciliacion({cuenta:cb,asientos,lineas:asientoLineas,extractos:extractoBancario,desde,hasta,saldoInicial});
+  const movsBanco=resultado.movs;
+  const fm=n=>n===null?'Sin determinar':(cb.moneda==='USD'?fmtUSD(n):fmtARS(n));
 
   // Statement lines for this account ordered by fecha
-  const lineas=extractoBancario
-    .filter(e=>e.cuenta_bancaria_id===cbId)
-    .slice().sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+  const lineas=resultado.lineas;
 
   // Totals
-  const saldoExtracto=lineas.reduce((s,e)=>s+(parseFloat(e.importe)||0),0);
-  const todasLineasLibro=asientoLineas.filter(l=>l.cuenta_id===cb.cuenta_contable_id);
-  const saldoLibro=todasLineasLibro.reduce((s,l)=>s+(parseFloat(l.debe)||0)-(parseFloat(l.haber)||0),0);
-  const diferencia=saldoLibro-saldoExtracto;
+  const {saldoExtracto,saldoLibro,diferencia}=resultado;
 
   const tbodySel=document.getElementById('concil-tablero-body');
   if(!lineas.length){
@@ -7392,7 +7433,7 @@ function renderConciliacionTablero(){
       return `<tr>
         <td class="mono">${esc(fmtFecha(linea.fecha))}</td>
         <td>${esc(linea.descripcion||'—')}</td>
-        <td class="mono" style="text-align:right;color:${colorImp}">${fmtARS(imp)}</td>
+        <td class="mono" style="text-align:right;color:${colorImp}">${fm(imp)}</td>
         <td><span class="badge badge-ok">✓ Conciliado</span></td>
         <td><button class="btn btn-ghost btn-sm" onclick="desconciliarLinea('${esc(linea.id)}')">Deshacer</button></td>
       </tr>`;
@@ -7412,7 +7453,7 @@ function renderConciliacionTablero(){
     return `<tr>
       <td class="mono">${esc(fmtFecha(linea.fecha))}</td>
       <td>${esc(linea.descripcion||'—')}</td>
-      <td class="mono" style="text-align:right;color:${colorImp}">${fmtARS(imp)}</td>
+      <td class="mono" style="text-align:right;color:${colorImp}">${fm(imp)}</td>
       ${accion}
     </tr>`;
   }).join('');
@@ -7425,9 +7466,12 @@ function renderConciliacionTablero(){
       </table>
     </div>
     <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);font-size:13px">
-      <div><span style="color:var(--text3)">Σ importes del extracto importado:</span> <span class="mono" style="font-weight:600">${fmtARS(saldoExtracto)}</span></div>
-      <div><span style="color:var(--text3)">Σ movimientos del libro (histórico):</span> <span class="mono" style="font-weight:600">${fmtARS(saldoLibro)}</span></div>
-      <div style="color:var(--text3);font-size:11px;align-self:center">Son escalas distintas (el extracto es del período importado; el libro es histórico) — no tienen por qué coincidir.</div>
+      <div>Saldo banco al cierre: <strong>${fm(saldoExtracto)}</strong></div>
+      <div>Saldo libro al cierre: <strong>${fm(saldoLibro)}</strong></div>
+      <div>Diferencia: <strong>${fm(diferencia)}</strong></div>
+      <div>Extracto pendiente: ${lineas.filter(e=>!e.conciliado).length} · Libro sin vincular en el período: ${movsBanco.length}</div>
+      <p>Importá el extracto completo del período. El saldo del libro incluye el arrastre anterior; una diferencia cero no reemplaza la revisión de partidas pendientes.</p>
+      ${resultado.errores.map(e=>`<p role="alert">${esc(e)}</p>`).join('')}
     </div>`;
 }
 
@@ -7473,8 +7517,19 @@ function sugerirNroOC(){
 }
 
 async function cerrarPeriodo(anio,mes){
-  if(!confirm(`¿Cerrar el período ${mes}/${anio}? No se podrán imputar asientos con fecha en ese mes.`))return;
   try{
+    const desde=`${anio}-${String(mes).padStart(2,'0')}-01`;
+    const ultimo=new Date(anio,mes,0).getDate();
+    const hasta=`${anio}-${String(mes).padStart(2,'0')}-${String(ultimo).padStart(2,'0')}`;
+    if(!_extractoLoaded){await reload('extracto_bancario');_extractoLoaded=true;}
+    const revision=computeRevisionCierre({desde,hasta,asientos,extractos:extractoBancario,faltantes:(_facturasSinAsiento||[]),erroresCarga:_loadErrors});
+    const problemas=[];
+    if(revision.borradores.length)problemas.push(`${revision.borradores.length} asiento(s) en borrador`);
+    if(revision.faltantes.length)problemas.push(`${revision.faltantes.length} comprobante(s) sin asiento`);
+    if(revision.pendientesBanco)problemas.push(`${revision.pendientesBanco} movimiento(s) bancario(s) sin conciliar`);
+    if(revision.erroresCarga.length)problemas.push(`errores de carga: ${revision.erroresCarga.join(', ')}`);
+    if(problemas.length){notify(`No se puede cerrar ${mes}/${anio}: ${problemas.join(' · ')}`,'err');return;}
+    if(!confirm(`¿Cerrar el período ${mes}/${anio}? No se podrán imputar asientos con fecha en ese mes.`))return;
     const ex=periodosContables.find(p=>p.anio===anio&&p.mes===mes);
     if(ex){ await PATCH('periodos_contables',{estado:'cerrado'},`?id=eq.${ex.id}`); }
     else  { await POST('periodos_contables',{empresa_id:currentEmpresa.id,anio,mes,estado:'cerrado'}); }
@@ -8385,26 +8440,29 @@ function computeEFE(o){
   const byCta={};(o.cuentas||[]).forEach(c=>{byCta[c.id]=c;});
   const esEfectivo=c=>c&&c.rubro_rt54==='caja_bancos';
   const asMap={};(o.asientos||[]).forEach(a=>{if(a.estado==='confirmado'&&a.fecha>=o.desde&&a.fecha<=o.hasta&&!CIERRE_TIPOS_PATRIM.includes(a.tipo))asMap[a.id]=a;});
-  const porAs={};
-  (o.lineas||[]).forEach(l=>{const a=asMap[l.asiento_id];if(!a)return;if(!porAs[a.id])porAs[a.id]={a,ef:0,contra:[]};const c=byCta[l.cuenta_id];const m=(toARS(l.debe,a)||0)-(toARS(l.haber,a)||0);if(esEfectivo(c))porAs[a.id].ef+=m;else porAs[a.id].contra.push({c,m});});
+  const porAs={},pendientes=[],detalle=[];
+  (o.lineas||[]).forEach((l,i)=>{const a=asMap[l.asiento_id];if(!a)return;if(!porAs[a.id])porAs[a.id]={a,ef:0,contra:[]};const c=byCta[l.cuenta_id];const d=toARS(l.debe,a),h=toARS(l.haber,a);if(d===null||h===null){pendientes.push(`Asiento ${a.numero||a.id}: falta TC`);return;}const m=d-h;if(esEfectivo(c))porAs[a.id].ef+=m;else porAs[a.id].contra.push({c,m,key:l.id||`${a.id}:${i}`});});
   const INV=['bienes_uso','intangibles','inversiones'],FIN=['prestamos','capital','aportes_irrevocables','ajuste_capital','rna','reserva_legal','otras_reservas'];
   const op={cobros_clientes:0,pagos_proveedores:0,sueldos_cargas:0,impuestos:0,otros:0},inv={altas:0,bajas:0,inversiones:0},fin={prestamos:0,aportes_dividendos:0};
   Object.values(porAs).forEach(x=>{
     if(Math.abs(x.ef)<0.005)return;
-    const rubros=x.contra.map(y=>y.c?y.c.rubro_rt54:null);
-    const tiene=list=>rubros.some(r=>list.includes(r));
-    if(tiene(INV)){
-      if(rubros.includes('inversiones')&&!rubros.some(r=>['bienes_uso','intangibles'].includes(r)))inv.inversiones+=x.ef;
-      else if(x.ef<0)inv.altas+=x.ef;else inv.bajas+=x.ef;
-    }else if(tiene(FIN)){
-      if(rubros.includes('prestamos'))fin.prestamos+=x.ef;else fin.aportes_dividendos+=x.ef;
-    }else{
-      const laboral=rubros.includes('deudas_laborales')||x.contra.some(y=>y.c&&/sueldo|jornal|cargas soc|\bSAC\b|aguinaldo|vacacion/i.test(y.c.nombre||''));
-      if(x.ef>0&&(rubros.includes('cuentas_cobrar_clientes')||rubros.includes('ventas')||rubros.includes('deudas_especie')))op.cobros_clientes+=x.ef;
-      else if(laboral)op.sueldos_cargas+=x.ef;
-      else if(x.ef<0&&(rubros.includes('proveedores')||rubros.includes('bienes_cambio')||rubros.includes('cmv')))op.pagos_proveedores+=x.ef;
-      else if(rubros.includes('deudas_fiscales')||rubros.includes('creditos_impositivos')||rubros.includes('iigg'))op.impuestos+=x.ef;
-      else op.otros+=x.ef;
+    // Las contrapartidas se desglosan: capital de préstamo e intereses
+    // nunca se clasifican por la primera cuenta encontrada del asiento.
+    for(const y of x.contra){
+      const importe=r2(-y.m);if(Math.abs(importe)<.005)continue;
+      const rb=y.c?.rubro_rt54;let grupo='op',categoria='otros';
+      if(INV.includes(rb)){grupo='inv';categoria=rb==='inversiones'?'inversiones':importe<0?'altas':'bajas';}
+      else if(FIN.includes(rb)){grupo='fin';categoria=rb==='prestamos'?'prestamos':'aportes_dividendos';}
+      else if(importe>0&&['cuentas_cobrar_clientes','ventas','deudas_especie'].includes(rb))categoria='cobros_clientes';
+      else if(rb==='deudas_laborales'||/sueldo|jornal|cargas soc|\bSAC\b|aguinaldo|vacacion/i.test(y.c?.nombre||''))categoria='sueldos_cargas';
+      else if(importe<0&&['proveedores','bienes_cambio','cmv'].includes(rb))categoria='pagos_proveedores';
+      else if(['deudas_fiscales','creditos_impositivos','iigg'].includes(rb))categoria='impuestos';
+      const override=o.clasificaciones?.[y.key];
+      if(override){const [g,k]=override.split('.');if({op,inv,fin}[g]&&Object.hasOwn({op,inv,fin}[g],k)){grupo=g;categoria=k;}}
+      const ambiguo=!rb||Math.sign(importe)!==Math.sign(x.ef)||x.a.origen_tipo==='ajuste_inflacion';
+      if(ambiguo&&!override)pendientes.push(`Asiento ${x.a.numero||x.a.id}: revisar ${y.c?.nombre||'cuenta sin clasificar'}`);
+      ({op,inv,fin}[grupo])[categoria]+=importe;
+      detalle.push({key:y.key,asientoId:x.a.id,numero:x.a.numero||x.a.id,cuenta:y.c?.nombre||'Sin cuenta',importe,clasificacion:grupo+'.'+categoria,revisar:ambiguo&&!override});
     }
   });
   const inicio=r2((o.cuentas||[]).filter(esEfectivo).reduce((s,c)=>s+_natural(c,(o.saldosInicio||{})[c.id]),0));
@@ -8413,11 +8471,17 @@ function computeEFE(o){
   const totOp=r2(Object.values(op).reduce((s,v)=>s+v,0)),totInv=r2(Object.values(inv).reduce((s,v)=>s+v,0)),totFin=r2(Object.values(fin).reduce((s,v)=>s+v,0));
   const variacion=r2(cierre-inicio);
   const recpamEfectivo=r2(variacion-totOp-totInv-totFin);   // asientos de ajuste/diferencia que tocan efectivo sin contrapartida operativa
-  return {inicio,cierre,variacion,op,inv,fin,totOp,totInv,totFin,recpamEfectivo};
+  return {inicio,cierre,variacion,op,inv,fin,totOp,totInv,totFin,recpamEfectivo,pendientes,detalle};
 }
 
 // ── Página Estados RT 54 ──
 let eeccPreview=null;
+let eeccClasificaciones={};
+const EFE_CATEGORIAS={'op.cobros_clientes':'Cobros de clientes','op.pagos_proveedores':'Pagos a proveedores','op.sueldos_cargas':'Sueldos y cargas','op.impuestos':'Impuestos','op.otros':'Otros operativos / intereses','inv.altas':'Altas de bienes','inv.bajas':'Bajas de bienes','inv.inversiones':'Inversiones','fin.prestamos':'Capital de préstamos','fin.aportes_dividendos':'Aportes / distribuciones'};
+function cambiarClasificacionEFE(key,value){
+  if(!Object.hasOwn(EFE_CATEGORIAS,value))return;
+  eeccClasificaciones[key]=value;calcularEECC();
+}
 function _eeccEjercicioSel(){
   const sel=document.getElementById('eecc-ejercicio');
   const desde=document.getElementById('eecc-desde'),hasta=document.getElementById('eecc-hasta');
@@ -8448,7 +8512,7 @@ function _eeccArmar(){
     mov:saldosEECC(asientoLineas,asientos,{desde,hasta,ejercicioDesde:desde}),
     movCompras:saldosEECC(asientoLineas,asientos,{desde,hasta,ejercicioDesde:desde,excluirOrigen:['cierre_rt54','ajuste_inflacion','depreciacion']}),
   };
-  let ant=null,coefAnt=1,notaCoef='';
+  let ant=null,coefAnt=1,notaCoef='',ipcExacto=true;
   if(comparativo){
     const dA=new Date(desde+'T00:00:00'),hA=new Date(hasta+'T00:00:00');
     const antHasta=inicioDia;
@@ -8462,21 +8526,30 @@ function _eeccArmar(){
       desde:aD,hasta:antHasta,
     };
     const idx=_ipcMap(indicesIpc);const iA=ipcMasCercano(idx,hasta.slice(0,7)),iB=ipcMasCercano(idx,antHasta.slice(0,7));
+    ipcExacto=!!(iA&&iB&&iA.mesUsado===hasta.slice(0,7)&&iB.mesUsado===antHasta.slice(0,7));
     if(iA&&iB){coefAnt=iA.indice/iB.indice;notaCoef=`Comparativo reexpresado × ${coefAnt.toFixed(4)} (IPC ${iA.mesUsado} / IPC ${iB.mesUsado})`;}
     else notaCoef='Sin índices IPC: comparativo en valores nominales';
     void hA;
   }
   const r=computeEstadosRT54({cuentas:cuentasContables,act,ant,coefAnt,desde,hasta});
+  r.ipcExacto=ipcExacto;
   r.notaCoef=notaCoef;r.antDesde=ant?ant.desde:null;r.antHasta=ant?ant.hasta:null;
-  r.efe=computeEFE({lineas:asientoLineas,asientos,cuentas:cuentasContables,desde,hasta,saldosInicio:act.inicio,saldosCierre:act.saldos});
-  r.efeAnt=ant?computeEFE({lineas:asientoLineas,asientos,cuentas:cuentasContables,desde:ant.desde,hasta:ant.hasta,saldosInicio:ant.inicio,saldosCierre:ant.saldos}):null;
+  r.efe=computeEFE({lineas:asientoLineas,asientos,cuentas:cuentasContables,desde,hasta,saldosInicio:act.inicio,saldosCierre:act.saldos,clasificaciones:eeccClasificaciones});
+  r.efeAnt=ant?computeEFE({lineas:asientoLineas,asientos,cuentas:cuentasContables,desde:ant.desde,hasta:ant.hasta,saldosInicio:ant.inicio,saldosCierre:ant.saldos,clasificaciones:eeccClasificaciones}):null;
   r.bienesUso=computeAnexoBienesUso(bienesUso,depreciacionesVivas(),desde,hasta);
   r.me=tc>0?computeDiferenciaCambio(asientoLineas.filter(l=>{const a=asientos.find(x=>x.id===l.asiento_id);return a&&a.fecha<=hasta;}),asientos,cuentasContables,tc,{cta_dif_cambio:configContable?.cta_dif_cambio||'x'}):null;
   r.tc=tc;r.empresa={nombre:currentEmpresa?.nombre||'',cuit:currentEmpresa?.cuit||''};
+  const ctasBU=cuentasContables.filter(c=>['bienes_uso','intangibles'].includes(c.rubro_rt54)&&c.imputable!==false);
+  const netoLibro=ctasBU.reduce((s,c)=>s+_natural(c,act.saldos[c.id]),0);
+  const hayAjusteBU=asientos.some(a=>a.estado==='confirmado'&&a.fecha>=desde&&a.fecha<=hasta&&a.origen_tipo==='ajuste_inflacion');
+  r.buDiferencias=!hayAjusteBU&&Math.abs(netoLibro-(r.bienesUso.total?.netoCierre||0))>=.01?[{libro:netoLibro,anexo:r.bienesUso.total?.netoCierre||0}]:[];
+  r.tcFaltantes=asientos.filter(a=>a.estado==='confirmado'&&a.fecha>=desde&&a.fecha<=hasta&&a.moneda==='USD'&&!(Number(a.tipo_cambio)>0));
+  r.borradores=asientos.filter(a=>a.fecha>=desde&&a.fecha<=hasta&&(!a.estado||a.estado==='borrador'));
+  r.validacion=validarPaqueteEECC({p:r,erroresCarga:_loadErrors});
   return r;
 }
 function calcularEECC(){
-  try{eeccPreview=_eeccArmar();pintarEECC();const b=document.getElementById('btn-eecc-xlsx');if(b){b.disabled=false;b.style.opacity='1';}}
+  try{eeccPreview=_eeccArmar();pintarEECC();const b=document.getElementById('btn-eecc-xlsx'),v=document.getElementById('btn-eecc-xlsx-validado');if(b){b.disabled=false;b.style.opacity='1';}if(v){v.disabled=!eeccPreview.validacion.valido;v.style.opacity=eeccPreview.validacion.valido?'1':'.4';}}
   catch(e){notify(e.message||'Error armando los estados','err');}
 }
 function pintarEECC(){
@@ -8504,13 +8577,17 @@ function pintarEECC(){
     (!e.cuadra?`<div style="margin-bottom:10px;padding:8px 14px;background:rgba(224,82,82,.08);border:1px solid rgba(224,82,82,.3);border-left:3px solid var(--red);border-radius:var(--r-sm);color:var(--red);font-size:11px">⚠ El ESP no cuadra: diferencia ${fmtARS(e.dif)} (cuentas sin rubro, asientos en borrador o resultados de ejercicios anteriores sin refundir).</div>`:'')+
     `<div style="margin-bottom:12px;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--r-sm);font-size:12px;color:var(--text2);line-height:1.6"><b style="color:var(--text)">Ejercicio:</b> ${fmtFecha(p.desde)} → ${fmtFecha(p.hasta)}${col?` <span style="color:var(--text3)">·</span> <b style="color:var(--text)">Comparativo:</b> ${fmtFecha(p.antDesde)} → ${fmtFecha(p.antHasta)} · ${esc(p.notaCoef)}`:''} <span style="color:var(--text3)">·</span> ${e.cuadra?'<span style="color:var(--green)">✓ Activo = Pasivo + PN</span>':''} <span style="color:var(--text3)">·</span> Resultado del ejercicio <b class="mono" style="color:${p.er.act.resultado>=0?'var(--green)':'var(--red)'}">${fmtARS(p.er.act.resultado)}</b></div>`;
   const card=(t,html)=>`<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;font-size:12px"><div style="font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">${t}</div>${html}</div>`;
-  cont.innerHTML=aviso+`<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">${card('Estado de situación patrimonial',esp)}<div style="display:flex;flex-direction:column;gap:14px">${card('Estado de resultados',er)}${card('Estado de flujos de efectivo (sintético)',efe)}</div></div>`;
+  const controles=p.validacion||validarPaqueteEECC({p});
+  const revision=`<section class="accounting-review" aria-label="Revisión de estados"><h3>${controles.valido?'Controles automáticos completos':'Borrador: pendientes de revisión'}</h3><p>Base: saldos registrados en ARS. Anexo de bienes de uso nominal; comparativo ${p.ipcExacto?'con IPC de cierre':'sin IPC exacto'}. La revisión profesional sigue siendo necesaria.</p>${controles.errores.length?'<ul>'+controles.errores.map(e=>`<li>${esc(e)}</li>`).join('')+'</ul>':''}</section>`;
+  const detalles=[...(p.efe?.detalle||[]).map(d=>({...d,periodo:'Actual'})),...(p.efeAnt?.detalle||[]).map(d=>({...d,periodo:'Anterior'}))];
+  cont.innerHTML=revision+aviso+`<div class="accounting-report-grid">${card('Estado de situación patrimonial',esp)}<div>${card('Estado de resultados',er)}${card('Estado de flujos de efectivo (sintético)',efe)}</div></div>`+
+    `<details class="accounting-review"><summary>Revisar clasificación del flujo de efectivo (${detalles.length})</summary><p>Los cambios se aplican a este reporte, no modifican asientos. El Excel conserva el detalle de clasificación. Al recargar la aplicación se restablecen las sugerencias.</p><div class="table-wrap"><table><thead><tr><th>Período</th><th>Asiento</th><th>Cuenta</th><th>Importe ARS</th><th>Clasificación</th></tr></thead><tbody>${detalles.map(d=>`<tr><td>${d.periodo}</td><td><button class="btn btn-ghost btn-sm" onclick="editAsiento('${esc(d.asientoId)}')">${esc(d.numero)}</button></td><td>${esc(d.cuenta)}${d.revisar?' · Revisar':''}</td><td>${fmtARS(d.importe)}</td><td><select aria-label="Clasificación de ${esc(d.cuenta)}" onchange="cambiarClasificacionEFE('${esc(d.key)}',this.value)"><option value="">Elegí para confirmar</option>${Object.entries(EFE_CATEGORIAS).map(([k,l])=>`<option value="${k}" ${k===d.clasificacion?'selected':''}>${l}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div></details>`;
 }
 function eeccHojas(p){
   const H=s=>({v:s,s:'header'});const M=n=>({v:Math.round((Number(n)||0)*100)/100,t:'n',s:'money'});const MT=n=>({v:Math.round((Number(n)||0)*100)/100,t:'n',s:'moneyTotal'});const TT=s=>({v:s,s:'textTotal'});const TB=s=>({v:s,s:'textBold'});
   const col=p.tieneAnterior;const hdr=[H(''),H(fmtFecha(p.hasta))].concat(col?[H(fmtFecha(p.antHasta))]:[]);
   const R=(label,a,b,tot)=>tot?[TT(label),MT(a)].concat(col?[MT(b)]:[]):[label,M(a)].concat(col?[M(b)]:[]);
-  const titulo=(t)=>[[TB(p.empresa.nombre)],[TB(t)],[`Por el ejercicio finalizado el ${fmtFecha(p.hasta)}${col?', comparativo con el ejercicio anterior':''}. En moneda homogénea. ${col?p.notaCoef:''}`],[]];
+  const titulo=(t)=>[[TB(p.empresa.nombre)],[TB(t)],[`Por el ejercicio finalizado el ${fmtFecha(p.hasta)}${col?', comparativo con el ejercicio anterior':''}. Saldos registrados en ARS; ver bases y controles. ${col?p.notaCoef:''}`],[]];
   const hojas=[];
   hojas.push({nombre:'Carátula',cols:[34,40],filas:[[TB(p.empresa.nombre)],[TB(`ESTADOS CONTABLES AL ${fmtFecha(p.hasta)}`)],[],['CUIT',p.empresa.cuit],['Ejercicio económico',`${fmtFecha(p.desde)} al ${fmtFecha(p.hasta)}`],['Unidad de medida','Moneda homogénea (RT 54, serie IPC FACPCE/INDEC)'],['Entidad','Entidad Pequeña (EP) — RT 54 Título I'],['Comparativo',col?`${fmtFecha(p.antDesde)} al ${fmtFecha(p.antHasta)} · ${p.notaCoef}`:'—'],[],['Generado por','VitalStock ERP — revisar y completar por el contador antes de emitir']]});
   const e=p.esp;const espF=titulo('ESTADO DE SITUACIÓN PATRIMONIAL').concat([hdr]);
@@ -8566,12 +8643,22 @@ function eeccHojas(p){
   hojas.push({nombre:'Anexo Partes rel',cols:[46,16,16,18,18],filas:prlF});
   return hojas;
 }
-function exportarEECC(){
+function exportarEECC(validado=false){
   if(!eeccPreview)return notify('Calculá la vista previa primero','err');
   try{
-    const bytes=xlsxBuild(eeccHojas(eeccPreview));
-    descargarBytes(`EECC_RT54_${eeccPreview.hasta}.xlsx`,bytes,XLSX_MIME);
-    notify('Estados contables RT 54 exportados (Excel). Revisalos con la contadora antes de emitir.');
+    // Recalcular evita exportar una vista vieja tras cambiar fechas o datos.
+    eeccPreview=_eeccArmar();pintarEECC();const p=eeccPreview;
+    if(validado&&!p.validacion.valido)return notify('No se puede exportar como validado: resolvé los pendientes indicados. Podés descargar el borrador.','err');
+    const estado=validado?'CONTROLES AUTOMÁTICOS COMPLETOS — REVISIÓN PROFESIONAL PENDIENTE':'BORRADOR — NO EMITIR';
+    const hojas=eeccHojas(p);
+    hojas.forEach(h=>h.filas.unshift([estado]));
+    const caratula=hojas.find(h=>h.nombre==='Carátula');
+    if(caratula)caratula.filas=caratula.filas.map(row=>row[0]==='Unidad de medida'?['Unidad de medida','ARS según asientos registrados; BU nominal; comparativo según IPC indicado']:row);
+    hojas.unshift({nombre:'Controles y bases',cols:[36,100],filas:[[estado],['Generado',new Date().toISOString()],['Base estados','Saldos contables registrados en ARS. No se certifica reexpresión completa.'],['Base bienes de uso','Nominal del registro auxiliar; conciliar con mayor antes de emitir.'],['Comparativo',p.notaCoef||'No solicitado'],...p.validacion.errores.map(e=>['Pendiente',e]),...(p.buDiferencias||[]).map(d=>['Conciliación BU',`Libro ${d.libro}; anexo nominal ${d.anexo}`])]});
+    hojas.push({nombre:'Detalle EFE',cols:[14,18,38,20,30],filas:[['Período','Asiento','Cuenta','Importe ARS','Clasificación'],...(p.efe.detalle||[]).map(d=>['Actual',String(d.numero),d.cuenta,d.importe,EFE_CATEGORIAS[d.clasificacion]]),...(p.efeAnt?.detalle||[]).map(d=>['Anterior',String(d.numero),d.cuenta,d.importe,EFE_CATEGORIAS[d.clasificacion]])]});
+    const bytes=xlsxBuild(hojas);
+    descargarBytes(`EECC_${validado?'CONTROLADO':'BORRADOR'}_${p.hasta}.xlsx`,bytes,XLSX_MIME);
+    notify(validado?'Exportado con controles completos. Pendiente revisión profesional.':'Borrador exportado con observaciones.');
   }catch(e){notify('Error al exportar: '+(e.message||e),'err');}
 }
 
@@ -16263,7 +16350,7 @@ async function saveOperacionPaso(){
 // ─── CONCILIACIÓN: ACCIONES ───────────────────────────────────────────────────
 async function conciliarLinea(extractoId,asientoLineaId){
   try{
-    await PATCH('extracto_bancario',{conciliado:true,asiento_linea_id:asientoLineaId},`?id=eq.${extractoId}`);
+    await RPC('conciliar_extracto',{p_extracto_id:extractoId,p_asiento_linea_id:asientoLineaId});
     await reload('extracto_bancario','asientos','asiento_lineas');renderAll();notify('Línea conciliada');
   }catch(e){notify(e.message||'Error al conciliar','err');}
 }
@@ -16305,7 +16392,7 @@ async function crearAsientoDesdeExtracto(btnId){
     await reload('asientos','asiento_lineas','extracto_bancario');
     const lineaBanco=asientoLineas.find(l=>l.asiento_id===as.id&&l.cuenta_id===ctaBanco);
     if(lineaBanco){
-      await PATCH('extracto_bancario',{conciliado:true,asiento_linea_id:lineaBanco.id},`?id=eq.${ex.id}`);
+      await RPC('conciliar_extracto',{p_extracto_id:ex.id,p_asiento_linea_id:lineaBanco.id});
       await reload('asientos','asiento_lineas','extracto_bancario');closeModal('modal-asiento-extracto',true);renderAll();notify('Asiento creado y línea conciliada');
     }else{
       await reload('asientos','asiento_lineas','extracto_bancario');closeModal('modal-asiento-extracto',true);renderAll();
