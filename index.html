@@ -2716,7 +2716,7 @@ body.no-costos .solo-costos{display:none!important}
       <div class="form-row"><div class="form-group"><label>Para *</label><input type="email" id="em-to"></div><div class="form-group"><label>Asunto *</label><input type="text" id="em-subject"></div></div>
       <div class="form-row single"><div class="form-group"><label>Cuerpo (HTML)</label><textarea id="em-body" rows="9" style="width:100%;font-family:var(--mono);font-size:11px"></textarea></div></div>
       <div class="section-label">Vista previa</div>
-      <div id="em-preview" style="border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;background:white;color:#222;max-height:220px;overflow-y:auto"></div>
+      <iframe id="em-preview" sandbox="" title="Vista previa del email" style="border:1px solid var(--border);border-radius:var(--r-sm);background:white;width:100%;height:220px"></iframe>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-email')">Cerrar</button>
@@ -3772,14 +3772,12 @@ async function doRegister(){
 
     const H2={'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+token,'Prefer':'return=representation'};
 
-    const empRes=await fetch(SUPA_URL+'/rest/v1/empresas',{method:'POST',headers:H2,body:JSON.stringify({nombre:empresaNombre,slug})});
+    // Empresa + usuario fundador (admin) en una sola RPC atómica: el
+    // INSERT directo en empresas/usuarios quedó cerrado (migración 081).
+    const empRes=await fetch(`${SUPA_URL}/rest/v1/rpc/crear_empresa`,{method:'POST',headers:H2,body:JSON.stringify({p_nombre:empresaNombre,p_slug:slug,p_usuario_nombre:nombre})});
     const empData=await empRes.json();
     if(!empRes.ok) throw new Error(empData.message||'Error al crear empresa');
-    const empresaId=empData[0]&&empData[0].id;
-    if(!empresaId) throw new Error('No se obtuvo ID de empresa');
-
-    const usrRes=await fetch(SUPA_URL+'/rest/v1/usuarios',{method:'POST',headers:H2,body:JSON.stringify({id:userId,empresa_id:empresaId,nombre,email,rol:'usuario'})});
-    if(!usrRes.ok){const usrErr=await usrRes.json();throw new Error(usrErr.message||'Error al registrar usuario');}
+    if(!empData?.id) throw new Error('No se obtuvo ID de empresa');
 
     // PASO 4: entrar
     await loadEmpresaAndStart();
@@ -12498,7 +12496,7 @@ function onClienteFileChange(input){
       html+='</tr></thead><tbody>';
       parsed.slice(0,10).forEach(c=>{
         html+='<tr>';
-        cols.forEach(col=>html+=`<td style="padding:5px 8px;border-bottom:1px solid var(--border);color:var(--text2)">${(c[col]||'—').toString().slice(0,40)}</td>`);
+        cols.forEach(col=>html+=`<td style="padding:5px 8px;border-bottom:1px solid var(--border);color:var(--text2)">${esc((c[col]||'—').toString().slice(0,40))}</td>`);
         html+='</tr>';
       });
       html+='</tbody></table></div>';
@@ -12636,7 +12634,7 @@ function onPTFileChange(input){
         cols.forEach(col=>{
           let val=p[col];
           if(col==='barra_lote'&&p.barra_lote){val=p.barra_id?`✓ ${p.barra_lote}`:`✗ ${p.barra_lote} (no existe)`;}
-          html+=`<td style="padding:5px 8px;border-bottom:1px solid var(--border);color:var(--text2)">${(val!==undefined&&val!==null&&val!==''?val:'—').toString().slice(0,40)}</td>`;
+          html+=`<td style="padding:5px 8px;border-bottom:1px solid var(--border);color:var(--text2)">${esc((val!==undefined&&val!==null&&val!==''?val:'—').toString().slice(0,40))}</td>`;
         });
         html+='</tr>';
       });
@@ -13340,6 +13338,10 @@ async function cancelarEmail(id){
   try{await PATCH('email_queue',{estado:'cancelado'},`?id=eq.${id}`);await ensureMailingsData(true);renderMailings();notify('Cancelado');}
   catch(e){notify(msgError(e),'err');}
 }
+function setEmailPreview(html){
+  const fr=document.getElementById('em-preview');if(!fr)return;
+  fr.srcdoc='<!doctype html><meta charset="utf-8"><base target="_blank"><body style="margin:14px;font:13px/1.5 system-ui,sans-serif;color:#222">'+(html||'')+'</body>';
+}
 function openEmailPreview(id){
   const e=emailQueue.find(x=>x.id===id);if(!e)return;
   _emailEditId=id;
@@ -13347,9 +13349,9 @@ function openEmailPreview(id){
   document.getElementById('em-to').value=e.to_email;
   document.getElementById('em-subject').value=e.subject;
   document.getElementById('em-body').value=e.body_html;
-  // contenido generado por el sistema desde templates propios (no input de terceros)
-  document.getElementById('em-preview').innerHTML=e.body_html;
-  document.getElementById('em-body').oninput=ev=>{document.getElementById('em-preview').innerHTML=ev.target.value;};
+  // Vista previa en iframe sandbox: se renderiza el HTML sin ejecutar scripts ni acceder a la sesión
+  setEmailPreview(e.body_html);
+  document.getElementById('em-body').oninput=ev=>{setEmailPreview(ev.target.value);};
   document.getElementById('btn-email-approve').onclick=()=>{saveEmailEdit(true);};
   openModal('modal-email');
 }
@@ -14133,7 +14135,10 @@ async function openDocPDF(id){
   try{
     const r=await GET('documentos_controlados',`?id=eq.${id}&select=file_data,file_name`);
     const d=r&&r[0];if(!d?.file_data){notify('El documento no tiene archivo adjunto','err');return;}
-    const w=window.open('');w.document.write(`<iframe src="${d.file_data}" style="width:100%;height:100%;border:none"></iframe>`);
+    // Mismo patrón que openPDF (certificados): validar el data URL y abrir el blob, sin document.write
+    if(!/^data:application\/pdf;base64,[A-Za-z0-9+/=]+$/.test(d.file_data)){notify('El adjunto no es un PDF válido','err');return;}
+    const w=window.open('');if(!w){notify('El navegador bloqueó la ventana emergente','err');return;}
+    w.location.replace(pdfBlobURL(d.file_data));
   }catch(e){notify(msgError(e),'err');}
 }
 

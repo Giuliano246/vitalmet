@@ -2,15 +2,16 @@
 //
 // Invocada por pg_cron cada 15' (migración 057) con header
 // x-mailer-secret == MAILER_SECRET. Flujo:
-//   1. Valida secret y ventana horaria (mailings_config).
-//   2. Toma email_queue estado='aprobado' con scheduled_at vencido.
-//   3. Pide access_token a Azure AD (refresh_token de
-//      integracion_microsoft) y envía por Microsoft Graph sendMail.
+//   1. Valida secret y ventana horaria (mailings_config de la empresa).
+//   2. Toma email_queue estado='aprobado' con scheduled_at vencido y la
+//      agrupa POR EMPRESA (auditoría 2026-09-21, C06): cada mail sale con
+//      la integración de SU empresa; sin integración activa, el mail
+//      queda en 'aprobado' esperando (no se manda con otra identidad).
+//   3. Pide access_token a Azure AD con el refresh_token de
+//      integracion_microsoft_secretos (migración 081, C03: tabla sin
+//      acceso para usuarios, sólo service_role) y envía por Microsoft
+//      Graph sendMail.
 //   4. Marca enviado/fallido y copia el resultado a email_log.
-//
-// Si integracion_microsoft no tiene una fila activa con refresh_token
-// (Azure AD todavía no configurado), la función es no-op: los mails
-// quedan en 'aprobado' esperando, no se marcan fallidos.
 //
 // Secrets (supabase secrets set): MAILER_SECRET (mismo valor que
 // push_config.mailer_secret). SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
@@ -35,17 +36,21 @@ function ahoraART(): { hhmm: string; diaSemana: number } {
   return { hhmm: `${get("hour")}:${get("minute")}`, diaSemana: dias.indexOf(get("weekday")) };
 }
 
-async function accessTokenGraph(integ: {
-  tenant_id: string; client_id: string; client_secret_cifrado: string;
-  refresh_token_cifrado: string; id: string;
-}): Promise<string | null> {
+interface Integracion {
+  id: string; empresa_id: string; tenant_id: string; client_id: string; sender_email: string;
+}
+
+async function accessTokenGraph(integ: Integracion): Promise<string | null> {
+  const { data: sec } = await supabase.from("integracion_microsoft_secretos")
+    .select("client_secret, refresh_token").eq("integracion_id", integ.id).maybeSingle();
+  if (!sec?.client_secret || !sec.refresh_token) return null;
   const res = await fetch(`https://login.microsoftonline.com/${integ.tenant_id}/oauth2/v2.0/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       client_id: integ.client_id,
-      client_secret: integ.client_secret_cifrado,
-      refresh_token: integ.refresh_token_cifrado,
+      client_secret: sec.client_secret,
+      refresh_token: sec.refresh_token,
       grant_type: "refresh_token",
       scope: "https://graph.microsoft.com/.default offline_access",
     }),
@@ -56,10 +61,10 @@ async function accessTokenGraph(integ: {
   }
   const tok = await res.json();
   // Azure rota el refresh_token: persistir el nuevo para la próxima corrida
-  if (tok.refresh_token && tok.refresh_token !== integ.refresh_token_cifrado) {
-    await supabase.from("integracion_microsoft")
-      .update({ refresh_token_cifrado: tok.refresh_token, ultimo_refresh_at: new Date().toISOString() })
-      .eq("id", integ.id);
+  if (tok.refresh_token && tok.refresh_token !== sec.refresh_token) {
+    await supabase.from("integracion_microsoft_secretos")
+      .update({ refresh_token: tok.refresh_token, ultimo_refresh_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq("integracion_id", integ.id);
   }
   return tok.access_token ?? null;
 }
@@ -88,56 +93,66 @@ Deno.serve(async (req) => {
     return new Response("forbidden", { status: 403 });
   }
   const json = (o: unknown) => new Response(JSON.stringify(o), { headers: { "Content-Type": "application/json" } });
-
-  // Ventana horaria y días hábiles según config del ERP
-  const { data: cfgs } = await supabase.from("mailings_config").select("*").limit(1);
-  const cfg = cfgs?.[0];
   const { hhmm, diaSemana } = ahoraART();
-  const desde = (cfg?.horario_envio_desde ?? "09:00").slice(0, 5);
-  const hasta = (cfg?.horario_envio_hasta ?? "18:00").slice(0, 5);
-  if (hhmm < desde || hhmm > hasta) return json({ skipped: "fuera_de_horario", hora_art: hhmm });
-  if ((cfg?.dias_habiles_solamente ?? true) && (diaSemana === 0 || diaSemana === 6)) {
-    return json({ skipped: "fin_de_semana" });
-  }
+  const ahora = new Date().toISOString();
 
-  // Cola: aprobados cuyo momento ya llegó
+  // Cola: aprobados cuyo momento ya llegó (todas las empresas)
   const { data: cola, error: eCola } = await supabase.from("email_queue")
     .select("id, empresa_id, venta_id, cliente_id, template_id, to_email, to_nombre, subject, body_html")
-    .eq("estado", "aprobado").lte("scheduled_at", new Date().toISOString())
+    .eq("estado", "aprobado").lte("scheduled_at", ahora)
     .order("scheduled_at").limit(LOTE_MAX);
   if (eCola) return json({ error: eCola.message });
   if (!cola?.length) return json({ enviados: 0, cola_vacia: true });
 
-  // Credenciales de Azure AD (pendiente de configurar → no-op)
-  const { data: integs } = await supabase.from("integracion_microsoft")
-    .select("*").eq("activo", true).limit(1);
-  const integ = integs?.[0];
-  if (!integ?.refresh_token_cifrado) {
-    return json({ skipped: "sin_integracion_microsoft", pendientes: cola.length });
-  }
-  const token = await accessTokenGraph(integ);
-  if (!token) return json({ error: "azure_token_failed", pendientes: cola.length });
-
-  let enviados = 0, fallidos = 0;
+  const porEmpresa = new Map<string, typeof cola>();
   for (const m of cola) {
-    const r = await enviarGraph(token, integ.sender_email, m);
-    if (r.ok) {
-      enviados++;
-      await supabase.from("email_queue")
-        .update({ estado: "enviado", enviado_at: new Date().toISOString(), error_texto: null })
-        .eq("id", m.id);
-    } else {
-      fallidos++;
-      await supabase.from("email_queue")
-        .update({ estado: "fallido", error_texto: r.error })
-        .eq("id", m.id);
-    }
-    await supabase.from("email_log").insert({
-      empresa_id: m.empresa_id, queue_id: m.id, venta_id: m.venta_id,
-      cliente_id: m.cliente_id, template_id: m.template_id,
-      to_email: m.to_email, subject: m.subject,
-      status: r.ok ? "enviado" : "fallido", error_texto: r.error ?? null,
-    });
+    if (!m.empresa_id) continue;
+    if (!porEmpresa.has(m.empresa_id)) porEmpresa.set(m.empresa_id, []);
+    porEmpresa.get(m.empresa_id)!.push(m);
   }
-  return json({ enviados, fallidos });
+
+  let enviados = 0, fallidos = 0, sinIntegracion = 0, fueraHorario = 0;
+  const detalle: Record<string, string> = {};
+
+  for (const [empresaId, mails] of porEmpresa) {
+    // Ventana horaria y días hábiles según config de ESTA empresa
+    const { data: cfg } = await supabase.from("mailings_config")
+      .select("*").eq("empresa_id", empresaId).maybeSingle();
+    const desde = (cfg?.horario_envio_desde ?? "09:00").slice(0, 5);
+    const hasta = (cfg?.horario_envio_hasta ?? "18:00").slice(0, 5);
+    if (hhmm < desde || hhmm > hasta) { fueraHorario += mails.length; detalle[empresaId] = "fuera_de_horario"; continue; }
+    if ((cfg?.dias_habiles_solamente ?? true) && (diaSemana === 0 || diaSemana === 6)) {
+      fueraHorario += mails.length; detalle[empresaId] = "fin_de_semana"; continue;
+    }
+
+    // Integración de ESTA empresa (sin fallback a otra)
+    const { data: integ } = await supabase.from("integracion_microsoft")
+      .select("id, empresa_id, tenant_id, client_id, sender_email")
+      .eq("empresa_id", empresaId).eq("activo", true).maybeSingle();
+    if (!integ) { sinIntegracion += mails.length; detalle[empresaId] = "sin_integracion_microsoft"; continue; }
+    const token = await accessTokenGraph(integ as Integracion);
+    if (!token) { sinIntegracion += mails.length; detalle[empresaId] = "azure_token_failed"; continue; }
+
+    for (const m of mails) {
+      const r = await enviarGraph(token, integ.sender_email, m);
+      if (r.ok) {
+        enviados++;
+        await supabase.from("email_queue")
+          .update({ estado: "enviado", enviado_at: new Date().toISOString(), error_texto: null })
+          .eq("id", m.id);
+      } else {
+        fallidos++;
+        await supabase.from("email_queue")
+          .update({ estado: "fallido", error_texto: r.error })
+          .eq("id", m.id);
+      }
+      await supabase.from("email_log").insert({
+        empresa_id: m.empresa_id, queue_id: m.id, venta_id: m.venta_id,
+        cliente_id: m.cliente_id, template_id: m.template_id,
+        to_email: m.to_email, subject: m.subject,
+        status: r.ok ? "enviado" : "fallido", error_texto: r.error ?? null,
+      });
+    }
+  }
+  return json({ enviados, fallidos, sin_integracion: sinIntegracion, fuera_de_horario: fueraHorario, hora_art: hhmm, detalle });
 });

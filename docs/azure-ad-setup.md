@@ -99,3 +99,24 @@ que queda guardado en la tabla `integracion_microsoft` de Supabase.
 - El `CLIENT_SECRET` es como una contraseña. Me lo pasás una vez, yo lo guardo cifrado en Supabase, y después lo podés rotar cuando quieras (de hecho te recomiendo rotarlo cada 6 meses).
 - El `refresh_token` tampoco vence mientras lo uses. Si la app queda sin usar 90 días, hay que repetir el paso 5.
 - Si algún día despedís o dás de baja `ventas@vitalmetsa.com`, la integración deja de funcionar hasta que hagas el flujo con otra cuenta.
+
+---
+
+## Rotación (obligatoria tras la migración 081, 2026-09-21)
+
+Hasta la 081 el client secret y el refresh token estaban en `integracion_microsoft`, legibles por cualquier usuario del ERP. Ahora viven en `integracion_microsoft_secretos` (sólo el servicio los lee). Como pudieron haber sido vistos, hay que invalidarlos:
+
+1. Entra → App registrations → **Vitalstock Mailer** → Certificates & secrets: **borrar** el secret viejo y crear uno nuevo (Paso 4). Copiar el Value.
+2. Repetir el **Paso 5** (consentimiento con `ventas@vitalmetsa.com`) para obtener un `code=` nuevo; con TENANT_ID, CLIENT_ID, el secret nuevo y el code se hace el intercambio por un refresh token nuevo (el viejo queda revocado al borrar el secret).
+3. Guardar en Supabase (SQL Editor, corre como postgres):
+
+```sql
+UPDATE integracion_microsoft_secretos s
+   SET client_secret = '<SECRET_NUEVO>', refresh_token = '<REFRESH_TOKEN_NUEVO>', updated_at = now()
+  FROM integracion_microsoft i
+ WHERE i.id = s.integracion_id AND i.activo;
+```
+
+4. Probar: esperar la próxima corrida del cron (15') o invocar la función con el header `x-mailer-secret`; la respuesta trae `enviados` y `detalle` por empresa.
+
+Nunca volver a escribir `client_secret_cifrado` / `refresh_token_cifrado` en `integracion_microsoft`: un trigger lo rechaza.

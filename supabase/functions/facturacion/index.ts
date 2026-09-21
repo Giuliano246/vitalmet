@@ -479,12 +479,18 @@ async function solicitarCAE(req: FacturaReq) {
 }
 
 // ── Autorización ────────────────────────────────────────────────────
-// Devuelve null si el request está autorizado, o la Response de error.
-async function autorizar(req: Request): Promise<Response | null> {
+// Devuelve el contexto autorizado, o la Response de error.
+// Auditoría 2026-09-21: C05 (auditor también es de consulta) y C07 (la
+// empresa NO se toma del body: sale de la sesión; el body sólo puede
+// coincidir). Con X-API-Key (scripts) no hay sesión: se acepta el
+// empresa_id del body, como hasta ahora.
+interface AuthCtx { via: "session" | "apikey"; user_id: string | null; empresa_id: string | null }
+
+async function autorizar(req: Request): Promise<AuthCtx | Response> {
   // b) shared secret (testing / scripts)
   const apiKey = req.headers.get("x-api-key");
   if (apiKey) {
-    if (BILLING_API_KEY && apiKey === BILLING_API_KEY) return null;
+    if (BILLING_API_KEY && apiKey === BILLING_API_KEY) return { via: "apikey", user_id: null, empresa_id: null };
     return json({ detail: "API key inválida (header X-API-Key)" }, 401);
   }
 
@@ -500,11 +506,12 @@ async function autorizar(req: Request): Promise<Response | null> {
 
   const { data: u } = await supabase
     .from("usuarios")
-    .select("empresa_id, es_admin, es_planta, es_contador")
+    .select("empresa_id, es_admin, es_planta, es_contador, es_auditor")
     .eq("id", userData.user.id)
     .maybeSingle();
   if (!u) return json({ detail: "Usuario sin alta en el ERP" }, 403);
-  if (u.es_planta || u.es_contador) {
+  if (!u.empresa_id) return json({ detail: "Usuario sin empresa asignada" }, 403);
+  if (u.es_planta || u.es_contador || u.es_auditor) {
     return json({ detail: "Este usuario no está habilitado para facturar" }, 403);
   }
   if (!u.es_admin) {
@@ -512,11 +519,28 @@ async function autorizar(req: Request): Promise<Response | null> {
       .from("permisos_usuario")
       .select("id")
       .eq("usuario_id", userData.user.id)
+      .eq("empresa_id", u.empresa_id)
       .eq("modulo", "ventas")
       .maybeSingle();
     if (!perm) {
       return json({ detail: "Necesitás permiso al módulo Ventas para facturar" }, 403);
     }
+  }
+  return { via: "session", user_id: userData.user.id, empresa_id: u.empresa_id };
+}
+
+// Ata el body a la empresa autorizada (C07): empresa del body ≠ sesión →
+// 403; venta_id (si viene) tiene que ser de esa empresa.
+async function vincularEmpresa(body: FacturaReq, ctx: AuthCtx): Promise<Response | null> {
+  if (ctx.via === "apikey") return null;
+  if (body.empresa_id && body.empresa_id !== ctx.empresa_id) {
+    return json({ detail: "empresa_id no corresponde a la sesión" }, 403);
+  }
+  body.empresa_id = ctx.empresa_id ?? undefined;
+  if (body.venta_id) {
+    const { data: v } = await supabase.from("ventas").select("id")
+      .eq("id", body.venta_id).eq("empresa_id", ctx.empresa_id).maybeSingle();
+    if (!v) return json({ detail: "venta_id no pertenece a la empresa de la sesión" }, 403);
   }
   return null;
 }
@@ -538,8 +562,8 @@ Deno.serve(async (req) => {
     });
   }
 
-  const authError = await autorizar(req);
-  if (authError) return authError;
+  const auth = await autorizar(req);
+  if (auth instanceof Response) return auth;
 
   try {
     if (path === "/ultimo-comprobante" && req.method === "GET") {
@@ -554,6 +578,8 @@ Deno.serve(async (req) => {
 
     if (path === "/facturar" && req.method === "POST") {
       const body = (await req.json()) as FacturaReq;
+      const vinc = await vincularEmpresa(body, auth);
+      if (vinc) return vinc;
       try {
         return json(await solicitarCAE(body));
       } catch (err) {
