@@ -808,6 +808,7 @@ body.no-costos .solo-costos{display:none!important}
           <button class="btn btn-primary" onclick="openLiquidacion()">+ Liquidación</button>
           <button class="btn btn-ghost" onclick="openEmpleado()">+ Empleado</button>
           <button class="btn btn-ghost" onclick="exportParteHoras()" title="Horas productivas por operario y OP del período (timers de Modo Planta) — para mandar a la contadora">⏱ Parte de horas (CSV)</button>
+          <button class="btn btn-ghost" onclick="openConceptosSueldo()" title="Catálogo de conceptos de liquidación (códigos propios que se asocian en ARCA → Libro de Sueldos Digital)">Conceptos ARCA</button>
         </div>
         <div class="section-label" style="margin:4px 0 8px">Liquidaciones</div>
         <div class="table-container"><table><thead><tr><th>Período</th><th>Tipo</th><th>Empleados</th><th>Bruto ARS</th><th>Neto ARS</th><th>Cargas ARS</th><th>Estado</th><th>Asiento</th><th>Acciones</th></tr></thead><tbody id="liquidaciones-tbody"></tbody></table></div>
@@ -1947,6 +1948,13 @@ body.no-costos .solo-costos{display:none!important}
       <div class="form-row" style="grid-template-columns:1fr 1fr 1fr"><div class="form-group"><label>Categoría (CCT 260/75)</label><input type="text" id="emp-categoria" placeholder="Operario / Oficial / Adm. 2ª"></div><div class="form-group"><label>Rama UOM</label><input type="text" id="emp-rama" placeholder="17 (metalmecánica)"></div><div class="form-group"><label>Obra social</label><input type="text" id="emp-os" placeholder="OSUOMRA"></div></div>
       <div class="form-row" style="grid-template-columns:1fr 160px 1fr"><div class="form-group"><label>Nombre en OPs / timers</label><input type="text" id="emp-operario" placeholder="Como figura en las órdenes de producción"></div><div class="form-group"><label>Valor hora (ARS)</label><input type="number" id="emp-valor-hora" step="0.01" min="0" placeholder="4313.43"></div><div class="form-group"><label>Observaciones</label><input type="text" id="emp-obs"></div></div>
       <p style="margin:8px 0 0 0;color:var(--text3);font-size:11px">Con <b>nombre en OPs</b> + <b>valor hora</b> cargados, el botón "Traer horas de planta" del modal de liquidación suma las horas productivas de los timers del período (por la orden asignada al operario) y sugiere el bruto.</p>
+      <details style="margin-top:14px" id="emp-arca-details">
+        <summary style="cursor:pointer;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--teal);font-weight:600">Datos ARCA — Libro de Sueldos Digital / F.931</summary>
+        <p style="margin:8px 0 10px 0;color:var(--text3);font-size:11px">Van al registro 02/04 del archivo LSD. Los defaults son los de un operario en relación de dependencia a tiempo completo (situación 1, condición 1, modalidad 008). Códigos según tablas SICOSS.</p>
+        <div class="form-row" style="grid-template-columns:1fr 170px 1fr"><div class="form-group"><label>CBU (22 dígitos)</label><input type="text" id="emp-cbu" placeholder="0170000000000000000000" maxlength="26"></div><div class="form-group"><label>Forma de pago</label><select id="emp-forma-pago"><option value="3">3 · Acreditación</option><option value="1">1 · Efectivo</option><option value="2">2 · Cheque</option><option value="4">4 · Pago externo</option></select></div><div class="form-group"><label>Dependencia de revista</label><input type="text" id="emp-dependencia" placeholder="Planta Villa Martelli" maxlength="50"></div></div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr"><div class="form-group"><label>Cód. obra social (RNOS)</label><input type="text" id="emp-os-codigo" placeholder="107202" maxlength="6"></div><div class="form-group"><label>Adherentes OS</label><input type="number" id="emp-adherentes" min="0" max="99" step="1" value="0"></div><div class="form-group"><label>Hijos</label><input type="number" id="emp-hijos" min="0" max="99" step="1" value="0"></div><div class="form-group"><label>Marcas</label><div style="display:flex;gap:10px;font-size:11px;padding-top:6px"><label><input type="checkbox" id="emp-conyuge"> Cónyuge</label><label><input type="checkbox" id="emp-cct" checked> CCT</label><label><input type="checkbox" id="emp-scvo" checked> SCVO</label><label><input type="checkbox" id="emp-reduccion"> Reducción</label></div></div></div>
+        <div class="form-row" style="grid-template-columns:repeat(7,1fr)"><div class="form-group"><label>Situación</label><input type="text" id="emp-situacion" value="1" maxlength="2"></div><div class="form-group"><label>Condición</label><input type="text" id="emp-condicion" value="1" maxlength="2"></div><div class="form-group"><label>Actividad</label><input type="text" id="emp-actividad" placeholder="000" maxlength="3"></div><div class="form-group"><label>Modalidad</label><input type="text" id="emp-modalidad-cod" value="008" maxlength="3"></div><div class="form-group"><label>Siniestrado</label><input type="text" id="emp-siniestrado" value="00" maxlength="2"></div><div class="form-group"><label>Localidad</label><input type="text" id="emp-localidad" value="00" maxlength="2"></div><div class="form-group"><label>Sit. revista</label><input type="text" id="emp-revista" value="1" maxlength="2"></div></div>
+      </details>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-empleado')">Cancelar</button>
@@ -1964,13 +1972,101 @@ body.no-costos .solo-costos{display:none!important}
       <div class="form-row" style="grid-template-columns:150px 170px 150px 1fr"><div class="form-group"><label>Período *</label><input type="month" id="liq-periodo"></div><div class="form-group"><label>Tipo</label><select id="liq-tipo"><option value="mensual">Mensual</option><option value="quincena1">1ª quincena</option><option value="quincena2">2ª quincena</option><option value="sac">SAC (aguinaldo)</option><option value="vacaciones">Vacaciones</option><option value="final">Liquidación final</option><option value="otro">Otro</option></select></div><div class="form-group"><label>Fecha de pago</label><input type="date" id="liq-fecha-pago"></div><div class="form-group"><label>Observaciones</label><input type="text" id="liq-obs"></div></div>
       <div class="form-row" style="grid-template-columns:150px 170px 150px 1fr;margin-bottom:4px"><div class="form-group"><label>Aportes % (empleado)</label><input type="number" id="liq-pct-aportes" value="17" step="0.01" oninput="liqRecalcularTodo()"></div><div class="form-group"><label>Contribuciones % (patronal)</label><input type="number" id="liq-pct-contrib" value="27.35" step="0.01" oninput="liqRecalcularTodo()"></div><div class="form-group"><label>ART %</label><input type="number" id="liq-pct-art" value="3" step="0.01" oninput="liqRecalcularTodo()"></div><div class="form-group"><label>&nbsp;</label><button class="btn btn-ghost" id="btn-liq-horas" onclick="liqTraerHoras()" title="Suma las horas productivas de los timers de Modo Planta del período (por la orden asignada al operario) y sugiere el bruto = horas × valor hora" style="border-color:var(--teal);color:var(--teal)">⏱ Traer horas de planta</button></div></div>
       <div id="liq-horas-info" style="display:none;margin-bottom:8px;font-size:11px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 10px"></div>
-      <div style="display:grid;grid-template-columns:1fr 110px 110px 110px 110px 110px 100px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Empleado</div><div style="text-align:right">Bruto</div><div style="text-align:right">No remun.</div><div style="text-align:right">Aportes</div><div style="text-align:right">Neto</div><div style="text-align:right">Contrib.</div><div style="text-align:right">ART</div></div>
+      <div style="display:grid;grid-template-columns:1fr 110px 110px 110px 110px 110px 100px 70px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Empleado</div><div style="text-align:right">Bruto</div><div style="text-align:right">No remun.</div><div style="text-align:right">Aportes</div><div style="text-align:right">Neto</div><div style="text-align:right">Contrib.</div><div style="text-align:right">ART</div><div title="Conceptos por empleado (registro 03 del LSD) y bases del F.931">ARCA</div></div>
       <div id="liq-items-list" style="display:flex;flex-direction:column;gap:6px"></div>
       <div id="liq-resumen" style="margin-top:12px;font-size:12px;color:var(--text2)"></div>
+      <p style="margin:10px 0 0 0;color:var(--text3);font-size:11px">Para exportar el <b>Libro de Sueldos Digital</b> cada empleado necesita sus conceptos (botón ARCA): con conceptos cargados, bruto / no remunerativo / aportes / neto se calculan desde ellos y quedan bloqueados en la fila.</p>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-liquidacion')">Cancelar</button>
       <button class="btn btn-primary" id="btn-save-liq" onclick="saveLiquidacion()">Guardar borrador</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Detalle ARCA por empleado (conceptos del registro 03 + bases F.931 del registro 04) -->
+<div class="modal-overlay" id="modal-liq-detalle">
+  <div class="modal" style="width:860px">
+    <div class="modal-header"><div class="modal-title">Conceptos y F.931 <span id="liqd-titulo" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="modal-close" onclick="closeModal('modal-liq-detalle')">×</button></div>
+    <div class="modal-body">
+      <div class="section-label" style="margin:0 0 6px">Conceptos liquidados (recibo)</div>
+      <div style="display:grid;grid-template-columns:1fr 90px 70px 130px 60px 32px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Concepto</div><div style="text-align:right">Cantidad</div><div>Unid.</div><div style="text-align:right">Importe</div><div>D/C</div><div></div></div>
+      <div id="liqd-conceptos" style="display:flex;flex-direction:column;gap:6px"></div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="liqdAddConcepto()">+ Concepto</button><span id="liqd-totales" style="font-size:12px;color:var(--text2)"></span></div>
+      <div class="section-label" style="margin:16px 0 6px">F.931 — bases imponibles (registro 04)</div>
+      <p style="margin:0 0 8px 0;color:var(--text3);font-size:11px">"Prellenar" copia el bruto remunerativo a las bases 1–9 (con tope en 1/4/5 si está configurado), la remuneración bruta = remunerativo + no remunerativo y la base 10 = bruto − importe a detraer. La contadora corrige lo que difiera (topes, regímenes especiales).</p>
+      <div style="display:flex;gap:8px;margin-bottom:8px"><button class="btn btn-ghost btn-sm" onclick="liqdPrellenar()">Prellenar desde el bruto</button></div>
+      <div class="form-row" style="grid-template-columns:repeat(4,1fr)">
+        <div class="form-group"><label>Días trabajados</label><input type="number" id="liqd-dias" min="0" max="31" step="1" value="30"></div>
+        <div class="form-group"><label>Horas trabajadas</label><input type="number" id="liqd-horas" min="0" max="999" step="1" value="0"></div>
+        <div class="form-group"><label>Remuneración bruta</label><input type="number" id="liqd-rem_bruta" min="0" step="0.01"></div>
+        <div class="form-group"><label>Importe a detraer (L. 27.430)</label><input type="number" id="liqd-detraer" min="0" step="0.01"></div>
+      </div>
+      <div class="form-row" style="grid-template-columns:repeat(5,1fr)">
+        <div class="form-group"><label>Base 1 · aportes prev.</label><input type="number" id="liqd-base1" min="0" step="0.01"></div>
+        <div class="form-group"><label>Base 2 · contrib. prev.</label><input type="number" id="liqd-base2" min="0" step="0.01"></div>
+        <div class="form-group"><label>Base 3 · FNE / AAFF</label><input type="number" id="liqd-base3" min="0" step="0.01"></div>
+        <div class="form-group"><label>Base 4 · aportes OS</label><input type="number" id="liqd-base4" min="0" step="0.01"></div>
+        <div class="form-group"><label>Base 5 · aportes INSSJP</label><input type="number" id="liqd-base5" min="0" step="0.01"></div>
+      </div>
+      <div class="form-row" style="grid-template-columns:repeat(5,1fr)">
+        <div class="form-group"><label>Base 6 · ap. diferenciales</label><input type="number" id="liqd-base6" min="0" step="0.01"></div>
+        <div class="form-group"><label>Base 7 · reg. especiales</label><input type="number" id="liqd-base7" min="0" step="0.01"></div>
+        <div class="form-group"><label>Base 8 · contrib. OS</label><input type="number" id="liqd-base8" min="0" step="0.01"></div>
+        <div class="form-group"><label>Base 9 · LRT (ART)</label><input type="number" id="liqd-base9" min="0" step="0.01"></div>
+        <div class="form-group"><label>Base 10 · detracción</label><input type="number" id="liqd-base10" min="0" step="0.01"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-liq-detalle')">Cancelar</button>
+      <button class="btn btn-primary" onclick="liqdAplicar()">Aplicar a la fila</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Catálogo de conceptos de sueldo (códigos propios asociados en ARCA → LSD) -->
+<div class="modal-overlay" id="modal-conceptos">
+  <div class="modal" style="width:760px">
+    <div class="modal-header"><div class="modal-title">Conceptos de liquidación (ARCA)</div><button class="modal-close" onclick="closeModal('modal-conceptos')">×</button></div>
+    <div class="modal-body">
+      <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Códigos <b>propios del empleador</b>: son los que la contadora asocia a los conceptos de ARCA en Libro de Sueldos Digital → Conceptos. El <b>tipo</b> define el efecto en la liquidación: remunerativo → bruto · no remunerativo → no rem. · descuento → aportes · informativo → no suma. Un concepto usado en liquidaciones no se borra: se desactiva.</p>
+      <div style="display:grid;grid-template-columns:100px 1fr 150px 80px 70px 60px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Código</div><div>Nombre</div><div>Tipo</div><div>Unid.</div><div style="text-align:right">Orden</div><div>Activo</div></div>
+      <div id="conceptos-list" style="display:flex;flex-direction:column;gap:6px"></div>
+      <div style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="conceptosAddRow()">+ Concepto</button></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-conceptos')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-conceptos" onclick="saveConceptosSueldo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Exportar Libro de Sueldos Digital (TXT de carga masiva de ARCA) -->
+<div class="modal-overlay" id="modal-lsd">
+  <div class="modal" style="width:820px">
+    <div class="modal-header"><div class="modal-title">Libro de Sueldos Digital <span id="lsd-titulo" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="modal-close" onclick="closeModal('modal-lsd')">×</button></div>
+    <div class="modal-body">
+      <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Genera el TXT de <b>carga masiva de liquidaciones</b> (registros 01 a 04, ancho fijo) para subir en ARCA → Libro de Sueldos Digital. Los datos del empleador se guardan en Configuración al descargar. El número de liquidación debe ser mayor a los ya enviados para el período.</p>
+      <div class="form-row" style="grid-template-columns:150px 1fr 150px 150px">
+        <div class="form-group"><label>CUIT empleador *</label><input type="text" id="lsd-cuit" placeholder="30-12345678-9" oninput="lsdPreview()"></div>
+        <div class="form-group"><label>Tipo de empresa (Dec. 814/01)</label><select id="lsd-tipo-empresa" onchange="lsdPreview()"><option value="1">1 · Dec. 814/01 art. 2 inc. b (PyME)</option><option value="4">4 · Dec. 814/01 art. 2 inc. a</option><option value="0">0 · Administración pública</option><option value="2">2 · Servicios eventuales inc. b</option><option value="5">5 · Servicios eventuales inc. a</option><option value="7">7 · Enseñanza privada</option><option value="8">8 · Dec. 1212/03 AFA</option></select></div>
+        <div class="form-group"><label>Importe a detraer (L. 27.430)</label><input type="number" id="lsd-detraer" min="0" step="0.01" oninput="lsdPreview()"></div>
+        <div class="form-group"><label>Tope aportes (0 = sin tope)</label><input type="number" id="lsd-tope" min="0" step="0.01" oninput="lsdPreview()"></div>
+      </div>
+      <div class="form-row" style="grid-template-columns:120px 120px 130px 150px 1fr">
+        <div class="form-group"><label>Envío</label><select id="lsd-envio" onchange="lsdPreview()"><option value="SJ">SJ · SyJ + F.931</option><option value="RE">RE · solo F.931</option></select></div>
+        <div class="form-group"><label>Tipo liquidación</label><select id="lsd-tipo-liq" onchange="lsdPreview()"><option value="M">M · mes</option><option value="Q">Q · quincena</option><option value="D">D · días</option><option value="H">H · horas</option></select></div>
+        <div class="form-group"><label>Nº de liquidación *</label><input type="number" id="lsd-nro" min="1" max="99999" step="1" oninput="lsdPreview()"></div>
+        <div class="form-group"><label>Fecha de pago *</label><input type="date" id="lsd-fecha-pago" onchange="lsdPreview()"></div>
+        <div class="form-group"><label>Días para proporcionar tope</label><input type="number" id="lsd-dias-tope" min="0" max="999" step="1" value="0" oninput="lsdPreview()"></div>
+      </div>
+      <div id="lsd-resumen" style="font-size:12px;color:var(--text2);margin:6px 0"></div>
+      <div id="lsd-errores" style="display:none;font-size:11px;color:var(--coral);background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 10px;margin-bottom:8px;max-height:160px;overflow:auto"></div>
+      <pre id="lsd-preview" style="font-family:var(--mono);font-size:10px;line-height:1.5;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 10px;max-height:220px;overflow:auto;white-space:pre;margin:0"></pre>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-lsd')">Cerrar</button>
+      <button class="btn btn-primary" id="btn-lsd-descargar" onclick="descargarLSD()">Descargar TXT</button>
     </div>
   </div>
 </div>
@@ -3072,7 +3168,7 @@ let proveedores=[],ordenesCompra=[],ocItems=[],recepciones=[],ocItemsDraft=[],cu
 let mailingsQueueCount=null; // emails pendientes de aprobación (lo carga el módulo Mailings)
 let preciosBase=[];
 let insumos=[],herramientas=[];
-let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[],cheques=[],empleados=[],liquidaciones=[];
+let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[],cheques=[],empleados=[],liquidaciones=[],conceptosSueldo=[];
 let facturasRecibidas=[];
 let ordenesPago=[];
 let facturasEmitidas=[]; // listado unificado Ventas → Facturas emitidas (sprint 3 hoja 2026-09-07)
@@ -4013,7 +4109,8 @@ const TBL={
   planos:{label:'Planos',q:'?order=codigo.asc&select=id,empresa_id,codigo,revision,descripcion,cliente,file_name,created_at,updated_at',set:r=>{planosList=r||[];}},
   precios_base:{label:'Precios base',q:'?order=pieza.asc',set:r=>{preciosBase=r||[];}},
   empleados:{label:'Empleados',q:'?order=nombre.asc',set:r=>{empleados=r||[];}},
-  liquidaciones:{label:'Liquidaciones de sueldos',q:'?order=periodo.desc,created_at.desc&select=*,liquidacion_items(*)',set:r=>{liquidaciones=r||[];}},
+  liquidaciones:{label:'Liquidaciones de sueldos',q:'?order=periodo.desc,created_at.desc&select=*,liquidacion_items(*,liquidacion_conceptos(*))',set:r=>{liquidaciones=r||[];}},
+  conceptos_sueldo:{label:'Conceptos de sueldo',q:'?order=orden.asc,codigo.asc',set:r=>{conceptosSueldo=r||[];}},
 };
 let _lastLoadAllAt=0;
 async function _loadTables(nombres){
@@ -5388,7 +5485,8 @@ function _liqPagada(liqId,parte){
 function renderSueldos(filter=''){
   const f=(filter||'').toLowerCase();
   const activos=empleados.filter(e=>e.activo!==false);
-  const ultConf=liquidaciones.find(l=>l.estado==='confirmada');
+  // "Último costo laboral" = la última MENSUAL confirmada (un SAC o una quincena no representan el mes)
+  const ultConf=liquidaciones.find(l=>l.estado==='confirmada'&&l.tipo==='mensual')||liquidaciones.find(l=>l.estado==='confirmada');
   const borradores=liquidaciones.filter(l=>l.estado==='borrador').length;
   const costoUlt=ultConf?computeTotalesLiquidacion(ultConf.liquidacion_items||[]).costoTotal:0;
   const tcUlt=parseFloat(ultConf?.tipo_cambio)||parseFloat(cotizacion?.venta)||0;
@@ -5407,7 +5505,7 @@ function renderSueldos(filter=''){
     const pagN=_liqPagada(l.id,'netos'),pagC=_liqPagada(l.id,'cargas');
     const acc=l.estado==='borrador'
       ?`<button class="btn btn-ghost btn-sm" onclick="openLiquidacion('${l.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="confirmarLiquidacion('${l.id}')" style="color:var(--green)">Confirmar</button><button class="btn btn-danger btn-sm" onclick="anularLiquidacion('${l.id}')">Eliminar</button>`
-      :`${pagN?'<span class="badge badge-green" style="font-size:9px">NETOS PAG.</span>':`<button class="btn btn-ghost btn-sm" onclick="pagarLiquidacion('${l.id}','netos')" title="Asiento de pago de netos (Sueldos a pagar contra banco)" style="color:var(--teal)">Pagar netos</button>`}${pagC?'<span class="badge badge-green" style="font-size:9px">F.931 PAG.</span>':`<button class="btn btn-ghost btn-sm" onclick="pagarLiquidacion('${l.id}','cargas')" title="Asiento de pago del F.931 + ART (Cargas a pagar contra banco)" style="color:var(--teal)">Pagar F.931</button>`}<button class="btn btn-danger btn-sm" onclick="anularLiquidacion('${l.id}')">Anular</button>`;
+      :`${pagN?'<span class="badge badge-green" style="font-size:9px">NETOS PAG.</span>':`<button class="btn btn-ghost btn-sm" onclick="pagarLiquidacion('${l.id}','netos')" title="Asiento de pago de netos (Sueldos a pagar contra banco)" style="color:var(--teal)">Pagar netos</button>`}${pagC?'<span class="badge badge-green" style="font-size:9px">F.931 PAG.</span>':`<button class="btn btn-ghost btn-sm" onclick="pagarLiquidacion('${l.id}','cargas')" title="Asiento de pago del F.931 + ART (Cargas a pagar contra banco)" style="color:var(--teal)">Pagar F.931</button>`}<button class="btn btn-ghost btn-sm" onclick="openLSD('${l.id}')" title="${l.lsd_nro?`Libro de Sueldos Digital — exportado como liquidación Nº ${l.lsd_nro}`:'Exportar TXT del Libro de Sueldos Digital (ARCA)'}" style="color:${l.lsd_nro?'var(--green)':'var(--accent)'}">LSD${l.lsd_nro?' ✓':''}</button><button class="btn btn-danger btn-sm" onclick="anularLiquidacion('${l.id}')">Anular</button>`;
     return`<tr><td class="mono td-primary">${liqPeriodoFmt(l.periodo)}</td><td>${LIQ_TIPO_LABEL[l.tipo]||esc(l.tipo)}</td><td class="mono">${items.length}</td><td class="mono">${fmtARS(parseFloat(l.bruto)||0)}</td><td class="mono" style="color:var(--green)">${fmtARS(parseFloat(l.neto)||0)}</td><td class="mono" style="color:var(--text2)">${fmtARS(cargas)}</td><td><span class="badge ${bE[l.estado]||'badge-warn'}">${l.estado.toUpperCase()}</span></td><td class="mono" style="font-size:11px">${asiento?('Nº '+(asiento.numero||'—')):'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap">${acc}</td></tr>`;
   }).join(''):`<tr><td colspan="9" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Sin liquidaciones. Cargá empleados y después "+ Liquidación" con los números de la contadora.</td></tr>`;
   const etbody=document.getElementById('empleados-tbody');
@@ -5430,6 +5528,23 @@ function openEmpleado(id){
   s('emp-valor-hora',e?.valor_hora);
   document.getElementById('emp-centro').value=e?.centro||'fabricacion';
   document.getElementById('emp-modalidad').value=e?.modalidad||'jornal';
+  // Datos ARCA (082): defaults de operario en relación de dependencia a tiempo completo
+  s('emp-cbu',e?.cbu);s('emp-dependencia',e?.dependencia);s('emp-os-codigo',e?.cod_obra_social);
+  document.getElementById('emp-forma-pago').value=String(e?.forma_pago||3);
+  document.getElementById('emp-adherentes').value=e?.adherentes??0;
+  document.getElementById('emp-hijos').value=e?.hijos??0;
+  document.getElementById('emp-conyuge').checked=!!e?.conyuge;
+  document.getElementById('emp-cct').checked=e?e.marca_cct!==false:true;
+  document.getElementById('emp-scvo').checked=e?e.marca_scvo!==false:true;
+  document.getElementById('emp-reduccion').checked=!!e?.marca_reduccion;
+  document.getElementById('emp-situacion').value=e?.cod_situacion||'1';
+  document.getElementById('emp-condicion').value=e?.cod_condicion||'1';
+  document.getElementById('emp-actividad').value=e?.cod_actividad||'';
+  document.getElementById('emp-modalidad-cod').value=e?.cod_modalidad||'008';
+  document.getElementById('emp-siniestrado').value=e?.cod_siniestrado||'00';
+  document.getElementById('emp-localidad').value=e?.cod_localidad||'00';
+  document.getElementById('emp-revista').value=e?.sit_revista||'1';
+  const det=document.getElementById('emp-arca-details');if(det)det.open=!!(e&&(e.cbu||e.cod_obra_social));
   openModal('modal-empleado');
 }
 async function saveEmpleado(){
@@ -5437,13 +5552,26 @@ async function saveEmpleado(){
   // CUIL: mismo dígito verificador módulo 11 que el CUIT (obs. auditoría 068)
   const cuilDigits=(g('emp-cuil')||'').replace(/\D/g,'');
   if(cuilDigits&&!validarCuit(cuilDigits))return notify('CUIL inválido — revisá los 11 dígitos (falla el dígito verificador)','err');
+  const cbuDigits=(g('emp-cbu')||'').replace(/\D/g,'');
+  if(cbuDigits&&!validarCbu(cbuDigits))return notify('CBU inválido — deben ser 22 dígitos con verificadores correctos','err');
+  const osCod=(g('emp-os-codigo')||'').replace(/\D/g,'');
+  if(osCod&&osCod.length!==6)return notify('El código de obra social (RNOS) tiene 6 dígitos','err');
+  const chk=id=>document.getElementById(id).checked;
+  const cod=(id,len)=>{const v=(g(id)||'').replace(/\D/g,'');return v?v.padStart(len,'0').slice(-len):'';};
   setBusy('btn-save-emp',true);
   try{
     const data={legajo:g('emp-legajo')||null,nombre:g('emp-nombre'),cuil:cuilDigits||null,
       categoria:g('emp-categoria')||null,rama:g('emp-rama')||null,obra_social:g('emp-os')||null,
       centro:g('emp-centro'),modalidad:g('emp-modalidad'),fecha_ingreso:g('emp-ingreso')||null,
       operario_nombre:g('emp-operario')||null,observaciones:g('emp-obs')||null,
-      valor_hora:parseFloat(g('emp-valor-hora'))||null};
+      valor_hora:parseFloat(g('emp-valor-hora'))||null,
+      // ARCA / LSD (082)
+      cbu:cbuDigits||null,forma_pago:parseInt(g('emp-forma-pago'))||3,dependencia:g('emp-dependencia')||null,
+      cod_obra_social:osCod,adherentes:parseInt(g('emp-adherentes'))||0,hijos:parseInt(g('emp-hijos'))||0,
+      conyuge:chk('emp-conyuge'),marca_cct:chk('emp-cct'),marca_scvo:chk('emp-scvo'),marca_reduccion:chk('emp-reduccion'),
+      cod_situacion:cod('emp-situacion',1)||'1',cod_condicion:cod('emp-condicion',1)||'1',cod_actividad:cod('emp-actividad',3),
+      cod_modalidad:cod('emp-modalidad-cod',3)||'008',cod_siniestrado:cod('emp-siniestrado',2)||'00',
+      cod_localidad:cod('emp-localidad',2)||'00',sit_revista:cod('emp-revista',1)||'1'};
     if(_empEditId)await PATCH('empleados',data,`?id=eq.${_empEditId}`);
     else await POST('empleados',{empresa_id:currentEmpresa.id,...data});
     await reload('empleados');
@@ -5476,33 +5604,44 @@ function openLiquidacion(liqId){
   if(!l&&!activos.length)return notify('Cargá al menos un empleado primero','err');
   _liqEditId=liqId||null;
   document.getElementById('modal-liq-title').textContent=l?`Editar liquidación ${liqPeriodoFmt(l.periodo)}`:'Nueva liquidación';
-  document.getElementById('liq-periodo').value=l?(l.periodo||'').slice(0,7):hoyLocal().slice(0,7);
+  // Nueva: el período por defecto es el MES ANTERIOR (se liquida vencido)
+  document.getElementById('liq-periodo').value=l?(l.periodo||'').slice(0,7):mesAnterior(hoyLocal());
   document.getElementById('liq-tipo').value=l?.tipo||'mensual';
   document.getElementById('liq-fecha-pago').value=l?.fecha_pago||hoyLocal();
   document.getElementById('liq-obs').value=l?.observaciones||'';
   // Filas: empleados activos + los que ya están en la liquidación (aunque estén de baja)
   const prev={};(l?.liquidacion_items||[]).forEach(i=>{prev[i.empleado_id]=i;});
   _liqHorasEmp={};(l?.liquidacion_items||[]).forEach(i=>{if(i.detalle?.horas_planta)_liqHorasEmp[i.empleado_id]=i.detalle.horas_planta;});
+  // Detalle ARCA por empleado (082): conceptos del registro 03 + bases F.931
+  _liqDetalle={};(l?.liquidacion_items||[]).forEach(i=>{
+    const cs=(i.liquidacion_conceptos||[]).slice().sort((a,b)=>(a.orden||0)-(b.orden||0)).map(c=>({codigo:c.codigo,cantidad:parseFloat(c.cantidad)||0,unidades:c.unidades||'',importe:parseFloat(c.importe)||0,periodo_ajuste:c.periodo_ajuste||''}));
+    if(cs.length||i.f931)_liqDetalle[i.empleado_id]={conceptos:cs,f931:i.f931||null};
+  });
   const infoEl=document.getElementById('liq-horas-info');if(infoEl){infoEl.style.display='none';infoEl.innerHTML='';}
   const filas=[...activos];
   Object.keys(prev).forEach(eid=>{if(!filas.some(e=>e.id===eid)){const e=empleados.find(x=>x.id===eid);if(e)filas.push(e);}});
   const NUM=(eid,k,v)=>`<input type="number" step="0.01" min="0" value="${v||0}" data-liq-emp="${eid}" data-liq-campo="${k}" oninput="liqOnInput('${eid}','${k}')" style="text-align:right">`;
   document.getElementById('liq-items-list').innerHTML=filas.map(e=>{const p=prev[e.id]||{};return`
-    <div style="display:grid;grid-template-columns:1fr 110px 110px 110px 110px 110px 100px;gap:6px;align-items:center">
+    <div style="display:grid;grid-template-columns:1fr 110px 110px 110px 110px 110px 100px 70px;gap:6px;align-items:center">
       <div style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(e.nombre)}">${esc(e.nombre)}<span style="color:var(--text3);font-size:10px"> · ${e.centro==='fabricacion'?'fáb':'adm'}</span></div>
       ${NUM(e.id,'bruto',p.bruto)}${NUM(e.id,'no_remunerativo',p.no_remunerativo)}${NUM(e.id,'aportes',p.aportes)}${NUM(e.id,'neto',p.neto)}${NUM(e.id,'contribuciones',p.contribuciones)}${NUM(e.id,'art',p.art)}
+      <button class="btn btn-ghost btn-sm" id="liqd-btn-${e.id}" onclick="liqOpenDetalle('${e.id}')" title="Conceptos del recibo (registro 03) y bases F.931 (registro 04) para el LSD">ARCA</button>
     </div>`;}).join('');
+  Object.keys(_liqDetalle).forEach(eid=>liqAplicarDetalle(eid));
   liqResumen();
   openModal('modal-liquidacion');
 }
+function mesAnterior(ymd){const [y,m]=ymd.slice(0,7).split('-').map(Number);return m===1?`${y-1}-12`:`${y}-${String(m-1).padStart(2,'0')}`;}
 function _liqVal(eid,k){const inp=document.querySelector(`[data-liq-emp="${eid}"][data-liq-campo="${k}"]`);return parseFloat(inp?.value)||0;}
 function _liqSet(eid,k,v){const inp=document.querySelector(`[data-liq-emp="${eid}"][data-liq-campo="${k}"]`);if(inp)inp.value=v;}
 function liqOnInput(eid,campo){
   // bruto/no_rem → recalcula el renglón con los %; aportes → solo el neto.
   // neto/contribuciones/art tipeados a mano no disparan nada (dato final).
+  // Con conceptos ARCA cargados (082) bruto/no_rem/aportes/neto vienen de
+  // los conceptos: los % solo recalculan contribuciones y ART.
   if(campo==='bruto'||campo==='no_remunerativo'){
     const c=computeItemLiquidacion(_liqVal(eid,'bruto'),_liqVal(eid,'no_remunerativo'),_liqPcts());
-    _liqSet(eid,'aportes',c.aportes);_liqSet(eid,'neto',c.neto);
+    if(!(_liqDetalle[eid]?.conceptos||[]).length){_liqSet(eid,'aportes',c.aportes);_liqSet(eid,'neto',c.neto);}
     _liqSet(eid,'contribuciones',c.contribuciones);_liqSet(eid,'art',c.art);
   }else if(campo==='aportes'){
     _liqSet(eid,'neto',Math.round((_liqVal(eid,'bruto')+_liqVal(eid,'no_remunerativo')-_liqVal(eid,'aportes'))*100)/100);
@@ -5519,15 +5658,20 @@ function _liqItems(){
     (porEmp[eid]=porEmp[eid]||{empleado_id:eid})[inp.dataset.liqCampo]=parseFloat(inp.value)||0;
   });
   Object.keys(_liqHorasEmp).forEach(eid=>{if(porEmp[eid])porEmp[eid].detalle={horas_planta:_liqHorasEmp[eid]};});
+  Object.keys(_liqDetalle).forEach(eid=>{const d=_liqDetalle[eid];if(!porEmp[eid]||!d)return;
+    if((d.conceptos||[]).length)porEmp[eid].conceptos=d.conceptos.map(c=>({codigo:c.codigo,cantidad:c.cantidad||0,unidades:c.unidades||null,importe:c.importe||0,periodo_ajuste:c.periodo_ajuste||null}));
+    if(d.f931)porEmp[eid].f931=d.f931;});
   return Object.values(porEmp).filter(i=>i.bruto>0||i.no_remunerativo>0||i.neto>0);
 }
 // ── Parte de horas desde los timers de planta (Fase 2, 066) ──
 let _liqHorasEmp={}; // empleado_id → horas del período (queda en item.detalle)
+let _liqDetalle={};  // empleado_id → {conceptos:[{codigo,cantidad,unidades,importe,periodo_ajuste}], f931:{...}|null} (082)
 async function _fetchEntriesPeriodo(periodoYM){
   const [y,m]=periodoYM.split('-').map(Number);
-  const ini=`${y}-${String(m).padStart(2,'0')}-01`;
-  const finExcl=`${m===12?y+1:y}-${String(m===12?1:m+1).padStart(2,'0')}-01`;
-  const raw=await GET('op_time_entries',`?tipo=eq.productivo&ended_at=not.is.null&started_at=gte.${ini}&started_at=lt.${finExcl}&select=started_at,ended_at,tipo,op_operaciones(orden_id)`);
+  // Corte de mes en hora ARGENTINA (-03:00): un timer del 31 a las 22 hs no es del mes siguiente
+  const ini=`${y}-${String(m).padStart(2,'0')}-01T00:00:00-03:00`;
+  const finExcl=`${m===12?y+1:y}-${String(m===12?1:m+1).padStart(2,'0')}-01T00:00:00-03:00`;
+  const raw=await GET('op_time_entries',`?tipo=eq.productivo&ended_at=not.is.null&started_at=gte.${encodeURIComponent(ini)}&started_at=lt.${encodeURIComponent(finExcl)}&select=started_at,ended_at,tipo,op_operaciones(orden_id)`);
   return raw.map(e=>({started_at:e.started_at,ended_at:e.ended_at,tipo:e.tipo,orden_id:e.op_operaciones?.orden_id}));
 }
 async function liqTraerHoras(){
@@ -5663,7 +5807,10 @@ function pagarLiquidacion(id,parte){
     ?'Acreditación de los netos en las cuentas sueldo. La ley exige el pago por <b>transferencia bancaria</b> — elegí desde qué cuenta salió.'
     :'Pago del F.931 (aportes + contribuciones) y la cuota de ART. Elegí desde qué cuenta bancaria salió.';
   document.getElementById('pl-fecha').value=hoyLocal();
-  document.getElementById('pl-monto').value=sugerido.toFixed(2);
+  // El importe es el de la liquidación (082): un pago parcial marcaría PAGADO
+  // el total y lo sacaría del cashflow / alerta F.931. Parciales → asiento manual.
+  const montoEl=document.getElementById('pl-monto');montoEl.value=sugerido.toFixed(2);montoEl.readOnly=true;montoEl.title='Importe de la liquidación (no editable): si pagaste otro monto, registralo como asiento manual';
+  _pagoLiq.sugerido=sugerido;
   document.getElementById('pl-banco').innerHTML=
     bancos.map(cb=>`<option value="${cb.id}">${esc(cb.nombre)}${cb.banco?' — '+esc(cb.banco):''}</option>`).join('')+
     (cfg.cta_banco_default?`<option value="cfg">Cuenta banco por defecto (sin banco asociado)</option>`:'');
@@ -5676,6 +5823,7 @@ async function savePagoLiquidacion(){
   const fecha=document.getElementById('pl-fecha').value||hoyLocal();
   const monto=parseFloat(String(document.getElementById('pl-monto').value).replace(',','.'));
   if(!isFinite(monto)||monto<=0)return notify('Importe inválido','err');
+  if(Math.abs(monto-(p.sugerido||0))>0.05)return notify(`El pago debe ser por el total de la liquidación (${fmtARS(p.sugerido||0)}) — un pago parcial se registra como asiento manual`,'err');
   const sel=document.getElementById('pl-banco').value;
   let ctaBanco=cfg.cta_banco_default,bancoLbl='';
   if(sel&&sel!=='cfg'){
@@ -5704,6 +5852,204 @@ function resetF(ids){ids.forEach(id=>{const el=document.getElementById(id);if(el
 function fmtUSD(n){return'US$ '+Math.round(n).toLocaleString('es-AR');}
 
 // ─── EXPORT A EXCEL (CSV con BOM UTF-8 y separador ';' — locale AR) ──
+// ═══ Sueldos · detalle ARCA por empleado (082): conceptos del recibo (reg. 03) + bases F.931 (reg. 04) ═══
+let _liqdEmp=null,_liqdRows=[];
+function _conceptoCat(codigo){return conceptosSueldo.find(c=>c.codigo===codigo);}
+// Refleja el detalle en la fila del modal de liquidación: con conceptos, los 4
+// campos del empleado vienen de ellos y quedan bloqueados. recalcCargas → contrib/ART por %.
+function liqAplicarDetalle(eid,recalcCargas){
+  const d=_liqDetalle[eid];const tiene=!!(d&&(d.conceptos||[]).length);
+  if(tiene){
+    const c=computeItemDesdeConceptos(d.conceptos,conceptosSueldo);
+    _liqSet(eid,'bruto',c.bruto);_liqSet(eid,'no_remunerativo',c.no_remunerativo);_liqSet(eid,'aportes',c.aportes);_liqSet(eid,'neto',c.neto);
+    if(recalcCargas){const pc=computeItemLiquidacion(c.bruto,0,_liqPcts());_liqSet(eid,'contribuciones',pc.contribuciones);_liqSet(eid,'art',pc.art);}
+  }
+  ['bruto','no_remunerativo','aportes','neto'].forEach(k=>{const inp=document.querySelector(`[data-liq-emp="${eid}"][data-liq-campo="${k}"]`);if(inp){inp.readOnly=tiene;inp.style.opacity=tiene?'.7':'';}});
+  const btn=document.getElementById('liqd-btn-'+eid);
+  if(btn){btn.textContent=tiene?`ARCA ✓${d.conceptos.length}`:'ARCA';btn.style.color=tiene?'var(--green)':'';}
+}
+// Conceptos sugeridos cuando el empleado todavía no tiene: parte de lo tipeado en la fila
+function liqdConceptosDefault(eid){
+  const bruto=_liqVal(eid,'bruto'),noRem=_liqVal(eid,'no_remunerativo'),aportes=_liqVal(eid,'aportes');
+  const r2=x=>Math.round(x*100)/100;const rows=[];
+  const has=c=>!!_conceptoCat(c);
+  if(bruto>0&&has('100'))rows.push({codigo:'100',cantidad:0,unidades:'',importe:bruto,periodo_ajuste:''});
+  if(noRem>0&&has('190'))rows.push({codigo:'190',cantidad:0,unidades:'',importe:noRem,periodo_ajuste:''});
+  if(aportes>0){
+    const jub=r2(bruto*0.11),ley=r2(bruto*0.03),resto=r2(aportes-jub-ley);
+    if(has('300')&&has('310')&&has('320')&&resto>=0){
+      rows.push({codigo:'300',cantidad:11,unidades:'%',importe:jub,periodo_ajuste:''});
+      rows.push({codigo:'310',cantidad:3,unidades:'%',importe:ley,periodo_ajuste:''});
+      if(resto>0)rows.push({codigo:'320',cantidad:3,unidades:'%',importe:resto,periodo_ajuste:''});
+    }else{const d=conceptosSueldo.find(c=>c.tipo==='descuento'&&c.activo!==false);if(d)rows.push({codigo:d.codigo,cantidad:0,unidades:'',importe:aportes,periodo_ajuste:''});}
+  }
+  return rows;
+}
+function liqOpenDetalle(eid){
+  const e=empleados.find(x=>x.id===eid);if(!e)return;
+  if(!conceptosSueldo.length)return notify('Primero cargá el catálogo de conceptos (botón "Conceptos ARCA")','err');
+  _liqdEmp=eid;
+  document.getElementById('liqd-titulo').textContent=e.nombre;
+  const d=_liqDetalle[eid]||{conceptos:[],f931:null};
+  _liqdRows=(d.conceptos||[]).length?d.conceptos.map(c=>({...c})):liqdConceptosDefault(eid);
+  renderLiqdConceptos();
+  const f=d.f931||{};
+  const set=(k,v)=>{const el=document.getElementById('liqd-'+k);if(el)el.value=(v===undefined||v===null)?'':v;};
+  set('dias',f.dias??30);set('horas',f.horas??0);set('rem_bruta',f.rem_bruta);
+  set('detraer',f.detraer??(parseFloat(configContable?.lsd_importe_detraer)||0));
+  for(let i=1;i<=10;i++)set('base'+i,f['base'+i]);
+  if(!d.f931)liqdPrellenar();
+  openModal('modal-liq-detalle');
+}
+function renderLiqdConceptos(){
+  const activos=conceptosSueldo.filter(c=>c.activo!==false);
+  const opts=(sel)=>{const list=activos.slice();const cur=_conceptoCat(sel);if(cur&&!list.includes(cur))list.push(cur);
+    return list.map(c=>`<option value="${esc(c.codigo)}"${c.codigo===sel?' selected':''}>${esc(c.codigo)} · ${esc(c.nombre)}</option>`).join('');};
+  document.getElementById('liqd-conceptos').innerHTML=_liqdRows.map((r,i)=>{const cat=_conceptoCat(r.codigo);const dc=cat?.tipo==='descuento'?'D':'C';return`
+    <div style="display:grid;grid-template-columns:1fr 90px 70px 130px 60px 32px;gap:6px;align-items:center">
+      <select onchange="liqdOnRow(${i},'codigo',this.value)">${opts(r.codigo)}</select>
+      <input type="number" step="0.01" min="0" max="999.99" value="${r.cantidad||0}" oninput="liqdOnRow(${i},'cantidad',this.value)" style="text-align:right" title="Obligatoria para SAC proporcional, adelanto vacacional y horas extras (conceptos ARCA 123000/150000/130000)">
+      <input type="text" maxlength="1" value="${esc(r.unidades||'')}" oninput="liqdOnRow(${i},'unidades',this.value)" placeholder="${esc(cat?.unidades||'')}" title="$ % A Q M D H (opcional)">
+      <input type="number" step="0.01" min="0" value="${r.importe||0}" oninput="liqdOnRow(${i},'importe',this.value)" style="text-align:right">
+      <span class="badge ${dc==='D'?'badge-coral':'badge-green'}" style="font-size:9px;justify-self:start">${dc==='D'?'D · desc.':'C · haber'}</span>
+      <button class="btn btn-ghost btn-sm" onclick="liqdDelRow(${i})" title="Quitar">×</button>
+    </div>`;}).join('')||`<div style="font-size:12px;color:var(--text3);padding:6px 0">Sin conceptos — agregá los del recibo.</div>`;
+  const t=computeItemDesdeConceptos(_liqdRows,conceptosSueldo);
+  document.getElementById('liqd-totales').innerHTML=`Bruto <span class="mono">${fmtARS(t.bruto)}</span> · No rem. <span class="mono">${fmtARS(t.no_remunerativo)}</span> · Descuentos <span class="mono">${fmtARS(t.aportes)}</span> · Neto <b class="mono" style="color:var(--green)">${fmtARS(t.neto)}</b>`;
+}
+function liqdOnRow(i,k,v){const r=_liqdRows[i];if(!r)return;
+  if(k==='codigo'){r.codigo=v;const cat=_conceptoCat(v);if(cat?.unidades&&!r.unidades)r.unidades=cat.unidades;renderLiqdConceptos();return;}
+  if(k==='unidades'){r.unidades=(v||'').toUpperCase().slice(0,1);return;}
+  r[k]=Math.max(0,parseFloat(String(v).replace(',','.'))||0);
+  const t=computeItemDesdeConceptos(_liqdRows,conceptosSueldo);
+  document.getElementById('liqd-totales').innerHTML=`Bruto <span class="mono">${fmtARS(t.bruto)}</span> · No rem. <span class="mono">${fmtARS(t.no_remunerativo)}</span> · Descuentos <span class="mono">${fmtARS(t.aportes)}</span> · Neto <b class="mono" style="color:var(--green)">${fmtARS(t.neto)}</b>`;
+}
+function liqdDelRow(i){_liqdRows.splice(i,1);renderLiqdConceptos();}
+function liqdAddConcepto(){const c=conceptosSueldo.find(x=>x.activo!==false);if(!c)return;_liqdRows.push({codigo:c.codigo,cantidad:0,unidades:c.unidades||'',importe:0,periodo_ajuste:''});renderLiqdConceptos();}
+function liqdPrellenar(){
+  const t=computeItemDesdeConceptos(_liqdRows,conceptosSueldo);
+  const f=computeF931Default({bruto:t.bruto,noRem:t.no_remunerativo,detraer:parseFloat(g('liqd-detraer'))||0,tope:parseFloat(configContable?.lsd_tope_aportes)||0});
+  const set=(k,v)=>{const el=document.getElementById('liqd-'+k);if(el)el.value=v;};
+  set('rem_bruta',f.rem_bruta);for(let i=1;i<=10;i++)set('base'+i,f['base'+i]);
+}
+function liqdAplicar(){
+  const eid=_liqdEmp;if(!eid)return;
+  const rows=_liqdRows.filter(r=>r.codigo);
+  if(rows.some(r=>!(r.importe>=0)))return notify('Revisá los importes de los conceptos','err');
+  const t=computeItemDesdeConceptos(rows,conceptosSueldo);
+  if(t.neto<0)return notify('Los descuentos superan los haberes','err');
+  const num=k=>{const v=parseFloat(g('liqd-'+k));return isFinite(v)?Math.round(v*100)/100:0;};
+  const f931={dias:Math.round(num('dias')),horas:Math.round(num('horas')),rem_bruta:num('rem_bruta'),detraer:num('detraer')};
+  for(let i=1;i<=10;i++)f931['base'+i]=num('base'+i);
+  if(f931.dias>0&&f931.horas>0)return notify('ARCA acepta días trabajados O horas trabajadas, no ambos','err');
+  _liqDetalle[eid]={conceptos:rows,f931};
+  if(!rows.length)delete _liqDetalle[eid];
+  liqAplicarDetalle(eid,true);liqResumen();
+  _modalDirty['modal-liquidacion']=true;
+  closeModal('modal-liq-detalle',true);
+}
+
+// ═══ Catálogo de conceptos de sueldo (082) ═══
+let _cRows=[];
+function openConceptosSueldo(){
+  _cRows=conceptosSueldo.map(c=>({...c,_orig:{...c}}));
+  renderConceptosRows();openModal('modal-conceptos');
+}
+function renderConceptosRows(){
+  const TIPOS={remunerativo:'Remunerativo',no_remunerativo:'No remunerativo',descuento:'Descuento',informativo:'Informativo'};
+  document.getElementById('conceptos-list').innerHTML=_cRows.map((r,i)=>`
+    <div style="display:grid;grid-template-columns:100px 1fr 150px 80px 70px 60px;gap:6px;align-items:center">
+      <input type="text" maxlength="10" value="${esc(r.codigo||'')}" oninput="_cRows[${i}].codigo=this.value.trim()" ${r.id?'readonly style="opacity:.7"':''} placeholder="100">
+      <input type="text" maxlength="60" value="${esc(r.nombre||'')}" oninput="_cRows[${i}].nombre=this.value">
+      <select onchange="_cRows[${i}].tipo=this.value">${Object.entries(TIPOS).map(([k,v])=>`<option value="${k}"${r.tipo===k?' selected':''}>${v}</option>`).join('')}</select>
+      <select onchange="_cRows[${i}].unidades=this.value||null"><option value="">—</option>${['$','%','A','Q','M','D','H'].map(u=>`<option value="${u}"${r.unidades===u?' selected':''}>${u}</option>`).join('')}</select>
+      <input type="number" step="1" value="${r.orden||0}" oninput="_cRows[${i}].orden=parseInt(this.value)||0" style="text-align:right">
+      <input type="checkbox" ${r.activo!==false?'checked':''} onchange="_cRows[${i}].activo=this.checked" style="justify-self:center">
+    </div>`).join('');
+}
+function conceptosAddRow(){const max=_cRows.reduce((m,r)=>Math.max(m,r.orden||0),0);_cRows.push({id:null,codigo:'',nombre:'',tipo:'remunerativo',unidades:null,orden:max+10,activo:true});renderConceptosRows();}
+async function saveConceptosSueldo(){
+  const codes=new Set();
+  for(const r of _cRows){
+    if(!/^[A-Za-z0-9]{1,10}$/.test(r.codigo||''))return notify(`Código inválido "${r.codigo||''}": hasta 10 letras/números sin espacios`,'err');
+    if(!(r.nombre||'').trim())return notify(`El concepto ${r.codigo} necesita nombre`,'err');
+    if(codes.has(r.codigo))return notify(`Código repetido: ${r.codigo}`,'err');codes.add(r.codigo);
+  }
+  setBusy('btn-save-conceptos',true);
+  try{
+    for(const r of _cRows){
+      const data={codigo:r.codigo,nombre:r.nombre.trim(),tipo:r.tipo,unidades:r.unidades||null,orden:r.orden||0,activo:r.activo!==false};
+      if(!r.id)await POST('conceptos_sueldo',{empresa_id:currentEmpresa.id,...data});
+      else if(Object.keys(data).some(k=>(data[k]??null)!==(r._orig[k]??null)))await PATCH('conceptos_sueldo',data,`?id=eq.${r.id}`);
+    }
+    await reload('conceptos_sueldo');
+    _modalDirty['modal-conceptos']=false;closeModal('modal-conceptos',true);notify('Conceptos guardados');
+  }catch(e){notify(msgError(e),'err');}
+  finally{setBusy('btn-save-conceptos',false,'Guardar');}
+}
+
+// ═══ Libro de Sueldos Digital — exportación (082) ═══
+let _lsdLiq=null;
+function openLSD(id){
+  const l=liquidaciones.find(x=>x.id===id);if(!l)return;
+  _lsdLiq=l;const cfg=configContable||{};
+  document.getElementById('lsd-titulo').textContent=`${LIQ_TIPO_LABEL[l.tipo]||l.tipo} ${liqPeriodoFmt(l.periodo)}${l.estado==='borrador'?' · BORRADOR (confirmala antes de subir)':''}`;
+  const s=(id,v)=>{document.getElementById(id).value=(v===undefined||v===null)?'':v;};
+  s('lsd-cuit',cfg.cuit_empleador||'');s('lsd-tipo-empresa',String(cfg.lsd_tipo_empresa??1));
+  s('lsd-detraer',parseFloat(cfg.lsd_importe_detraer)||0);s('lsd-tope',parseFloat(cfg.lsd_tope_aportes)||0);
+  s('lsd-envio','SJ');s('lsd-tipo-liq',LSD_TIPO_LIQ[l.tipo]||'M');
+  s('lsd-nro',l.lsd_nro||sugerirNroLSD(liquidaciones,l.periodo));
+  s('lsd-fecha-pago',l.fecha_pago||hoyLocal());s('lsd-dias-tope',0);
+  lsdPreview();openModal('modal-lsd');
+}
+function armarLSDInput(){
+  const l=_lsdLiq;if(!l)return null;
+  const detraer=parseFloat(g('lsd-detraer'))||0,tope=parseFloat(g('lsd-tope'))||0;
+  const tipoEmpresa=parseInt(g('lsd-tipo-empresa'));const fechaPago=(g('lsd-fecha-pago')||'').replace(/-/g,'');
+  const diasTope=parseInt(g('lsd-dias-tope'))||0;
+  const emps=(l.liquidacion_items||[]).map(i=>{
+    const e=empleados.find(x=>x.id===i.empleado_id)||{};
+    const conceptos=(i.liquidacion_conceptos||[]).slice().sort((a,b)=>(a.orden||0)-(b.orden||0))
+      .map(c=>({codigo:c.codigo,cantidad:parseFloat(c.cantidad)||0,unidades:c.unidades||'',importe:parseFloat(c.importe)||0,dc:c.dc,periodo_ajuste:c.periodo_ajuste||''}));
+    const f=Object.assign(computeF931Default({bruto:parseFloat(i.bruto)||0,noRem:parseFloat(i.no_remunerativo)||0,detraer,tope}),i.f931||{});
+    return {nombre:e.nombre||'?',cuil:e.cuil,legajo:e.legajo,dependencia:e.dependencia,cbu:e.cbu,formaPago:e.forma_pago||3,diasTope,fechaPago,conceptos,
+      reg4:{conyuge:e.conyuge?1:0,hijos:e.hijos||0,cct:e.marca_cct!==false?1:0,scvo:e.marca_scvo!==false?1:0,reduccion:e.marca_reduccion?1:0,
+        tipoEmpresa,situacion:e.cod_situacion||'1',condicion:e.cod_condicion||'1',actividad:e.cod_actividad||'',modalidad:e.cod_modalidad||'008',
+        siniestrado:e.cod_siniestrado||'00',localidad:e.cod_localidad||'00',revista1:e.sit_revista||'1',dia1:1,revista2:'',dia2:0,revista3:'',dia3:0,
+        dias:f.dias,horas:f.horas,pctAdicSS:0,contribDif:0,obraSocial:e.cod_obra_social||'',adherentes:e.adherentes||0,
+        aporteAdicOS:0,contribAdicOS:0,baseDifApOS:0,baseDifContrOS:0,baseDifLRT:0,remMaternidad:0,remBruta:f.rem_bruta,
+        base1:f.base1,base2:f.base2,base3:f.base3,base4:f.base4,base5:f.base5,base6:f.base6,base7:f.base7,base8:f.base8,base9:f.base9,
+        baseDifApSS:0,baseDifContrSS:0,base10:f.base10,detraer:f.detraer}};
+  });
+  return {cuit:g('lsd-cuit'),envio:g('lsd-envio')||'SJ',periodo:(l.periodo||'').slice(0,7).replace('-',''),tipoLiq:g('lsd-tipo-liq')||'M',nro:parseInt(g('lsd-nro'))||0,empleados:emps};
+}
+function lsdPreview(){
+  const inp=armarLSDInput();if(!inp)return;
+  const r=buildLSD(inp);
+  document.getElementById('lsd-resumen').innerHTML=`<b>${r.resumen.empleados}</b> empleados · <b>${r.resumen.conceptos}</b> conceptos · haberes <span class="mono">${fmtARS(r.resumen.haberes)}</span> · descuentos <span class="mono">${fmtARS(r.resumen.descuentos)}</span> · ${r.lineas.length} líneas`;
+  const errEl=document.getElementById('lsd-errores');
+  errEl.style.display=r.errores.length?'block':'none';
+  errEl.innerHTML=r.errores.length?`<b>${r.errores.length} problema(s) — ARCA rechazaría el archivo:</b><br>`+r.errores.map(esc).join('<br>'):'';
+  document.getElementById('lsd-preview').textContent=r.lineas.map(x=>`${x}  [${x.length}]`).join('\n')||'—';
+  document.getElementById('btn-lsd-descargar').disabled=!!r.errores.length;
+}
+async function descargarLSD(){
+  const l=_lsdLiq;if(!l)return;
+  const inp=armarLSDInput();const r=buildLSD(inp);
+  if(r.errores.length)return notify('Corregí los problemas listados antes de descargar','err');
+  const nombre=`LSD_${inp.periodo}_${LIQ_TIPO_LABEL[l.tipo]||l.tipo}_${inp.nro}.txt`.replace(/\s+/g,'_');
+  const blob=new Blob([r.txt],{type:'text/plain;charset=us-ascii'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nombre;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+  try{
+    if(configContable)await PATCH('config_contable',{cuit_empleador:normalizarCuit(inp.cuit),lsd_tipo_empresa:parseInt(g('lsd-tipo-empresa'))||1,
+      lsd_importe_detraer:parseFloat(g('lsd-detraer'))||0,lsd_tope_aportes:parseFloat(g('lsd-tope'))||0},`?empresa_id=eq.${currentEmpresa.id}`);
+    await PATCH('liquidaciones',{lsd_nro:inp.nro,lsd_exportado_at:new Date().toISOString()},`?id=eq.${l.id}`);
+    await reload('liquidaciones','config_contable');
+    _lsdLiq=liquidaciones.find(x=>x.id===l.id)||l;
+    renderAll();notify(`✓ ${nombre} — subilo en ARCA → Libro de Sueldos Digital → Carga de liquidación`);
+  }catch(e){notify('TXT descargado, pero no se pudo registrar la exportación: '+msgError(e),'err');}
+}
+
 function exportCSV(filename,headers,rows){
   const escCell=v=>{const s=(v===null||v===undefined)?'':String(v);return/[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
   const csv='\ufeff'+[headers,...rows].map(r=>r.map(escCell).join(';')).join('\r\n');
@@ -16224,14 +16570,16 @@ function computeParteHoras(entries,ordenes,periodoYM){
   const r2=x=>Math.round(x*100)/100;
   const [y,m]=(periodoYM||'').split('-').map(Number);
   if(!y||!m)return {porOperario:{},detalle:[],totalHoras:0,horasSinOperario:0};
-  const ini=`${y}-${String(m).padStart(2,'0')}-01`;
-  const finExcl=`${m===12?y+1:y}-${String(m===12?1:m+1).padStart(2,'0')}-01`;
+  // Corte de mes en hora ARGENTINA (-03:00), no UTC (082): un timer iniciado el
+  // 31 a las 22 hs pertenece a ese mes aunque en UTC ya sea el día 1.
+  const iniT=new Date(`${y}-${String(m).padStart(2,'0')}-01T00:00:00-03:00`).getTime();
+  const finT=new Date(`${m===12?y+1:y}-${String(m===12?1:m+1).padStart(2,'0')}-01T00:00:00-03:00`).getTime();
   const porOrden={};ordenes.forEach(o=>{porOrden[o.id]=o;});
   const porOperario={},porDetalle={};let total=0,sinOperario=0;
   (entries||[]).forEach(e=>{
     if(e.tipo!=='productivo'||!e.ended_at)return;
-    const s=String(e.started_at);
-    if(s<ini||s>=finExcl)return;
+    const st=new Date(e.started_at).getTime();
+    if(!(st>=iniT&&st<finT))return;
     const hs=(new Date(e.ended_at)-new Date(e.started_at))/3600000;
     if(!(hs>0))return;
     total+=hs;
@@ -16270,6 +16618,118 @@ function alertaF931(liquidaciones,hoy){
   });
   if(!vencidas.length&&!porVencer.length)return null;
   return {sev:vencidas.length?'crit':'warn',vencidas,porVencer};
+}
+
+// ─── Sueldos 082: conceptos, F.931 y Libro de Sueldos Digital (ARCA) ───
+// Puras — tests en tests/sueldos-lsd.test.js.
+// Efecto de los conceptos del recibo sobre el renglón (espejo de guardar_liquidacion):
+// remunerativo → bruto · no_remunerativo → no_rem · descuento → aportes · informativo → nada.
+function computeItemDesdeConceptos(conceptos,catalogo){
+  const r2=x=>Math.round(x*100)/100;
+  const tipoDe={};(catalogo||[]).forEach(c=>{tipoDe[c.codigo]=c.tipo;});
+  let bruto=0,noRem=0,aportes=0;
+  (conceptos||[]).forEach(c=>{
+    const imp=r2(Number(c.importe)||0);const t=tipoDe[c.codigo];
+    if(t==='remunerativo')bruto+=imp;else if(t==='no_remunerativo')noRem+=imp;else if(t==='descuento')aportes+=imp;
+  });
+  bruto=r2(bruto);noRem=r2(noRem);aportes=r2(aportes);
+  return {bruto,no_remunerativo:noRem,aportes,neto:r2(bruto+noRem-aportes)};
+}
+// Bases imponibles por defecto del registro 04: bases 1..9 = bruto remunerativo
+// (1/4/5 con tope si hay), 6 y 7 = 0 (regímenes diferenciales/especiales),
+// rem. bruta = remunerativo + no remunerativo, base 10 = bruto − detracción
+// (0 si no hay detracción, como pide ARCA). Todo editable por la contadora.
+function computeF931Default({bruto=0,noRem=0,detraer=0,tope=0,dias=30,horas=0}={}){
+  const r2=x=>Math.round(x*100)/100;
+  const b=r2(Number(bruto)||0),t=Number(tope)||0,d=r2(Number(detraer)||0);
+  const conTope=t>0?Math.min(b,r2(t)):b;
+  return {dias,horas,rem_bruta:r2(b+(Number(noRem)||0)),detraer:d,
+    base1:conTope,base2:b,base3:b,base4:conTope,base5:conTope,base6:0,base7:0,base8:b,base9:b,
+    base10:d>0?Math.max(0,r2(b-d)):0};
+}
+// Número de liquidación LSD: mayor a los ya informados para el período
+function sugerirNroLSD(liquidaciones,periodo){
+  const per=(periodo||'').slice(0,7);
+  return (liquidaciones||[]).filter(l=>(l.periodo||'').slice(0,7)===per).reduce((m,l)=>Math.max(m,parseInt(l.lsd_nro)||0),0)+1;
+}
+// CBU: 22 dígitos, bloque 1 (7 + DV) y bloque 2 (13 + DV), pesos 7-1-3-9 desde la derecha
+function validarCbu(cbu){
+  const d=String(cbu||'').replace(/\D/g,'');
+  if(d.length!==22)return false;
+  // pesos de izquierda a derecha: bloque 1 = 7,1,3,9,7,1,3 · bloque 2 = 3,9,7,1,3,9,7,1,3,9,7,1,3 → desde la derecha ambos ciclan 3,1,7,9
+  const dv=s=>{const w=[3,1,7,9];let sum=0;for(let i=0;i<s.length;i++)sum+=Number(s[s.length-1-i])*w[i%4];return (10-sum%10)%10;};
+  return dv(d.slice(0,7))===Number(d[7])&&dv(d.slice(8,21))===Number(d[21]);
+}
+// Formato de ancho fijo del TXT (fórmulas de LSD-ARMADO-TXT-Liquidaciones.xlsx, ARCA)
+const LSD_TIPO_LIQ={mensual:'M',quincena1:'Q',quincena2:'Q',sac:'M',vacaciones:'M',final:'M',otro:'M'};
+function lsdAscii(s){return String(s??'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\x20-\x7E]/g,' ');}
+function lsdNum(v,len){const s=typeof v==='number'?String(Math.max(0,Math.trunc(v))):String(v??'').replace(/\D/g,'');return s.slice(-len).padStart(len,'0');}   // entero, ceros a la izquierda
+function lsdImp(v,len=15){const c=Math.max(0,Math.round((Number(v)||0)*100));return String(c).slice(-len).padStart(len,'0');}                   // importe ×100 sin coma
+function lsdStr(v,len){return lsdAscii(v).slice(0,len).padEnd(len,' ');}      // alfanumérico alineado a la izquierda
+function lsdStrR(v,len){return lsdAscii(v).slice(0,len).padStart(len,' ');}   // alfanumérico alineado a la derecha
+function lsdReg1({cuit,envio,periodo,tipoLiq,nro,cantReg4}){
+  return '01'+lsdNum(cuit,11)+lsdStrR(envio,2)+lsdNum(periodo,6)+lsdStrR(tipoLiq,1)+lsdNum(nro,5)+(envio==='RE'?'  ':'30')+lsdNum(cantReg4,6);
+}
+function lsdReg2(e){
+  return '02'+lsdNum(e.cuil,11)+lsdStr(e.legajo,10)+lsdStr(e.dependencia,50)+lsdStrR(e.cbu,22)+lsdNum(e.diasTope,3)+lsdNum(e.fechaPago,8)+lsdStrR(e.fechaRubrica,8)+lsdNum(e.formaPago,1);
+}
+function lsdReg3(cuil,c){
+  return '03'+lsdNum(cuil,11)+lsdStr(c.codigo,10)+lsdImp(c.cantidad,5)+lsdStrR(c.unidades,1)+lsdImp(c.importe,15)+lsdStrR(c.dc,1)+lsdStrR(c.periodo_ajuste,6);
+}
+function lsdReg4(cuil,r){
+  const I=v=>lsdImp(v,15);
+  return '04'+lsdNum(cuil,11)+lsdNum(r.conyuge,1)+lsdNum(r.hijos,2)+lsdNum(r.cct,1)+lsdNum(r.scvo,1)+lsdNum(r.reduccion,1)+lsdNum(r.tipoEmpresa,1)+'0'
+    +lsdNum(r.situacion,2)+lsdStr(r.condicion,2)+lsdNum(r.actividad,3)+lsdStr(r.modalidad,3)+lsdStr(r.siniestrado,2)+lsdNum(r.localidad,2)
+    +lsdNum(r.revista1,2)+lsdNum(r.dia1,2)+lsdNum(r.revista2,2)+lsdNum(r.dia2,2)+lsdNum(r.revista3,2)+lsdNum(r.dia3,2)
+    +lsdNum(r.dias,2)+lsdNum(r.horas,3)+lsdImp(r.pctAdicSS,5)+lsdImp(r.contribDif,5)+lsdNum(r.obraSocial,6)+lsdNum(r.adherentes,2)
+    +I(r.aporteAdicOS)+I(r.contribAdicOS)+I(r.baseDifApOS)+I(r.baseDifContrOS)+I(r.baseDifLRT)+I(r.remMaternidad)+I(r.remBruta)
+    +I(r.base1)+I(r.base2)+I(r.base3)+I(r.base4)+I(r.base5)+I(r.base6)+I(r.base7)+I(r.base8)+I(r.base9)
+    +I(r.baseDifApSS)+I(r.baseDifContrSS)+I(r.base10)+I(r.detraer);
+}
+const LSD_LARGO={'01':35,'02':115,'03':51,'04':370};
+// Arma el TXT completo (registros 01, 02×N, 03×conceptos, 04×N) y valida lo
+// que ARCA rechazaría. Devuelve {lineas, txt (CRLF), errores, resumen}.
+function buildLSD(input){
+  const errores=[];const lineas=[];
+  const cuit=String(input.cuit||'').replace(/\D/g,'');
+  const emps=input.empleados||[];
+  if(cuit.length!==11||!validarCuit(cuit))errores.push('CUIT del empleador inválido');
+  if(!/^\d{6}$/.test(String(input.periodo||'')))errores.push('Período inválido (AAAAMM)');
+  if(!['SJ','RE'].includes(input.envio))errores.push('Identificación del envío: SJ o RE');
+  if(!(input.nro>=1&&input.nro<=99999))errores.push('Número de liquidación entre 1 y 99999');
+  if(!emps.length)errores.push('La liquidación no tiene empleados');
+  let conceptos=0,haberes=0,descuentos=0;
+  const cuils=new Set();
+  const nombre=e=>e.nombre||e.cuil||'?';
+  emps.forEach(e=>{
+    const cuil=String(e.cuil||'').replace(/\D/g,'');
+    if(cuil.length!==11||!validarCuit(cuil))errores.push(`${nombre(e)}: CUIL inválido o faltante`);
+    if(cuils.has(cuil))errores.push(`${nombre(e)}: CUIL repetido`);cuils.add(cuil);
+    if(!/^\d{8}$/.test(String(e.fechaPago||'')))errores.push(`${nombre(e)}: fecha de pago inválida (AAAAMMDD)`);
+    if(Number(e.formaPago)===3&&!validarCbu(e.cbu))errores.push(`${nombre(e)}: forma de pago 3 (acreditación) exige CBU válido de 22 dígitos`);
+    if(!(e.conceptos||[]).length)errores.push(`${nombre(e)}: sin conceptos cargados (botón ARCA en la liquidación)`);
+    (e.conceptos||[]).forEach(c=>{
+      if(!/^[A-Za-z0-9]{1,10}$/.test(String(c.codigo||'')))errores.push(`${nombre(e)}: código de concepto inválido "${c.codigo||''}"`);
+      if(!(Number(c.importe)>=0)||Number(c.importe)>=1e13)errores.push(`${nombre(e)}: importe fuera de rango en ${c.codigo}`);
+      if(!(Number(c.cantidad)>=0)||Number(c.cantidad)>=1000)errores.push(`${nombre(e)}: cantidad fuera de rango en ${c.codigo} (máx 999,99)`);
+      if(!['D','C'].includes(c.dc))errores.push(`${nombre(e)}: D/C inválido en ${c.codigo}`);
+      if(c.periodo_ajuste&&!/^\d{6}$/.test(c.periodo_ajuste))errores.push(`${nombre(e)}: período de ajuste inválido en ${c.codigo}`);
+      conceptos++;if(c.dc==='D')descuentos+=Number(c.importe)||0;else haberes+=Number(c.importe)||0;
+    });
+    const r=e.reg4||{};
+    if(!/^\d{6}$/.test(String(r.obraSocial||'')))errores.push(`${nombre(e)}: falta el código de obra social (6 dígitos RNOS) en el legajo`);
+    if(!/^\d{3}$/.test(String(r.actividad||'')))errores.push(`${nombre(e)}: falta el código de actividad SICOSS (3 dígitos) en el legajo`);
+    if(!/^\d{3}$/.test(String(r.modalidad||'')))errores.push(`${nombre(e)}: código de modalidad de contratación inválido (3 dígitos)`);
+    if(Number(r.dias)>0&&Number(r.horas)>0)errores.push(`${nombre(e)}: informar días trabajados O horas trabajadas, no ambos`);
+    if(!(Number(r.remBruta)>0))errores.push(`${nombre(e)}: remuneración bruta en cero`);
+  });
+  const r2=x=>Math.round(x*100)/100;
+  lineas.push(lsdReg1({cuit,envio:input.envio,periodo:input.periodo,tipoLiq:input.tipoLiq||'M',nro:input.nro,cantReg4:emps.length}));
+  emps.forEach(e=>lineas.push(lsdReg2({...e,cuil:e.cuil})));
+  emps.forEach(e=>(e.conceptos||[]).forEach(c=>lineas.push(lsdReg3(e.cuil,c))));
+  emps.forEach(e=>lineas.push(lsdReg4(e.cuil,e.reg4||{})));
+  lineas.forEach((ln,i)=>{const esperado=LSD_LARGO[ln.slice(0,2)];if(ln.length!==esperado)errores.push(`Línea ${i+1} (registro ${ln.slice(0,2)}): largo ${ln.length} ≠ ${esperado}`);});
+  return {lineas,txt:lineas.join('\r\n')+'\r\n',errores,resumen:{empleados:emps.length,conceptos,haberes:r2(haberes),descuentos:r2(descuentos)}};
 }
 
 // Parseo del extracto pegado (tab / ; como separador). Devuelve
