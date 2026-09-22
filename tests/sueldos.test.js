@@ -124,9 +124,19 @@ test('computeParteHoras: excluye pausas, timers abiertos y otros meses', () => {
     { started_at: '2026-08-05T08:00:00+00:00', ended_at: '2026-08-05T09:00:00+00:00', tipo: 'pausa', orden_id: 'op1' },
     { started_at: '2026-08-05T08:00:00+00:00', ended_at: null, tipo: 'productivo', orden_id: 'op1' },
     { started_at: '2026-07-31T08:00:00+00:00', ended_at: '2026-07-31T12:00:00+00:00', tipo: 'productivo', orden_id: 'op1' },
-    { started_at: '2026-09-01T00:30:00+00:00', ended_at: '2026-09-01T02:00:00+00:00', tipo: 'productivo', orden_id: 'op1' },
+    { started_at: '2026-09-01T12:00:00+00:00', ended_at: '2026-09-01T14:00:00+00:00', tipo: 'productivo', orden_id: 'op1' },
   ], ORDENES, '2026-08');
   assert.strictEqual(ph.totalHoras, 0);
+});
+
+test('computeParteHoras: el corte de mes es en hora Argentina (-03), no UTC (082)', () => {
+  const ph = parteHoras([
+    // 31/08 22:00 AR = 01/09 01:00 UTC → es de AGOSTO
+    { started_at: '2026-09-01T01:00:00+00:00', ended_at: '2026-09-01T02:00:00+00:00', tipo: 'productivo', orden_id: 'op1' },
+    // 31/07 22:30 AR = 01/08 01:30 UTC → es de JULIO, no de agosto
+    { started_at: '2026-08-01T01:30:00+00:00', ended_at: '2026-08-01T03:30:00+00:00', tipo: 'productivo', orden_id: 'op1' },
+  ], ORDENES, '2026-08');
+  assert.strictEqual(ph.totalHoras, 1);
 });
 
 test('computeParteHoras: horas de OPs sin operario van a horasSinOperario', () => {
