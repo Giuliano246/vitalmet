@@ -46,4 +46,39 @@ test('computeGanancias: junio SAC — reemplaza doceavos por el SAC real', () =>
     acumulados:{ rem_gravada_acum:22479166.65, retenido_previo:1500000, sac_prorrateado_acum:2083333.35, sac_real_acum:0 } });
   // se descuentan los 5 doceavos prorrateados (2.083.333,35 × 0,83) y se suma el SAC real neto (2.500.000 × 0,83)
   assert.equal(g.rem_gravada_mes, 345833.32);
+  assert.equal(g.sac_prorrateado_acum, 0);        // el semestre se cierra: no quedan doceavos pendientes
+  assert.equal(g.sac_real_acum, 2500000);
+});
+test('computeGanancias: rama del tope — retención topeada al 1 % del bruto cuando el impuesto acumulado excede el tope', () => {
+  const g = gan({ periodo:'2026-02-01', conceptos:conc(5000000), remBruto:5000000, previsional:{ ...PREV, ganancias_tope_retencion_pct:1 },
+    acumulados:{ rem_gravada_acum:30000000, retenido_previo:0, sac_prorrateado_acum:0, sac_real_acum:0 } });
+  assert.ok(g.impuesto_acum > 50000);              // muy por encima del tope forzado al 1 %
+  assert.equal(g.tope_aplicado, true);
+  assert.equal(g.retencion_mes, 50000);            // 1 % de 5.000.000
+});
+test('computeGanancias: deducciones F.572 acotadas al año fiscal del período (no arrastran meses de años anteriores)', () => {
+  // mayo 2026: una deducción que arrancó en 2025 sólo cuenta desde enero de este año (5 meses: ene-mayo)
+  const emp1 = { ganancias_aplica:true, conyuge:false, hijos:0, hijos_incap:0, ganancias_deducciones:[{tipo:'servicio_domestico',importe_mensual:100000,periodo_desde:'2025-06'}] };
+  const g1 = gan({ empleado:emp1, periodo:'2026-05-01' });
+  assert.equal(g1.deducciones_f572_acum, 500000);
+  // una deducción que terminó en 2025 no aporta nada en 2026
+  const emp2 = { ganancias_aplica:true, conyuge:false, hijos:0, hijos_incap:0, ganancias_deducciones:[{tipo:'servicio_domestico',importe_mensual:100000,periodo_desde:'2025-01',periodo_hasta:'2025-12'}] };
+  const g2 = gan({ empleado:emp2, periodo:'2026-05-01' });
+  assert.equal(g2.deducciones_f572_acum, 0);
+});
+test('computeGanancias: liquidación final — el SAC real (código 28) no duplica lo ya contado en el neto (R24)', () => {
+  const CAT_SAC = [...CAT, { codigo: '28', tipo: 'remunerativo' }];
+  const g = gan({ tipo:'final', periodo:'2026-09-01', catalogo:CAT_SAC,
+    conceptos:[{codigo:'1',importe:2500000},{codigo:'28',importe:1250000},{codigo:'200',importe:412500},{codigo:'201',importe:112500},{codigo:'202',importe:112500}],
+    remBruto:3750000, acumulados:{ rem_gravada_acum:20000000, retenido_previo:2000000, sac_prorrateado_acum:1250000, sac_real_acum:0 } });
+  // neto ordinario = 2.500.000 × 0,83 = 2.075.000; SAC real (1.250.000 × 0,83) − doceavos ya prorrateados (1.250.000 × 0,83) = 0
+  assert.equal(g.rem_gravada_mes, 2075000);
+  assert.equal(g.sac_prorrateado_acum, 0);
+  assert.equal(g.sac_real_acum, 1250000);
+});
+test('computeGanancias: 208/211 (aportes s/no remunerativo) no se deducen — noRem queda fuera de la base gravada (R23)', () => {
+  const base = gan();
+  const conConNoRem = conc(5000000).concat([{ codigo:'208', importe:300000 }]);
+  const g = gan({ conceptos:conConNoRem, noRem:9999999 });
+  assert.equal(g.rem_gravada_mes, base.rem_gravada_mes);
 });
