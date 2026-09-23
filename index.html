@@ -16849,7 +16849,7 @@ function computeRecibo(ctx){
   // (spec §Motor punto 2), no una regla declarativa del catálogo. Para jornal el básico
   // ya sale del código 4 (Jornal) vía la regla 'valor_hora'. Si el catálogo real no trae
   // el código 1, se usa un default remunerativo estándar (mismas marcas que Jornal/IMGR).
-  if(!porCod['1']){const c1={codigo:'1',nombre:'Sueldo básico',tipo:'remunerativo',codigo_arca:'110000',marcas:'111111111111100'};porCod['1']=c1;cat.push(c1);}
+  if(!porCod['1']){const c1={codigo:'1',nombre:'Sueldo básico',tipo:'remunerativo',codigo_arca:'110000',marcas:'111111111111100',regla:{orden:1}};porCod['1']=c1;cat.push(c1);}
   const esUom=(e.convenio||'uom')==='uom',esJornal=(e.modalidad||'jornal')==='jornal';
   const dPer=diasPeriodo(tipo),fPer=dPer/30,fJor=Math.min(1,num(e.horas_semanales||48)/48);
   const horasDia=num(conv.horas_dia)||8,horasMes=num(conv.horas_mes)||200;
@@ -16858,12 +16858,16 @@ function computeRecibo(ctx){
   if(e.fecha_ingreso&&e.fecha_ingreso>ini){diasCal-=Math.round((Date.parse(e.fecha_ingreso)-Date.parse(ini))/86400000);}
   if(e.fecha_egreso&&e.fecha_egreso<fin){diasCal-=Math.round((Date.parse(fin)-Date.parse(e.fecha_egreso))/86400000);}
   diasCal=Math.max(0,Math.min(dPer,diasCal));
-  const ausencias=num(nov.ausencias_injustificadas)+num(nov.licencia_sin_goce_dias);
+  // Ruling R19: las licencias pagas (enfermedad/accidente/licencia paga) también se restan de
+  // diasTrab — igual que las ausencias/vacaciones — para no duplicar el pago: el básico se reduce
+  // y los conceptos 7/8/37 (base 'valor_dia') reintegran esos días aparte (spec §8).
+  const ausencias=num(nov.ausencias_injustificadas)+num(nov.licencia_sin_goce_dias)+num(nov.enfermedad_dias)+num(nov.accidente_dias)+num(nov.licencia_paga_dias);
   const diasTrab=Math.max(0,(nov.dias_trabajados!=null?num(nov.dias_trabajados):diasCal)-ausencias-num(nov.vacaciones_dias));
   const horasNorm=esJornal?(nov.horas_normales!=null?num(nov.horas_normales):diasTrab*horasDia*fJor):0;
   const parcial=diasCal<dPer||num(nov.vacaciones_dias)>0;   // mes de ingreso/egreso o vacaciones → tope prorrateado
   if(!e.fecha_ingreso)alertas.push('Sin fecha de ingreso: antigüedad 0');
   if(!nov||!Object.keys(nov).length)alertas.push('Sin novedades cargadas: se asume período completo');
+  if(num(nov.enfermedad_dias)>0)alertas.push('Licencia por enfermedad: verificar plazo art. 208 LCT');
   // 2. Básico
   let valorHora=0,basicoMensual=0,basico=0;
   if(esUom){
@@ -16924,7 +16928,11 @@ function computeRecibo(ctx){
       case 'valor_dia_vacaciones':push(c,q,valorDiaVac*q,valorDiaVac,`${valorDiaVac} × ${q} d`);break;
       case 'no_rem_paritaria':push(c,1,noRemParit,noRemParit,`${conv.no_rem_paritaria} × ${fPer} × ${diasCal}/${dPer}`);break;
       case 'fijo':push(c,q>1?q:1,g.importe!=null?num(g.importe)*q:q,q,`${q}`);break;
-      case 'complemento_imgr':{const piso=r2(num(conv.imgr)*fJor*fPer);const suma=conceptos.filter(x=>!['10','16','17'].includes(x.codigo)).reduce((a,x)=>a+x.importe,0);
+      case 'complemento_imgr':{const piso=r2(num(conv.imgr)*fJor*fPer);
+        // R20 (spec §10): suma = básico + antigüedad + presentismo + adicionales + no rem paritaria
+        // (sin extras 10/16 ni feriado trabajado 17). Los adicionales se pushean recién después de
+        // este loop, así que se suman aparte vía `adicImp` (ya calculado en el paso 4).
+        const suma=conceptos.filter(x=>!['10','16','17'].includes(x.codigo)).reduce((a,x)=>a+x.importe,0)+adicImp;
         if(piso>0&&suma<piso)push(c,1,piso-suma,piso,`${piso} − ${r2(suma)}`);break;}
       default:break;   // sac, ganancias, redondeo: se resuelven aparte
     }
@@ -16950,7 +16958,10 @@ function computeRecibo(ctx){
     if(g.base==='fijo'){push(c,1,q,q,`${q}`);return;}
     if(g.base==='fijo_param'){push(c,1,num(conv[g.importe_param])*fPer,num(conv[g.importe_param]),`${conv[g.importe_param]} × ${fPer}`);return;}
     const b=basesD[g.base]||0,p=num(prev[g.pct_param]??conv[g.pct_param]);
-    push(c,q>1?q:p,b*p/100*(q||1),b,`${b} × ${p} % × ${q||1}`);
+    // La cantidad multiplica la base porcentual tal cual (207 Obra social adherentes: 0 adherentes →
+    // no genera línea); el fallback a 1 es sólo para reglas cuya `cantidad` literal es '1'.
+    const cantLit=(g.cantidad||'1')==='1',factor=cantLit?1:q;
+    push(c,q>1?q:p,b*p/100*factor,b,`${b} × ${p} % × ${factor}`);
   });
   (e.conceptos_recurrentes||[]).forEach(rc=>{const c=porCod[rc.codigo];if(!c||c.tipo!=='descuento')return;
     if(rc.desde&&rc.desde>fin)return;if(rc.hasta&&rc.hasta<ini)return;
@@ -16971,9 +16982,10 @@ function computeRecibo(ctx){
   if(rd>0){const t=computeItemDesdeConceptos(conceptos,cat);const obj=Math.ceil(t.neto/rd)*rd;const dif=r2(obj-t.neto);
     if(dif>0&&porCod['998'])push(porCod['998'],1,dif,t.neto,`${obj} − ${t.neto}`);}
   const totales=computeItemDesdeConceptos(conceptos,cat);
-  // Contribuciones patronales
+  // Contribuciones patronales. Ruling R18 (Ley 27.541): el tope máximo de aportes es SÓLO
+  // del empleado — las contribuciones patronales van sobre rem_bruto sin topear (ídem f931.base10).
   const detr=r2(num(prev.detraccion)*(parcial?diasCal/30:fPer));
-  const baseSipa=Math.max(0,r2(remTopeado-detr)),baseOs=r2(remBruto+noRemOs);
+  const baseSipa=Math.max(0,r2(remBruto-detr)),baseOs=r2(remBruto+noRemOs);
   const contribuciones=[
     {codigo:'640',nombre:'SVC',pct:null,base:r2(num(conv.scvo_importe)*fPer),importe:r2(num(conv.scvo_importe)*fPer)},
     {codigo:'642',nombre:'CONTRIBUCION INSSJP',pct:num(prev.contrib_inssjp_pct),base:baseSipa,importe:r2(baseSipa*num(prev.contrib_inssjp_pct)/100)},
@@ -16991,10 +17003,19 @@ function computeRecibo(ctx){
   // no_rem final (post-redondeo/Ganancias, incluye 998/999) — distinto del `noRem` pre-redondeo
   // usado como BASE de los descuentos s/no remunerativo (211/208), que no deben computarse sobre el ajuste de redondeo.
   const noRemFinal=totales.no_remunerativo;
+  // Ruling R21: base10 no puede quedar por debajo del tope mínimo cuando corresponde (ídem tope aplicado a rem_topeado).
+  const base2=sumMarca(1);
+  const base10=topeMin>0?Math.max(topeMin,r2(base2-detr)):Math.max(0,r2(base2-detr));
   const f931={dias:esJornal?0:Math.round(diasTrab+num(nov.vacaciones_dias)),horas:esJornal?Math.round(horasNorm+num(nov.feriados_no_trabajados)*horasDia):0,
-    rem_bruta:r2(remBruto+noRemFinal),detraer:detr,base1:cap(sumMarca(0)),base2:sumMarca(1),base3:sumMarca(10),base4:cap(sumMarca(4)),base5:cap(sumMarca(2)),
-    base6:sumMarca(13),base7:sumMarca(14),base8:sumMarca(5),base9:sumMarca(12),base10:Math.max(0,r2(sumMarca(1)-detr))};
-  return {conceptos,totales,bases:{rem_bruto:remBruto,no_rem:noRemFinal,no_rem_os:noRemOs,rem_topeado:remTopeado,tope_max_prorr:topeMax,dias_trabajados:diasTrab,horas_normales:horasNorm,factor_periodo:fPer,factor_jornada:fJor,valor_hora:valorHora,valor_hora_extra:vhe,antiguedad_anios:anios},
+    rem_bruta:r2(remBruto+noRemFinal),detraer:detr,base1:cap(sumMarca(0)),base2,base3:sumMarca(10),base4:cap(sumMarca(4)),base5:cap(sumMarca(2)),
+    base6:sumMarca(13),base7:sumMarca(14),base8:sumMarca(5),base9:sumMarca(12),base10};
+  // Ordena las líneas del recibo por el `regla.orden` del catálogo (estable, el sintético del
+  // código 1 lleva orden:1); los conceptos sin `regla`/`orden` en el catálogo real quedan al
+  // final, en el orden en que se pushearon.
+  const ordenDe=cod=>porCod[cod]?.regla?.orden;
+  conceptos.sort((a,b)=>{const oa=ordenDe(a.codigo),ob=ordenDe(b.codigo);
+    if(oa==null&&ob==null)return 0;if(oa==null)return 1;if(ob==null)return -1;return oa-ob;});
+  return {conceptos,totales,bases:{rem_bruto:remBruto,no_rem:noRemFinal,no_rem_os:noRemOs,rem_topeado:remTopeado,tope_max_prorr:topeMax,dias_trabajados:diasTrab,horas_normales:horasNorm,factor_periodo:fPer,factor_jornada:fJor,valor_hora:valorHora,valor_hora_extra:vhe,valor_dia_vacaciones:valorDiaVac,antiguedad_anios:anios},
     f931,contribuciones,contribuciones_total:contribTotal,art,ganancias:gan,alertas};
 }
 

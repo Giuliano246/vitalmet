@@ -105,6 +105,7 @@ test('computeRecibo: reproduce el recibo real de la 1ª quincena 09/2026', () =>
   assert.equal(r.f931.base9, 444111.03); assert.equal(r.f931.detraer, 3501.84); assert.equal(r.f931.base10, 440609.19);
   assert.equal(r.f931.rem_bruta, 484111.65); assert.equal(r.f931.horas, 99); assert.equal(r.f931.dias, 0);
   assert.equal(r.conceptos.every(c => c.origen === 'auto' && c.traza && c.traza.formula), true);
+  assert.equal(r.bases.valor_dia_vacaciones, 40373.73);   // fix #1: expuesto en `bases` (lo consume Task 6)
 });
 test('computeRecibo: mensual UOM con antigüedad, presentismo, extras, ausencia (pierde presentismo) y ART', () => {
   const emp = { ...EMP, modalidad:'mensual', categoria_escala:'Administrativo A2', fecha_ingreso:'2023-03-10', fecha_ingreso_reconocida:null };
@@ -133,6 +134,10 @@ test('computeRecibo: fuera de convenio, mes de ingreso (20 días), tope máximo 
   assert.equal(imp(r,'200'), 344061.55);                                   // 11 % del tope prorrateado
   assert.equal(r.f931.dias, 20); assert.equal(r.f931.detraer, 4669.12);    // 7.003,68 × 20/30
   assert.ok(r.alertas.some(a => /tope/i.test(a)));
+  // fix #4 (R18, Ley 27.541): las contribuciones patronales NO usan el tope de aportes del empleado —
+  // 644 Jubilación = (rem_bruto − detracción) × 10,77 %, no (rem_topeado − detracción).
+  const contrib3 = Object.fromEntries(r.contribuciones.map(c => [c.codigo, c.importe]));
+  assert.equal(contrib3['644'], 537997.14);   // (5.000.000 − 4.669,12) × 10,77 %
 });
 test('computeRecibo: recurrentes (préstamo con última cuota, embargo tope 20 % del neto), adelanto y premio', () => {
   const emp = { ...EMP, conceptos_recurrentes:[{codigo:'227',importe:50000,cuotas_total:3,cuotas_pagadas:2,desde:'2026-07-01'},{codigo:'226',importe:200000,desde:'2026-01-01'}] };
@@ -146,4 +151,38 @@ test('computeRecibo: recurrentes (préstamo con última cuota, embargo tope 20 %
   // neto antes de embargo: (444.111,03+25.000) rem + 40.000 − aportes(17 % de 469.111,03 + 2,5 % ... ) → embargo = min(200.000, 20 % de ese neto)
   const netoSinEmbargo = r.totales.neto + imp(r,'226') - (imp(r,'998')||0) + (imp(r,'999')||0);
   assert.ok(Math.abs(imp(r,'226') - Math.round(netoSinEmbargo*0.2*100)/100) < 1);
+});
+
+// ─── Fix round 1 (review de Task 4) ─────────────────────────────────────
+test('computeRecibo: concepto 207 (OS adherentes) usa la cantidad tal cual — 0 adherentes no genera línea (fix #2)', () => {
+  const cat207 = CAT.concat([{ codigo:'207', nombre:'Obra social adherentes', tipo:'descuento', codigo_arca:'810009', marcas:'000000000000000', regla:{auto:true,base:'rem_topeado',pct_param:'aporte_os_adherente_pct',cantidad:'legajo.adherentes',orden:207} }]);
+  const sinAdherentes = recibo({ catalogo:cat207, empleado:{ ...EMP, adherentes:0 } });
+  assert.equal(sinAdherentes.conceptos.find(c => c.codigo === '207'), undefined);
+  const conAdherentes = recibo({ catalogo:cat207, empleado:{ ...EMP, adherentes:2 } });
+  assert.equal(conAdherentes.bases.rem_topeado, 444111.03);
+  assert.equal(imp(conAdherentes, '207'), 13323.33);   // 444.111,03 × 1,5 % × 2
+});
+
+test('computeRecibo: el complemento IMGR incluye los adicionales fijos del legajo (fix #3, R20)', () => {
+  const emp = { ...EMP, modalidad:'mensual', categoria_escala:'Administrativo A2', fecha_ingreso:'2023-03-10', fecha_ingreso_reconocida:null };
+  const esc = { vigencia_desde:'2026-08-01', categoria:'Administrativo A2', modalidad:'mensual', valor_hora:0, basico_mensual:1200000 };
+  const conv = { ...CONV, imgr:1600000 };
+  const cat25 = CAT.concat([{ codigo:'25', nombre:'Adicional título', tipo:'remunerativo', codigo_arca:'110000', marcas:'111111111111100', regla:{auto:false,base:'basico',cantidad:'1',orden:22} }]);
+  const sinAdic = recibo({ empleado:{ ...emp, adicionales_fijos:[] }, escala:esc, convenio:conv, tipo:'mensual', catalogo:cat25 });
+  const conAdic = recibo({ empleado:{ ...emp, adicionales_fijos:[{ codigo:'25', pct:20 }] }, escala:esc, convenio:conv, tipo:'mensual', catalogo:cat25 });
+  const adicional = imp(conAdic, '25');
+  assert.ok(adicional > 0);
+  assert.ok(imp(sinAdic, '24') > 0 && imp(conAdic, '24') > 0);   // ambos por debajo del piso IMGR
+  assert.equal(Math.round((imp(sinAdic, '24') - imp(conAdic, '24')) * 100) / 100, adicional);
+});
+
+test('computeRecibo: licencia paga (enfermedad) no duplica el pago — se resta de diasTrab y se reintegra aparte (fix #5, R19)', () => {
+  const emp = { ...EMP, convenio:'fuera', modalidad:'mensual', categoria_escala:null, sueldo_pactado:1200000, fecha_ingreso:'2020-01-01', fecha_ingreso_reconocida:null };
+  const cat7 = CAT.concat([{ codigo:'7', nombre:'Licencia enfermedad', tipo:'remunerativo', codigo_arca:'111000', marcas:'111111111111100', regla:{auto:true,base:'valor_dia',cantidad:'novedad.enfermedad_dias',orden:46} }]);
+  const nov = { ...NOV, horas_normales:null, enfermedad_dias:5 };
+  const r = recibo({ empleado:emp, escala:null, novedad:nov, tipo:'mensual', catalogo:cat7 });
+  assert.equal(imp(r, '1'), 1000000);      // básico 1.200.000 × 25/30 (30 − 5 días de licencia)
+  assert.equal(imp(r, '7'), 200000);       // 5 × valor_dia (1.200.000/30 = 40.000)
+  assert.equal(r.bases.rem_bruto, 1200000);   // no se duplica: básico reducido + licencia reintegrada = el sueldo completo
+  assert.ok(r.alertas.some(a => /enfermedad/i.test(a)));
 });
