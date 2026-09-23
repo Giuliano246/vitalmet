@@ -5789,8 +5789,8 @@ function renderSueldosNovedades(){
     const num=(campo,width,step,extra)=>`<input type="number" step="${step}" style="width:${width}px" data-nov-emp="${e.id}" data-nov-campo="${campo}" value="${esc(nov[campo]??'')}"${extra||''}>`;
     return `<tr>
       <td style="font-weight:500;white-space:nowrap">${esc(e.nombre)}</td>
-      <td>${num('dias_trabajados',55,'0.5',esJornal?'':' disabled')}</td>
-      <td>${num('horas_normales',60,'0.5',esJornal?' disabled':'')}</td>
+      <td>${num('dias_trabajados',55,'0.5',esJornal?' disabled':'')}</td>
+      <td>${num('horas_normales',60,'0.5',esJornal?'':' disabled')}</td>
       <td>${num('hs_extra_50',55,'0.5')}</td>
       <td>${num('hs_extra_100',55,'0.5')}</td>
       <td>${num('feriados_no_trabajados',50,'1')}</td>
@@ -5808,7 +5808,7 @@ function renderSueldosNovedades(){
     </tr>`;
   }).join(''):`<tr><td colspan="17" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Sin empleados activos.</td></tr>`;
 }
-function _novRows(){const por={};document.querySelectorAll('[data-nov-emp]').forEach(inp=>{const k=inp.dataset.novCampo;const v=inp.type==='number'?(inp.value===''?null:parseFloat(inp.value)):inp.value;(por[inp.dataset.novEmp]=por[inp.dataset.novEmp]||{empleado_id:inp.dataset.novEmp})[k]=v;});return Object.values(por);}
+function _novRows(){const por={};document.querySelectorAll('[data-nov-emp]').forEach(inp=>{const k=inp.dataset.novCampo;let v=inp.type==='number'?(inp.value===''?null:parseFloat(inp.value)):inp.value;if(k==='feriados_no_trabajados'&&v!==null)v=Math.round(v);(por[inp.dataset.novEmp]=por[inp.dataset.novEmp]||{empleado_id:inp.dataset.novEmp})[k]=v;});return Object.values(por);}
 async function saveNovedades(){
   const periodo=g('nov-periodo');if(!periodo)return notify('Indicá el período','err');
   setBusy('btn-save-nov',true);
