@@ -2074,21 +2074,67 @@ body.no-costos .solo-costos{display:none!important}
 
 <!-- MODAL: Empleado (legajo de nómina) -->
 <div class="modal-overlay" id="modal-empleado">
-  <div class="modal" style="width:620px">
+  <div class="modal" style="width:760px">
     <div class="modal-header"><div class="modal-title" id="modal-empleado-title">Nuevo empleado</div><button class="modal-close" onclick="closeModal('modal-empleado')">×</button></div>
     <div class="modal-body">
-      <div class="form-row" style="grid-template-columns:110px 1fr 170px"><div class="form-group"><label>Legajo</label><input type="text" id="emp-legajo" placeholder="001"></div><div class="form-group"><label>Nombre y apellido *</label><input type="text" id="emp-nombre"></div><div class="form-group"><label>CUIL</label><input type="text" id="emp-cuil" placeholder="20-12345678-3"></div></div>
-      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr"><div class="form-group"><label>Centro de costo</label><select id="emp-centro"><option value="fabricacion">Fabricación (planta)</option><option value="administracion">Administración / ventas</option></select></div><div class="form-group"><label>Modalidad</label><select id="emp-modalidad"><option value="jornal">Jornal (por hora, UOM)</option><option value="mensual">Mensualizado</option></select></div><div class="form-group"><label>Fecha de ingreso</label><input type="date" id="emp-ingreso"></div></div>
-      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr"><div class="form-group"><label>Categoría (CCT 260/75)</label><input type="text" id="emp-categoria" placeholder="Operario / Oficial / Adm. 2ª"></div><div class="form-group"><label>Rama UOM</label><input type="text" id="emp-rama" placeholder="17 (metalmecánica)"></div><div class="form-group"><label>Obra social</label><input type="text" id="emp-os" placeholder="OSUOMRA"></div></div>
-      <div class="form-row" style="grid-template-columns:1fr 160px 1fr"><div class="form-group"><label>Nombre en OPs / timers</label><input type="text" id="emp-operario" placeholder="Como figura en las órdenes de producción"></div><div class="form-group"><label>Valor hora (ARS)</label><input type="number" id="emp-valor-hora" step="0.01" min="0" placeholder="4313.43"></div><div class="form-group"><label>Observaciones</label><input type="text" id="emp-obs"></div></div>
-      <p style="margin:8px 0 0 0;color:var(--text3);font-size:11px">Con <b>nombre en OPs</b> + <b>valor hora</b> cargados, el botón "Traer horas de planta" del modal de liquidación suma las horas productivas de los timers del período (por la orden asignada al operario) y sugiere el bruto.</p>
-      <details style="margin-top:14px" id="emp-arca-details">
-        <summary style="cursor:pointer;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--teal);font-weight:600">Datos ARCA — Libro de Sueldos Digital / F.931</summary>
-        <p style="margin:8px 0 10px 0;color:var(--text3);font-size:11px">Van al registro 02/04 del archivo LSD. Los defaults son los de un operario en relación de dependencia a tiempo completo (situación 1, condición 1, modalidad 008). Códigos según tablas SICOSS.</p>
-        <div class="form-row" style="grid-template-columns:1fr 170px 1fr"><div class="form-group"><label>CBU (22 dígitos)</label><input type="text" id="emp-cbu" placeholder="0170000000000000000000" maxlength="26"></div><div class="form-group"><label>Forma de pago</label><select id="emp-forma-pago"><option value="3">3 · Acreditación</option><option value="1">1 · Efectivo</option><option value="2">2 · Cheque</option><option value="4">4 · Pago externo</option></select></div><div class="form-group"><label>Dependencia de revista</label><input type="text" id="emp-dependencia" placeholder="Planta Villa Martelli" maxlength="50"></div></div>
-        <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr"><div class="form-group"><label>Cód. obra social (RNOS)</label><input type="text" id="emp-os-codigo" placeholder="107202" maxlength="6"></div><div class="form-group"><label>Adherentes OS</label><input type="number" id="emp-adherentes" min="0" max="99" step="1" value="0"></div><div class="form-group"><label>Hijos</label><input type="number" id="emp-hijos" min="0" max="99" step="1" value="0"></div><div class="form-group"><label>Marcas</label><div style="display:flex;gap:10px;font-size:11px;padding-top:6px"><label><input type="checkbox" id="emp-conyuge"> Cónyuge</label><label><input type="checkbox" id="emp-cct" checked> CCT</label><label><input type="checkbox" id="emp-scvo" checked> SCVO</label><label><input type="checkbox" id="emp-reduccion"> Reducción</label></div></div></div>
-        <div class="form-row" style="grid-template-columns:repeat(7,1fr)"><div class="form-group"><label>Situación</label><input type="text" id="emp-situacion" value="1" maxlength="2"></div><div class="form-group"><label>Condición</label><input type="text" id="emp-condicion" value="1" maxlength="2"></div><div class="form-group"><label>Actividad</label><input type="text" id="emp-actividad" placeholder="000" maxlength="3"></div><div class="form-group"><label>Modalidad</label><input type="text" id="emp-modalidad-cod" value="008" maxlength="3"></div><div class="form-group"><label>Siniestrado</label><input type="text" id="emp-siniestrado" value="00" maxlength="2"></div><div class="form-group"><label>Localidad</label><input type="text" id="emp-localidad" value="00" maxlength="2"></div><div class="form-group"><label>Sit. revista</label><input type="text" id="emp-revista" value="1" maxlength="2"></div></div>
-      </details>
+      <div class="tabs" style="margin:0 0 14px;border-bottom:1px solid var(--border)">
+        <div class="tab active" onclick="empTab('datos')">Datos</div>
+        <div class="tab" onclick="empTab('remuneracion')">Remuneración</div>
+        <div class="tab" onclick="empTab('conceptos')">Conceptos fijos</div>
+        <div class="tab" onclick="empTab('ganancias')">Ganancias</div>
+        <div class="tab" onclick="empTab('arca')">ARCA</div>
+      </div>
+      <div data-emptab="datos">
+        <div class="form-row" style="grid-template-columns:110px 1fr 170px"><div class="form-group"><label>Legajo</label><input type="text" id="emp-legajo" placeholder="001"></div><div class="form-group"><label>Nombre y apellido *</label><input type="text" id="emp-nombre"></div><div class="form-group"><label>CUIL</label><input type="text" id="emp-cuil" placeholder="20-12345678-3"></div></div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr 1fr"><div class="form-group"><label>Centro de costo</label><select id="emp-centro"><option value="fabricacion">Fabricación (planta)</option><option value="administracion">Administración / ventas</option></select></div><div class="form-group"><label>Modalidad</label><select id="emp-modalidad"><option value="jornal">Jornal (por hora, UOM)</option><option value="mensual">Mensualizado</option></select></div><div class="form-group"><label>Fecha de ingreso</label><input type="date" id="emp-ingreso"></div></div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr 1fr"><div class="form-group"><label>Categoría (CCT 260/75)</label><input type="text" id="emp-categoria" placeholder="Operario / Oficial / Adm. 2ª"></div><div class="form-group"><label>Rama UOM</label><input type="text" id="emp-rama" placeholder="17 (metalmecánica)"></div><div class="form-group"><label>Obra social</label><input type="text" id="emp-os" placeholder="OSUOMRA"></div></div>
+        <div class="form-row" style="grid-template-columns:1fr 160px 1fr"><div class="form-group"><label>Nombre en OPs / timers</label><input type="text" id="emp-operario" placeholder="Como figura en las órdenes de producción"></div><div class="form-group"><label>Valor hora (ARS)</label><input type="number" id="emp-valor-hora" step="0.01" min="0" placeholder="4313.43"></div><div class="form-group"><label>Observaciones</label><input type="text" id="emp-obs"></div></div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr"><div class="form-group"><label>Tarea</label><input type="text" id="emp-tarea" placeholder="Tornero"></div><div class="form-group"><label>Contratación</label><input type="text" id="emp-contratacion" placeholder="Tiempo indeterminado"></div><div class="form-group"><label>Lugar de pago</label><input type="text" id="emp-lugar-pago" placeholder="Casa Central"></div><div class="form-group"><label>Banco de depósito</label><input type="text" id="emp-banco"></div></div>
+        <p style="margin:8px 0 0 0;color:var(--text3);font-size:11px">Con <b>nombre en OPs</b> + <b>valor hora</b> cargados, el botón "Traer horas de planta" del modal de liquidación suma las horas productivas de los timers del período (por la orden asignada al operario) y sugiere el bruto.</p>
+      </div>
+      <div data-emptab="remuneracion" style="display:none">
+        <p style="margin:0 0 10px 0;color:var(--text3);font-size:11px">Datos que usa el <b>motor de liquidación</b> para calcular el recibo automáticamente (Sueldos → Novedades → Generar).</p>
+        <div class="form-row" style="grid-template-columns:170px 1fr 1fr">
+          <div class="form-group"><label>Convenio</label><select id="emp-convenio" onchange="empOnConvenioChange()"><option value="uom">UOM (CCT 260/75)</option><option value="fuera">Fuera de convenio</option></select></div>
+          <div class="form-group" id="emp-categoria-escala-wrap"><label>Categoría (escala salarial)</label><select id="emp-categoria-escala"></select></div>
+          <div class="form-group" id="emp-sueldo-pactado-wrap" style="display:none"><label>Sueldo pactado (ARS)</label><input type="number" id="emp-sueldo-pactado" min="0" step="0.01"></div>
+        </div>
+        <div class="form-row" style="grid-template-columns:170px 1fr 1fr">
+          <div class="form-group"><label>Horas semanales</label><input type="number" id="emp-horas-semanales" min="1" max="48" step="0.5" value="48"></div>
+          <div class="form-group" id="emp-antiguedad-pct-wrap" style="display:none"><label>% antigüedad (fuera de convenio)</label><input type="number" id="emp-antiguedad-pct" min="0" step="0.01"></div>
+          <div class="form-group"><label>Fecha de ingreso reconocida</label><input type="date" id="emp-ingreso-reconocida" title="Completar solo si difiere de la fecha de ingreso real (antigüedad reconocida de otro empleador)"></div>
+        </div>
+        <div class="form-group"><label>Condición</label><div style="display:flex;gap:14px;font-size:12px;padding-top:6px"><label><input type="checkbox" id="emp-afiliado" checked> Afiliado al sindicato</label><label><input type="checkbox" id="emp-presentismo" checked> Cobra presentismo</label></div></div>
+      </div>
+      <div data-emptab="conceptos" style="display:none">
+        <div class="section-label" style="margin:0 0 6px">Adicionales fijos (% del básico o importe fijo, todos los meses)</div>
+        <div style="display:grid;grid-template-columns:1fr 130px 130px 32px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Concepto</div><div>Modo</div><div style="text-align:right">Valor</div><div></div></div>
+        <div id="emp-adic-list" style="display:flex;flex-direction:column;gap:6px"></div>
+        <div style="margin:8px 0 16px"><button type="button" class="btn btn-ghost btn-sm" onclick="empAddAdicional()">+ Adicional</button></div>
+        <div class="section-label" style="margin:0 0 6px">Conceptos recurrentes (préstamos, cuotas, descuentos con vigencia)</div>
+        <div style="display:grid;grid-template-columns:1fr 90px 100px 100px 60px 60px 32px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Concepto</div><div style="text-align:right">Importe</div><div>Desde</div><div>Hasta</div><div style="text-align:right">Cuotas</div><div style="text-align:right">Pagas</div><div></div></div>
+        <div id="emp-rec-list" style="display:flex;flex-direction:column;gap:6px"></div>
+        <div style="margin-top:8px"><button type="button" class="btn btn-ghost btn-sm" onclick="empAddRecurrente()">+ Recurrente</button></div>
+      </div>
+      <div data-emptab="ganancias" style="display:none">
+        <div class="form-row" style="grid-template-columns:1fr 170px">
+          <div class="form-group"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:6px;padding-top:6px;font-size:12px"><input type="checkbox" id="emp-gan-aplica"> Se retiene Impuesto a las Ganancias (4ª categoría)</label></div>
+          <div class="form-group"><label>Hijos con discapacidad</label><input type="number" id="emp-hijos-incap" min="0" max="20" step="1" value="0"></div>
+        </div>
+        <div class="section-label" style="margin:14px 0 6px">Deducciones informadas (F.572 web)</div>
+        <div style="display:grid;grid-template-columns:1fr 130px 110px 110px 32px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Tipo</div><div style="text-align:right">Importe mensual</div><div>Desde</div><div>Hasta</div><div></div></div>
+        <div id="emp-ded-list" style="display:flex;flex-direction:column;gap:6px"></div>
+        <div style="margin-top:8px"><button type="button" class="btn btn-ghost btn-sm" onclick="empAddDeduccion()">+ Deducción</button></div>
+      </div>
+      <div data-emptab="arca" style="display:none">
+        <details open id="emp-arca-details">
+          <summary style="cursor:pointer;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--teal);font-weight:600">Datos ARCA — Libro de Sueldos Digital / F.931</summary>
+          <p style="margin:8px 0 10px 0;color:var(--text3);font-size:11px">Van al registro 02/04 del archivo LSD. Los defaults son los de un operario en relación de dependencia a tiempo completo (situación 1, condición 1, modalidad 008). Códigos según tablas SICOSS.</p>
+          <div class="form-row" style="grid-template-columns:1fr 170px 1fr"><div class="form-group"><label>CBU (22 dígitos)</label><input type="text" id="emp-cbu" placeholder="0170000000000000000000" maxlength="26"></div><div class="form-group"><label>Forma de pago</label><select id="emp-forma-pago"><option value="3">3 · Acreditación</option><option value="1">1 · Efectivo</option><option value="2">2 · Cheque</option><option value="4">4 · Pago externo</option></select></div><div class="form-group"><label>Dependencia de revista</label><input type="text" id="emp-dependencia" placeholder="Planta Villa Martelli" maxlength="50"></div></div>
+          <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr"><div class="form-group"><label>Cód. obra social (RNOS)</label><input type="text" id="emp-os-codigo" placeholder="107202" maxlength="6"></div><div class="form-group"><label>Adherentes OS</label><input type="number" id="emp-adherentes" min="0" max="99" step="1" value="0"></div><div class="form-group"><label>Hijos</label><input type="number" id="emp-hijos" min="0" max="99" step="1" value="0"></div><div class="form-group"><label>Marcas</label><div style="display:flex;gap:10px;font-size:11px;padding-top:6px"><label><input type="checkbox" id="emp-conyuge"> Cónyuge</label><label><input type="checkbox" id="emp-cct" checked> CCT</label><label><input type="checkbox" id="emp-scvo" checked> SCVO</label><label><input type="checkbox" id="emp-reduccion"> Reducción</label></div></div></div>
+          <div class="form-row" style="grid-template-columns:repeat(7,1fr)"><div class="form-group"><label>Situación</label><input type="text" id="emp-situacion" value="1" maxlength="2"></div><div class="form-group"><label>Condición</label><input type="text" id="emp-condicion" value="1" maxlength="2"></div><div class="form-group"><label>Actividad</label><input type="text" id="emp-actividad" placeholder="000" maxlength="3"></div><div class="form-group"><label>Modalidad</label><input type="text" id="emp-modalidad-cod" value="008" maxlength="3"></div><div class="form-group"><label>Siniestrado</label><input type="text" id="emp-siniestrado" value="00" maxlength="2"></div><div class="form-group"><label>Localidad</label><input type="text" id="emp-localidad" value="00" maxlength="2"></div><div class="form-group"><label>Sit. revista</label><input type="text" id="emp-revista" value="1" maxlength="2"></div></div>
+        </details>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-empleado')">Cancelar</button>
@@ -2211,6 +2257,39 @@ body.no-costos .solo-costos{display:none!important}
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-lsd')">Cerrar</button>
       <button class="btn btn-primary" id="btn-lsd-descargar" onclick="descargarLSD()">Descargar TXT</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Baja de empleado (liquidación final) -->
+<div class="modal-overlay" id="modal-baja-empleado">
+  <div class="modal" style="width:640px">
+    <div class="modal-header"><div class="modal-title">Baja de empleado <span id="baja-emp-nombre" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="modal-close" onclick="closeModal('modal-baja-empleado')">×</button></div>
+    <div class="modal-body">
+      <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Genera la <b>liquidación final</b> (en borrador, tipo "Liq. final") con los rubros proporcionales del mes de egreso, SAC proporcional, vacaciones no gozadas y, si corresponde, indemnizaciones. Revisala y confirmala como cualquier liquidación — recién ahí el legajo queda dado de baja.</p>
+      <div class="form-row" style="grid-template-columns:150px 1fr 160px">
+        <div class="form-group"><label>Fecha de egreso *</label><input type="date" id="baja-fecha" oninput="previewBaja()"></div>
+        <div class="form-group"><label>Causa</label><select id="baja-causa" onchange="previewBaja()">
+          <option value="renuncia">Renuncia</option>
+          <option value="despido_sin_causa">Despido sin causa</option>
+          <option value="despido_con_causa">Despido con causa</option>
+          <option value="mutuo_acuerdo">Mutuo acuerdo (art. 241)</option>
+          <option value="fin_contrato">Fin de contrato</option>
+          <option value="fallecimiento">Fallecimiento</option>
+        </select></div>
+        <div class="form-group"><label>&nbsp;</label><label style="display:flex;align-items:center;gap:6px;padding-top:6px;font-size:12px"><input type="checkbox" id="baja-preaviso" onchange="previewBaja()"> Preaviso otorgado</label></div>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr">
+        <div class="form-group"><label>Tope indemnizatorio (CCT)</label><input type="number" id="baja-tope" min="0" step="0.01" oninput="previewBaja()"></div>
+        <div class="form-group"><label>Vacaciones gozadas en el año (días)</label><input type="number" id="baja-vac-gozadas" min="0" step="1" oninput="previewBaja()"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin:4px 0 10px"><button type="button" class="btn btn-ghost btn-sm" onclick="previewBaja()">Recalcular</button></div>
+      <div style="display:grid;grid-template-columns:70px 1fr 130px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Cód.</div><div>Concepto</div><div style="text-align:right">Importe</div></div>
+      <table style="width:100%;border-collapse:collapse"><tbody id="baja-preview"></tbody></table>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-baja-empleado')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-baja" onclick="saveBajaEmpleado()">Generar liquidación final</button>
     </div>
   </div>
 </div>
@@ -3314,6 +3393,7 @@ let preciosBase=[];
 let insumos=[],herramientas=[];
 let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[],cheques=[],empleados=[],liquidaciones=[],conceptosSueldo=[],conceptosArca=[];
 let sueldosEscala=[],sueldosConvenio=[],sueldosPrevisional=[],sueldosGanTablas=[];
+let sueldosNovedades=[],sueldosAcumulados=[];
 let facturasRecibidas=[];
 let ordenesPago=[];
 let facturasEmitidas=[]; // listado unificado Ventas → Facturas emitidas (sprint 3 hoja 2026-09-07)
@@ -4261,6 +4341,8 @@ const TBL={
   sueldos_convenio_parametros:{label:'Parámetros del convenio',q:'?order=vigencia_desde.desc',set:r=>{sueldosConvenio=r||[];}},
   sueldos_parametros_previsionales:{label:'Parámetros previsionales',q:'?order=vigencia_desde.desc',set:r=>{sueldosPrevisional=r||[];}},
   sueldos_ganancias_tablas:{label:'Tablas de Ganancias',q:'?order=vigencia_desde.desc',set:r=>{sueldosGanTablas=r||[];}},
+  sueldos_novedades:{label:'Novedades de sueldos',q:'?order=periodo.desc',set:r=>{sueldosNovedades=r||[];_dirtyPages.add('sueldosnov');}},
+  v_sueldos_acumulados:{label:'Acumulados de sueldos',q:'?order=anio.desc,mes.desc',set:r=>{sueldosAcumulados=r||[];}},
 };
 let _lastLoadAllAt=0;
 async function _loadTables(nombres){
@@ -5662,7 +5744,7 @@ function renderSueldos(filter=''){
   const etbody=document.getElementById('empleados-tbody');
   const elist=empleados.filter(e=>!f||(e.nombre||'').toLowerCase().includes(f)||(e.legajo||'').toLowerCase().includes(f));
   if(etbody)etbody.innerHTML=elist.length?elist.map(e=>
-    `<tr><td class="mono">${esc(e.legajo)||'—'}</td><td style="font-weight:500">${esc(e.nombre)}</td><td class="mono" style="font-size:11px">${esc(e.cuil)||'—'}</td><td style="font-size:11px">${esc(e.categoria)||'—'}</td><td><span class="badge ${e.centro==='fabricacion'?'badge-blue':'badge-purple'}">${e.centro==='fabricacion'?'FÁBRICA':'ADMIN'}</span></td><td style="font-size:11px">${e.modalidad==='jornal'?'Jornal':'Mensual'}</td><td class="mono" style="font-size:11px">${fmtFecha(e.fecha_ingreso)||'—'}</td><td><span class="badge ${e.activo!==false?'badge-green':'badge-coral'}">${e.activo!==false?'ACTIVO':'BAJA'}</span></td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="openEmpleado('${e.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="toggleEmpleado('${e.id}')">${e.activo!==false?'Dar de baja':'Reactivar'}</button></td></tr>`
+    `<tr><td class="mono">${esc(e.legajo)||'—'}</td><td style="font-weight:500">${esc(e.nombre)}</td><td class="mono" style="font-size:11px">${esc(e.cuil)||'—'}</td><td style="font-size:11px">${esc(e.categoria)||'—'}</td><td><span class="badge ${e.centro==='fabricacion'?'badge-blue':'badge-purple'}">${e.centro==='fabricacion'?'FÁBRICA':'ADMIN'}</span></td><td style="font-size:11px">${e.modalidad==='jornal'?'Jornal':'Mensual'}</td><td class="mono" style="font-size:11px">${fmtFecha(e.fecha_ingreso)||'—'}</td><td><span class="badge ${e.activo!==false?'badge-green':'badge-coral'}">${e.activo!==false?'ACTIVO':'BAJA'}</span></td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="openEmpleado('${e.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="toggleEmpleado('${e.id}')">${e.activo!==false?'Dar de baja':'Reactivar'}</button>${e.activo!==false?`<button class="btn btn-ghost btn-sm" onclick="openBajaEmpleado('${e.id}')" title="Generar liquidación final por egreso" style="color:var(--coral)">Baja</button>`:''}</td></tr>`
   ).join(''):`<tr><td colspan="9" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Sin empleados cargados.</td></tr>`;
 }
 
@@ -5696,8 +5778,117 @@ function openEmpleado(id){
   document.getElementById('emp-localidad').value=e?.cod_localidad||'00';
   document.getElementById('emp-revista').value=e?.sit_revista||'1';
   const det=document.getElementById('emp-arca-details');if(det)det.open=!!(e&&(e.cbu||e.cod_obra_social));
+  // Remuneración (083): motor de liquidación
+  document.getElementById('emp-convenio').value=e?.convenio||'uom';
+  document.getElementById('emp-categoria-escala').innerHTML=_empCategoriaEscalaOptions(e?.categoria_escala);
+  s('emp-sueldo-pactado',e?.sueldo_pactado);
+  document.getElementById('emp-horas-semanales').value=e?.horas_semanales??48;
+  document.getElementById('emp-afiliado').checked=e?e.afiliado_sindicato!==false:true;
+  document.getElementById('emp-presentismo').checked=e?e.presentismo!==false:true;
+  s('emp-antiguedad-pct',e?.antiguedad_pct);
+  s('emp-ingreso-reconocida',e?.fecha_ingreso_reconocida);
+  empOnConvenioChange();
+  // Conceptos fijos (083)
+  _empAdic=(e?.adicionales_fijos||[]).map(a=>({codigo:a.codigo,modo:a.pct!=null?'pct':'importe',valor:a.pct!=null?Number(a.pct):Number(a.importe)||0}));
+  _empRec=(e?.conceptos_recurrentes||[]).map(r=>({...r}));
+  renderEmpAdic();renderEmpRec();
+  // Ganancias (083)
+  document.getElementById('emp-gan-aplica').checked=!!e?.ganancias_aplica;
+  document.getElementById('emp-hijos-incap').value=e?.hijos_incap??0;
+  _empDed=(e?.ganancias_deducciones||[]).map(d=>({...d}));
+  renderEmpDed();
+  // Datos (083)
+  s('emp-tarea',e?.tarea);s('emp-contratacion',e?.contratacion);
+  s('emp-lugar-pago',e?.lugar_pago||'Casa Central');s('emp-banco',e?.banco_deposito);
+  empTab('datos');
   openModal('modal-empleado');
 }
+function empTab(t){
+  const orden=['datos','remuneracion','conceptos','ganancias','arca'];
+  document.querySelectorAll('#modal-empleado .tab').forEach((el,i)=>el.classList.toggle('active',orden[i]===t));
+  document.querySelectorAll('#modal-empleado [data-emptab]').forEach(el=>{el.style.display=el.dataset.emptab===t?'':'none';});
+}
+function empOnConvenioChange(){
+  const uom=document.getElementById('emp-convenio').value!=='fuera';
+  document.getElementById('emp-categoria-escala-wrap').style.display=uom?'':'none';
+  document.getElementById('emp-sueldo-pactado-wrap').style.display=uom?'none':'';
+  document.getElementById('emp-antiguedad-pct-wrap').style.display=uom?'none':'';
+}
+function _empCategoriaEscalaOptions(sel){
+  const cats=[...new Set((sueldosEscala||[]).map(e=>e.categoria))].filter(Boolean);
+  if(sel&&!cats.includes(sel))cats.push(sel);
+  return '<option value="">—</option>'+cats.map(c=>`<option value="${esc(c)}"${c===sel?' selected':''}>${esc(c)}</option>`).join('');
+}
+function _empConceptoOptions(sel){
+  const list=conceptosSueldo.filter(c=>c.activo!==false);
+  const cur=_conceptoCat(sel);if(cur&&!list.includes(cur))list.push(cur);
+  return list.map(c=>`<option value="${esc(c.codigo)}"${c.codigo===sel?' selected':''}>${esc(c.codigo)} · ${esc(c.nombre)}</option>`).join('');
+}
+// ── Conceptos fijos del legajo: adicionales (% o importe) y recurrentes (préstamos/cuotas) ──
+let _empAdic=[],_empRec=[],_empDed=[];
+function renderEmpAdic(){
+  const el=document.getElementById('emp-adic-list');if(!el)return;
+  el.innerHTML=_empAdic.map((r,i)=>`<div style="display:grid;grid-template-columns:1fr 130px 130px 32px;gap:6px;align-items:center">
+      <select onchange="empAdicOnRow(${i},'codigo',this.value)">${_empConceptoOptions(r.codigo)}</select>
+      <select onchange="empAdicOnRow(${i},'modo',this.value)"><option value="pct"${r.modo==='pct'?' selected':''}>% del básico</option><option value="importe"${r.modo==='importe'?' selected':''}>Importe fijo</option></select>
+      <input type="number" step="0.01" min="0" value="${r.valor||0}" oninput="empAdicOnRow(${i},'valor',this.value)" style="text-align:right">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="empAdicDelRow(${i})" title="Quitar">×</button>
+    </div>`).join('')||`<div style="font-size:12px;color:var(--text3);padding:6px 0">Sin adicionales fijos.</div>`;
+}
+function empAdicOnRow(i,k,v){const r=_empAdic[i];if(!r)return;
+  if(k==='codigo'||k==='modo'){r[k]=v;return;}
+  r.valor=Math.max(0,parseFloat(String(v).replace(',','.'))||0);
+}
+function empAdicDelRow(i){_empAdic.splice(i,1);renderEmpAdic();}
+function empAddAdicional(){
+  const c=conceptosSueldo.find(x=>x.activo!==false);
+  if(!c)return notify('Primero cargá el catálogo de conceptos (Sueldos → Conceptos ARCA)','err');
+  _empAdic.push({codigo:c.codigo,modo:'pct',valor:0});renderEmpAdic();
+}
+function renderEmpRec(){
+  const el=document.getElementById('emp-rec-list');if(!el)return;
+  el.innerHTML=_empRec.map((r,i)=>`<div style="display:grid;grid-template-columns:1fr 90px 100px 100px 60px 60px 32px;gap:6px;align-items:center">
+      <select onchange="empRecOnRow(${i},'codigo',this.value)">${_empConceptoOptions(r.codigo)}</select>
+      <input type="number" step="0.01" min="0" value="${r.importe||0}" oninput="empRecOnRow(${i},'importe',this.value)" style="text-align:right">
+      <input type="date" value="${r.desde||''}" onchange="empRecOnRow(${i},'desde',this.value)">
+      <input type="date" value="${r.hasta||''}" onchange="empRecOnRow(${i},'hasta',this.value)">
+      <input type="number" step="1" min="0" value="${r.cuotas_total||''}" oninput="empRecOnRow(${i},'cuotas_total',this.value)" style="text-align:right" placeholder="—">
+      <input type="number" step="1" min="0" value="${r.cuotas_pagadas||0}" oninput="empRecOnRow(${i},'cuotas_pagadas',this.value)" style="text-align:right">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="empRecDelRow(${i})" title="Quitar">×</button>
+    </div>`).join('')||`<div style="font-size:12px;color:var(--text3);padding:6px 0">Sin conceptos recurrentes.</div>`;
+}
+function empRecOnRow(i,k,v){const r=_empRec[i];if(!r)return;
+  if(k==='codigo'){r.codigo=v;return;}
+  if(k==='desde'||k==='hasta'){r[k]=v||null;return;}
+  if(k==='importe'){r.importe=Math.max(0,parseFloat(String(v).replace(',','.'))||0);return;}
+  r[k]=Math.max(0,Math.round(parseFloat(v))||0);
+}
+function empRecDelRow(i){_empRec.splice(i,1);renderEmpRec();}
+function empAddRecurrente(){
+  const c=conceptosSueldo.find(x=>x.activo!==false);
+  if(!c)return notify('Primero cargá el catálogo de conceptos (Sueldos → Conceptos ARCA)','err');
+  _empRec.push({codigo:c.codigo,importe:0,desde:null,hasta:null,cuotas_total:null,cuotas_pagadas:0});renderEmpRec();
+}
+// ── Deducciones de Ganancias (F.572 web) — tipos del tope según GAN_TOPES_F572 ──
+const GAN_DEDUCCION_LABELS={cuota_medica:'Cuota médico-asistencial',alquiler:'Alquiler de vivienda',servicio_domestico:'Servicio doméstico',donaciones:'Donaciones',gastos_educativos:'Gastos educativos',intereses_hipotecarios:'Intereses hipotecarios',seguro_vida:'Seguro de vida',otros:'Otros'};
+function renderEmpDed(){
+  const el=document.getElementById('emp-ded-list');if(!el)return;
+  const opts=sel=>Object.keys(GAN_TOPES_F572).map(k=>`<option value="${k}"${k===sel?' selected':''}>${esc(GAN_DEDUCCION_LABELS[k]||k)}</option>`).join('');
+  el.innerHTML=_empDed.map((r,i)=>`<div style="display:grid;grid-template-columns:1fr 130px 110px 110px 32px;gap:6px;align-items:center">
+      <select onchange="empDedOnRow(${i},'tipo',this.value)">${opts(r.tipo)}</select>
+      <input type="number" step="0.01" min="0" value="${r.importe_mensual||0}" oninput="empDedOnRow(${i},'importe_mensual',this.value)" style="text-align:right">
+      <input type="month" value="${r.periodo_desde||''}" onchange="empDedOnRow(${i},'periodo_desde',this.value)">
+      <input type="month" value="${r.periodo_hasta||''}" onchange="empDedOnRow(${i},'periodo_hasta',this.value)">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="empDedDelRow(${i})" title="Quitar">×</button>
+    </div>`).join('')||`<div style="font-size:12px;color:var(--text3);padding:6px 0">Sin deducciones informadas.</div>`;
+}
+function empDedOnRow(i,k,v){const r=_empDed[i];if(!r)return;
+  if(k==='tipo'){r.tipo=v;return;}
+  if(k==='periodo_desde'||k==='periodo_hasta'){r[k]=v||null;return;}
+  r.importe_mensual=Math.max(0,parseFloat(String(v).replace(',','.'))||0);
+}
+function empDedDelRow(i){_empDed.splice(i,1);renderEmpDed();}
+function empAddDeduccion(){_empDed.push({tipo:'otros',importe_mensual:0,periodo_desde:null,periodo_hasta:null});renderEmpDed();}
 async function saveEmpleado(){
   if(!g('emp-nombre'))return notify('Completá el nombre','err');
   // CUIL: mismo dígito verificador módulo 11 que el CUIT (obs. auditoría 068)
@@ -5709,6 +5900,10 @@ async function saveEmpleado(){
   if(osCod&&osCod.length!==6)return notify('El código de obra social (RNOS) tiene 6 dígitos','err');
   const chk=id=>document.getElementById(id).checked;
   const cod=(id,len)=>{const v=(g(id)||'').replace(/\D/g,'');return v?v.padStart(len,'0').slice(-len):'';};
+  // Remuneración (083): uom necesita categoría de la escala, fuera necesita sueldo pactado
+  const convenio=document.getElementById('emp-convenio').value||'uom';
+  if(convenio==='uom'&&!g('emp-categoria-escala'))return notify('Elegí la categoría de la escala salarial (o pasá el legajo a "Fuera de convenio")','err');
+  if(convenio==='fuera'&&!(parseFloat(g('emp-sueldo-pactado'))>0))return notify('Cargá el sueldo pactado (fuera de convenio)','err');
   setBusy('btn-save-emp',true);
   try{
     const data={legajo:g('emp-legajo')||null,nombre:g('emp-nombre'),cuil:cuilDigits||null,
@@ -5722,7 +5917,22 @@ async function saveEmpleado(){
       conyuge:chk('emp-conyuge'),marca_cct:chk('emp-cct'),marca_scvo:chk('emp-scvo'),marca_reduccion:chk('emp-reduccion'),
       cod_situacion:cod('emp-situacion',1)||'1',cod_condicion:cod('emp-condicion',1)||'1',cod_actividad:cod('emp-actividad',3),
       cod_modalidad:cod('emp-modalidad-cod',3)||'008',cod_siniestrado:cod('emp-siniestrado',2)||'00',
-      cod_localidad:cod('emp-localidad',2)||'00',sit_revista:cod('emp-revista',1)||'1'};
+      cod_localidad:cod('emp-localidad',2)||'00',sit_revista:cod('emp-revista',1)||'1',
+      // Remuneración / motor de liquidación (083)
+      convenio,categoria_escala:g('emp-categoria-escala')||null,
+      sueldo_pactado:parseFloat(g('emp-sueldo-pactado'))||null,
+      horas_semanales:parseFloat(g('emp-horas-semanales'))||48,
+      afiliado_sindicato:chk('emp-afiliado'),presentismo:chk('emp-presentismo'),
+      antiguedad_pct:g('emp-antiguedad-pct')?parseFloat(g('emp-antiguedad-pct')):null,
+      fecha_ingreso_reconocida:g('emp-ingreso-reconocida')||null,
+      adicionales_fijos:_empAdic.filter(r=>r.codigo).map(r=>({codigo:r.codigo,...(r.modo==='pct'?{pct:r.valor||0}:{importe:r.valor||0})})),
+      conceptos_recurrentes:_empRec.filter(r=>r.codigo).map(r=>({codigo:r.codigo,importe:r.importe||0,desde:r.desde||null,hasta:r.hasta||null,cuotas_total:r.cuotas_total||null,cuotas_pagadas:r.cuotas_pagadas||0})),
+      // Ganancias (083)
+      ganancias_aplica:chk('emp-gan-aplica'),hijos_incap:parseInt(g('emp-hijos-incap'))||0,
+      ganancias_deducciones:_empDed.filter(r=>r.tipo).map(r=>({tipo:r.tipo,importe_mensual:r.importe_mensual||0,periodo_desde:r.periodo_desde||null,periodo_hasta:r.periodo_hasta||null})),
+      // Datos (083)
+      tarea:g('emp-tarea')||null,contratacion:g('emp-contratacion')||null,
+      lugar_pago:g('emp-lugar-pago')||'Casa Central',banco_deposito:g('emp-banco')||null};
     if(_empEditId)await PATCH('empleados',data,`?id=eq.${_empEditId}`);
     else await POST('empleados',{empresa_id:currentEmpresa.id,...data});
     await reload('empleados');
@@ -5739,6 +5949,72 @@ async function toggleEmpleado(id){
     await PATCH('empleados',baja?{activo:false,fecha_egreso:hoyLocal()}:{activo:true,fecha_egreso:null},`?id=eq.${id}`);
     await reload('empleados');renderAll();notify(baja?'Empleado dado de baja':'Empleado reactivado');
   }catch(err){notify(msgError(err),'err');}
+}
+
+// ── Helper de contexto del motor de liquidación (083) — reutilizado en Task 11 ──
+function _ctxRecibo(e,periodo,tipo,novedad){
+  const fin=finPeriodo(periodo,tipo);
+  const escala=e.convenio==='fuera'?null:vigenteA(sueldosEscala.filter(x=>x.categoria===e.categoria_escala),fin);
+  const anio=periodo.slice(0,4);
+  const acum=(sueldosAcumulados||[]).filter(a=>a.empleado_id===e.id&&String(a.anio)===anio);
+  return {empleado:e,periodo,tipo,novedad:novedad||null,escala,convenio:vigenteA(sueldosConvenio,fin)||{},previsional:vigenteA(sueldosPrevisional,fin)||{},
+    ganTabla:vigenteA(sueldosGanTablas,fin),catalogo:conceptosSueldo,hoy:hoyLocal(),
+    acumulados:{ganancias:_ganAcumulados(e.id,anio,periodo),sac:acum}};
+}
+function _ganAcumulados(eid,anio,periodo){
+  const items=liquidaciones.filter(l=>l.estado==='confirmada'&&(l.periodo||'').slice(0,4)===anio&&l.periodo<periodo).flatMap(l=>(l.liquidacion_items||[]).filter(i=>i.empleado_id===eid).map(i=>({l,i})));
+  if(!items.length)return null;
+  const g=items.map(x=>x.i.ganancias).filter(Boolean);const last=g[g.length-1]||{};
+  const rem=items.reduce((a,x)=>a+(x.i.ganancias?Number(x.i.ganancias.rem_gravada_mes)||0:(Number(x.i.bruto)||0)-(Number(x.i.aportes)||0)),0);
+  const ret=items.reduce((a,x)=>a+(x.i.liquidacion_conceptos||[]).reduce((b,c)=>b+(c.codigo==='900'?Number(c.importe):c.codigo==='901'?-Number(c.importe):0),0),0);
+  return {rem_gravada_acum:Math.round(rem*100)/100,retenido_previo:Math.round(ret*100)/100,sac_prorrateado_acum:Number(last.sac_prorrateado_acum)||0,sac_real_acum:Number(last.sac_real_acum)||0};
+}
+
+// ── Baja de empleado: genera la liquidación final (083) ──
+let _bajaEmpId=null,_bajaResultado=null;
+function openBajaEmpleado(id){
+  const e=empleados.find(x=>x.id===id);if(!e)return;
+  if(e.activo===false)return notify('El empleado ya está dado de baja','err');
+  _bajaEmpId=id;_bajaResultado=null;
+  document.getElementById('baja-emp-nombre').textContent=e.nombre||'';
+  document.getElementById('baja-fecha').value=hoyLocal();
+  document.getElementById('baja-causa').value='renuncia';
+  document.getElementById('baja-preaviso').checked=false;
+  document.getElementById('baja-tope').value=configContable?.tope_indemnizatorio||'';
+  const anio=hoyLocal().slice(0,4);
+  const vacGozadas=(sueldosNovedades||[]).filter(n=>n.empleado_id===id&&(n.periodo||'').slice(0,4)===anio).reduce((a,n)=>a+(parseFloat(n.vacaciones_dias)||0),0);
+  document.getElementById('baja-vac-gozadas').value=vacGozadas||0;
+  document.getElementById('baja-preview').innerHTML='';
+  openModal('modal-baja-empleado');
+  previewBaja();
+}
+function previewBaja(){
+  const e=empleados.find(x=>x.id===_bajaEmpId);const fe=g('baja-fecha');if(!e||!fe)return;
+  const periodo=fe.slice(0,7)+'-01';const nov=sueldosNovedades.find(n=>n.empleado_id===e.id&&n.periodo===periodo&&n.tipo==='mensual')||null;
+  const ctx=_ctxRecibo({...e,fecha_egreso:fe},periodo,'mensual',nov);const mes=computeRecibo(ctx);
+  const fin=computeLiquidacionFinal({empleado:e,fechaEgreso:fe,causa:g('baja-causa'),preavisoOtorgado:document.getElementById('baja-preaviso').checked,
+    topeIndemnizatorio:parseFloat(g('baja-tope'))||0,acumulados:ctx.acumulados.sac,catalogo:conceptosSueldo,convenio:ctx.convenio,escala:ctx.escala,previsional:ctx.previsional,
+    vacacionesGozadasAnio:parseFloat(g('baja-vac-gozadas'))||0,reciboMes:mes});
+  _bajaResultado={mes,fin};
+  document.getElementById('baja-preview').innerHTML=fin.conceptos.map(c=>`<tr><td class="mono">${esc(c.codigo)}</td><td>${esc(_conceptoCat(c.codigo)?.nombre||'')}</td><td class="mono" style="text-align:right">${c.dc==='D'?'−':''}${fmtARS(c.importe)}</td></tr>`).join('')
+    +`<tr><td colspan="3" style="color:var(--text3);font-size:11px">${[...mes.alertas,...fin.alertas].map(esc).join(' · ')}</td></tr>`;
+}
+async function saveBajaEmpleado(){
+  const e=empleados.find(x=>x.id===_bajaEmpId);const fe=g('baja-fecha');
+  if(!e)return notify('Empleado no encontrado','err');
+  if(!fe)return notify('Completá la fecha de egreso','err');
+  if(!_bajaResultado)previewBaja();
+  if(!_bajaResultado)return notify('No se pudo calcular la liquidación final','err');
+  const {mes,fin}=_bajaResultado;
+  const t=computeItemDesdeConceptos(fin.conceptos,conceptosSueldo);
+  const item={empleado_id:e.id,...t,contribuciones:mes.contribuciones_total,art:mes.art,conceptos:fin.conceptos,f931:{...mes.f931,dias:mes.bases.dias_trabajados},ganancias:mes.ganancias,contribuciones_detalle:mes.contribuciones};
+  setBusy('btn-save-baja',true);
+  try{
+    await RPC('guardar_liquidacion',{p_liq:{periodo:fe.slice(0,7)+'-01',tipo:'final',fecha_pago:fe,observaciones:`Liquidación final — ${g('baja-causa')} — egreso ${fmtFecha(fe)}`,causa_egreso:g('baja-causa')},p_items:[item]});
+    await PATCH('empleados',{fecha_egreso:fe,causa_egreso:g('baja-causa')},`?id=eq.${e.id}`);
+    await reload('liquidaciones','empleados');closeModal('modal-baja-empleado',true);renderAll();
+    notify('Liquidación final en borrador — revisala y confirmala; al confirmar el legajo queda dado de baja');
+  }catch(err){notify(msgError(err),'err');}finally{setBusy('btn-save-baja',false,'Generar liquidación final');}
 }
 
 // ── Liquidaciones ──
