@@ -16732,6 +16732,57 @@ function buildLSD(input){
   return {lineas,txt:lineas.join('\r\n')+'\r\n',errores,resumen:{empleados:emps.length,conceptos,haberes:r2(haberes),descuentos:r2(descuentos)}};
 }
 
+// ─── Sueldos 083: motor de liquidación — conceptos ARCA ───────────────
+// 15 marcas en orden del CSV de ARCA. Posición en el registro de 195:
+// 167 repetición · 168-177 las 10 primeras (SIPA-A..REN-C) · 178 libre · 179 AAFF · 180 libre · 181 FNE · 182 libre · 183 LRT · 184 DIF · 185 libre · 186 ESP · 187-195 libre
+const ARCA_MARCAS_NOMBRES=['SIPA-A','SIPA-C','INSSJP-A','INSSJP-C','OS-A','OS-C','FSR-A','FSR-C','RENATEA-A','RENATEA-C','AAFF-C','FNE-C','LRT-C','DIF-A','ESP-A'];
+function MARCAS_DEFAULT(tipo,codigoArca){
+  if(tipo==='remunerativo')return '111111111111100';
+  if(tipo!=='no_remunerativo')return '000000000000000';
+  const fam=String(codigoArca||'').slice(0,2);
+  if(fam==='53')return '000010100000000';          // aportes OS + FSR
+  if(fam==='54')return '000011110000000';          // aportes y contribuciones OS + FSR
+  if(fam==='55')return '000011110000100';          // ídem + LRT (padrón real)
+  return '000000000000000';
+}
+function parseArcaPadron(texto){
+  const errores=[];const filas=[];
+  const lineas=String(texto||'').replace(/^﻿/,'').split(/\r?\n/).filter(l=>l.trim());
+  if(!lineas.length)return {filas,errores:['Archivo vacío']};
+  const hdr=lineas[0].split(';');
+  if(hdr.length<20||!/C.digo AFIP/i.test(hdr[0]))errores.push('No parece el padrón de conceptos de ARCA (esperaba 20 columnas con "Código AFIP")');
+  lineas.slice(1).forEach((l,i)=>{
+    const c=l.split(';').map(x=>x.trim());
+    if(c.length<20){errores.push(`Línea ${i+2}: ${c.length} columnas`);return;}
+    const marcas=c.slice(5,20).map(x=>x==='1'?'1':'0').join('');
+    const obj={};obj.codigo_arca=c[0];obj.codigo=c[2];obj.nombre=c[3];obj.repeticion=c[4]==='1';obj.marcas=marcas;
+    filas.push(obj);
+  });
+  return {filas,errores};
+}
+function diffConceptosArca(padron,catalogo){
+  const porErp={};(catalogo||[]).forEach(c=>{porErp[c.codigo]=c;});
+  const porArca={};(padron||[]).forEach(p=>{porArca[p.codigo]=p;});
+  const soloArca=(padron||[]).filter(p=>!porErp[p.codigo]);
+  const soloErp=(catalogo||[]).filter(c=>!c.legacy&&c.activo!==false&&!porArca[c.codigo]);
+  const marcasDistintas=(padron||[]).filter(p=>porErp[p.codigo]&&porErp[p.codigo].marcas!==p.marcas).map(p=>({codigo:p.codigo,erp:porErp[p.codigo].marcas,arca:p.marcas}));
+  return {soloArca,soloErp,marcasDistintas};
+}
+function buildConceptosTxt(catalogo,{soloFaltantes=false,padron=[]}={}){
+  const errores=[];const enArca=new Set((padron||[]).map(p=>p.codigo));
+  const lista=(catalogo||[]).filter(c=>c.activo!==false&&!c.legacy&&c.tipo!=='informativo').filter(c=>!soloFaltantes||!enArca.has(c.codigo))
+    .slice().sort((a,b)=>(a.orden||0)-(b.orden||0));
+  const lineas=[];
+  lista.forEach(c=>{
+    if(!/^\d{6}$/.test(String(c.codigo_arca||''))){errores.push(`${c.codigo} ${c.nombre}: sin código ARCA`);return;}
+    const m=String(c.marcas||'').padEnd(15,'0');
+    const flags=m.slice(0,10)+' '+m[10]+' '+m[11]+' '+m[12]+m[13]+' '+m[14];   // 19 chars (168-186)
+    lineas.push(c.codigo_arca+lsdStr(c.codigo,10)+lsdStr(c.nombre,150)+(c.repeticion===false?'0':'1')+flags+' '.repeat(9));
+  });
+  lineas.forEach((l,i)=>{if(l.length!==195)errores.push(`Línea ${i+1}: largo ${l.length} ≠ 195`);});
+  return {lineas,txt:lineas.join('\r\n')+(lineas.length?'\r\n':''),errores};
+}
+
 // Parseo del extracto pegado (tab / ; como separador). Devuelve
 // [{fecha:'YYYY-MM-DD', descripcion, importe:Number}]. Puro.
 function parsearExtractoPegado(texto){
