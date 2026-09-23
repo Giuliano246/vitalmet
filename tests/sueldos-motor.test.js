@@ -185,4 +185,24 @@ test('computeRecibo: licencia paga (enfermedad) no duplica el pago — se resta 
   assert.equal(imp(r, '7'), 200000);       // 5 × valor_dia (1.200.000/30 = 40.000)
   assert.equal(r.bases.rem_bruto, 1200000);   // no se duplica: básico reducido + licencia reintegrada = el sueldo completo
   assert.ok(r.alertas.some(a => /enfermedad/i.test(a)));
+  assert.equal(r.f931.dias, 30);   // R22: SICOSS cuenta la licencia paga como día trabajado (25 diasTrab + 5 enfermedad)
+});
+
+// ─── Fix round 2 (re-review de Task 4) ──────────────────────────────────
+test('computeRecibo: f931.base10 no pisa en el tope mínimo sin remuneración (fix #1, R22)', () => {
+  const emp = { ...EMP, modalidad:'mensual', categoria_escala:'Administrativo A2', fecha_ingreso:'2020-01-01', fecha_ingreso_reconocida:null };
+  const esc = { vigencia_desde:'2026-08-01', categoria:'Administrativo A2', modalidad:'mensual', valor_hora:0, basico_mensual:1200000 };
+  const nov = { ...NOV, horas_normales:null, licencia_sin_goce_dias:30 };
+  const r = recibo({ empleado:emp, escala:esc, novedad:nov, tipo:'mensual' });
+  assert.equal(r.bases.rem_bruto, 0);
+  assert.equal(r.f931.base2, 0);
+  assert.equal(r.f931.base10, 0);
+});
+
+test('computeRecibo: licencia paga sin concepto a valor día en el catálogo alerta que el básico quedó reducido (fix #3)', () => {
+  const emp = { ...EMP, convenio:'fuera', modalidad:'mensual', categoria_escala:null, sueldo_pactado:1200000, fecha_ingreso:'2020-01-01', fecha_ingreso_reconocida:null };
+  const nov = { ...NOV, horas_normales:null, licencia_paga_dias:5 };
+  const r = recibo({ empleado:emp, escala:null, novedad:nov, tipo:'mensual' });   // CAT no trae 7/8/37
+  assert.equal(imp(r, '1'), 1000000);   // 1.200.000 × 25/30, sin línea que reintegre los 5 días
+  assert.ok(r.alertas.some(a => /licencia paga sin concepto/i.test(a)));
 });

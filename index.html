@@ -17051,12 +17051,21 @@ function computeRecibo(ctx){
   // no_rem final (post-redondeo/Ganancias, incluye 998/999) — distinto del `noRem` pre-redondeo
   // usado como BASE de los descuentos s/no remunerativo (211/208), que no deben computarse sobre el ajuste de redondeo.
   const noRemFinal=totales.no_remunerativo;
-  // Ruling R21: base10 no puede quedar por debajo del tope mínimo cuando corresponde (ídem tope aplicado a rem_topeado).
+  // Ruling R21/R22: base10 no puede quedar por debajo del tope mínimo cuando corresponde (ídem tope
+  // aplicado a rem_topeado) — PERO sólo cuando hay remuneración: con base2 = 0 (p. ej. el mes entero
+  // en licencia sin goce) no corresponde pisar en el tope mínimo, base10 queda en 0.
   const base2=sumMarca(1);
-  const base10=topeMin>0?Math.max(topeMin,r2(base2-detr)):Math.max(0,r2(base2-detr));
-  const f931={dias:esJornal?0:Math.round(diasTrab+num(nov.vacaciones_dias)),horas:esJornal?Math.round(horasNorm+num(nov.feriados_no_trabajados)*horasDia):0,
+  const base10=(topeMin>0&&base2>0)?Math.max(topeMin,r2(base2-detr)):Math.max(0,r2(base2-detr));
+  // Ruling R22: SICOSS cuenta las licencias pagas como días trabajados para los mensualizados
+  // (jornales informan horas, no días → dias queda en 0).
+  const diasLicPaga=num(nov.enfermedad_dias)+num(nov.accidente_dias)+num(nov.licencia_paga_dias);
+  const f931={dias:esJornal?0:Math.round(diasTrab+num(nov.vacaciones_dias)+diasLicPaga),horas:esJornal?Math.round(horasNorm+num(nov.feriados_no_trabajados)*horasDia):0,
     rem_bruta:r2(remBruto+noRemFinal),detraer:detr,base1:cap(sumMarca(0)),base2,base3:sumMarca(10),base4:cap(sumMarca(4)),base5:cap(sumMarca(2)),
     base6:sumMarca(13),base7:sumMarca(14),base8:sumMarca(5),base9:sumMarca(12),base10};
+  // Fix #3: si hubo licencia paga pero el catálogo no tiene un concepto que la reintegre
+  // (base 'valor_dia', p. ej. 7/8/37), el básico quedó reducido sin compensación silenciosa.
+  if(diasLicPaga>0&&!conceptos.some(x=>porCod[x.codigo]?.regla?.base==='valor_dia'))
+    alertas.push('Licencia paga sin concepto a valor día en el catálogo (7/8/37): el básico quedó reducido');
   // Ordena las líneas del recibo por el `regla.orden` del catálogo (estable, el sintético del
   // código 1 lleva orden:1); los conceptos sin `regla`/`orden` en el catálogo real quedan al
   // final, en el orden en que se pushearon.
