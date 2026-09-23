@@ -816,6 +816,25 @@ body.no-costos .solo-costos{display:none!important}
         <div class="table-container"><table><thead><tr><th>Legajo</th><th>Nombre</th><th>CUIL</th><th>Categoría</th><th>Centro</th><th>Modalidad</th><th>Ingreso</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="empleados-tbody"></tbody></table></div>
       </div>
     </div>
+    <!-- NOVEDADES DE SUELDOS -->
+    <div class="page" id="page-sueldosnov">
+      <div class="page-header"><div class="page-title">Novedades del mes</div><div class="page-sub">// días trabajados, horas extra, ausencias y licencias por período — la base para liquidar</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="sueldosnov-stats"></div>
+        <div class="toolbar">
+          <label style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px">Período<input type="month" id="nov-periodo" onchange="novSetPeriodo()" style="width:auto"></label>
+          <select id="nov-tipo" onchange="novSetPeriodo()" style="width:auto">
+            <option value="mensual">Mensual</option>
+            <option value="quincena1">1ª quincena</option>
+            <option value="quincena2">2ª quincena</option>
+          </select>
+          <button class="btn btn-ghost" onclick="novPrecargarHoras()" title="Suma las horas productivas de los timers de Modo Planta del período y las precarga en &quot;Horas norm.&quot; de los jornales que no tengan dato cargado — no pisa lo ya escrito" style="border-color:var(--teal);color:var(--teal)">⏱ Precargar horas de planta</button>
+          <button class="btn btn-primary" id="btn-save-nov" onclick="saveNovedades()">Guardar</button>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Empleado</th><th>Días trab.</th><th>Horas norm.</th><th>Extras 50</th><th>Extras 100</th><th>Feriados no trab.</th><th>Feriado trab. (hs)</th><th>Aus. injust.</th><th>Enfermedad (d)</th><th>Accidente (d)</th><th>Lic. paga (d)</th><th>Tipo lic.</th><th>Sin goce (d)</th><th>Vacaciones (d)</th><th>Adelanto $</th><th>Premio $</th><th>Obs.</th></tr></thead><tbody id="nov-tbody"></tbody></table></div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text3)">Para jornales, "Horas norm." son sólo horas efectivamente trabajadas — no incluyas ahí los días de enfermedad, accidente o licencia paga: esos se cargan en sus propias columnas y el motor de liquidación los computa aparte.</div>
+      </div>
+    </div>
     <!-- ESCALAS Y PARÁMETROS DE SUELDOS -->
     <div class="page" id="page-sueldosparam">
       <div class="page-header"><div class="page-title">Escalas y parámetros</div><div class="page-sub">// escala salarial UOM · parámetros del convenio · previsionales · tablas de Ganancias — todo con vigencias</div><div class="tabs"></div></div>
@@ -5748,6 +5767,66 @@ function renderSueldos(filter=''){
   ).join(''):`<tr><td colspan="9" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Sin empleados cargados.</td></tr>`;
 }
 
+// ── Novedades del mes (Task 10) ──
+function novSetPeriodo(){renderSueldosNovedades();}
+function renderSueldosNovedades(){
+  const periodoEl=document.getElementById('nov-periodo'),tipoEl=document.getElementById('nov-tipo');
+  if(!periodoEl||!tipoEl)return;
+  if(!periodoEl.value)periodoEl.value=hoyLocal().slice(0,7);
+  if(!tipoEl.value)tipoEl.value='mensual';
+  const periodo=periodoEl.value,tipo=tipoEl.value,periodoDB=periodo+'-01';
+  const activos=empleados.filter(e=>e.activo!==false);
+  const cargadas=sueldosNovedades.filter(n=>n.periodo===periodoDB&&n.tipo===tipo).length;
+  const statsEl=document.getElementById('sueldosnov-stats');
+  if(statsEl)statsEl.innerHTML=`
+    <div class="stat-card"><div class="stat-label">Empleados activos</div><div class="stat-value" style="color:var(--blue)">${activos.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Con novedad cargada</div><div class="stat-value" style="color:${cargadas?'var(--green)':'var(--text3)'}">${cargadas}</div></div>`;
+  const tbody=document.getElementById('nov-tbody');
+  if(!tbody)return;
+  tbody.innerHTML=activos.length?activos.map(e=>{
+    const nov=sueldosNovedades.find(n=>n.empleado_id===e.id&&n.periodo===periodoDB&&n.tipo===tipo)||{};
+    const esJornal=e.modalidad==='jornal';
+    const num=(campo,width,step,extra)=>`<input type="number" step="${step}" style="width:${width}px" data-nov-emp="${e.id}" data-nov-campo="${campo}" value="${esc(nov[campo]??'')}"${extra||''}>`;
+    return `<tr>
+      <td style="font-weight:500;white-space:nowrap">${esc(e.nombre)}</td>
+      <td>${num('dias_trabajados',55,'0.5',esJornal?'':' disabled')}</td>
+      <td>${num('horas_normales',60,'0.5',esJornal?' disabled':'')}</td>
+      <td>${num('hs_extra_50',55,'0.5')}</td>
+      <td>${num('hs_extra_100',55,'0.5')}</td>
+      <td>${num('feriados_no_trabajados',50,'1')}</td>
+      <td>${num('feriados_trabajados_hs',55,'0.5')}</td>
+      <td>${num('ausencias_injustificadas',55,'0.5')}</td>
+      <td>${num('enfermedad_dias',50,'0.5')}</td>
+      <td>${num('accidente_dias',50,'0.5')}</td>
+      <td>${num('licencia_paga_dias',55,'0.5')}</td>
+      <td><input type="text" style="width:90px" data-nov-emp="${e.id}" data-nov-campo="licencia_paga_tipo" value="${esc(nov.licencia_paga_tipo||'')}" placeholder="motivo"></td>
+      <td>${num('licencia_sin_goce_dias',55,'0.5')}</td>
+      <td>${num('vacaciones_dias',55,'0.5')}</td>
+      <td>${num('adelanto',80,'0.01')}</td>
+      <td>${num('premio_produccion',80,'0.01')}</td>
+      <td><input type="text" style="width:150px" data-nov-emp="${e.id}" data-nov-campo="observaciones" value="${esc(nov.observaciones||'')}"></td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="17" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Sin empleados activos.</td></tr>`;
+}
+function _novRows(){const por={};document.querySelectorAll('[data-nov-emp]').forEach(inp=>{const k=inp.dataset.novCampo;const v=inp.type==='number'?(inp.value===''?null:parseFloat(inp.value)):inp.value;(por[inp.dataset.novEmp]=por[inp.dataset.novEmp]||{empleado_id:inp.dataset.novEmp})[k]=v;});return Object.values(por);}
+async function saveNovedades(){
+  const periodo=g('nov-periodo');if(!periodo)return notify('Indicá el período','err');
+  setBusy('btn-save-nov',true);
+  try{await RPC('guardar_novedades',{p_periodo:periodo+'-01',p_tipo:g('nov-tipo'),p_items:_novRows()});await reload('sueldos_novedades');renderSueldosNovedades();notify('Novedades guardadas');}
+  catch(e){notify(msgError(e),'err');}finally{setBusy('btn-save-nov',false,'Guardar');}
+}
+async function novPrecargarHoras(){
+  const periodo=g('nov-periodo');if(!periodo)return notify('Indicá el período primero','err');
+  const entries=await _fetchEntriesPeriodo(periodo);
+  const ph=computeParteHoras(entries,ops,periodo);let n=0;
+  empleados.filter(e=>e.activo!==false&&e.modalidad==='jornal'&&e.operario_nombre).forEach(e=>{
+    const hs=ph.porOperario[e.operario_nombre.trim().toLowerCase()];
+    const inp=document.querySelector(`[data-nov-emp="${e.id}"][data-nov-campo="horas_normales"]`);
+    if(hs&&inp&&inp.value===''){inp.value=g('nov-tipo')==='mensual'?hs:Math.round(hs/2*100)/100;n++;}
+  });
+  notify(n?`${n} jornales precargados desde los timers — revisá y guardá`:'No hay horas de planta para ese período');
+}
+
 // ── Empleados (CRUD) ──
 let _empEditId=null;
 function openEmpleado(id){
@@ -8191,6 +8270,7 @@ const PAGE_RENDERS={
   cobpag:[renderCobPag],
   cheques:[renderCheques],
   sueldos:[renderSueldos],
+  sueldosnov:[renderSueldosNovedades],
   sueldosparam:[renderSueldosParam],
   librodiario:[renderLibroDiario],
   libromayor:[populateLibroMayorSel,renderLibroMayor],
