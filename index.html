@@ -816,6 +816,140 @@ body.no-costos .solo-costos{display:none!important}
         <div class="table-container"><table><thead><tr><th>Legajo</th><th>Nombre</th><th>CUIL</th><th>Categoría</th><th>Centro</th><th>Modalidad</th><th>Ingreso</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="empleados-tbody"></tbody></table></div>
       </div>
     </div>
+    <!-- ESCALAS Y PARÁMETROS DE SUELDOS -->
+    <div class="page" id="page-sueldosparam">
+      <div class="page-header"><div class="page-title">Escalas y parámetros</div><div class="page-sub">// escala salarial UOM · parámetros del convenio · previsionales · tablas de Ganancias — todo con vigencias</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div id="sp-alerts"></div>
+        <div class="toolbar" style="margin-bottom:14px">
+          <div class="subtab active" data-ptab="escala" tabindex="0" role="button" onclick="paramTab('escala')">Escala salarial</div>
+          <div class="subtab" data-ptab="convenio" tabindex="0" role="button" onclick="paramTab('convenio')">Convenio</div>
+          <div class="subtab" data-ptab="previsional" tabindex="0" role="button" onclick="paramTab('previsional')">Previsional</div>
+          <div class="subtab" data-ptab="ganancias" tabindex="0" role="button" onclick="paramTab('ganancias')">Ganancias</div>
+        </div>
+
+        <!-- ESCALA SALARIAL -->
+        <div class="sp-panel" id="sp-panel-escala">
+          <div class="toolbar">
+            <div class="form-group" style="max-width:200px;min-width:160px"><label>Vigencia</label><select id="esc-vig" onchange="escalaSelectVig(this.value)"></select></div>
+            <button class="btn btn-ghost" onclick="escalaNuevaVigencia()" title="Copia todas las categorías de la vigencia elegida a una fecha nueva, aplicando un % de aumento">+ Nueva vigencia</button>
+            <button class="btn btn-ghost" onclick="escalaNuevaCategoria()">+ Categoría</button>
+            <button class="btn btn-primary" id="btn-save-escala" onclick="saveEscala()">Guardar</button>
+          </div>
+          <div class="table-container"><table><thead><tr><th>Categoría</th><th>Modalidad</th><th>Valor hora ($)</th><th>Básico mensual ($)</th></tr></thead><tbody id="escala-tbody"></tbody></table></div>
+        </div>
+
+        <!-- CONVENIO -->
+        <div class="sp-panel" id="sp-panel-convenio" style="display:none">
+          <div style="display:grid;grid-template-columns:180px 1fr;gap:16px;align-items:start">
+            <div class="table-wrap" style="max-height:560px"><table><thead><tr><th>Vigencia</th></tr></thead><tbody id="cv-vig-list"></tbody></table></div>
+            <div>
+              <div class="toolbar">
+                <button class="btn btn-ghost" onclick="paramNuevaVigencia('convenio')" title="Copia la vigencia elegida a una fecha nueva">+ Nueva vigencia</button>
+                <button class="btn btn-primary" id="btn-save-convenio" onclick="saveConvenio()">Guardar</button>
+              </div>
+              <div class="form-row triple">
+                <div class="form-group"><label>Vigencia desde</label><input type="date" id="cv-vigencia_desde"></div>
+                <div class="form-group"><label>IMGR ($)</label><input type="number" step="0.01" id="cv-imgr"></div>
+                <div class="form-group"><label>No remun. paritaria ($)</label><input type="number" step="0.01" id="cv-no_rem_paritaria"></div>
+              </div>
+              <div class="form-row triple">
+                <div class="form-group"><label>No remun. código</label><input type="text" id="cv-no_rem_codigo"></div>
+                <div class="form-group"><label>Antigüedad (% por año)</label><input type="number" step="0.001" id="cv-antiguedad_pct"></div>
+                <div class="form-group"><label>Redondeo a ($)</label><input type="number" step="0.01" id="cv-redondeo_a"></div>
+              </div>
+              <div class="form-row triple">
+                <div class="form-group"><label>Horas por mes</label><input type="number" step="1" id="cv-horas_mes"></div>
+                <div class="form-group"><label>Horas por día</label><input type="number" step="0.01" id="cv-horas_dia"></div>
+                <div class="form-group"><label style="visibility:hidden">.</label><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0"><input type="checkbox" id="cv-tope_por_quincena" style="width:auto">Tope por quincena</label></div>
+              </div>
+              <div class="form-row triple">
+                <div class="form-group"><label>Presentismo (%)</label><input type="number" step="0.001" id="cv-presentismo_pct"></div>
+                <div class="form-group"><label>Presentismo tolerancia (días)</label><input type="number" step="1" id="cv-presentismo_tolerancia_dias"></div>
+                <div class="form-group"><label>Sepelio ($)</label><input type="number" step="0.01" id="cv-sepelio_importe"></div>
+              </div>
+              <div class="form-row triple">
+                <div class="form-group"><label>SCVO ($)</label><input type="number" step="0.01" id="cv-scvo_importe"></div>
+                <div class="form-group"><label>Cuota sindical (%)</label><input type="number" step="0.001" id="cv-cuota_sindical_pct"></div>
+                <div class="form-group"><label>Aporte solidario (%)</label><input type="number" step="0.001" id="cv-aporte_solidario_pct"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PREVISIONAL -->
+        <div class="sp-panel" id="sp-panel-previsional" style="display:none">
+          <div style="display:grid;grid-template-columns:180px 1fr;gap:16px;align-items:start">
+            <div class="table-wrap" style="max-height:560px"><table><thead><tr><th>Vigencia</th></tr></thead><tbody id="pv-vig-list"></tbody></table></div>
+            <div>
+              <div class="toolbar">
+                <button class="btn btn-ghost" onclick="paramNuevaVigencia('previsional')" title="Copia la vigencia elegida a una fecha nueva">+ Nueva vigencia</button>
+                <button class="btn btn-primary" id="btn-save-previsional" onclick="savePrevisional()">Guardar</button>
+              </div>
+              <div class="form-row triple">
+                <div class="form-group"><label>Vigencia desde</label><input type="date" id="pv-vigencia_desde"></div>
+                <div class="form-group"><label>Tope mínimo aportable ($)</label><input type="number" step="0.01" id="pv-tope_min"></div>
+                <div class="form-group"><label>Tope máximo aportable ($)</label><input type="number" step="0.01" id="pv-tope_max"></div>
+              </div>
+              <div class="form-row triple">
+                <div class="form-group"><label>Detracción ($)</label><input type="number" step="0.01" id="pv-detraccion"></div>
+                <div class="form-group"><label>Tipo de empresa (1-3)</label><input type="number" step="1" min="1" max="3" id="pv-tipo_empresa"></div>
+                <div class="form-group"><label>Tope retención Ganancias (%)</label><input type="number" step="0.01" id="pv-ganancias_tope_retencion_pct"></div>
+              </div>
+              <div class="section-label" style="margin:14px 0 8px">Aportes del empleado</div>
+              <div class="form-row triple">
+                <div class="form-group"><label>Jubilación (%)</label><input type="number" step="0.001" id="pv-aporte_jubilacion_pct"></div>
+                <div class="form-group"><label>INSSJP (%)</label><input type="number" step="0.001" id="pv-aporte_inssjp_pct"></div>
+                <div class="form-group"><label>Obra social (%)</label><input type="number" step="0.001" id="pv-aporte_os_pct"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>Obra social adherente (%)</label><input type="number" step="0.001" id="pv-aporte_os_adherente_pct"></div>
+              </div>
+              <div class="section-label" style="margin:14px 0 8px">Contribuciones del empleador</div>
+              <div class="form-row triple">
+                <div class="form-group"><label>SIPA (%)</label><input type="number" step="0.001" id="pv-contrib_sipa_pct"></div>
+                <div class="form-group"><label>INSSJP (%)</label><input type="number" step="0.001" id="pv-contrib_inssjp_pct"></div>
+                <div class="form-group"><label>FNE (%)</label><input type="number" step="0.001" id="pv-contrib_fne_pct"></div>
+              </div>
+              <div class="form-row triple">
+                <div class="form-group"><label>AAFF (%)</label><input type="number" step="0.001" id="pv-contrib_aaff_pct"></div>
+                <div class="form-group"><label>Obra social (%)</label><input type="number" step="0.001" id="pv-contrib_os_pct"></div>
+                <div class="form-group"><label>FSR (%)</label><input type="number" step="0.001" id="pv-contrib_fsr_pct"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>ART (%)</label><input type="number" step="0.001" id="pv-art_pct"></div>
+                <div class="form-group"><label>ART fijo ($)</label><input type="number" step="0.01" id="pv-art_fijo"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- GANANCIAS -->
+        <div class="sp-panel" id="sp-panel-ganancias" style="display:none">
+          <div style="display:grid;grid-template-columns:180px 1fr;gap:16px;align-items:start">
+            <div class="table-wrap" style="max-height:560px"><table><thead><tr><th>Vigencia</th></tr></thead><tbody id="gt-vig-list"></tbody></table></div>
+            <div>
+              <div class="toolbar">
+                <button class="btn btn-ghost" onclick="paramNuevaVigencia('ganancias')" title="Copia la vigencia elegida a una fecha nueva">+ Nueva vigencia</button>
+                <button class="btn btn-primary" id="btn-save-gantabla" onclick="saveGanTabla()">Guardar</button>
+              </div>
+              <div class="form-row triple">
+                <div class="form-group"><label>Vigencia desde</label><input type="date" id="gt-vigencia_desde"></div>
+                <div class="form-group"><label>Ganancia no imponible anual ($)</label><input type="number" step="0.01" id="gt-gni_anual"></div>
+                <div class="form-group"><label>Deducción especial anual ($)</label><input type="number" step="0.01" id="gt-deduccion_especial_anual"></div>
+              </div>
+              <div class="form-row triple">
+                <div class="form-group"><label>Cónyuge anual ($)</label><input type="number" step="0.01" id="gt-conyuge_anual"></div>
+                <div class="form-group"><label>Hijo anual ($)</label><input type="number" step="0.01" id="gt-hijo_anual"></div>
+                <div class="form-group"><label>Hijo con discapacidad anual ($)</label><input type="number" step="0.01" id="gt-hijo_incap_anual"></div>
+              </div>
+              <div class="section-label" style="margin:14px 0 8px">Tramos de la escala (art. 94 Ley de Ganancias)</div>
+              <div class="table-container"><table><thead><tr><th>#</th><th>Desde ($)</th><th>Hasta ($)</th><th>Fijo ($)</th><th>%</th></tr></thead><tbody id="gt-tramos-tbody"></tbody></table></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="page" id="page-cheques">
       <div class="page-header"><div class="page-title">Cheques diferidos</div><div class="page-sub">// cartera de valores · recibidos y emitidos · vencimientos</div><div class="tabs"></div></div>
       <div class="page-content">
@@ -3179,6 +3313,7 @@ let mailingsQueueCount=null; // emails pendientes de aprobación (lo carga el m�
 let preciosBase=[];
 let insumos=[],herramientas=[];
 let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[],cheques=[],empleados=[],liquidaciones=[],conceptosSueldo=[],conceptosArca=[];
+let sueldosEscala=[],sueldosConvenio=[],sueldosPrevisional=[],sueldosGanTablas=[];
 let facturasRecibidas=[];
 let ordenesPago=[];
 let facturasEmitidas=[]; // listado unificado Ventas → Facturas emitidas (sprint 3 hoja 2026-09-07)
@@ -4122,6 +4257,10 @@ const TBL={
   liquidaciones:{label:'Liquidaciones de sueldos',q:'?order=periodo.desc,created_at.desc&select=*,liquidacion_items(*,liquidacion_conceptos(*))',set:r=>{liquidaciones=r||[];}},
   conceptos_sueldo:{label:'Conceptos de sueldo',q:'?order=orden.asc,codigo.asc',set:r=>{conceptosSueldo=r||[];}},
   conceptos_arca:{label:'Catálogo ARCA',q:'?order=codigo.asc',set:r=>{conceptosArca=r||[];}},
+  sueldos_escala:{label:'Escala salarial',q:'?order=vigencia_desde.desc,orden.asc',set:r=>{sueldosEscala=r||[];_dirtyPages.add('sueldosparam');}},
+  sueldos_convenio_parametros:{label:'Parámetros del convenio',q:'?order=vigencia_desde.desc',set:r=>{sueldosConvenio=r||[];}},
+  sueldos_parametros_previsionales:{label:'Parámetros previsionales',q:'?order=vigencia_desde.desc',set:r=>{sueldosPrevisional=r||[];}},
+  sueldos_ganancias_tablas:{label:'Tablas de Ganancias',q:'?order=vigencia_desde.desc',set:r=>{sueldosGanTablas=r||[];}},
 };
 let _lastLoadAllAt=0;
 async function _loadTables(nombres){
@@ -4146,7 +4285,7 @@ async function loadAll(){
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',planos:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',femitidas:'ventas',clientes:'ventas',ctacte:'ventas',mailings:'ventas',precios:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',kpiscalidad:'calidad',revdir:'calidad',auditorias:'calidad',competencias:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',eecc:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',bienesuso:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',exportables:'contabilidad',sueldos:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',planos:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',femitidas:'ventas',clientes:'ventas',ctacte:'ventas',mailings:'ventas',precios:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',kpiscalidad:'calidad',revdir:'calidad',auditorias:'calidad',competencias:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',eecc:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',bienesuso:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',exportables:'contabilidad',sueldos:'contabilidad',sueldosnov:'contabilidad',sueldosparam:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
   produccion:[{k:'op',l:'Órdenes'},{k:'planos',l:'Planos'},{k:'eficiencia',l:'Eficiencia'}],
@@ -4155,7 +4294,7 @@ const GROUP_TABS={
     {k:'asientosp',l:'Asientos'},
     {k:'cobpag',l:'Cobros y Pagos'},
     {k:'cheques',l:'Cheques'},
-    {k:'sueldos',l:'Sueldos'},
+    {k:'nomina',l:'Sueldos',sub:[{k:'sueldos',l:'Liquidaciones'},{k:'sueldosnov',l:'Novedades'},{k:'sueldosparam',l:'Escalas y parámetros'}]},
     {k:'correlatividad',l:'Correlatividad'},
     {k:'conciliacion',l:'Conciliación bancaria'},
     {k:'exportables',l:'Exportables'},
@@ -4170,6 +4309,7 @@ const GROUP_TABS={
 };
 // Mapa sub-página → tab-padre (para resaltar la tab principal cuando se está en una sub-página)
 const PAGE_TO_PARENT={
+  sueldos:'nomina',sueldosnov:'nomina',sueldosparam:'nomina',
   kpiscalidad:'sgc',revdir:'sgc',auditorias:'sgc',competencias:'sgc',
   librodiario:'libros',libromayor:'libros',
   balance:'estados',estado:'estados',balgral:'estados',eecc:'estados',
@@ -6317,6 +6457,318 @@ async function cambiarEstado(table,id,nuevoEstado){
   }catch(e){console.error('cambiarEstado',e);notify(msgError(e),'err');renderAll();}
 }
 
+// ─── Sueldos 083: Escalas y parámetros (frontend, página sueldosparam) ──
+// Escala UOM (sueldos_escala) + parámetros del convenio/previsionales/
+// Ganancias, todos con vigencia_desde. "Nueva vigencia" arma un borrador
+// en memoria (_escalaDraft / _paramDraft) que recién se persiste al
+// tocar Guardar (PATCH si la categoría/vigencia ya existe en la DB,
+// POST si es nueva) — así no se pierde nada si el usuario cancela el
+// prompt de porcentaje a mitad de camino, y "Nueva vigencia" sobre una
+// fecha que YA tiene filas (p.ej. una vigencia semilla) las actualiza
+// en vez de duplicarlas (conflicto UNIQUE empresa+vigencia+categoría).
+let _paramTab='escala';
+let _escVigSel=null;      // vigencia_desde elegida en el selector de Escala
+let _escalaDraft=null;    // {vigencia_desde, rows:[{id,categoria,modalidad,valor_hora,basico_mensual,orden}]} sin guardar
+let _paramVig={convenio:null,previsional:null,ganancias:null};     // vigencia_desde elegida en cada lista
+let _paramDraft={convenio:null,previsional:null,ganancias:null};   // fila clonada sin guardar (Nueva vigencia)
+
+function paramTab(t){
+  _paramTab=t;
+  renderSueldosParam();
+}
+
+function renderSueldosParam(){
+  document.querySelectorAll('#page-sueldosparam .subtab[data-ptab]').forEach(b=>b.classList.toggle('active',b.dataset.ptab===_paramTab));
+  document.querySelectorAll('#page-sueldosparam .sp-panel').forEach(p=>{p.style.display=p.id===('sp-panel-'+_paramTab)?'':'none';});
+  renderSPAlertas();
+  if(_paramTab==='escala')renderEscalaPanel();
+  else if(_paramTab==='convenio')renderConvenioPanel();
+  else if(_paramTab==='previsional')renderPrevisionalPanel();
+  else if(_paramTab==='ganancias')renderGananciasPanel();
+}
+
+function renderSPAlertas(){
+  const cont=document.getElementById('sp-alerts');
+  if(!cont)return;
+  const hoy=hoyLocal();
+  const msgs=[];
+  // Categorías sin valor cargado en la vigencia de escala vigente hoy
+  const vigsEsc=_escVigencias().filter(v=>v<=hoy);
+  const vigHoyEsc=vigsEsc[0]||null;
+  if(vigHoyEsc){
+    const enCero=sueldosEscala.filter(e=>e.vigencia_desde===vigHoyEsc&&(
+      (e.modalidad==='mensual'&&!(parseFloat(e.basico_mensual)>0))||
+      (e.modalidad!=='mensual'&&!(parseFloat(e.valor_hora)>0))));
+    if(enCero.length)msgs.push(`⚠ ${enCero.length} categoría${enCero.length>1?'s':''} sin valor cargado en la vigencia vigente (${fmtFecha(vigHoyEsc)}): ${enCero.map(e=>esc(e.categoria)).join(', ')}.`);
+  }
+  // Parámetros previsionales desactualizados (más de 3 meses)
+  const ultPrev=[...sueldosPrevisional].sort((a,b)=>b.vigencia_desde.localeCompare(a.vigencia_desde))[0];
+  if(ultPrev){
+    const lim=new Date(hoy+'T00:00:00');lim.setMonth(lim.getMonth()-3);
+    const limIso=lim.toISOString().slice(0,10);
+    if(ultPrev.vigencia_desde<limIso)msgs.push(`⚠ Los parámetros previsionales no se actualizan desde ${fmtFecha(ultPrev.vigencia_desde)} (más de 3 meses) — revisá los topes de ANSES/AFIP.`);
+  }
+  // Tabla de Ganancias de un semestre anterior al actual
+  const ultGan=[...sueldosGanTablas].sort((a,b)=>b.vigencia_desde.localeCompare(a.vigencia_desde))[0];
+  if(ultGan){
+    const semDe=f=>{const p=f.slice(0,7).split('-').map(Number);return p[0]*2+(p[1]<=6?0:1);};
+    if(semDe(ultGan.vigencia_desde)<semDe(hoy))msgs.push(`⚠ La tabla de Ganancias vigente es de ${fmtFecha(ultGan.vigencia_desde)}, de un semestre anterior — ARCA suele actualizarla cada 6 meses.`);
+  }
+  cont.innerHTML=msgs.map(m=>`<div class="alert-bar visible">${m}</div>`).join('');
+}
+
+// ── Escala salarial ──
+function _escVigencias(){return [...new Set(sueldosEscala.map(e=>e.vigencia_desde))].sort().reverse();}
+function escalaSelectVig(v){
+  if(_escalaDraft&&_escalaDraft.vigencia_desde!==v)_escalaDraft=null;
+  _escVigSel=v;
+  renderSueldosParam();
+}
+function escalaNuevaVigencia(){
+  const dbVigs=_escVigencias();
+  const origen=(_escVigSel&&dbVigs.includes(_escVigSel))?_escVigSel:dbVigs[0];
+  if(!origen)return notify('Cargá primero categorías en alguna vigencia','err');
+  const fecha=prompt('Fecha de la nueva vigencia (AAAA-MM-DD):',hoyLocal());
+  if(!fecha)return;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(fecha))return notify('Fecha inválida — usá AAAA-MM-DD','err');
+  const pctStr=prompt('Porcentaje de aumento sobre la vigencia de origen (ej: 4):','0');
+  if(pctStr===null)return;
+  const pct=parseFloat(String(pctStr).replace(',','.'))||0;
+  const factor=1+pct/100;
+  const base=sueldosEscala.filter(e=>e.vigencia_desde===origen);
+  if(!base.length)return notify('La vigencia de origen no tiene categorías cargadas','err');
+  const existentesDestino=sueldosEscala.filter(e=>e.vigencia_desde===fecha);
+  _escalaDraft={vigencia_desde:fecha,rows:base.map(e=>{
+    const destino=existentesDestino.find(x=>x.categoria===e.categoria);
+    return{id:destino?destino.id:null,categoria:e.categoria,modalidad:e.modalidad,
+      valor_hora:Math.round((parseFloat(e.valor_hora)||0)*factor*100)/100,
+      basico_mensual:Math.round((parseFloat(e.basico_mensual)||0)*factor*100)/100,
+      orden:e.orden};
+  })};
+  _escVigSel=fecha;
+  renderSueldosParam();
+  notify(`Vigencia ${fmtFecha(fecha)} preparada con +${pct}% sobre ${fmtFecha(origen)} — revisá y guardá`);
+}
+function escalaNuevaCategoria(){
+  const vigSel=document.getElementById('esc-vig')?.value;
+  if(!vigSel)return notify('Creá primero una vigencia con "+ Nueva vigencia"','err');
+  const tbody=document.getElementById('escala-tbody');
+  if(!tbody)return;
+  if(tbody.querySelector('.empty-cell'))tbody.innerHTML='';
+  const tmpId='new-'+Date.now()+'-'+Math.floor(Math.random()*1000);
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td><input type="text" data-esc-id="${tmpId}" data-f="categoria" placeholder="Categoría nueva" style="width:170px"></td>
+    <td><select data-esc-id="${tmpId}" data-f="modalidad"><option value="jornal">Jornal</option><option value="mensual">Mensual</option></select></td>
+    <td><input type="number" step="0.01" data-esc-id="${tmpId}" data-f="valor_hora" value="0" style="width:110px"></td>
+    <td><input type="number" step="0.01" data-esc-id="${tmpId}" data-f="basico_mensual" value="0" style="width:120px"></td>`;
+  tbody.appendChild(tr);
+}
+function renderEscalaPanel(){
+  const dbVigs=_escVigencias();
+  const draft=_escalaDraft;
+  const vigs=Array.from(new Set([...dbVigs,...(draft?[draft.vigencia_desde]:[])])).sort().reverse();
+  const vigSel=(_escVigSel&&vigs.includes(_escVigSel))?_escVigSel:(vigs[0]||'');
+  _escVigSel=vigSel;
+  const sel=document.getElementById('esc-vig');
+  if(sel)sel.innerHTML=vigs.length?vigs.map(v=>`<option value="${esc(v)}"${v===vigSel?' selected':''}>${fmtFecha(v)}${draft&&draft.vigencia_desde===v&&!dbVigs.includes(v)?' (nueva, sin guardar)':''}</option>`).join(''):'<option value="">Sin vigencias</option>';
+  const filas=(draft&&draft.vigencia_desde===vigSel)
+    ?draft.rows.map((r,i)=>({...r,id:r.id||('draft-'+i)}))
+    :sueldosEscala.filter(e=>e.vigencia_desde===vigSel).sort((a,b)=>(a.orden||0)-(b.orden||0));
+  const tbody=document.getElementById('escala-tbody');
+  if(!tbody)return;
+  tbody.innerHTML=filas.length?filas.map(e=>`<tr>
+    <td><input type="text" data-esc-id="${e.id}" data-f="categoria" value="${esc(e.categoria)}" style="width:170px"></td>
+    <td><select data-esc-id="${e.id}" data-f="modalidad"><option value="jornal"${e.modalidad==='jornal'?' selected':''}>Jornal</option><option value="mensual"${e.modalidad==='mensual'?' selected':''}>Mensual</option></select></td>
+    <td><input type="number" step="0.01" data-esc-id="${e.id}" data-f="valor_hora" value="${e.valor_hora??0}" style="width:110px"></td>
+    <td><input type="number" step="0.01" data-esc-id="${e.id}" data-f="basico_mensual" value="${e.basico_mensual??0}" style="width:120px"></td>
+  </tr>`).join(''):`<tr><td colspan="4" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Cargá la primera vigencia.</td></tr>`;
+}
+async function saveEscala(){
+  const vigSel=document.getElementById('esc-vig')?.value;
+  const tbody=document.getElementById('escala-tbody');
+  if(!vigSel||!tbody)return notify('Elegí o creá una vigencia primero','err');
+  const rows=[...tbody.querySelectorAll('tr')].filter(tr=>tr.querySelector('[data-esc-id]'));
+  if(!rows.length)return notify('No hay categorías para guardar','err');
+  setBusy('btn-save-escala',true);
+  try{
+    let orden=0;
+    for(const tr of rows){
+      const id=tr.querySelector('[data-esc-id]').dataset.escId;
+      const val=f=>tr.querySelector(`[data-f="${f}"]`)?.value;
+      const categoria=(val('categoria')||'').trim();
+      orden++;
+      if(!categoria)continue;
+      const data={empresa_id:currentEmpresa.id,vigencia_desde:vigSel,categoria,
+        modalidad:val('modalidad')||'jornal',
+        valor_hora:parseFloat(val('valor_hora'))||0,
+        basico_mensual:parseFloat(val('basico_mensual'))||0,
+        orden};
+      if(id&&!id.startsWith('draft-')&&!id.startsWith('new-'))await PATCH('sueldos_escala',data,`?id=eq.${id}`);
+      else await POST('sueldos_escala',data);
+    }
+    await reload('sueldos_escala');
+    _escalaDraft=null;
+    renderSueldosParam();
+    notify('Escala guardada');
+  }catch(e){notify(msgError(e),'err');}
+  finally{setBusy('btn-save-escala',false,'Guardar');}
+}
+
+// ── Convenio / Previsional / Ganancias: vigencia lateral + formulario ──
+const _SP_LISTAS={convenio:()=>sueldosConvenio,previsional:()=>sueldosPrevisional,ganancias:()=>sueldosGanTablas};
+function paramSelectVig(tipo,fecha){
+  if(_paramDraft[tipo]&&_paramDraft[tipo].vigencia_desde!==fecha)_paramDraft[tipo]=null;
+  _paramVig[tipo]=fecha;
+  renderSueldosParam();
+}
+function paramNuevaVigencia(tipo){
+  const list=[..._SP_LISTAS[tipo]()].sort((a,b)=>b.vigencia_desde.localeCompare(a.vigencia_desde));
+  const vigActual=(_paramVig[tipo]&&list.some(v=>v.vigencia_desde===_paramVig[tipo]))?_paramVig[tipo]:(list[0]?.vigencia_desde||null);
+  const base=list.find(v=>v.vigencia_desde===vigActual)||list[0]||null;
+  const fecha=prompt('Fecha de la nueva vigencia (AAAA-MM-DD):',hoyLocal());
+  if(!fecha)return;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(fecha))return notify('Fecha inválida — usá AAAA-MM-DD','err');
+  const clone=base?{...base,vigencia_desde:fecha}:{vigencia_desde:fecha};
+  if(tipo==='ganancias')clone.tramos=(base?.tramos||[]).map(t=>({...t}));
+  _paramDraft[tipo]=clone;
+  _paramVig[tipo]=fecha;
+  renderSueldosParam();
+  notify(base?`Vigencia ${fmtFecha(fecha)} precargada desde ${fmtFecha(base.vigencia_desde)} — revisá y guardá`:`Vigencia ${fmtFecha(fecha)} lista — completá los datos y guardá`);
+}
+function _spVigList(tipo,elId,idPrefix){
+  const list=[..._SP_LISTAS[tipo]()].sort((a,b)=>b.vigencia_desde.localeCompare(a.vigencia_desde));
+  const draft=_paramDraft[tipo];
+  const vigs=Array.from(new Set([...list.map(v=>v.vigencia_desde),...(draft?[draft.vigencia_desde]:[])])).sort().reverse();
+  const vigSel=(_paramVig[tipo]&&vigs.includes(_paramVig[tipo]))?_paramVig[tipo]:(vigs[0]||'');
+  _paramVig[tipo]=vigSel;
+  const ul=document.getElementById(elId);
+  if(ul)ul.innerHTML=vigs.length?vigs.map(v=>`<tr style="cursor:pointer${v===vigSel?';background:var(--surface2)':''}" onclick="paramSelectVig('${tipo}','${v}')"><td class="mono" style="padding:8px 10px">${fmtFecha(v)}${draft&&draft.vigencia_desde===v&&!list.some(x=>x.vigencia_desde===v)?' <span style="color:var(--accent);font-size:10px">nueva</span>':''}</td></tr>`).join(''):'<tr><td style="padding:12px;color:var(--text3);font-size:12px">Cargá la primera vigencia</td></tr>';
+  const row=(draft&&draft.vigencia_desde===vigSel)?draft:(list.find(v=>v.vigencia_desde===vigSel)||null);
+  const fechaEl=document.getElementById(idPrefix+'vigencia_desde');
+  if(fechaEl)fechaEl.value=row?row.vigencia_desde:(vigSel||'');
+  return {list,vigSel,row};
+}
+function renderConvenioPanel(){
+  const {row}=_spVigList('convenio','cv-vig-list','cv-');
+  const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v??0;};
+  s('cv-imgr',row?.imgr??0);s('cv-no_rem_paritaria',row?.no_rem_paritaria??0);
+  const cod=document.getElementById('cv-no_rem_codigo');if(cod)cod.value=row?.no_rem_codigo??'102';
+  s('cv-antiguedad_pct',row?.antiguedad_pct??1);s('cv-horas_mes',row?.horas_mes??200);s('cv-horas_dia',row?.horas_dia??8);
+  s('cv-presentismo_pct',row?.presentismo_pct??0);s('cv-presentismo_tolerancia_dias',row?.presentismo_tolerancia_dias??0);
+  s('cv-sepelio_importe',row?.sepelio_importe??0);s('cv-scvo_importe',row?.scvo_importe??0);
+  s('cv-cuota_sindical_pct',row?.cuota_sindical_pct??2.5);s('cv-aporte_solidario_pct',row?.aporte_solidario_pct??2);
+  s('cv-redondeo_a',row?.redondeo_a??10);
+  const chkEl=document.getElementById('cv-tope_por_quincena');
+  if(chkEl)chkEl.checked=row?row.tope_por_quincena!==false:true;
+}
+async function saveConvenio(){
+  const fecha=g('cv-vigencia_desde');
+  if(!fecha)return notify('Ingresá la fecha de vigencia','err');
+  const num=id=>parseFloat(g(id))||0;
+  const data={empresa_id:currentEmpresa.id,vigencia_desde:fecha,
+    imgr:num('cv-imgr'),no_rem_paritaria:num('cv-no_rem_paritaria'),no_rem_codigo:g('cv-no_rem_codigo')||'102',
+    antiguedad_pct:num('cv-antiguedad_pct'),horas_mes:parseInt(g('cv-horas_mes'))||200,horas_dia:num('cv-horas_dia'),
+    presentismo_pct:num('cv-presentismo_pct'),presentismo_tolerancia_dias:parseInt(g('cv-presentismo_tolerancia_dias'))||0,
+    sepelio_importe:num('cv-sepelio_importe'),scvo_importe:num('cv-scvo_importe'),
+    cuota_sindical_pct:num('cv-cuota_sindical_pct'),aporte_solidario_pct:num('cv-aporte_solidario_pct'),
+    redondeo_a:num('cv-redondeo_a'),tope_por_quincena:document.getElementById('cv-tope_por_quincena')?.checked!==false};
+  const existente=sueldosConvenio.find(v=>v.vigencia_desde===fecha);
+  setBusy('btn-save-convenio',true);
+  try{
+    if(existente)await PATCH('sueldos_convenio_parametros',data,`?id=eq.${existente.id}`);
+    else await POST('sueldos_convenio_parametros',data);
+    await reload('sueldos_convenio_parametros');
+    _paramDraft.convenio=null;_paramVig.convenio=fecha;
+    renderSueldosParam();
+    notify('Parámetros del convenio guardados');
+  }catch(e){notify(msgError(e),'err');}
+  finally{setBusy('btn-save-convenio',false,'Guardar');}
+}
+function renderPrevisionalPanel(){
+  const {row}=_spVigList('previsional','pv-vig-list','pv-');
+  const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v??0;};
+  s('pv-tope_min',row?.tope_min??0);s('pv-tope_max',row?.tope_max??0);s('pv-detraccion',row?.detraccion??0);
+  s('pv-tipo_empresa',row?.tipo_empresa??1);s('pv-ganancias_tope_retencion_pct',row?.ganancias_tope_retencion_pct??35);
+  s('pv-aporte_jubilacion_pct',row?.aporte_jubilacion_pct??11);s('pv-aporte_inssjp_pct',row?.aporte_inssjp_pct??3);
+  s('pv-aporte_os_pct',row?.aporte_os_pct??3);s('pv-aporte_os_adherente_pct',row?.aporte_os_adherente_pct??1.5);
+  s('pv-contrib_sipa_pct',row?.contrib_sipa_pct??10.77);s('pv-contrib_inssjp_pct',row?.contrib_inssjp_pct??1.59);
+  s('pv-contrib_fne_pct',row?.contrib_fne_pct??0.94);s('pv-contrib_aaff_pct',row?.contrib_aaff_pct??4.70);
+  s('pv-contrib_os_pct',row?.contrib_os_pct??5.10);s('pv-contrib_fsr_pct',row?.contrib_fsr_pct??0.90);
+  s('pv-art_pct',row?.art_pct??0);s('pv-art_fijo',row?.art_fijo??0);
+}
+async function savePrevisional(){
+  const fecha=g('pv-vigencia_desde');
+  if(!fecha)return notify('Ingresá la fecha de vigencia','err');
+  const num=id=>parseFloat(g(id))||0;
+  const data={empresa_id:currentEmpresa.id,vigencia_desde:fecha,
+    tope_min:num('pv-tope_min'),tope_max:num('pv-tope_max'),detraccion:num('pv-detraccion'),
+    aporte_jubilacion_pct:num('pv-aporte_jubilacion_pct'),aporte_inssjp_pct:num('pv-aporte_inssjp_pct'),
+    aporte_os_pct:num('pv-aporte_os_pct'),aporte_os_adherente_pct:num('pv-aporte_os_adherente_pct'),
+    tipo_empresa:parseInt(g('pv-tipo_empresa'))||1,
+    contrib_sipa_pct:num('pv-contrib_sipa_pct'),contrib_inssjp_pct:num('pv-contrib_inssjp_pct'),
+    contrib_fne_pct:num('pv-contrib_fne_pct'),contrib_aaff_pct:num('pv-contrib_aaff_pct'),
+    contrib_os_pct:num('pv-contrib_os_pct'),contrib_fsr_pct:num('pv-contrib_fsr_pct'),
+    art_pct:num('pv-art_pct'),art_fijo:num('pv-art_fijo'),
+    ganancias_tope_retencion_pct:num('pv-ganancias_tope_retencion_pct')};
+  const existente=sueldosPrevisional.find(v=>v.vigencia_desde===fecha);
+  setBusy('btn-save-previsional',true);
+  try{
+    if(existente)await PATCH('sueldos_parametros_previsionales',data,`?id=eq.${existente.id}`);
+    else await POST('sueldos_parametros_previsionales',data);
+    await reload('sueldos_parametros_previsionales');
+    _paramDraft.previsional=null;_paramVig.previsional=fecha;
+    renderSueldosParam();
+    notify('Parámetros previsionales guardados');
+  }catch(e){notify(msgError(e),'err');}
+  finally{setBusy('btn-save-previsional',false,'Guardar');}
+}
+function renderGananciasPanel(){
+  const {row}=_spVigList('ganancias','gt-vig-list','gt-');
+  const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v??0;};
+  s('gt-gni_anual',row?.gni_anual??0);s('gt-deduccion_especial_anual',row?.deduccion_especial_anual??0);
+  s('gt-conyuge_anual',row?.conyuge_anual??0);s('gt-hijo_anual',row?.hijo_anual??0);s('gt-hijo_incap_anual',row?.hijo_incap_anual??0);
+  const baseT=(row?.tramos&&Array.isArray(row.tramos))?row.tramos:[];
+  const tramos=Array.from({length:9},(_,i)=>baseT[i]||{desde:0,hasta:0,fijo:0,pct:0});
+  const tbody=document.getElementById('gt-tramos-tbody');
+  if(tbody)tbody.innerHTML=tramos.map((t,i)=>`<tr>
+    <td class="mono">${i+1}</td>
+    <td><input type="number" step="0.01" data-tramo="${i}" data-tf="desde" value="${t.desde??0}" style="width:130px"></td>
+    <td><input type="number" step="0.01" data-tramo="${i}" data-tf="hasta" value="${t.hasta??''}" placeholder="sin tope" style="width:130px"></td>
+    <td><input type="number" step="0.01" data-tramo="${i}" data-tf="fijo" value="${t.fijo??0}" style="width:130px"></td>
+    <td><input type="number" step="0.01" data-tramo="${i}" data-tf="pct" value="${t.pct??0}" style="width:90px"></td>
+  </tr>`).join('');
+}
+async function saveGanTabla(){
+  const fecha=g('gt-vigencia_desde');
+  if(!fecha)return notify('Ingresá la fecha de vigencia','err');
+  const tbody=document.getElementById('gt-tramos-tbody');
+  const tramos=[];
+  for(let i=0;i<9;i++){
+    const desde=parseFloat(tbody?.querySelector(`[data-tramo="${i}"][data-tf="desde"]`)?.value)||0;
+    const hastaRaw=tbody?.querySelector(`[data-tramo="${i}"][data-tf="hasta"]`)?.value;
+    const hasta=(hastaRaw===''||hastaRaw===undefined||hastaRaw===null)?null:parseFloat(hastaRaw);
+    const fijo=parseFloat(tbody?.querySelector(`[data-tramo="${i}"][data-tf="fijo"]`)?.value)||0;
+    const pct=parseFloat(tbody?.querySelector(`[data-tramo="${i}"][data-tf="pct"]`)?.value)||0;
+    tramos.push({desde,hasta,fijo,pct});
+  }
+  const num=id=>parseFloat(g(id))||0;
+  const data={empresa_id:currentEmpresa.id,vigencia_desde:fecha,
+    gni_anual:num('gt-gni_anual'),deduccion_especial_anual:num('gt-deduccion_especial_anual'),
+    conyuge_anual:num('gt-conyuge_anual'),hijo_anual:num('gt-hijo_anual'),hijo_incap_anual:num('gt-hijo_incap_anual'),
+    tramos};
+  const existente=sueldosGanTablas.find(v=>v.vigencia_desde===fecha);
+  setBusy('btn-save-gantabla',true);
+  try{
+    if(existente)await PATCH('sueldos_ganancias_tablas',data,`?id=eq.${existente.id}`);
+    else await POST('sueldos_ganancias_tablas',data);
+    await reload('sueldos_ganancias_tablas');
+    _paramDraft.ganancias=null;_paramVig.ganancias=fecha;
+    renderSueldosParam();
+    notify('Tabla de Ganancias guardada');
+  }catch(e){notify(msgError(e),'err');}
+  finally{setBusy('btn-save-gantabla',false,'Guardar');}
+}
+
 // ─── CHEQUES: ASIENTOS POR EVENTO (mig 056) ───────────────────
 // El alta contable del cheque la hace Cobros y Pagos (método "Cheque
 // diferido"). Acá se contabilizan los cambios de estado:
@@ -7462,6 +7914,7 @@ const PAGE_RENDERS={
   cobpag:[renderCobPag],
   cheques:[renderCheques],
   sueldos:[renderSueldos],
+  sueldosparam:[renderSueldosParam],
   librodiario:[renderLibroDiario],
   libromayor:[populateLibroMayorSel,renderLibroMayor],
   balance:[renderBalance],
@@ -13294,7 +13747,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op','planos','eficiencia'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte','mailings','precios'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl','sgc'],contabilidad:['cuentas','asientosp','cobpag','cheques','sueldos','librodiario','libromayor','balance','estado','balgral','eecc','bimon','ratios','compha','compej','ipc','ajuste','bienesuso','cierre','periodos','correlatividad','conciliacion','exportables']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op','planos','eficiencia'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte','mailings','precios'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl','sgc'],contabilidad:['cuentas','asientosp','cobpag','cheques','sueldos','sueldosnov','sueldosparam','librodiario','libromayor','balance','estado','balgral','eecc','bimon','ratios','compha','compej','ipc','ajuste','bienesuso','cierre','periodos','correlatividad','conciliacion','exportables']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
