@@ -4338,9 +4338,9 @@ const TBL={
   conceptos_sueldo:{label:'Conceptos de sueldo',q:'?order=orden.asc,codigo.asc',set:r=>{conceptosSueldo=r||[];}},
   conceptos_arca:{label:'Catálogo ARCA',q:'?order=codigo.asc',set:r=>{conceptosArca=r||[];}},
   sueldos_escala:{label:'Escala salarial',q:'?order=vigencia_desde.desc,orden.asc',set:r=>{sueldosEscala=r||[];_dirtyPages.add('sueldosparam');}},
-  sueldos_convenio_parametros:{label:'Parámetros del convenio',q:'?order=vigencia_desde.desc',set:r=>{sueldosConvenio=r||[];}},
-  sueldos_parametros_previsionales:{label:'Parámetros previsionales',q:'?order=vigencia_desde.desc',set:r=>{sueldosPrevisional=r||[];}},
-  sueldos_ganancias_tablas:{label:'Tablas de Ganancias',q:'?order=vigencia_desde.desc',set:r=>{sueldosGanTablas=r||[];}},
+  sueldos_convenio_parametros:{label:'Parámetros del convenio',q:'?order=vigencia_desde.desc',set:r=>{sueldosConvenio=r||[];_dirtyPages.add('sueldosparam');}},
+  sueldos_parametros_previsionales:{label:'Parámetros previsionales',q:'?order=vigencia_desde.desc',set:r=>{sueldosPrevisional=r||[];_dirtyPages.add('sueldosparam');}},
+  sueldos_ganancias_tablas:{label:'Tablas de Ganancias',q:'?order=vigencia_desde.desc',set:r=>{sueldosGanTablas=r||[];_dirtyPages.add('sueldosparam');}},
   sueldos_novedades:{label:'Novedades de sueldos',q:'?order=periodo.desc',set:r=>{sueldosNovedades=r||[];_dirtyPages.add('sueldosnov');}},
   v_sueldos_acumulados:{label:'Acumulados de sueldos',q:'?order=anio.desc,mes.desc',set:r=>{sueldosAcumulados=r||[];}},
 };
@@ -6919,7 +6919,7 @@ function _spVigList(tipo,elId,idPrefix){
   const vigSel=(_paramVig[tipo]&&vigs.includes(_paramVig[tipo]))?_paramVig[tipo]:(vigs[0]||'');
   _paramVig[tipo]=vigSel;
   const ul=document.getElementById(elId);
-  if(ul)ul.innerHTML=vigs.length?vigs.map(v=>`<tr style="cursor:pointer${v===vigSel?';background:var(--surface2)':''}" onclick="paramSelectVig('${tipo}','${v}')"><td class="mono" style="padding:8px 10px">${fmtFecha(v)}${draft&&draft.vigencia_desde===v&&!list.some(x=>x.vigencia_desde===v)?' <span style="color:var(--accent);font-size:10px">nueva</span>':''}</td></tr>`).join(''):'<tr><td style="padding:12px;color:var(--text3);font-size:12px">Cargá la primera vigencia</td></tr>';
+  if(ul)ul.innerHTML=vigs.length?vigs.map(v=>`<tr style="cursor:pointer${v===vigSel?';background:var(--surface2)':''}" onclick="paramSelectVig('${tipo}','${esc(v)}')"><td class="mono" style="padding:8px 10px">${fmtFecha(v)}${draft&&draft.vigencia_desde===v&&!list.some(x=>x.vigencia_desde===v)?' <span style="color:var(--accent);font-size:10px">nueva</span>':''}</td></tr>`).join(''):'<tr><td style="padding:12px;color:var(--text3);font-size:12px">Cargá la primera vigencia</td></tr>';
   const row=(draft&&draft.vigencia_desde===vigSel)?draft:(list.find(v=>v.vigencia_desde===vigSel)||null);
   const fechaEl=document.getElementById(idPrefix+'vigencia_desde');
   if(fechaEl)fechaEl.value=row?row.vigencia_desde:(vigSel||'');
