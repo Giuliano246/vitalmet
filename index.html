@@ -16833,6 +16833,54 @@ function numeroALetras(n){
   return partes.join(' ').replace(/VEINTIUNO MIL/g,'VEINTIUN MIL').replace(/UNO MIL/g,'UN MIL');
 }
 
+// ─── Sueldos 083: Ganancias 4ta categoría (RG 4003, acumulado) ────────
+const GAN_TOPES_F572={cuota_medica:{pct_gn:5},alquiler:{pct_gni:40},servicio_domestico:{pct_gni:100},donaciones:{pct_gn:5},gastos_educativos:{pct_gni:40},intereses_hipotecarios:{anual:20000},seguro_vida:{pct_gni:100},otros:{}};
+function computeGanancias(ctx){
+  const r2=x=>Math.round(x*100)/100;const num=v=>Number(v)||0;
+  const e=ctx.empleado||{},t=ctx.tabla,prev=ctx.previsional||{},ac=ctx.acumulados||{};
+  const mes=Number((ctx.periodo||'').slice(5,7))||1,tipo=ctx.tipo||'mensual';
+  const tipoDe={};(ctx.catalogo||[]).forEach(c=>{tipoDe[c.codigo]=c.tipo;});
+  const EXENTOS=['16','17'];const APORTES=['200','201','202','203','205','207','208','211'];
+  const conc=ctx.conceptos||[];
+  const sum=f=>r2(conc.filter(f).reduce((a,c)=>a+num(c.importe),0));
+  const remRem=sum(c=>tipoDe[c.codigo]==='remunerativo'&&!EXENTOS.includes(c.codigo));
+  const exentos=sum(c=>EXENTOS.includes(c.codigo));
+  const aportes=sum(c=>APORTES.includes(c.codigo));
+  const aportesPct=(num(prev.aporte_jubilacion_pct)+num(prev.aporte_inssjp_pct)+num(prev.aporte_os_pct))/100;
+  // R9: los aportes se prorratean a la porción gravada cuando parte de la remuneración es
+  // exenta (horas extras 100 % / feriados trabajados, códigos 16 y 17) — no se deduce de más.
+  const aportesGravados=r2((remRem+exentos)>0?aportes*remRem/(remRem+exentos):aportes);
+  const neto=r2(remRem-aportesGravados);   // gravado del mes (no rem no gravado: sólo lo remunerativo)
+  let sacMes=0,sacProrr=num(ac.sac_prorrateado_acum),sacReal=num(ac.sac_real_acum);
+  if(tipo==='sac'||tipo==='final'){const real=sum(c=>['20','28'].includes(c.codigo))||remRem;   // en 'sac' el bruto ES el SAC
+    sacMes=r2(real*(1-aportesPct)-(tipo==='sac'?sacProrr*(1-aportesPct):0));sacReal+=real;if(tipo==='sac')sacProrr=0;}
+  else{sacMes=r2(remRem/12*(1-aportesPct));sacProrr+=r2(remRem/12);}
+  const remGravMes=r2((tipo==='sac'?0:neto)+sacMes);
+  const remGravAcum=r2(num(ac.rem_gravada_acum)+remGravMes);
+  const k=mes/12;
+  const pers=r2((num(t.gni_anual)+num(t.deduccion_especial_anual)+(e.conyuge?num(t.conyuge_anual):0)+num(e.hijos)*num(t.hijo_anual)+num(e.hijos_incap)*num(t.hijo_incap_anual))*k);
+  const gniAcum=r2(num(t.gni_anual)*k),gnAcum=Math.max(0,remGravAcum);
+  let f572=0;const per=(ctx.periodo||'').slice(0,7);
+  (e.ganancias_deducciones||[]).forEach(d=>{
+    if(d.periodo_desde&&d.periodo_desde>per)return;const desde=Number((d.periodo_desde||per.slice(0,4)+'-01').slice(5,7))||1;
+    const hastaM=d.periodo_hasta&&d.periodo_hasta<per?Number(d.periodo_hasta.slice(5,7)):mes;const meses=Math.max(0,hastaM-desde+1);
+    let imp=r2(num(d.importe_mensual)*meses);const tope=GAN_TOPES_F572[d.tipo]||{};
+    if(tope.pct_gni)imp=Math.min(imp,r2(gniAcum*tope.pct_gni/100));if(tope.pct_gn)imp=Math.min(imp,r2(gnAcum*tope.pct_gn/100));if(tope.anual)imp=Math.min(imp,r2(tope.anual*k));
+    f572+=imp;});
+  f572=r2(f572);
+  const gnsi=Math.max(0,r2(remGravAcum-pers-f572));
+  const tr=(t.tramos||[]).map(x=>({desde:r2(num(x.desde)*k),hasta:x.hasta==null?Infinity:r2(num(x.hasta)*k),fijo:r2(num(x.fijo)*k),pct:num(x.pct)}));
+  const tramo=tr.find(x=>gnsi>=x.desde&&gnsi<x.hasta)||tr[tr.length-1]||{desde:0,fijo:0,pct:0};
+  const impuesto=gnsi>0?r2(tramo.fijo+(gnsi-tramo.desde)*tramo.pct/100):0;
+  let ret=r2(impuesto-num(ac.retenido_previo)),tope=false;
+  const max=r2(num(ctx.remBruto)*num(prev.ganancias_tope_retencion_pct)/100);
+  if(ret>max){ret=max;tope=true;}
+  return {mes,rem_gravada_mes:remGravMes,rem_gravada_acum:remGravAcum,deducciones_personales_acum:pers,deducciones_f572_acum:f572,gnsi_acum:gnsi,
+    impuesto_acum:impuesto,retenido_previo:r2(num(ac.retenido_previo)),retencion_mes:ret,tope_aplicado:tope,tabla_vigencia:t.vigencia_desde,
+    sac_prorrateado_acum:r2(sacProrr),sac_real_acum:r2(sacReal),
+    formula:`GNSI ${gnsi} → tramo ${tramo.pct} %: ${tramo.fijo} + (${gnsi} − ${tramo.desde}) × ${tramo.pct} % = ${impuesto} − retenido ${r2(num(ac.retenido_previo))}`};
+}
+
 // ─── Sueldos 083: motor de liquidación (puro) ─────────────────────────
 // Ver docs/superpowers/specs/2026-09-23-sueldos-motor-liquidacion-design.md §Motor.
 const CONTRIB_CODIGOS={scvo:'640',inssjp:'642',fsr:'643',sipa:'644',os:'645',fne:'646',aaff:'647',art:'648'};
