@@ -16788,13 +16788,23 @@ function antiguedadEntre(desde,hasta){
   if(!desde||!hasta)return {anios:0,meses:0,dias:0,texto:'0a 0m 0d'};
   // último día inclusive (recibo real de la contadora: 27/04→15/09 = 0a 4m 20d)
   const d=new Date(desde+'T00:00:00Z'),h=new Date(Date.parse(hasta+'T00:00:00Z')+86400000);
-  let anios=h.getUTCFullYear()-d.getUTCFullYear(),meses=h.getUTCMonth()-d.getUTCMonth(),dias=h.getUTCDate()-d.getUTCDate();
-  if(dias<0){meses--;dias+=new Date(Date.UTC(h.getUTCFullYear(),h.getUTCMonth(),0)).getUTCDate();}
-  if(meses<0){anios--;meses+=12;}
-  if(anios<0)return {anios:0,meses:0,dias:0,texto:'0a 0m 0d'};
-  return {anios,meses,dias,texto:`${anios}a ${meses}m ${dias}d`};
+  if(h<=d)return {anios:0,meses:0,dias:0,texto:'0a 0m 0d'};
+  // R16: contar meses enteros avanzando un cursor un mes calendario a la vez, con el día
+  // clampeado a la longitud del mes destino (31/01 + 1 mes = 28/02); nunca da días negativos.
+  let cy=d.getUTCFullYear(),cm=d.getUTCMonth(),cd=d.getUTCDate(),cursor=d,n=0;
+  for(;;){
+    let ny=cy,nm=cm+1;
+    if(nm>11){nm=0;ny++;}
+    const ultimoDiaMes=new Date(Date.UTC(ny,nm+1,0)).getUTCDate();
+    const nd=Math.min(cd,ultimoDiaMes);
+    const next=new Date(Date.UTC(ny,nm,nd));
+    if(next>h)break;
+    cy=ny;cm=nm;cd=nd;cursor=next;n++;
+  }
+  const dias=Math.round((h-cursor)/86400000);
+  return {anios:Math.floor(n/12),meses:n%12,dias,texto:`${Math.floor(n/12)}a ${n%12}m ${dias}d`};
 }
-// LCT art. 150/153: <6 meses de antigüedad → 1 día cada 20 trabajados; hasta 5 años 14; hasta 10: 21; hasta 20: 28; más: 35
+// LCT art. 150/153: <6 meses de antigüedad (180 días aprox. 6 meses) → 1 día cada 20 trabajados; hasta 5 años 14; hasta 10: 21; hasta 20: 28; más: 35
 function diasVacacionesLCT(anios,diasTrabajadosAnio){
   if(anios<=0&&diasTrabajadosAnio<180)return Math.floor(diasTrabajadosAnio/20);
   if(anios<=5)return 14;if(anios<=10)return 21;if(anios<=20)return 28;return 35;
@@ -16820,7 +16830,7 @@ function numeroALetras(n){
   if(mill)partes.push(mill===1?'UN MILLON':cientos(mill)+' MILLONES');
   if(miles)partes.push(miles===1?'MIL':cientos(miles)+' MIL');
   if(resto)partes.push(cientos(resto));
-  return partes.join(' ').replace(/VEINTIUNO MIL/,'VEINTIUN MIL').replace(/UNO MIL/,'UN MIL');
+  return partes.join(' ').replace(/VEINTIUNO MIL/g,'VEINTIUN MIL').replace(/UNO MIL/g,'UN MIL');
 }
 
 // ─── Sueldos 083: motor de liquidación (puro) ─────────────────────────

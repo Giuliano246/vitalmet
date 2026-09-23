@@ -9,6 +9,20 @@ test('antiguedadEntre: años/meses/días con el último día inclusive (recibo: 
   assert.deepEqual(JSON.parse(JSON.stringify(run(`antiguedadEntre('2023-03-10','2026-09-30')`))), { anios: 3, meses: 6, dias: 21, texto: '3a 6m 21d' });
   assert.equal(run(`antiguedadEntre(null,'2026-09-30')`).anios, 0);
 });
+test('antiguedadEntre R16: meses enteros con día clampeado, nunca días negativos en límites de mes', () => {
+  // 31/01/2026 + 1 mes clampea a 28/02/2026 (h = hasta+1d = 01/03/2026) → 0a 1m 1d
+  const r1 = JSON.parse(JSON.stringify(run(`antiguedadEntre('2026-01-31','2026-02-28')`)));
+  assert.ok(r1.dias >= 0);
+  assert.deepEqual(r1, { anios: 0, meses: 1, dias: 1, texto: '0a 1m 1d' });
+  // 30/01/2026 + 1 mes también clampea a 28/02/2026 (Feb no tiene día 30) → 0a 1m 1d
+  const r2 = JSON.parse(JSON.stringify(run(`antiguedadEntre('2026-01-30','2026-02-28')`)));
+  assert.ok(r2.dias >= 0);
+  assert.deepEqual(r2, { anios: 0, meses: 1, dias: 1, texto: '0a 1m 1d' });
+  // 30/12/2025 + 1 mes = 30/01/2026; + otro mes clampea a 28/02/2026 (h = 01/03/2026) → 0a 2m 1d
+  const r3 = JSON.parse(JSON.stringify(run(`antiguedadEntre('2025-12-30','2026-02-28')`)));
+  assert.ok(r3.dias >= 0);
+  assert.deepEqual(r3, { anios: 0, meses: 2, dias: 1, texto: '0a 2m 1d' });
+});
 test('diasVacacionesLCT: <6 meses 1 cada 20 trabajados; 14/21/28/35', () => {
   assert.equal(run(`diasVacacionesLCT(0, 100)`), 5);
   assert.equal(run(`diasVacacionesLCT(0, 365)`), 14);   // ≥ 6 meses en el año → 14
@@ -30,6 +44,10 @@ test('numeroALetras: recibo real y casos borde', () => {
   assert.equal(run(`numeroALetras(100)`), 'CIEN');
   assert.equal(run(`numeroALetras(1000000)`), 'UN MILLON');
   assert.equal(run(`numeroALetras(2500116)`), 'DOS MILLONES QUINIENTOS MIL CIENTO DIECISEIS');
+});
+test('numeroALetras: apócope global (no solo el primer match) en millones y miles', () => {
+  assert.equal(run(`numeroALetras(31031000)`), 'TREINTA Y UN MILLONES TREINTA Y UN MIL');
+  assert.equal(run(`numeroALetras(21021000)`), 'VEINTIUN MILLONES VEINTIUN MIL');
 });
 test('diasPeriodo / finPeriodo', () => {
   assert.equal(run(`diasPeriodo('quincena1')`), 15); assert.equal(run(`diasPeriodo('mensual')`), 30);
