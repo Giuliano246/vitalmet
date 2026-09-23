@@ -16783,6 +16783,46 @@ function buildConceptosTxt(catalogo,{soloFaltantes=false,padron=[]}={}){
   return {lineas,txt:lineas.join('\r\n')+(lineas.length?'\r\n':''),errores};
 }
 
+// ─── Sueldos 083: auxiliares ───────────────────────────────────────────
+function antiguedadEntre(desde,hasta){
+  if(!desde||!hasta)return {anios:0,meses:0,dias:0,texto:'0a 0m 0d'};
+  // último día inclusive (recibo real de la contadora: 27/04→15/09 = 0a 4m 20d)
+  const d=new Date(desde+'T00:00:00Z'),h=new Date(Date.parse(hasta+'T00:00:00Z')+86400000);
+  let anios=h.getUTCFullYear()-d.getUTCFullYear(),meses=h.getUTCMonth()-d.getUTCMonth(),dias=h.getUTCDate()-d.getUTCDate();
+  if(dias<0){meses--;dias+=new Date(Date.UTC(h.getUTCFullYear(),h.getUTCMonth(),0)).getUTCDate();}
+  if(meses<0){anios--;meses+=12;}
+  if(anios<0)return {anios:0,meses:0,dias:0,texto:'0a 0m 0d'};
+  return {anios,meses,dias,texto:`${anios}a ${meses}m ${dias}d`};
+}
+// LCT art. 150/153: <6 meses de antigüedad → 1 día cada 20 trabajados; hasta 5 años 14; hasta 10: 21; hasta 20: 28; más: 35
+function diasVacacionesLCT(anios,diasTrabajadosAnio){
+  if(anios<=0&&diasTrabajadosAnio<180)return Math.floor(diasTrabajadosAnio/20);
+  if(anios<=5)return 14;if(anios<=10)return 21;if(anios<=20)return 28;return 35;
+}
+function vigenteA(lista,fecha,campo='vigencia_desde'){
+  return (lista||[]).filter(x=>x[campo]&&x[campo]<=fecha).sort((a,b)=>b[campo].localeCompare(a[campo]))[0]||null;
+}
+function diasPeriodo(tipo){return tipo==='quincena1'||tipo==='quincena2'?15:30;}
+function finPeriodo(periodo,tipo){
+  const [y,m]=periodo.slice(0,7).split('-').map(Number);
+  if(tipo==='quincena1')return `${y}-${String(m).padStart(2,'0')}-15`;
+  return `${y}-${String(m).padStart(2,'0')}-${String(new Date(Date.UTC(y,m,0)).getUTCDate()).padStart(2,'0')}`;
+}
+function numeroALetras(n){
+  n=Math.floor(Math.abs(Number(n)||0));if(n===0)return 'CERO';
+  const U=['','UNO','DOS','TRES','CUATRO','CINCO','SEIS','SIETE','OCHO','NUEVE','DIEZ','ONCE','DOCE','TRECE','CATORCE','QUINCE','DIECISEIS','DIECISIETE','DIECIOCHO','DIECINUEVE','VEINTE','VEINTIUNO','VEINTIDOS','VEINTITRES','VEINTICUATRO','VEINTICINCO','VEINTISEIS','VEINTISIETE','VEINTIOCHO','VEINTINUEVE'];
+  const D=['','','','TREINTA','CUARENTA','CINCUENTA','SESENTA','SETENTA','OCHENTA','NOVENTA'];
+  const C=['','CIENTO','DOSCIENTOS','TRESCIENTOS','CUATROCIENTOS','QUINIENTOS','SEISCIENTOS','SETECIENTOS','OCHOCIENTOS','NOVECIENTOS'];
+  const cientos=x=>{if(x===0)return '';if(x===100)return 'CIEN';const c=Math.floor(x/100),r=x%100;
+    const d=r<30?U[r]:(D[Math.floor(r/10)]+(r%10?' Y '+U[r%10]:''));return [C[c],d].filter(Boolean).join(' ');};
+  const partes=[];
+  const mill=Math.floor(n/1e6),miles=Math.floor((n%1e6)/1000),resto=n%1000;
+  if(mill)partes.push(mill===1?'UN MILLON':cientos(mill)+' MILLONES');
+  if(miles)partes.push(miles===1?'MIL':cientos(miles)+' MIL');
+  if(resto)partes.push(cientos(resto));
+  return partes.join(' ').replace(/VEINTIUNO MIL/,'VEINTIUN MIL').replace(/UNO MIL/,'UN MIL');
+}
+
 // Parseo del extracto pegado (tab / ; como separador). Devuelve
 // [{fecha:'YYYY-MM-DD', descripcion, importe:Number}]. Puro.
 function parsearExtractoPegado(texto){
