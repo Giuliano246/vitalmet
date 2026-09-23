@@ -2287,7 +2287,7 @@ body.no-costos .solo-costos{display:none!important}
     <div class="modal-body">
       <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Genera la <b>liquidación final</b> (en borrador, tipo "Liq. final") con los rubros proporcionales del mes de egreso, SAC proporcional, vacaciones no gozadas y, si corresponde, indemnizaciones. Revisala y confirmala como cualquier liquidación — recién ahí el legajo queda dado de baja.</p>
       <div class="form-row" style="grid-template-columns:150px 1fr 160px">
-        <div class="form-group"><label>Fecha de egreso *</label><input type="date" id="baja-fecha" oninput="previewBaja()"></div>
+        <div class="form-group"><label>Fecha de egreso *</label><input type="date" id="baja-fecha" onchange="bajaFechaChanged()"></div>
         <div class="form-group"><label>Causa</label><select id="baja-causa" onchange="previewBaja()">
           <option value="renuncia">Renuncia</option>
           <option value="despido_sin_causa">Despido sin causa</option>
@@ -5763,7 +5763,7 @@ function renderSueldos(filter=''){
   const etbody=document.getElementById('empleados-tbody');
   const elist=empleados.filter(e=>!f||(e.nombre||'').toLowerCase().includes(f)||(e.legajo||'').toLowerCase().includes(f));
   if(etbody)etbody.innerHTML=elist.length?elist.map(e=>
-    `<tr><td class="mono">${esc(e.legajo)||'—'}</td><td style="font-weight:500">${esc(e.nombre)}</td><td class="mono" style="font-size:11px">${esc(e.cuil)||'—'}</td><td style="font-size:11px">${esc(e.categoria)||'—'}</td><td><span class="badge ${e.centro==='fabricacion'?'badge-blue':'badge-purple'}">${e.centro==='fabricacion'?'FÁBRICA':'ADMIN'}</span></td><td style="font-size:11px">${e.modalidad==='jornal'?'Jornal':'Mensual'}</td><td class="mono" style="font-size:11px">${fmtFecha(e.fecha_ingreso)||'—'}</td><td><span class="badge ${e.activo!==false?'badge-green':'badge-coral'}">${e.activo!==false?'ACTIVO':'BAJA'}</span></td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="openEmpleado('${e.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="toggleEmpleado('${e.id}')">${e.activo!==false?'Dar de baja':'Reactivar'}</button>${e.activo!==false?`<button class="btn btn-ghost btn-sm" onclick="openBajaEmpleado('${e.id}')" title="Generar liquidación final por egreso" style="color:var(--coral)">Baja</button>`:''}</td></tr>`
+    `<tr><td class="mono">${esc(e.legajo)||'—'}</td><td style="font-weight:500">${esc(e.nombre)}</td><td class="mono" style="font-size:11px">${esc(e.cuil)||'—'}</td><td style="font-size:11px">${esc(e.categoria)||'—'}</td><td><span class="badge ${e.centro==='fabricacion'?'badge-blue':'badge-purple'}">${e.centro==='fabricacion'?'FÁBRICA':'ADMIN'}</span></td><td style="font-size:11px">${e.modalidad==='jornal'?'Jornal':'Mensual'}</td><td class="mono" style="font-size:11px">${fmtFecha(e.fecha_ingreso)||'—'}</td><td><span class="badge ${e.activo!==false?'badge-green':'badge-coral'}">${e.activo!==false?'ACTIVO':'BAJA'}</span></td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="openEmpleado('${e.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="toggleEmpleado('${e.id}')">${e.activo!==false?'Dar de baja':'Reactivar'}</button>${e.activo!==false&&!e.fecha_egreso?`<button class="btn btn-ghost btn-sm" onclick="openBajaEmpleado('${e.id}')" title="Generar liquidación final por egreso" style="color:var(--coral)">Baja</button>`:''}</td></tr>`
   ).join(''):`<tr><td colspan="9" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Sin empleados cargados.</td></tr>`;
 }
 
@@ -5928,11 +5928,11 @@ function renderEmpRec(){
   const el=document.getElementById('emp-rec-list');if(!el)return;
   el.innerHTML=_empRec.map((r,i)=>`<div style="display:grid;grid-template-columns:1fr 90px 100px 100px 60px 60px 32px;gap:6px;align-items:center">
       <select onchange="empRecOnRow(${i},'codigo',this.value)">${_empConceptoOptions(r.codigo)}</select>
-      <input type="number" step="0.01" min="0" value="${r.importe||0}" oninput="empRecOnRow(${i},'importe',this.value)" style="text-align:right">
-      <input type="date" value="${r.desde||''}" onchange="empRecOnRow(${i},'desde',this.value)">
-      <input type="date" value="${r.hasta||''}" onchange="empRecOnRow(${i},'hasta',this.value)">
-      <input type="number" step="1" min="0" value="${r.cuotas_total||''}" oninput="empRecOnRow(${i},'cuotas_total',this.value)" style="text-align:right" placeholder="—">
-      <input type="number" step="1" min="0" value="${r.cuotas_pagadas||0}" oninput="empRecOnRow(${i},'cuotas_pagadas',this.value)" style="text-align:right">
+      <input type="number" step="0.01" min="0" value="${Number(r.importe)||0}" oninput="empRecOnRow(${i},'importe',this.value)" style="text-align:right">
+      <input type="date" value="${esc(r.desde||'')}" onchange="empRecOnRow(${i},'desde',this.value)">
+      <input type="date" value="${esc(r.hasta||'')}" onchange="empRecOnRow(${i},'hasta',this.value)">
+      <input type="number" step="1" min="0" value="${Number(r.cuotas_total)||0}" oninput="empRecOnRow(${i},'cuotas_total',this.value)" style="text-align:right" placeholder="—">
+      <input type="number" step="1" min="0" value="${Number(r.cuotas_pagadas)||0}" oninput="empRecOnRow(${i},'cuotas_pagadas',this.value)" style="text-align:right">
       <button type="button" class="btn btn-ghost btn-sm" onclick="empRecDelRow(${i})" title="Quitar">×</button>
     </div>`).join('')||`<div style="font-size:12px;color:var(--text3);padding:6px 0">Sin conceptos recurrentes.</div>`;
 }
@@ -5955,9 +5955,9 @@ function renderEmpDed(){
   const opts=sel=>Object.keys(GAN_TOPES_F572).map(k=>`<option value="${k}"${k===sel?' selected':''}>${esc(GAN_DEDUCCION_LABELS[k]||k)}</option>`).join('');
   el.innerHTML=_empDed.map((r,i)=>`<div style="display:grid;grid-template-columns:1fr 130px 110px 110px 32px;gap:6px;align-items:center">
       <select onchange="empDedOnRow(${i},'tipo',this.value)">${opts(r.tipo)}</select>
-      <input type="number" step="0.01" min="0" value="${r.importe_mensual||0}" oninput="empDedOnRow(${i},'importe_mensual',this.value)" style="text-align:right">
-      <input type="month" value="${r.periodo_desde||''}" onchange="empDedOnRow(${i},'periodo_desde',this.value)">
-      <input type="month" value="${r.periodo_hasta||''}" onchange="empDedOnRow(${i},'periodo_hasta',this.value)">
+      <input type="number" step="0.01" min="0" value="${Number(r.importe_mensual)||0}" oninput="empDedOnRow(${i},'importe_mensual',this.value)" style="text-align:right">
+      <input type="month" value="${esc(r.periodo_desde||'')}" onchange="empDedOnRow(${i},'periodo_desde',this.value)">
+      <input type="month" value="${esc(r.periodo_hasta||'')}" onchange="empDedOnRow(${i},'periodo_hasta',this.value)">
       <button type="button" class="btn btn-ghost btn-sm" onclick="empDedDelRow(${i})" title="Quitar">×</button>
     </div>`).join('')||`<div style="font-size:12px;color:var(--text3);padding:6px 0">Sin deducciones informadas.</div>`;
 }
@@ -6042,8 +6042,11 @@ function _ctxRecibo(e,periodo,tipo,novedad){
 }
 function _ganAcumulados(eid,anio,periodo){
   const items=liquidaciones.filter(l=>l.estado==='confirmada'&&(l.periodo||'').slice(0,4)===anio&&l.periodo<periodo).flatMap(l=>(l.liquidacion_items||[]).filter(i=>i.empleado_id===eid).map(i=>({l,i})));
+  // R32: liquidaciones llega ordenada periodo.desc — reordenar asc (por período, y por created_at
+  // a igual período) para que "last" sea el mes más reciente, no el más viejo.
+  items.sort((a,b)=>(a.l.periodo||'').localeCompare(b.l.periodo||'')||(a.l.created_at||'').localeCompare(b.l.created_at||''));
   if(!items.length)return null;
-  const g=items.map(x=>x.i.ganancias).filter(Boolean);const last=g[g.length-1]||{};
+  const gans=items.map(x=>x.i.ganancias).filter(Boolean);const last=gans[gans.length-1]||{};
   const rem=items.reduce((a,x)=>a+(x.i.ganancias?Number(x.i.ganancias.rem_gravada_mes)||0:(Number(x.i.bruto)||0)-(Number(x.i.aportes)||0)),0);
   const ret=items.reduce((a,x)=>a+(x.i.liquidacion_conceptos||[]).reduce((b,c)=>b+(c.codigo==='900'?Number(c.importe):c.codigo==='901'?-Number(c.importe):0),0),0);
   return {rem_gravada_acum:Math.round(rem*100)/100,retenido_previo:Math.round(ret*100)/100,sac_prorrateado_acum:Number(last.sac_prorrateado_acum)||0,sac_real_acum:Number(last.sac_real_acum)||0};
@@ -6051,32 +6054,63 @@ function _ganAcumulados(eid,anio,periodo){
 
 // ── Baja de empleado: genera la liquidación final (083) ──
 let _bajaEmpId=null,_bajaResultado=null;
+function _bajaVacGozadas(id,fecha){
+  const anio=(fecha||hoyLocal()).slice(0,4);
+  return (sueldosNovedades||[]).filter(n=>n.empleado_id===id&&(n.periodo||'').slice(0,4)===anio).reduce((a,n)=>a+(parseFloat(n.vacaciones_dias)||0),0);
+}
+function bajaFechaChanged(){
+  if(!_bajaEmpId)return;
+  document.getElementById('baja-vac-gozadas').value=_bajaVacGozadas(_bajaEmpId,g('baja-fecha'))||0;
+  previewBaja();
+}
 function openBajaEmpleado(id){
   const e=empleados.find(x=>x.id===id);if(!e)return;
   if(e.activo===false)return notify('El empleado ya está dado de baja','err');
+  // R33: no permitir una segunda liquidación final — mirar tanto el legajo (fecha_egreso ya
+  // seteada) como las liquidaciones tipo 'final' con un ítem de este empleado, en cualquier estado
+  // (una final en borrador también cuenta: editala o anulala, no generes otra).
+  if(e.fecha_egreso||liquidaciones.some(l=>l.tipo==='final'&&(l.liquidacion_items||[]).some(i=>i.empleado_id===id)))
+    return notify('Ya existe una liquidación final para este empleado — editala o anulala antes de generar otra','err');
   _bajaEmpId=id;_bajaResultado=null;
   document.getElementById('baja-emp-nombre').textContent=e.nombre||'';
   document.getElementById('baja-fecha').value=hoyLocal();
   document.getElementById('baja-causa').value='renuncia';
   document.getElementById('baja-preaviso').checked=false;
   document.getElementById('baja-tope').value=configContable?.tope_indemnizatorio||'';
-  const anio=hoyLocal().slice(0,4);
-  const vacGozadas=(sueldosNovedades||[]).filter(n=>n.empleado_id===id&&(n.periodo||'').slice(0,4)===anio).reduce((a,n)=>a+(parseFloat(n.vacaciones_dias)||0),0);
-  document.getElementById('baja-vac-gozadas').value=vacGozadas||0;
+  document.getElementById('baja-vac-gozadas').value=_bajaVacGozadas(id,hoyLocal())||0;
   document.getElementById('baja-preview').innerHTML='';
   openModal('modal-baja-empleado');
   previewBaja();
 }
 function previewBaja(){
-  const e=empleados.find(x=>x.id===_bajaEmpId);const fe=g('baja-fecha');if(!e||!fe)return;
-  const periodo=fe.slice(0,7)+'-01';const nov=sueldosNovedades.find(n=>n.empleado_id===e.id&&n.periodo===periodo&&n.tipo==='mensual')||null;
-  const ctx=_ctxRecibo({...e,fecha_egreso:fe},periodo,'mensual',nov);const mes=computeRecibo(ctx);
-  const fin=computeLiquidacionFinal({empleado:e,fechaEgreso:fe,causa:g('baja-causa'),preavisoOtorgado:document.getElementById('baja-preaviso').checked,
-    topeIndemnizatorio:parseFloat(g('baja-tope'))||0,acumulados:ctx.acumulados.sac,catalogo:conceptosSueldo,convenio:ctx.convenio,escala:ctx.escala,previsional:ctx.previsional,
-    vacacionesGozadasAnio:parseFloat(g('baja-vac-gozadas'))||0,reciboMes:mes});
-  _bajaResultado={mes,fin};
-  document.getElementById('baja-preview').innerHTML=fin.conceptos.map(c=>`<tr><td class="mono">${esc(c.codigo)}</td><td>${esc(_conceptoCat(c.codigo)?.nombre||'')}</td><td class="mono" style="text-align:right">${c.dc==='D'?'−':''}${fmtARS(c.importe)}</td></tr>`).join('')
-    +`<tr><td colspan="3" style="color:var(--text3);font-size:11px">${[...mes.alertas,...fin.alertas].map(esc).join(' · ')}</td></tr>`;
+  try{
+    const e=empleados.find(x=>x.id===_bajaEmpId);const fe=g('baja-fecha');if(!e||!fe)return;
+    const periodo=fe.slice(0,7)+'-01';const nov=sueldosNovedades.find(n=>n.empleado_id===e.id&&n.periodo===periodo&&n.tipo==='mensual')||null;
+    const ctx=_ctxRecibo({...e,fecha_egreso:fe},periodo,'mensual',nov);const mes=computeRecibo(ctx);
+    const fin=computeLiquidacionFinal({empleado:e,fechaEgreso:fe,causa:g('baja-causa'),preavisoOtorgado:document.getElementById('baja-preaviso').checked,
+      topeIndemnizatorio:parseFloat(g('baja-tope'))||0,acumulados:ctx.acumulados.sac,catalogo:conceptosSueldo,convenio:ctx.convenio,escala:ctx.escala,previsional:ctx.previsional,
+      vacacionesGozadasAnio:parseFloat(g('baja-vac-gozadas'))||0,reciboMes:mes});
+    // R34: Ganancias sobre la LIQUIDACIÓN FINAL COMPLETA (mes parcial + SAC + vacaciones +
+    // indemnizaciones), no solo el mes parcial que ya trae mes.ganancias — se descartan los 900/901
+    // que computeRecibo pudo haber pusheado sobre el mes parcial y se recalcula sobre fin.conceptos.
+    let gan=null;
+    if(e.ganancias_aplica&&ctx.ganTabla){
+      fin.conceptos=fin.conceptos.filter(c=>c.codigo!=='900'&&c.codigo!=='901');
+      const remBruto=fin.conceptos.filter(c=>_conceptoCat(c.codigo)?.tipo==='remunerativo').reduce((a,c)=>a+(Number(c.importe)||0),0);
+      gan=computeGanancias({empleado:e,periodo,tipo:'final',conceptos:fin.conceptos,catalogo:conceptosSueldo,tabla:ctx.ganTabla,acumulados:ctx.acumulados.ganancias,previsional:ctx.previsional,remBruto,noRem:0});
+      if(gan.retencion_mes>0)fin.conceptos.push({codigo:'900',cantidad:1,unidades:'',importe:gan.retencion_mes,dc:'D',origen:'auto',base:gan.gnsi_acum,traza:{formula:gan.formula},periodo_ajuste:''});
+      else if(gan.retencion_mes<0)fin.conceptos.push({codigo:'901',cantidad:1,unidades:'',importe:-gan.retencion_mes,dc:'C',origen:'auto',base:gan.gnsi_acum,traza:{formula:gan.formula},periodo_ajuste:''});
+    }
+    _bajaResultado={mes,fin,gan};
+    const t=computeItemDesdeConceptos(fin.conceptos,conceptosSueldo);
+    const alertas=[...mes.alertas,...fin.alertas];
+    document.getElementById('baja-preview').innerHTML=fin.conceptos.map(c=>`<tr><td class="mono">${esc(c.codigo)}</td><td>${esc(_conceptoCat(c.codigo)?.nombre||'')}</td><td class="mono" style="text-align:right">${c.dc==='D'?'−':''}${fmtARS(c.importe)}</td></tr>`).join('')
+      +`<tr style="border-top:1px solid var(--border);font-weight:600"><td colspan="2" style="font-size:11px">Bruto ${fmtARS(t.bruto)} · No rem. ${fmtARS(t.no_remunerativo)} · Descuentos ${fmtARS(t.aportes)}</td><td class="mono" style="text-align:right;color:var(--green)">${fmtARS(t.neto)}</td></tr>`
+      +(alertas.length?`<tr><td colspan="3" style="color:var(--text3);font-size:11px">${alertas.map(esc).join(' · ')}</td></tr>`:'');
+  }catch(err){
+    notify(msgError(err),'err');
+    _bajaResultado=null;
+  }
 }
 async function saveBajaEmpleado(){
   const e=empleados.find(x=>x.id===_bajaEmpId);const fe=g('baja-fecha');
@@ -6084,9 +6118,10 @@ async function saveBajaEmpleado(){
   if(!fe)return notify('Completá la fecha de egreso','err');
   if(!_bajaResultado)previewBaja();
   if(!_bajaResultado)return notify('No se pudo calcular la liquidación final','err');
-  const {mes,fin}=_bajaResultado;
+  const {mes,fin,gan}=_bajaResultado;
   const t=computeItemDesdeConceptos(fin.conceptos,conceptosSueldo);
-  const item={empleado_id:e.id,...t,contribuciones:mes.contribuciones_total,art:mes.art,conceptos:fin.conceptos,f931:{...mes.f931,dias:mes.bases.dias_trabajados},ganancias:mes.ganancias,contribuciones_detalle:mes.contribuciones};
+  // R35: f931 va tal cual lo calculó computeRecibo — no pisar 'dias' con bases.dias_trabajados.
+  const item={empleado_id:e.id,...t,contribuciones:mes.contribuciones_total,art:mes.art,conceptos:fin.conceptos,f931:mes.f931,ganancias:gan!=null?gan:mes.ganancias,contribuciones_detalle:mes.contribuciones};
   setBusy('btn-save-baja',true);
   try{
     await RPC('guardar_liquidacion',{p_liq:{periodo:fe.slice(0,7)+'-01',tipo:'final',fecha_pago:fe,observaciones:`Liquidación final — ${g('baja-causa')} — egreso ${fmtFecha(fe)}`,causa_egreso:g('baja-causa')},p_items:[item]});
