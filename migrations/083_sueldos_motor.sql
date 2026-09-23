@@ -147,6 +147,7 @@ INSERT INTO public.conceptos_arca (codigo, familia, descripcion, uso_libre, rang
   ('541000','no_remunerativo','Incrementos no rem. (con aportes y contrib. OS) - De uso libre',true,'549999'),
   ('550000','no_remunerativo','Importes no remunerativos especiales',false,NULL),
   ('551000','no_remunerativo','Importes no remunerativos especiales - De uso libre',true,'559999'),
+  ('551001','no_remunerativo','Importes no rem. especiales - uso libre 551001',false,NULL),
   ('560000','no_remunerativo','Mensual - PPC y CCT Especiales',false,NULL),
   ('560001','no_remunerativo','SAC - PPC y CCT Especiales',false,NULL),
   ('560002','no_remunerativo','SAC Proporcional - PPC y CCT Especiales',false,NULL),
@@ -193,6 +194,11 @@ COMMENT ON COLUMN public.conceptos_sueldo.marcas IS
 
 -- 2a. Padrón ARCA 2026-09-23 (121 filas, docs/sueldos/referencia/arca-padron-conceptos-2026-09-23.csv).
 --     Formato: (codigo_arca, codigo, nombre, repeticion, marcas, activo). Activos = canónicos; el resto legacy.
+--     El JOIN de abajo contra conceptos_arca descarta en silencio cualquier fila cuyo
+--     codigo_arca no esté en el catálogo (p.ej. '551001', un código de rango libre dentro
+--     de 551000-559999 que ARCA no publica como fila propia — R13: se le da su propia fila
+--     en conceptos_arca §1). Si se agrega un código nuevo de rango libre al padrón, primero
+--     hay que sumarlo a conceptos_arca o la fila se pierde sin error.
 INSERT INTO public.conceptos_sueldo (empresa_id, codigo, nombre, tipo, unidades, orden, activo, codigo_arca, repeticion, marcas, legacy, origen)
 SELECT c.empresa_id, p.codigo, p.nombre,
        CASE a.familia WHEN 'remunerativo' THEN 'remunerativo' WHEN 'no_remunerativo' THEN 'no_remunerativo' ELSE 'descuento' END,
@@ -507,7 +513,9 @@ ALTER TABLE public.config_contable
   ADD COLUMN IF NOT EXISTS tope_indemnizatorio numeric(14,2);
 
 -- ─── 5. Acumulados por empleado/año/mes (liquidaciones confirmadas) ──
-CREATE OR REPLACE VIEW public.v_sueldos_acumulados AS
+CREATE OR REPLACE VIEW public.v_sueldos_acumulados
+  WITH (security_invoker = true)
+AS
 SELECT i.empresa_id, i.empleado_id, extract(year from l.periodo)::int AS anio, extract(month from l.periodo)::int AS mes, l.tipo,
        i.bruto, i.no_remunerativo, i.aportes, i.neto,
        COALESCE((SELECT sum(c.importe) FROM liquidacion_conceptos c WHERE c.item_id = i.id AND c.codigo = '900'), 0) AS ganancias_retenida,
@@ -886,7 +894,7 @@ COMMIT;
 -- ═══════════════════════════════════════════════════════════════════
 -- VERIFICACIÓN (correr después)
 -- ═══════════════════════════════════════════════════════════════════
--- SELECT (SELECT count(*) FROM conceptos_arca) AS arca,                         -- 115
+-- SELECT (SELECT count(*) FROM conceptos_arca) AS arca,                         -- 116
 --        (SELECT count(*) FROM conceptos_sueldo WHERE origen='padron') AS padron, -- 121
 --        (SELECT count(*) FROM conceptos_sueldo WHERE origen='seed' AND regla IS NOT NULL) AS seed, -- 26
 --        (SELECT count(*) FROM sueldos_escala) AS escala,                        -- 50 (8 cat × 5 vig + 10 mensuales)
