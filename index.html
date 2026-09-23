@@ -2026,17 +2026,27 @@ body.no-costos .solo-costos{display:none!important}
 
 <!-- MODAL: Catálogo de conceptos de sueldo (códigos propios asociados en ARCA → LSD) -->
 <div class="modal-overlay" id="modal-conceptos">
-  <div class="modal" style="width:760px">
+  <div class="modal" style="width:1100px">
     <div class="modal-header"><div class="modal-title">Conceptos de liquidación (ARCA)</div><button class="modal-close" onclick="closeModal('modal-conceptos')">×</button></div>
     <div class="modal-body">
-      <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Códigos <b>propios del empleador</b>: son los que la contadora asocia a los conceptos de ARCA en Libro de Sueldos Digital → Conceptos. El <b>tipo</b> define el efecto en la liquidación: remunerativo → bruto · no remunerativo → no rem. · descuento → aportes · informativo → no suma. Un concepto usado en liquidaciones no se borra: se desactiva.</p>
-      <div style="display:grid;grid-template-columns:100px 1fr 150px 80px 70px 60px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Código</div><div>Nombre</div><div>Tipo</div><div>Unid.</div><div style="text-align:right">Orden</div><div>Activo</div></div>
+      <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Códigos <b>propios del empleador</b>: son los que se asocian a los conceptos de ARCA en Libro de Sueldos Digital → Conceptos. El <b>tipo</b> define el efecto en la liquidación: remunerativo → bruto · no remunerativo → no rem. · descuento → aportes · informativo → no suma. El código <b>ARCA</b> + las 15 <b>marcas</b> arman el TXT de carga masiva; la <b>regla</b> es la fórmula que el motor de liquidación evalúa automáticamente (dejarla vacía = concepto manual). Un concepto usado en liquidaciones no se borra: se desactiva. Los <b>históricos</b> vienen del padrón real y no se editan.</p>
+      <div style="display:grid;grid-template-columns:70px 1fr 120px 230px 60px 110px 130px 60px 50px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Código</div><div>Nombre</div><div>Tipo</div><div>ARCA</div><div>Unid.</div><div>Marcas</div><div>Regla</div><div style="text-align:right">Orden</div><div>Activo</div></div>
       <div id="conceptos-list" style="display:flex;flex-direction:column;gap:6px"></div>
       <div style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="conceptosAddRow()">+ Concepto</button></div>
+      <div id="conceptos-legacy" style="margin-top:14px"></div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('modal-conceptos')">Cancelar</button>
-      <button class="btn btn-primary" id="btn-save-conceptos" onclick="saveConceptosSueldo()">Guardar</button>
+    <div class="modal-footer" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="exportConceptosTxt(false)" title="TXT de carga masiva con todos los conceptos activos vigentes">Exportar TXT (todos)</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportConceptosTxt(true)" title="Solo los conceptos que no figuran en el último padrón importado">Exportar TXT (faltan en ARCA)</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportConceptosXlsx()" title="Excel con el armado del TXT, una fila por concepto">Excel ARCA</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('padron-file').click()" title="Importar el padrón de conceptos descargado de ARCA (CSV/TXT con ';')">Importar padrón…</button>
+        <input type="file" id="padron-file" accept=".txt,.csv" style="display:none" onchange="importarPadronArca(this)">
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-ghost" onclick="closeModal('modal-conceptos')">Cancelar</button>
+        <button class="btn btn-primary" id="btn-save-conceptos" onclick="saveConceptosSueldo()">Guardar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3168,7 +3178,7 @@ let proveedores=[],ordenesCompra=[],ocItems=[],recepciones=[],ocItemsDraft=[],cu
 let mailingsQueueCount=null; // emails pendientes de aprobación (lo carga el módulo Mailings)
 let preciosBase=[];
 let insumos=[],herramientas=[];
-let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[],cheques=[],empleados=[],liquidaciones=[],conceptosSueldo=[];
+let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[],cheques=[],empleados=[],liquidaciones=[],conceptosSueldo=[],conceptosArca=[];
 let facturasRecibidas=[];
 let ordenesPago=[];
 let facturasEmitidas=[]; // listado unificado Ventas → Facturas emitidas (sprint 3 hoja 2026-09-07)
@@ -4111,6 +4121,7 @@ const TBL={
   empleados:{label:'Empleados',q:'?order=nombre.asc',set:r=>{empleados=r||[];}},
   liquidaciones:{label:'Liquidaciones de sueldos',q:'?order=periodo.desc,created_at.desc&select=*,liquidacion_items(*,liquidacion_conceptos(*))',set:r=>{liquidaciones=r||[];}},
   conceptos_sueldo:{label:'Conceptos de sueldo',q:'?order=orden.asc,codigo.asc',set:r=>{conceptosSueldo=r||[];}},
+  conceptos_arca:{label:'Catálogo ARCA',q:'?order=codigo.asc',set:r=>{conceptosArca=r||[];}},
 };
 let _lastLoadAllAt=0;
 async function _loadTables(nombres){
@@ -5949,36 +5960,113 @@ function liqdAplicar(){
   closeModal('modal-liq-detalle',true);
 }
 
-// ═══ Catálogo de conceptos de sueldo (082) ═══
+// ═══ Catálogo de conceptos de sueldo — código ARCA, marcas, regla (083) ═══
+const CONCEPTO_TIPOS={remunerativo:'Remunerativo',no_remunerativo:'No remunerativo',descuento:'Descuento',informativo:'Informativo'};
+const CONCEPTO_BASES=['basico','basico_mas_antiguedad','valor_hora','valor_hora_extra','valor_dia','valor_dia_vacaciones','no_rem_paritaria','complemento_imgr','fijo','fijo_param','rem_bruto','no_rem','no_rem_os','rem_topeado','ganancias','redondeo','sac'];
+const CONCEPTO_CONDICIONES=['presentismo_ok','afiliado','no_afiliado','ganancias_aplica'];
+const CONCEPTOS_GRID='70px 1fr 120px 230px 60px 110px 130px 60px 50px';
 let _cRows=[];
 function openConceptosSueldo(){
-  _cRows=conceptosSueldo.map(c=>({...c,_orig:{...c}}));
+  _cRows=conceptosSueldo.map(c=>({...c,regla:c.regla?{...c.regla}:null,_orig:{...c},_marcasTouched:false}));
   renderConceptosRows();openModal('modal-conceptos');
 }
+// Opciones del select ARCA, filtradas por la familia del tipo (remunerativo/no_remunerativo/descuento);
+// informativo no tiene familia en conceptos_arca, así que queda sin opciones (no lo necesita).
+function _cArcaOptions(tipo,codigoArca){
+  const lista=conceptosArca.filter(a=>a.familia===tipo);
+  return '<option value="">—</option>'+lista.map(a=>`<option value="${esc(a.codigo)}"${a.codigo===codigoArca?' selected':''}>${esc(a.codigo)} · ${esc(a.descripcion)}</option>`).join('');
+}
+function _cRowTipoChange(i,tipo){
+  const r=_cRows[i];r.tipo=tipo;
+  if(!r._marcasTouched)r.marcas=MARCAS_DEFAULT(tipo,r.codigo_arca);
+  renderConceptosRows();
+}
+function _cRowArcaChange(i,codigoArca){
+  const r=_cRows[i];r.codigo_arca=codigoArca||null;
+  if(!r._marcasTouched)r.marcas=MARCAS_DEFAULT(r.tipo,codigoArca);
+  renderConceptosRows();
+}
+function _cRowMarcaToggle(i,pos,checked){
+  const r=_cRows[i];r._marcasTouched=true;
+  const arr=String(r.marcas||'000000000000000').padEnd(15,'0').split('');
+  arr[pos]=checked?'1':'0';r.marcas=arr.join('');
+}
+function _cRowReglaBase(i,base){
+  const r=_cRows[i];
+  if(!base){r.regla=null;}
+  else r.regla=Object.assign({auto:true},r.regla||{},{base});
+  renderConceptosRows();
+}
+function _cRowReglaSet(i,key,val){
+  const r=_cRows[i];if(!r.regla)r.regla={auto:true};
+  if(val===null||val===''||val===undefined||(typeof val==='number'&&isNaN(val)))delete r.regla[key];
+  else r.regla[key]=val;
+}
 function renderConceptosRows(){
-  const TIPOS={remunerativo:'Remunerativo',no_remunerativo:'No remunerativo',descuento:'Descuento',informativo:'Informativo'};
-  document.getElementById('conceptos-list').innerHTML=_cRows.map((r,i)=>`
-    <div style="display:grid;grid-template-columns:100px 1fr 150px 80px 70px 60px;gap:6px;align-items:center">
+  const activas=[],legacy=[];
+  _cRows.forEach((r,i)=>(r.legacy?legacy:activas).push({r,i}));
+  document.getElementById('conceptos-list').innerHTML=activas.map(({r,i})=>`
+    <div style="display:grid;grid-template-columns:${CONCEPTOS_GRID};gap:6px;align-items:start;border-bottom:1px solid var(--border);padding-bottom:6px">
       <input type="text" maxlength="10" value="${esc(r.codigo||'')}" oninput="_cRows[${i}].codigo=this.value.trim()" ${r.id?'readonly style="opacity:.7"':''} placeholder="100">
       <input type="text" maxlength="60" value="${esc(r.nombre||'')}" oninput="_cRows[${i}].nombre=this.value">
-      <select onchange="_cRows[${i}].tipo=this.value">${Object.entries(TIPOS).map(([k,v])=>`<option value="${k}"${r.tipo===k?' selected':''}>${v}</option>`).join('')}</select>
+      <select onchange="_cRowTipoChange(${i},this.value)">${Object.entries(CONCEPTO_TIPOS).map(([k,v])=>`<option value="${k}"${r.tipo===k?' selected':''}>${v}</option>`).join('')}</select>
+      <select onchange="_cRowArcaChange(${i},this.value)">${_cArcaOptions(r.tipo,r.codigo_arca)}</select>
       <select onchange="_cRows[${i}].unidades=this.value||null"><option value="">—</option>${['$','%','A','Q','M','D','H'].map(u=>`<option value="${u}"${r.unidades===u?' selected':''}>${u}</option>`).join('')}</select>
+      <details><summary style="cursor:pointer;font-size:11px;color:var(--text2)">${(String(r.marcas||'').match(/1/g)||[]).length} marcas</summary>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:2px 8px;margin-top:6px;font-size:10px;min-width:180px">
+          ${ARCA_MARCAS_NOMBRES.map((nom,pos)=>`<label style="display:flex;gap:4px;align-items:center"><input type="checkbox" ${String(r.marcas||'')[pos]==='1'?'checked':''} onchange="_cRowMarcaToggle(${i},${pos},this.checked)">${esc(nom)}</label>`).join('')}
+        </div>
+      </details>
+      <details><summary style="cursor:pointer;font-size:11px;color:var(--text2)">${r.regla&&r.regla.base?esc(r.regla.base):'Regla'}</summary>
+        <div style="margin-top:6px;display:flex;flex-direction:column;gap:4px;min-width:260px">
+          <select onchange="_cRowReglaBase(${i},this.value)"><option value="">— sin regla automática —</option>${CONCEPTO_BASES.map(b=>`<option value="${b}"${r.regla&&r.regla.base===b?' selected':''}>${b}</option>`).join('')}</select>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+            <input type="number" step="0.01" placeholder="% (pct)" value="${r.regla&&r.regla.pct!=null?r.regla.pct:''}" oninput="_cRowReglaSet(${i},'pct',this.value===''?null:parseFloat(this.value))">
+            <input type="number" step="0.01" placeholder="Importe fijo" value="${r.regla&&r.regla.importe!=null?r.regla.importe:''}" oninput="_cRowReglaSet(${i},'importe',this.value===''?null:parseFloat(this.value))">
+            <input type="text" placeholder="Cantidad (1 / horas_normales / novedad.x)" value="${esc(r.regla&&r.regla.cantidad!=null?r.regla.cantidad:'')}" oninput="_cRowReglaSet(${i},'cantidad',this.value||null)" style="grid-column:1/3">
+            <input type="number" step="0.01" placeholder="Factor" value="${r.regla&&r.regla.factor!=null?r.regla.factor:''}" oninput="_cRowReglaSet(${i},'factor',this.value===''?null:parseFloat(this.value))">
+            <select onchange="_cRowReglaSet(${i},'condicion',this.value||null)"><option value="">Sin condición</option>${CONCEPTO_CONDICIONES.map(c=>`<option value="${c}"${r.regla&&r.regla.condicion===c?' selected':''}>${c}</option>`).join('')}</select>
+            <select onchange="_cRowReglaSet(${i},'aplica_convenio',this.value)">${['todos','uom','fuera'].map(v=>`<option value="${v}"${(r.regla&&r.regla.aplica_convenio||'todos')===v?' selected':''}>Convenio: ${v}</option>`).join('')}</select>
+            <select onchange="_cRowReglaSet(${i},'aplica_modalidad',this.value)">${['todos','jornal','mensual'].map(v=>`<option value="${v}"${(r.regla&&r.regla.aplica_modalidad||'todos')===v?' selected':''}>Modalidad: ${v}</option>`).join('')}</select>
+          </div>
+        </div>
+      </details>
       <input type="number" step="1" value="${r.orden||0}" oninput="_cRows[${i}].orden=parseInt(this.value)||0" style="text-align:right">
       <input type="checkbox" ${r.activo!==false?'checked':''} onchange="_cRows[${i}].activo=this.checked" style="justify-self:center">
     </div>`).join('');
+  document.getElementById('conceptos-legacy').innerHTML=!legacy.length?'':`
+    <details><summary style="cursor:pointer;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Históricos del padrón (${legacy.length})</summary>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:2px">
+        ${legacy.map(({r,i})=>`
+          <div style="display:grid;grid-template-columns:70px 1fr 120px 90px 50px;gap:6px;align-items:center;color:var(--text3);font-size:11px">
+            <div>${esc(r.codigo)}</div><div>${esc(r.nombre)}</div><div>${esc(CONCEPTO_TIPOS[r.tipo]||r.tipo)}</div><div>${esc(r.codigo_arca||'—')}</div>
+            <input type="checkbox" ${r.activo!==false?'checked':''} onchange="_cRows[${i}].activo=this.checked" style="justify-self:center">
+          </div>`).join('')}
+      </div>
+    </details>`;
 }
-function conceptosAddRow(){const max=_cRows.reduce((m,r)=>Math.max(m,r.orden||0),0);_cRows.push({id:null,codigo:'',nombre:'',tipo:'remunerativo',unidades:null,orden:max+10,activo:true});renderConceptosRows();}
+function conceptosAddRow(){
+  const max=_cRows.reduce((m,r)=>Math.max(m,r.orden||0),0);
+  _cRows.push({id:null,codigo:'',nombre:'',tipo:'remunerativo',unidades:null,orden:max+10,activo:true,
+    codigo_arca:null,repeticion:true,marcas:MARCAS_DEFAULT('remunerativo',null),regla:null,legacy:false,origen:'manual',_marcasTouched:false});
+  renderConceptosRows();
+}
 async function saveConceptosSueldo(){
   const codes=new Set();
   for(const r of _cRows){
     if(!/^[A-Za-z0-9]{1,10}$/.test(r.codigo||''))return notify(`Código inválido "${r.codigo||''}": hasta 10 letras/números sin espacios`,'err');
     if(!(r.nombre||'').trim())return notify(`El concepto ${r.codigo} necesita nombre`,'err');
     if(codes.has(r.codigo))return notify(`Código repetido: ${r.codigo}`,'err');codes.add(r.codigo);
+    const marcas=r.marcas||MARCAS_DEFAULT(r.tipo,r.codigo_arca);
+    if(!/^[01]{15}$/.test(marcas))return notify(`Marcas inválidas en el concepto ${r.codigo}`,'err');
+    if(r.activo!==false&&r.tipo!=='informativo'&&!r.codigo_arca)return notify(`El concepto ${r.codigo} (${r.nombre}) necesita código ARCA`,'err');
   }
   setBusy('btn-save-conceptos',true);
   try{
     for(const r of _cRows){
-      const data={codigo:r.codigo,nombre:r.nombre.trim(),tipo:r.tipo,unidades:r.unidades||null,orden:r.orden||0,activo:r.activo!==false};
+      const data={codigo:r.codigo,nombre:r.nombre.trim(),tipo:r.tipo,unidades:r.unidades||null,orden:r.orden||0,activo:r.activo!==false,
+        codigo_arca:r.codigo_arca||null,repeticion:r.repeticion!==false,marcas:r.marcas||MARCAS_DEFAULT(r.tipo,r.codigo_arca),
+        regla:r.regla?{...r.regla,orden:r.orden||0}:null};
       if(!r.id)await POST('conceptos_sueldo',{empresa_id:currentEmpresa.id,...data});
       else if(Object.keys(data).some(k=>(data[k]??null)!==(r._orig[k]??null)))await PATCH('conceptos_sueldo',data,`?id=eq.${r.id}`);
     }
@@ -5986,6 +6074,68 @@ async function saveConceptosSueldo(){
     _modalDirty['modal-conceptos']=false;closeModal('modal-conceptos',true);notify('Conceptos guardados');
   }catch(e){notify(msgError(e),'err');}
   finally{setBusy('btn-save-conceptos',false,'Guardar');}
+}
+
+// ═══ Conceptos ARCA: exportar TXT/Excel e importar padrón (083) ═══
+let _padronArca=(()=>{try{return JSON.parse(localStorage.getItem('arca_padron')||'null');}catch(e){return null;}})();
+function exportConceptosTxt(soloFaltantes){
+  const r=buildConceptosTxt(conceptosSueldo,{soloFaltantes,padron:_padronArca?.filas||[]});
+  if(r.errores.length)return notify(r.errores.slice(0,5).join(' · '),'err');
+  if(!r.lineas.length)return notify('No hay conceptos para exportar','err');
+  descargarBytes(`LSD_conceptos_${hoyLocal()}${soloFaltantes?'_faltantes':''}.txt`,new TextEncoder().encode(r.txt),'text/plain;charset=us-ascii');
+  notify(`${r.lineas.length} conceptos — subilo en ARCA → Libro de Sueldos Digital → Conceptos → Carga masiva`);
+}
+function exportConceptosXlsx(){
+  const H=s=>({v:s,s:'header'});
+  const r=buildConceptosTxt(conceptosSueldo,{});
+  if(r.errores.length)return notify(r.errores.slice(0,5).join(' · '),'err');
+  if(!r.lineas.length)return notify('No hay conceptos para exportar','err');
+  const lista=conceptosSueldo.filter(c=>c.activo!==false&&!c.legacy&&c.tipo!=='informativo').slice().sort((a,b)=>(a.orden||0)-(b.orden||0));
+  const hdr=[H('Código de concepto ARCA'),H('Código de concepto empleador'),H('Descripción de concepto empleador'),H('Marca de repetición'),...ARCA_MARCAS_NOMBRES.map(H),H('TXT')];
+  const filas=[hdr].concat(lista.map((c,i)=>[c.codigo_arca||'',c.codigo,c.nombre,c.repeticion===false?0:1,...String(c.marcas||'').padEnd(15,'0').split('').map(Number),r.lineas[i]||'']));
+  const bytes=xlsxBuild([{nombre:'Armado txt',filas,cols:[14,14,40,10,...Array(15).fill(6),70]}]);
+  descargarBytes(`LSD-conceptos-${hoyLocal()}.xlsx`,bytes,XLSX_MIME);
+  notify(`${lista.length} conceptos exportados a Excel`);
+}
+// R13: un código del padrón dentro de un rango "de uso libre" (p.ej. 551001 en 551000-559999)
+// pero sin fila propia en conceptos_arca usa la fila base del rango para familia/descripción.
+function _arcaRangoBase(codigo){
+  return conceptosArca.find(a=>a.uso_libre&&codigo>=a.codigo&&codigo<=(a.rango_hasta||a.codigo));
+}
+async function importarPadronArca(input){
+  const f=input.files&&input.files[0];if(!f)return;
+  const texto=await f.text();const r=parseArcaPadron(texto);
+  if(r.errores.length)return notify(r.errores[0],'err');
+  _padronArca={fecha:hoyLocal(),filas:r.filas};
+  try{localStorage.setItem('arca_padron',JSON.stringify(_padronArca));}catch(e){}
+  const d=diffConceptosArca(r.filas,conceptosSueldo);
+  let nuevos=0;const fueraCatalogo=[];
+  // (a) en ARCA y no en el ERP → alta legacy inactiva con las marcas de ARCA
+  for(const p of d.soloArca){
+    let a=conceptosArca.find(x=>x.codigo===p.codigo_arca);
+    if(!a){
+      const base=_arcaRangoBase(p.codigo_arca);
+      if(!base){fueraCatalogo.push(p.codigo_arca);continue;}
+      try{
+        const nuevo=await POST('conceptos_arca',{codigo:p.codigo_arca,familia:base.familia,descripcion:`${base.descripcion} ${p.codigo_arca}`,uso_libre:false});
+        a=Array.isArray(nuevo)?nuevo[0]:nuevo;conceptosArca.push(a);
+      }catch(e){fueraCatalogo.push(`${p.codigo_arca} fuera del catálogo — agregarlo en la migración`);continue;}
+    }
+    try{
+      await POST('conceptos_sueldo',{empresa_id:currentEmpresa.id,codigo:p.codigo,nombre:p.nombre.slice(0,60),tipo:a.familia,orden:900,
+        activo:false,codigo_arca:p.codigo_arca,repeticion:p.repeticion,marcas:p.marcas,legacy:true,origen:'padron'});
+      nuevos++;
+    }catch(e){/* probablemente ya existe (reimport del mismo padrón u otro conflicto) */}
+  }
+  await reload('conceptos_sueldo');
+  input.value='';openConceptosSueldo();
+  const msg=[`Padrón: ${r.filas.length} conceptos`,
+    nuevos?`${nuevos} nuevos importados como históricos`:'',
+    fueraCatalogo.length?`${fueraCatalogo.length} fuera del catálogo ARCA: ${fueraCatalogo.slice(0,5).join(', ')}`:'',
+    d.soloErp.length?`${d.soloErp.length} del ERP faltan en ARCA (${d.soloErp.map(c=>c.codigo).join(', ')}) — exportá "faltan en ARCA"`:'',
+    d.marcasDistintas.length?`${d.marcasDistintas.length} con marcas distintas: ${d.marcasDistintas.map(x=>x.codigo).join(', ')}`:''
+  ].filter(Boolean).join(' · ');
+  notify(msg,(fueraCatalogo.length||d.soloErp.length||d.marcasDistintas.length)?'err':'ok');
 }
 
 // ═══ Libro de Sueldos Digital — exportación (082) ═══
