@@ -17076,6 +17076,59 @@ function computeRecibo(ctx){
     f931,contribuciones,contribuciones_total:contribTotal,art,ganancias:gan,alertas};
 }
 
+// ─── Sueldos 083: SAC y liquidación final ─────────────────────────────
+function _semestreDe(periodo){const y=Number(periodo.slice(0,4)),m=Number(periodo.slice(5,7));
+  return m<=6?{ini:`${y}-01-01`,fin:`${y}-06-30`,meses:[1,2,3,4,5,6]}:{ini:`${y}-07-01`,fin:`${y}-12-31`,meses:[7,8,9,10,11,12]};}
+const _dias=(a,b)=>Math.round((Date.parse(b)-Date.parse(a))/86400000)+1;
+function computeSAC(ctx){
+  const r2=x=>Math.round(x*100)/100;const e=ctx.empleado||{};const s=_semestreDe(ctx.periodo);const y=Number(ctx.periodo.slice(0,4));
+  const porMes={};(ctx.acumulados||[]).filter(a=>a.anio===y&&s.meses.includes(a.mes)&&!['sac','final'].includes(a.tipo)).forEach(a=>{porMes[a.mes]=(porMes[a.mes]||0)+(Number(a.bruto)||0);});
+  const mejor=r2(Math.max(0,...Object.values(porMes)));
+  const diasSem=_dias(s.ini,s.fin);
+  const desde=e.fecha_ingreso&&e.fecha_ingreso>s.ini?e.fecha_ingreso:s.ini;const hasta=e.fecha_egreso&&e.fecha_egreso<s.fin?e.fecha_egreso:s.fin;
+  const diasTrab=Math.max(0,Math.min(diasSem,_dias(desde,hasta)));
+  const completo=diasTrab>=diasSem;const importe=r2(mejor*0.5*(completo?1:diasTrab/diasSem));
+  return {codigo:completo?'20':'28',mejor_rem:mejor,dias_semestre:diasSem,dias_trabajados:diasTrab,importe,
+    formula:`${mejor} × 50 %${completo?'':` × ${diasTrab}/${diasSem}`}`};
+}
+function computeLiquidacionFinal(ctx){
+  const r2=x=>Math.round(x*100)/100;const num=v=>Number(v)||0;const e=ctx.empleado||{},fe=ctx.fechaEgreso,cat=ctx.catalogo||[];
+  const porCod={};cat.forEach(c=>{porCod[c.codigo]=c;});const out=[],alertas=[];
+  // Nota: se admite importe 0 (p. ej. SAC prop. sin acumulados en el semestre) para que el
+  // concepto igual figure en la liquidación; sólo se descarta si el código no está en catálogo
+  // o el importe es negativo/no numérico.
+  const push=(cod,imp,cant,formula)=>{const c=porCod[cod];if(!c||!(imp>=0))return;out.push({codigo:cod,cantidad:r2(cant||1),unidades:c.unidades||'',importe:r2(imp),dc:'C',origen:'auto',base:r2(imp),traza:{formula},periodo_ajuste:''});};
+  // 1. Conceptos del mes parcial (ya calculados por computeRecibo)
+  ((ctx.reciboMes||{}).conceptos||[]).forEach(c=>out.push(c));
+  const remMensual=num(e.modalidad==='jornal'?num(ctx.escala?.valor_hora)*num(ctx.convenio?.horas_mes||200):(e.convenio==='fuera'?e.sueldo_pactado:ctx.escala?.basico_mensual));
+  const mejorNormal=r2(Math.max(remMensual,...(ctx.acumulados||[]).filter(a=>!['sac','final'].includes(a.tipo)).map(a=>num(a.bruto))));
+  // 2. SAC proporcional
+  const sac=computeSAC({empleado:{...e,fecha_egreso:fe},periodo:fe.slice(0,7)+'-01',acumulados:ctx.acumulados,catalogo:cat});
+  push('28',sac.importe,1,sac.formula);
+  // 3. Vacaciones no gozadas + SAC s/ vac
+  const ant=antiguedadEntre(e.fecha_ingreso_reconocida||e.fecha_ingreso,fe);
+  const diasAnio=_dias(`${fe.slice(0,4)}-01-01`,fe);const diasVac=diasVacacionesLCT(ant.anios,diasAnio);
+  const vacProp=Math.max(0,Math.round(diasVac*diasAnio/365)-num(ctx.vacacionesGozadasAnio));
+  const vDia=num(ctx.reciboMes?.bases?.valor_dia_vacaciones)||r2(remMensual/25);
+  push('517',vacProp*vDia,vacProp,`${vacProp} d × ${vDia}`);push('521',vacProp*vDia/12,1,'517 / 12');
+  // 4. Indemnizaciones (despido sin causa / mutuo acuerdo)
+  const indemniza=['despido_sin_causa','mutuo_acuerdo'].includes(ctx.causa);
+  let aniosInd=ant.anios+(ant.meses>3||(ant.meses===3&&ant.dias>0)?1:0);
+  if(indemniza){
+    // R11: el mínimo garantizado de 1 base (art. 245) respeta el tope del CCT — la base es
+    // mejorNormal recortada por topeIndemnizatorio (si > 0), y el mínimo se aplica sobre ESA
+    // base, no sobre mejorNormal sin tope.
+    let base=mejorNormal;if(num(ctx.topeIndemnizatorio)>0&&base>num(ctx.topeIndemnizatorio)){base=num(ctx.topeIndemnizatorio);alertas.push('Indemnización con tope del CCT (3 × promedio)');}
+    if(!num(ctx.topeIndemnizatorio))alertas.push('Sin tope indemnizatorio cargado: se usa la mejor remuneración sin tope');
+    push('530',Math.max(base*aniosInd,base),aniosInd,`${base} × ${aniosInd} años (mín. 1 mes)`);
+    if(!ctx.preavisoOtorgado){const meses=ant.anios>=5?2:(ant.anios===0&&ant.meses<3?0.5:1);push('531',remMensual*meses,meses,`${remMensual} × ${meses} mes`);
+      const ultimo=Number(finPeriodo(fe.slice(0,7)+'-01','mensual').slice(8,10)),diaEg=Number(fe.slice(8,10));
+      const faltan=ultimo-diaEg;if(faltan>0)push('532',remMensual/30*faltan,faltan,`${remMensual}/30 × ${faltan} d`);
+      const p=out.find(c=>c.codigo==='531')?.importe||0,i=out.find(c=>c.codigo==='532')?.importe||0;push('533',(p+i)/12,1,'(531 + 532) / 12');}
+  }else if(ctx.causa==='despido_con_causa')alertas.push('Despido con causa: sólo rubros proporcionales; verificar con asesoramiento legal');
+  return {conceptos:out,alertas,detalle:{anios_indemnizacion:aniosInd,mejor_rem_normal:mejorNormal,dias_vac_prop:vacProp,valor_dia_vac:vDia,antiguedad:ant.texto}};
+}
+
 // Parseo del extracto pegado (tab / ; como separador). Devuelve
 // [{fecha:'YYYY-MM-DD', descripcion, importe:Number}]. Puro.
 function parsearExtractoPegado(texto){
