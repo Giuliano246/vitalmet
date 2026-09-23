@@ -51,7 +51,8 @@ BEGIN
     FOR EACH ROW EXECUTE FUNCTION public.fn_audit()', t);
 END $$;
 
--- ─── 1. Catálogo ARCA de conceptos (referencia global, solo lectura) ──
+-- ─── 1. Catálogo ARCA de conceptos (lectura para todos; alta de códigos de
+--        rango libre sólo admin, para el importador del padrón) ──────────
 CREATE TABLE IF NOT EXISTS public.conceptos_arca (
   codigo      text PRIMARY KEY CHECK (codigo ~ '^\d{6}$'),
   familia     text NOT NULL CHECK (familia IN ('remunerativo','no_remunerativo','descuento')),
@@ -62,6 +63,13 @@ CREATE TABLE IF NOT EXISTS public.conceptos_arca (
 ALTER TABLE public.conceptos_arca ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS lectura_todos ON public.conceptos_arca;
 CREATE POLICY lectura_todos ON public.conceptos_arca FOR SELECT TO authenticated USING (true);
+-- R29: el importador del padrón (Task 7) crea filas para códigos de rango
+-- libre que ARCA no publica como fila propia (p.ej. 551001 dentro de
+-- 551000-559999) — sólo admin puede darlas de alta, el resto queda en
+-- solo lectura.
+DROP POLICY IF EXISTS alta_admin ON public.conceptos_arca;
+CREATE POLICY alta_admin ON public.conceptos_arca FOR INSERT TO authenticated
+  WITH CHECK ((SELECT public.es_admin()));
 INSERT INTO public.conceptos_arca (codigo, familia, descripcion, uso_libre, rango_hasta) VALUES
   ('110000','remunerativo','Sueldo',false,NULL),
   ('110001','remunerativo','Preaviso',false,NULL),

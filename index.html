@@ -6207,8 +6207,9 @@ async function saveConceptosSueldo(){
       const data={codigo:r.codigo,nombre:r.nombre.trim(),tipo:r.tipo,unidades:r.unidades||null,orden:r.orden||0,activo:r.activo!==false,
         codigo_arca:r.codigo_arca||null,repeticion:r.repeticion!==false,marcas:r.marcas||MARCAS_DEFAULT(r.tipo,r.codigo_arca),
         regla:r.regla?{...r.regla,orden:r.orden||0}:null};
+      const cambio=k=>k==='regla'?JSON.stringify(data.regla??null)!==JSON.stringify(r._orig.regla??null):(data[k]??null)!==(r._orig[k]??null);
       if(!r.id)await POST('conceptos_sueldo',{empresa_id:currentEmpresa.id,...data});
-      else if(Object.keys(data).some(k=>(data[k]??null)!==(r._orig[k]??null)))await PATCH('conceptos_sueldo',data,`?id=eq.${r.id}`);
+      else if(Object.keys(data).some(cambio))await PATCH('conceptos_sueldo',data,`?id=eq.${r.id}`);
     }
     await reload('conceptos_sueldo');
     _modalDirty['modal-conceptos']=false;closeModal('modal-conceptos',true);notify('Conceptos guardados');
@@ -6255,11 +6256,11 @@ async function importarPadronArca(input){
     let a=conceptosArca.find(x=>x.codigo===p.codigo_arca);
     if(!a){
       const base=_arcaRangoBase(p.codigo_arca);
-      if(!base){fueraCatalogo.push(p.codigo_arca);continue;}
+      if(!base){fueraCatalogo.push(`código ARCA ${p.codigo_arca} fuera del catálogo — agregarlo en la migración`);continue;}
       try{
         const nuevo=await POST('conceptos_arca',{codigo:p.codigo_arca,familia:base.familia,descripcion:`${base.descripcion} ${p.codigo_arca}`,uso_libre:false});
         a=Array.isArray(nuevo)?nuevo[0]:nuevo;conceptosArca.push(a);
-      }catch(e){fueraCatalogo.push(`${p.codigo_arca} fuera del catálogo — agregarlo en la migración`);continue;}
+      }catch(e){fueraCatalogo.push(`sin permiso para dar de alta el código ARCA ${p.codigo_arca} (sólo admin)`);continue;}
     }
     try{
       await POST('conceptos_sueldo',{empresa_id:currentEmpresa.id,codigo:p.codigo,nombre:p.nombre.slice(0,60),tipo:a.familia,orden:900,
