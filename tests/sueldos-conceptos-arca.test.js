@@ -1,6 +1,6 @@
 'use strict';
 const { test } = require('node:test');
-const assert = require('node:assert');
+const assert = require('node:assert/strict');
 const fs = require('fs'); const path = require('path');
 const erp = require('./_harness').load();
 const run = c => erp.run(c); const J = JSON.stringify;
@@ -17,15 +17,15 @@ test('parseArcaPadron: 121 filas, BOM, marcas de 15, repetición', () => {
   const r = run(`parseArcaPadron(${J(CSV)})`);
   assert.equal(r.errores.length, 0); assert.equal(r.filas.length, 121);
   const jornal = r.filas.find(f => f.codigo === '4');
-  assert.deepEqual(jornal, { codigo_arca: '110000', codigo: '4', nombre: 'JORNAL', repeticion: true, marcas: '111111111111100' });
+  assert.deepEqual(JSON.parse(JSON.stringify(jornal)), { codigo_arca: '110000', codigo: '4', nombre: 'JORNAL', repeticion: true, marcas: '111111111111100' });
   assert.equal(r.filas.find(f => f.codigo === '104').marcas, '000011110000000');
 });
 test('diffConceptosArca: sólo en ARCA, sólo en ERP, marcas distintas', () => {
   const padron = [{ codigo: '4', codigo_arca: '110000', marcas: '111111111111100' }, { codigo: '52', codigo_arca: '110000', marcas: '111111111111100' }];
   const cat = [{ codigo: '4', codigo_arca: '110000', marcas: '111111111111100', activo: true }, { codigo: '10', codigo_arca: '130001', marcas: '111111111111100', activo: true }, { codigo: '52', codigo_arca: '110000', marcas: '000000000000000', legacy: true }];
   const d = run(`diffConceptosArca(${J(padron)},${J(cat)})`);
-  assert.deepEqual(d.soloArca, []); assert.deepEqual(d.soloErp.map(c => c.codigo), ['10']);
-  assert.deepEqual(d.marcasDistintas, [{ codigo: '52', erp: '000000000000000', arca: '111111111111100' }]);
+  assert.deepEqual(JSON.parse(JSON.stringify(d.soloArca)), []); assert.deepEqual(JSON.parse(JSON.stringify(d.soloErp.map(c => c.codigo))), ['10']);
+  assert.deepEqual(JSON.parse(JSON.stringify(d.marcasDistintas)), [{ codigo: '52', erp: '000000000000000', arca: '111111111111100' }]);
 });
 test('buildConceptosTxt: 195 posiciones, ASCII, marcas intercaladas con libres, sólo faltantes', () => {
   const cat = [{ codigo: '10', nombre: 'Horas extras 50 %', tipo: 'remunerativo', codigo_arca: '130001', repeticion: true, marcas: '111111111111100', activo: true },
