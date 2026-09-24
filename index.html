@@ -1619,6 +1619,11 @@ body.no-costos .solo-costos{display:none!important}
             <div class="form-row"><div class="form-group"><label>Previsión para incobrables (regularizadora de activo)</label><select id="cfg-cta-prev-incobrables"></select></div><div class="form-group"><label>Deudores incobrables (gasto)</label><select id="cfg-cta-gasto-incobrables"></select></div></div>
             <div class="form-row"><div class="form-group"><label>Impuesto a las ganancias (gasto)</label><select id="cfg-cta-iigg"></select></div><div class="form-group"><label>Impuesto a las ganancias a pagar (pasivo)</label><select id="cfg-cta-iigg-a-pagar"></select></div></div>
             <div class="form-row"><div class="form-group"><label>Anticipos de clientes (pasivo)</label><select id="cfg-cta-anticipos-clientes"></select></div><div class="form-group"></div></div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:600;margin:14px 0 10px">Recibo de haberes</div>
+            <div class="form-row"><div class="form-group"><label>Razón social (recibo)</label><input type="text" id="cfg-razon-social-recibo" placeholder="VITALMET SOCIEDAD ANONIMA"></div><div class="form-group"><label>Domicilio (recibo)</label><input type="text" id="cfg-domicilio-recibo" placeholder="PERU 246, VILLA MARTELLI"></div></div>
+            <div class="form-row single"><div class="form-group"><label>Actividad (recibo)</label><input type="text" id="cfg-actividad-recibo" placeholder="Forjado, prensado, estampado y laminado de metales; pulvimetalurgia"></div></div>
+            <div class="form-row"><div class="form-group"><label>Último depósito previsional — período</label><input type="text" id="cfg-f931-ultimo-periodo" placeholder="08/2026"></div><div class="form-group"><label>Último depósito previsional — fecha</label><input type="date" id="cfg-f931-ultimo-fecha"></div></div>
+            <div class="form-row"><div class="form-group"><label>Banco del depósito previsional</label><input type="text" id="cfg-f931-banco" placeholder="FRANCES"></div><div class="form-group"><label>Tope indemnizatorio (CCT, 3×promedio)</label><input type="number" id="cfg-tope-indemnizatorio" step="0.01" min="0"></div></div>
           </div>
 
           <div style="display:flex;gap:10px;align-items:center;justify-content:flex-end">
@@ -2186,7 +2191,7 @@ body.no-costos .solo-costos{display:none!important}
 <!-- MODAL: Detalle ARCA por empleado (conceptos del registro 03 + bases F.931 del registro 04) -->
 <div class="modal-overlay" id="modal-liq-detalle">
   <div class="modal" style="width:860px">
-    <div class="modal-header"><div class="modal-title">Conceptos y F.931 <span id="liqd-titulo" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="btn btn-ghost btn-sm" onclick="liqRecalcularEmpleado(_liqdEmp)" title="Recalcula este empleado con el motor de liquidación, descartando las ediciones manuales sin marcar">↺ Recalcular</button><button class="modal-close" onclick="closeModal('modal-liq-detalle')">×</button></div>
+    <div class="modal-header"><div class="modal-title">Conceptos y F.931 <span id="liqd-titulo" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="btn btn-ghost btn-sm" onclick="liqRecalcularEmpleado(_liqdEmp)" title="Recalcula este empleado con el motor de liquidación, descartando las ediciones manuales sin marcar">↺ Recalcular</button><button class="btn btn-ghost btn-sm" id="liqd-btn-imprimir" onclick="imprimirRecibo(_liqEditId,_liqdEmp)" title="Imprimir el recibo de haberes de este empleado" style="display:none">🖨 Imprimir recibo</button><button class="modal-close" onclick="closeModal('modal-liq-detalle')">×</button></div>
     <div class="modal-body">
       <div class="section-label" style="margin:0 0 6px">Conceptos liquidados (recibo)</div>
       <div style="display:grid;grid-template-columns:1fr 90px 70px 130px 60px 60px 22px 32px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Concepto</div><div style="text-align:right">Cantidad</div><div>Unid.</div><div style="text-align:right">Importe</div><div>D/C</div><div>Origen</div><div></div><div></div></div>
@@ -5761,7 +5766,7 @@ function renderSueldos(filter=''){
     const pagN=_liqPagada(l.id,'netos'),pagC=_liqPagada(l.id,'cargas');
     const acc=l.estado==='borrador'
       ?`<button class="btn btn-ghost btn-sm" onclick="openLiquidacion('${l.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="confirmarLiquidacion('${l.id}')" style="color:var(--green)">Confirmar</button><button class="btn btn-danger btn-sm" onclick="anularLiquidacion('${l.id}')">Eliminar</button>`
-      :`${pagN?'<span class="badge badge-green" style="font-size:9px">NETOS PAG.</span>':`<button class="btn btn-ghost btn-sm" onclick="pagarLiquidacion('${l.id}','netos')" title="Asiento de pago de netos (Sueldos a pagar contra banco)" style="color:var(--teal)">Pagar netos</button>`}${pagC?'<span class="badge badge-green" style="font-size:9px">F.931 PAG.</span>':`<button class="btn btn-ghost btn-sm" onclick="pagarLiquidacion('${l.id}','cargas')" title="Asiento de pago del F.931 + ART (Cargas a pagar contra banco)" style="color:var(--teal)">Pagar F.931</button>`}<button class="btn btn-ghost btn-sm" onclick="openLSD('${l.id}')" title="${l.lsd_nro?`Libro de Sueldos Digital — exportado como liquidación Nº ${l.lsd_nro}`:'Exportar TXT del Libro de Sueldos Digital (ARCA)'}" style="color:${l.lsd_nro?'var(--green)':'var(--accent)'}">LSD${l.lsd_nro?' ✓':''}</button><button class="btn btn-danger btn-sm" onclick="anularLiquidacion('${l.id}')">Anular</button>`;
+      :`${pagN?'<span class="badge badge-green" style="font-size:9px">NETOS PAG.</span>':`<button class="btn btn-ghost btn-sm" onclick="pagarLiquidacion('${l.id}','netos')" title="Asiento de pago de netos (Sueldos a pagar contra banco)" style="color:var(--teal)">Pagar netos</button>`}${pagC?'<span class="badge badge-green" style="font-size:9px">F.931 PAG.</span>':`<button class="btn btn-ghost btn-sm" onclick="pagarLiquidacion('${l.id}','cargas')" title="Asiento de pago del F.931 + ART (Cargas a pagar contra banco)" style="color:var(--teal)">Pagar F.931</button>`}<button class="btn btn-ghost btn-sm" onclick="openLSD('${l.id}')" title="${l.lsd_nro?`Libro de Sueldos Digital — exportado como liquidación Nº ${l.lsd_nro}`:'Exportar TXT del Libro de Sueldos Digital (ARCA)'}" style="color:${l.lsd_nro?'var(--green)':'var(--accent)'}">LSD${l.lsd_nro?' ✓':''}</button><button class="btn btn-ghost btn-sm" onclick="imprimirRecibosLiquidacion('${l.id}')" title="Imprimir los recibos de haberes de todos los empleados de esta liquidación">🖨 Recibos</button><button class="btn btn-danger btn-sm" onclick="anularLiquidacion('${l.id}')">Anular</button>`;
     return`<tr><td class="mono td-primary">${liqPeriodoFmt(l.periodo)}</td><td>${LIQ_TIPO_LABEL[l.tipo]||esc(l.tipo)}</td><td class="mono">${items.length}</td><td class="mono">${fmtARS(parseFloat(l.bruto)||0)}</td><td class="mono" style="color:var(--green)">${fmtARS(parseFloat(l.neto)||0)}</td><td class="mono" style="color:var(--text2)">${fmtARS(cargas)}</td><td><span class="badge ${bE[l.estado]||'badge-warn'}">${l.estado.toUpperCase()}</span></td><td class="mono" style="font-size:11px">${asiento?('Nº '+(asiento.numero||'—')):'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap">${acc}</td></tr>`;
   }).join(''):`<tr><td colspan="9" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Sin liquidaciones. Cargá empleados y después "+ Liquidación" con los números de la contadora.</td></tr>`;
   const etbody=document.getElementById('empleados-tbody');
@@ -5769,6 +5774,26 @@ function renderSueldos(filter=''){
   if(etbody)etbody.innerHTML=elist.length?elist.map(e=>
     `<tr><td class="mono">${esc(e.legajo)||'—'}</td><td style="font-weight:500">${esc(e.nombre)}</td><td class="mono" style="font-size:11px">${esc(e.cuil)||'—'}</td><td style="font-size:11px">${esc(e.categoria)||'—'}</td><td><span class="badge ${e.centro==='fabricacion'?'badge-blue':'badge-purple'}">${e.centro==='fabricacion'?'FÁBRICA':'ADMIN'}</span></td><td style="font-size:11px">${e.modalidad==='jornal'?'Jornal':'Mensual'}</td><td class="mono" style="font-size:11px">${fmtFecha(e.fecha_ingreso)||'—'}</td><td><span class="badge ${e.activo!==false?'badge-green':'badge-coral'}">${e.activo!==false?'ACTIVO':'BAJA'}</span></td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="openEmpleado('${e.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="toggleEmpleado('${e.id}')">${e.activo!==false?'Dar de baja':'Reactivar'}</button>${e.activo!==false&&!e.fecha_egreso?`<button class="btn btn-ghost btn-sm" onclick="openBajaEmpleado('${e.id}')" title="Generar liquidación final por egreso" style="color:var(--coral)">Baja</button>`:''}</td></tr>`
   ).join(''):`<tr><td colspan="9" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Sin empleados cargados.</td></tr>`;
+}
+
+// ── Recibo de haberes imprimible (Task 12) ──
+function _reciboArgs(l,i){
+  const e=empleados.find(x=>x.id===i.empleado_id)||{};const cfg=configContable||{};const fin=finPeriodo(l.periodo,l.tipo);
+  return {empresa:{razon_social:cfg.razon_social_recibo||currentEmpresa?.nombre||'',domicilio:cfg.domicilio_recibo||'',localidad:'',actividad:cfg.actividad_recibo||'',cuit:cfg.cuit_empleador||''},
+    empleado:e,item:i,liquidacion:l,conceptosCat:conceptosSueldo,config:cfg,escala:e.convenio==='fuera'?{valor_hora:0,basico_mensual:e.sueldo_pactado}:vigenteA(sueldosEscala.filter(x=>x.categoria===e.categoria_escala),fin),copias:['ORIGINAL','DUPLICADO']};
+}
+function imprimirRecibo(liqId,eid){
+  const l=liquidaciones.find(x=>x.id===liqId);const i=(l?.liquidacion_items||[]).find(x=>x.empleado_id===eid);if(!l||!i)return;
+  const win=window.open('','_blank');if(!win)return notify('El navegador bloqueó la ventana emergente','err');
+  win.document.write(`<!DOCTYPE html><html><head><title>Recibo ${esc(i.recibo_nro||'')}</title></head><body>${renderRecibo(_reciboArgs(l,i))}</body></html>`);win.document.close();
+  setTimeout(()=>win.print(),300);
+}
+function imprimirRecibosLiquidacion(liqId){
+  const l=liquidaciones.find(x=>x.id===liqId);if(!l)return;
+  const items=(l.liquidacion_items||[]).slice().sort((a,b)=>String(empleados.find(e=>e.id===a.empleado_id)?.legajo||'').localeCompare(String(empleados.find(e=>e.id===b.empleado_id)?.legajo||''),undefined,{numeric:true}));
+  const win=window.open('','_blank');if(!win)return notify('El navegador bloqueó la ventana emergente','err');
+  win.document.write(`<!DOCTYPE html><html><head><title>Recibos ${liqPeriodoFmt(l.periodo)}</title></head><body>${items.map((i,idx)=>renderRecibo({..._reciboArgs(l,i),sinCss:idx>0})).join('')}</body></html>`);win.document.close();
+  setTimeout(()=>win.print(),500);
 }
 
 // ── Novedades del mes (Task 10) ──
@@ -6474,6 +6499,10 @@ function liqOpenDetalle(eid){
   if(!conceptosSueldo.length)return notify('Primero cargá el catálogo de conceptos (botón "Conceptos ARCA")','err');
   _liqdEmp=eid;
   document.getElementById('liqd-titulo').textContent=e.nombre;
+  const lActual=liquidaciones.find(x=>x.id===_liqEditId);
+  const itemActual=(lActual?.liquidacion_items||[]).find(x=>x.empleado_id===eid);
+  const btnImprimir=document.getElementById('liqd-btn-imprimir');
+  if(btnImprimir)btnImprimir.style.display=(lActual?.estado==='confirmada'&&itemActual?.recibo_nro)?'':'none';
   const d=_liqDetalle[eid]||{conceptos:[],f931:null};
   _liqdRows=(d.conceptos||[]).length?d.conceptos.map(c=>({...c})):liqdConceptosDefault(eid);
   renderLiqdConceptos();
@@ -13477,6 +13506,13 @@ function renderImputacionContable(){
   document.getElementById('cfg-iva-alicuota').value=c.iva_alicuota!=null?(Number(c.iva_alicuota)*100).toFixed(2).replace(/\.?0+$/,''):'21';
   document.getElementById('cfg-punto-venta').value=c.punto_venta||1;
   document.getElementById('cfg-precios-con-iva').checked=c.precios_incluyen_iva===true;
+  document.getElementById('cfg-razon-social-recibo').value=c.razon_social_recibo||'';
+  document.getElementById('cfg-domicilio-recibo').value=c.domicilio_recibo||'';
+  document.getElementById('cfg-actividad-recibo').value=c.actividad_recibo||'';
+  document.getElementById('cfg-f931-ultimo-periodo').value=c.f931_ultimo_periodo||'';
+  document.getElementById('cfg-f931-ultimo-fecha').value=c.f931_ultimo_fecha||'';
+  document.getElementById('cfg-f931-banco').value=c.f931_banco||'';
+  document.getElementById('cfg-tope-indemnizatorio').value=c.tope_indemnizatorio||'';
   document.getElementById('cfg-status').textContent=c.updated_at?`Última actualización: ${new Date(c.updated_at).toLocaleString('es-AR')}`:'Sin configurar';
 }
 
@@ -13527,6 +13563,13 @@ async function saveConfigContable(){
     cta_sueldos_a_pagar:v('cfg-cta-sueldos-a-pagar'),
     cta_cargas_a_pagar:v('cfg-cta-cargas-a-pagar'),
     cta_provision_sac:v('cfg-cta-provision-sac'),
+    razon_social_recibo:document.getElementById('cfg-razon-social-recibo').value.trim()||null,
+    domicilio_recibo:document.getElementById('cfg-domicilio-recibo').value.trim()||null,
+    actividad_recibo:document.getElementById('cfg-actividad-recibo').value.trim()||null,
+    f931_ultimo_periodo:document.getElementById('cfg-f931-ultimo-periodo').value.trim()||null,
+    f931_ultimo_fecha:document.getElementById('cfg-f931-ultimo-fecha').value||null,
+    f931_banco:document.getElementById('cfg-f931-banco').value.trim()||null,
+    tope_indemnizatorio:parseFloat(document.getElementById('cfg-tope-indemnizatorio').value)||null,
     updated_at:new Date().toISOString(),
   };
   setBusy('btn-save-cfg-imputacion',true);
@@ -18257,6 +18300,196 @@ function computeLiquidacionFinal(ctx){
   out.sort((a,b)=>{const oa=ordenDe(a.codigo),ob=ordenDe(b.codigo);
     if(oa==null&&ob==null)return 0;if(oa==null)return 1;if(ob==null)return -1;return oa-ob;});
   return {conceptos:out,alertas,detalle:{anios_indemnizacion:aniosInd,mejor_rem_normal:mejorNormal,dias_vac_prop:vacProp,valor_dia_vac:vDia,antiguedad:ant.texto}};
+}
+
+// ─── Sueldos 083: Recibo de haberes (Task 12) ─────────────────────────
+// Composición patronal (contribuciones_detalle: 640 SVC, 642 INSSJP, 643
+// ANSSAL, 644 JUBILACION, 645 OBRA SOCIAL, 646 FONDO DESEMPLEO, 647 SUBSIDIO
+// FAMILIAR, 648 ART si existe) + composición del trabajador (liquidacion_conceptos
+// dc='D'). Nota del recibo real: "Total Seguridad Social" del empleador
+// incluye ANSSAL (643) junto con 644+646+647; Obra Social es sólo el 645.
+function _reciboComposicion(item,conceptosCat){
+  const r2=x=>Math.round((Number(x)||0)*100)/100;
+  const cd=item.contribuciones_detalle||[];
+  const byCod={};cd.forEach(c=>{byCod[c.codigo]=Number(c.importe)||0;});
+  const conc=item.liquidacion_conceptos||[];
+  const sumD=codes=>r2(conc.filter(c=>c.dc==='D'&&codes.includes(c.codigo)).reduce((a,c)=>a+(Number(c.importe)||0),0));
+  const ss={emp:r2((byCod['644']||0)+(byCod['646']||0)+(byCod['647']||0)+(byCod['643']||0)),trab:sumD(['200'])};
+  const os={emp:r2(byCod['645']||0),trab:sumD(['202','207','208'])};
+  const inssjp={emp:r2(byCod['642']||0),trab:sumD(['201'])};
+  const scvo={emp:r2(byCod['640']||0)};
+  const art={emp:r2(byCod['648']!=null?byCod['648']:(Number(item.art)||0))};
+  const sindical={emp:0,trab:sumD(['203','205','211','206'])};
+  const otrosDesc={trab:r2(conc.filter(c=>c.dc==='D').reduce((a,c)=>a+(Number(c.importe)||0),0))};
+  const sumContribuciones=r2(cd.reduce((a,c)=>a+(Number(c.importe)||0),0));
+  const otros={
+    emp:r2(sumContribuciones-(ss.emp+os.emp+inssjp.emp+scvo.emp+art.emp)),
+    trab:r2(otrosDesc.trab-(sindical.trab+ss.trab+os.trab+inssjp.trab)),
+  };
+  const costoTotal=r2((Number(item.bruto)||0)+(Number(item.no_remunerativo)||0)+sumContribuciones+(Number(item.art)||0));
+  const pctOf=v=>costoTotal>0?r2(v/costoTotal*100):0;
+  const pct={neto:pctOf(Number(item.neto)||0),otrosDesc:pctOf(otrosDesc.trab),ss:pctOf(ss.emp),os:pctOf(os.emp),inssjp:pctOf(inssjp.emp),scvo:pctOf(scvo.emp),art:pctOf(art.emp)};
+  return {sindical,ss,os,inssjp,art,scvo,otros,otrosDesc,costoTotal,pct};
+}
+const RECIBO_MESES=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+function _reciboPeriodoLabel(periodo,tipo){
+  const y=Number(String(periodo||'').slice(0,4)),m=Number(String(periodo||'').slice(5,7));
+  const mes=RECIBO_MESES[m-1]||'';
+  switch(tipo){
+    case 'quincena1':return `1RA QUINC ${mes} ${y}`;
+    case 'quincena2':return `2DA QUINC ${mes} ${y}`;
+    case 'mensual':return `${mes} ${y}`;
+    case 'sac':return `SAC ${m<=6?'1ER':'2DO'} SEM ${y}`;
+    case 'vacaciones':return `VACACIONES ${mes} ${y}`;
+    case 'final':return `LIQ. FINAL ${mes} ${y}`;
+    default:return `${mes} ${y}`;
+  }
+}
+function _reciboCuit(v){const d=String(v||'').replace(/\D/g,'');return d.length===11?`${d.slice(0,2)}-${d.slice(2,10)}-${d.slice(10)}`:String(v||'');}
+function _reciboTorta(segs){
+  const r=50,cx=60,cy=60,circ=2*Math.PI*r;let acc=0;
+  const circles=segs.filter(s=>s.pct>0).map(s=>{
+    const len=circ*s.pct/100;
+    const dash=`${len.toFixed(2)} ${(circ-len).toFixed(2)}`;
+    const offset=(-acc*circ/100).toFixed(2);
+    acc+=s.pct;
+    return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="20" stroke-dasharray="${dash}" stroke-dashoffset="${offset}"/>`;
+  }).join('');
+  return `<svg width="120" height="120" viewBox="0 0 120 120">${circles}</svg>`;
+}
+// Recibo de haberes imprimible: 2 páginas (haberes/descuentos + composición
+// salarial con torta) × N copias (por defecto ORIGINAL/DUPLICADO). Pura: sin
+// DOM ni red — devuelve el HTML completo (con su <style>) listo para
+// window.document.write(). args.sinCss omite el bloque <style> (impresión
+// por lote: sólo el primer recibo del documento lo necesita).
+function renderRecibo(args){
+  const a=args||{};
+  const empresa=a.empresa||{},empleado=a.empleado||{},item=a.item||{},liquidacion=a.liquidacion||{};
+  const conceptosCat=a.conceptosCat||[],config=a.config||{},escala=a.escala||{};
+  const copias=(a.copias&&a.copias.length)?a.copias:['ORIGINAL','DUPLICADO'];
+  const r2=x=>Math.round((Number(x)||0)*100)/100;
+  const fmt2=n=>(Number(n)||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const periodo=liquidacion.periodo||'',tipo=liquidacion.tipo||'mensual';
+  const mesP=Number(periodo.slice(5,7))||1,anioP=Number(periodo.slice(0,4))||0;
+  const periodoAbonado=`${String(mesP).padStart(2,'0')}/${anioP}`;
+  const descPago=_reciboPeriodoLabel(periodo,tipo);
+  const fin=finPeriodo(periodo,tipo);
+  const ant=antiguedadEntre(empleado.fecha_ingreso,fin);
+  const comp=_reciboComposicion(item,conceptosCat);
+  const conc=(item.liquidacion_conceptos||[]).slice().sort((x,y)=>(x.orden||0)-(y.orden||0));
+  const cd=item.contribuciones_detalle||[];
+  const cantDisp=c=>{
+    const n=Number(c.cantidad)||0;if(!n)return'';
+    const s=Number.isInteger(n)?String(n):n.toLocaleString('es-AR');
+    return c.unidades==='%'?`${s}%`:s;
+  };
+  const rowConcepto=c=>{
+    const cat=conceptosCat.find(x=>x.codigo===c.codigo)||{};
+    const monto=(c.dc==='D'?'-':'')+fmt2(c.importe);
+    return `<tr><td>${esc(c.codigo)}</td><td>${esc(cat.nombre||c.codigo)}</td><td style="text-align:center">${esc(cantDisp(c))}</td><td></td><td style="text-align:right">${monto}</td></tr>`;
+  };
+  const rowContrib=c=>`<tr><td>${esc(c.codigo)}</td><td>${esc(c.nombre)}</td><td style="text-align:center">${c.pct!=null?fmt2(c.pct)+'%':''}</td><td style="text-align:right">${c.base!=null?fmt2(c.base):''}</td><td style="text-align:right">${fmt2(c.importe)}</td></tr>`;
+  const headerBlock=copiaLabel=>`
+    <div class="recibo-topbar"><span>${esc(copiaLabel)}</span><h1>Recibo de haberes</h1><span class="recibo-nro-box">${esc(item.recibo_nro||'')}</span></div>
+    <div class="recibo-empresa">
+      <div class="recibo-empresa-nombre">${esc(empresa.razon_social||'')}</div>
+      <div>Dirección: ${esc(empresa.domicilio||'')}</div>
+      <div>${esc(empresa.localidad||'')}</div>
+      <div>${esc(empresa.actividad||'')}</div>
+      <div>${esc(_reciboCuit(empresa.cuit))}</div>
+    </div>
+    <table class="recibo-tbl">
+      <tr><th>PERÍODO ABONADO</th><th>DESCRIPCIÓN DEL PAGO</th><th>FECHA DE PAGO</th><th>LUGAR DE PAGO</th></tr>
+      <tr><td>${esc(periodoAbonado)}</td><td>${esc(descPago)}</td><td>${esc(fmtFecha(liquidacion.fecha_pago))}</td><td>${esc(empleado.lugar_pago||'')}</td></tr>
+      <tr><th>LEGAJO</th><th>APELLIDO Y NOMBRE DEL EMPLEADO</th><th>C.U.I.L.</th><th>FECHA ÚLTIMO INGRESO</th></tr>
+      <tr><td>${esc(empleado.legajo||'')}</td><td>${esc(empleado.nombre||'')}</td><td>${esc(_reciboCuit(empleado.cuil))}</td><td>${esc(fmtFecha(empleado.fecha_ingreso))}</td></tr>
+      <tr><td colspan="2">CATEGORÍA: ${esc(empleado.categoria_escala||'')}</td><td colspan="2">INICIO TIEMPO SERVICIO: ${esc(fmtFecha(empleado.fecha_ingreso_reconocida||empleado.fecha_ingreso))} · ANTIGÜEDAD: ${esc(ant.texto)}</td></tr>
+      <tr><td colspan="2">CONTRATACIÓN: ${esc(empleado.contratacion||'')}</td><td colspan="2">OBRA SOCIAL: ${esc(empleado.obra_social||'')}</td></tr>
+      <tr><th>ÚLTIMO DEPÓSITO PREVISIONAL</th><th>PERÍODO</th><th>FECHA</th><th>TAREA / SUELDO-JORNAL</th></tr>
+      <tr><td>${esc(config.f931_banco||empleado.banco_deposito||'')}</td><td>${esc(config.f931_ultimo_periodo||'')}</td><td>${esc(fmtFecha(config.f931_ultimo_fecha))}</td><td>${esc(empleado.tarea||'')} · ${fmt2(escala.valor_hora||escala.basico_mensual||0)}</td></tr>
+    </table>`;
+  const page1=copiaLabel=>`
+    <div class="recibo-pagina">
+      ${headerBlock(copiaLabel)}
+      <div class="recibo-bar">COSTO TOTAL EMPLEADOR <span>${fmt2(comp.costoTotal)}</span></div>
+      <table class="recibo-tbl"><tr><th>COD.</th><th>CONCEPTO</th><th>UNIDAD</th><th>BASE</th><th>MONTO</th></tr>${cd.map(rowContrib).join('')}</table>
+      <div class="recibo-bar">SUBTOTAL CONTRIBUCIONES EMPLEADOR <span>${fmt2(item.contribuciones)}</span></div>
+      <div class="recibo-bar">SUELDO BRUTO <span>${fmt2(r2((Number(item.bruto)||0)+(Number(item.no_remunerativo)||0)))}</span></div>
+      <table class="recibo-tbl"><tr><th>COD.</th><th>CONCEPTO</th><th>UNIDAD</th><th>BASE</th><th>MONTO</th></tr>${conc.map(rowConcepto).join('')}</table>
+      <div class="recibo-compo">COMPOSICIÓN LABORAL: Remunerativo: ${fmt2(item.bruto)} &nbsp; No Remunerativo: ${fmt2(item.no_remunerativo)} &nbsp; Descuentos: ${fmt2(item.aportes)}</div>
+      <div class="recibo-bar">SUELDO NETO <span>${fmt2(item.neto)}</span></div>
+      <div class="recibo-neto-letras">Sueldo neto en pesos: ${esc(numeroALetras(item.neto))}</div>
+      <div class="recibo-nota">Incluido aumento de futuros convenios, leyes y/o resoluciones.</div>
+      <div class="recibo-footer">
+        <div class="recibo-firmas"><div>....................................<br>Firma del empleado</div><div>....................................<br>Firma del empleador</div></div>
+        <div class="recibo-pagina-n">Página 1 de 2</div>
+      </div>
+    </div>`;
+  const seg=[
+    {label:'Sueldo neto',pct:comp.pct.neto,color:'#4c78a8'},
+    {label:'Otros descuentos',pct:comp.pct.otrosDesc,color:'#f58518'},
+    {label:'Costo SS',pct:comp.pct.ss,color:'#e45756'},
+    {label:'Costo OS',pct:comp.pct.os,color:'#72b7b2'},
+    {label:'Costo INSSJP',pct:comp.pct.inssjp,color:'#54a24b'},
+    {label:'Costo SCVO',pct:comp.pct.scvo,color:'#eeca3b'},
+    {label:'Costo ART',pct:comp.pct.art,color:'#b279a2'},
+  ];
+  const tortaSvg=_reciboTorta(seg);
+  const page2=copiaLabel=>`
+    <div class="recibo-pagina">
+      ${headerBlock(copiaLabel)}
+      <div class="recibo-subtitulo">Detalle de la composición salarial</div>
+      <div class="recibo-composicion-grid">
+        <div>
+          <div><b>Total Costo Sindical:</b> ${fmt2(r2(comp.sindical.emp+comp.sindical.trab))}<br>Empleador: ${fmt2(comp.sindical.emp)}<br>Trabajador: ${fmt2(comp.sindical.trab)}</div>
+          <div><b>Total Seguridad Social:</b> ${fmt2(r2(comp.ss.emp+comp.ss.trab))}<br>Empleador: ${fmt2(comp.ss.emp)}<br>Trabajador: ${fmt2(comp.ss.trab)}</div>
+          <div><b>Total Obra Social:</b> ${fmt2(r2(comp.os.emp+comp.os.trab))}<br>Empleador: ${fmt2(comp.os.emp)}<br>Trabajador: ${fmt2(comp.os.trab)}</div>
+          <div><b>Total otros descuentos:</b> ${fmt2(comp.otrosDesc.trab)}<br>Trabajador: ${fmt2(comp.otrosDesc.trab)}</div>
+        </div>
+        <div>
+          <div><b>Total costo INSSJP:</b> ${fmt2(r2(comp.inssjp.emp+comp.inssjp.trab))}<br>Empleador: ${fmt2(comp.inssjp.emp)}<br>Trabajador: ${fmt2(comp.inssjp.trab)}</div>
+          <div><b>Total costo ART:</b> ${fmt2(comp.art.emp)}<br>Empleador: ${fmt2(comp.art.emp)}</div>
+          <div><b>Total costo SCVO:</b> ${fmt2(comp.scvo.emp)}<br>Empleador: ${fmt2(comp.scvo.emp)}</div>
+          <div><b>Total Otros:</b> ${fmt2(r2(comp.otros.emp+comp.otros.trab))}<br>Empleador: ${fmt2(comp.otros.emp)}<br>Trabajador: ${fmt2(comp.otros.trab)}</div>
+        </div>
+        <div class="recibo-torta-box">
+          <div class="recibo-torta-title">Costo total empleador</div>
+          ${tortaSvg}
+          <table class="recibo-legend">${seg.map(s=>`<tr><td><span class="sw" style="background:${s.color}"></span>${esc(s.label)}</td><td style="text-align:right">${fmt2(s.pct)}%</td></tr>`).join('')}</table>
+        </div>
+      </div>
+      <div class="recibo-nota">Nota: Seguridad social del empleador incluye SIPA, Fondo Nacional de Empleo y Asignaciones Familiares.</div>
+      <div class="recibo-footer">
+        <div class="recibo-firmas"><div>....................................<br>Firma del empleado</div><div>....................................<br>Firma del empleador</div></div>
+        <div class="recibo-pagina-n">Página 2 de 2</div>
+      </div>
+    </div>`;
+  const css=`<style id="recibo-css">
+    @page{size:A4;margin:12mm}
+    .recibo-pagina{page-break-after:always;font:11px Arial,sans-serif;color:#111}
+    .recibo-pagina:last-child{page-break-after:auto}
+    .recibo-topbar{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #111;padding-bottom:4px;margin-bottom:4px}
+    .recibo-topbar h1{font-size:18px;margin:0}
+    .recibo-empresa{margin-bottom:6px}
+    .recibo-empresa-nombre{font-weight:bold;font-size:14px}
+    table.recibo-tbl{width:100%;border-collapse:collapse;margin-bottom:4px}
+    table.recibo-tbl th,table.recibo-tbl td{border:1px solid #333;padding:2px 4px;font-size:10px;text-align:left}
+    table.recibo-tbl th{font-weight:bold;background:#f0f0f0}
+    .recibo-bar{display:flex;justify-content:space-between;background:#e5e5e5;border:1px solid #333;font-weight:bold;padding:3px 6px;margin:4px 0}
+    .recibo-compo{margin:4px 0;font-size:10px}
+    .recibo-neto-letras{margin:4px 0;font-size:11px}
+    .recibo-nota{font-size:9px;color:#444;margin-top:8px}
+    .recibo-footer{display:flex;justify-content:space-between;margin-top:40px;font-size:10px}
+    .recibo-firmas{display:flex;gap:80px}
+    .recibo-subtitulo{font-weight:bold;text-decoration:underline;margin:8px 0}
+    .recibo-composicion-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    .recibo-composicion-grid>div>div{margin-bottom:8px}
+    .recibo-torta-box{border:1px solid #333;padding:6px;text-align:center}
+    .recibo-legend{width:100%;font-size:9px;text-align:left;margin-top:4px}
+    .recibo-legend .sw{display:inline-block;width:8px;height:8px;margin-right:4px}
+  </style>`;
+  const body=copias.map(cp=>page1(cp)+page2(cp)).join('');
+  return (a.sinCss?'':css)+body;
 }
 
 // Parseo del extracto pegado (tab / ; como separador). Devuelve
