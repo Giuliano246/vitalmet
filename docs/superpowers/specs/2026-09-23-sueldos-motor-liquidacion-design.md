@@ -155,7 +155,7 @@ Los códigos 224, 225 y 516 del recibo de septiembre **no están en el padrón**
 | 531 | Indemnización sustitutiva de preaviso | 520015 | no rem |
 | 532 | Integración mes de despido | 520016 | no rem |
 | 533 | SAC s/ preaviso e integración | 520017 | no rem |
-| 998 | Redondeo (crédito) | 499999 | rem sin marcas (`000000000000000`) |
+| 998 | Redondeo (crédito) | 799999 | no remunerativo sin marcas (`000000000000000`) — corrección: el recibo real lo suma en "No Remunerativo" |
 
 Contribuciones patronales (640–647 del recibo actual) **no son conceptos ARCA** (se guardan con esos mismos códigos para el recibo): se guardan en `liquidacion_items.contribuciones_detalle` y se imprimen, pero no van al LSD (ARCA las calcula desde las bases).
 
@@ -194,7 +194,7 @@ Orden y fórmulas (todo a 2 decimales; `dias_periodo` = 30 mensual / 15 quincena
 10. **Complemento IMGR (24)** sólo UOM: `piso = imgr × factor_jornada × factor_periodo`; `suma = básico + antigüedad + presentismo + adicionales + no_rem_paritaria` (sin extras ni feriados trabajados); si `suma < piso` → `piso − suma`.
 11. **No remunerativo de paritaria (102).** `no_rem_paritaria × factor_jornada × factor_periodo × dias_trabajados/dias_periodo`.
 12. **Recurrentes y novedades.** `conceptos_recurrentes` vigentes en el período (bono 75, viáticos 106, cuota de préstamo 227 con `cuotas_pagadas++` al confirmar, embargo 226 con tope 20 % del neto previo a embargo). `novedad.adelanto` → 223; `novedad.premio_produccion` → 64; `novedad.otros` → tal cual.
-13. **Redondeo (999).** `neto_objetivo = ceil(neto / redondeo_a) × redondeo_a`; la diferencia se agrega como crédito 998 (ARCA 499999, sin marcas) o débito 999 (820000) según el signo, con `redondeo_a` del convenio (10). Si `redondeo_a = 0` no se genera.
+13. **Redondeo (999).** `neto_objetivo = ceil(neto / redondeo_a) × redondeo_a`; la diferencia se agrega como crédito 998 (ARCA 799999, no remunerativo sin marcas) o débito 999 (820000) según el signo, con `redondeo_a` del convenio (10). Si `redondeo_a = 0` no se genera.
 14. **Bases y aportes.**
     - `rem_bruto` = Σ remunerativos; `no_rem` = Σ no remunerativos; `no_rem_os` = Σ no remunerativos con marca OS-A.
     - `tope_max_prorr = tope_max × dias_tope/30` donde `dias_tope` = días del período si es mes de ingreso/egreso o vacaciones, si no 30 (LSD reg. 02 "días para proporcionar el tope"). En quincenas el tope se prorratea por 15 salvo que la configuración diga que se controla por mes (default: por quincena, como hace la contadora).
