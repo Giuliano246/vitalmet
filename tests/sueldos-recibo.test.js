@@ -26,3 +26,19 @@ test('renderRecibo: 2 páginas × 2 copias, bloques y neto en letras', () => {
   assert.ok(html.includes('-48.852,21'));
   assert.ok(html.includes('<svg'));
 });
+test('_reciboComposicion: liquidación confirmada antes de la migración 083 (sin contribuciones_detalle)', () => {
+  const item = { bruto:400000, no_remunerativo:0, aportes:68000, neto:332000, contribuciones:100000, art:5000,
+    contribuciones_detalle:null,
+    liquidacion_conceptos:[{codigo:'200',cantidad:0,unidades:'',importe:68000,dc:'D',orden:0}] };
+  const c = run(`_reciboComposicion(${J(item)},${J(CAT)})`);
+  assert.equal(c.ss.emp, 100000); assert.equal(c.art.emp, 5000);
+  assert.equal(c.os.emp, 0); assert.equal(c.inssjp.emp, 0); assert.equal(c.scvo.emp, 0);
+  assert.equal(c.costoTotal, 505000);
+  assert.equal(Math.round(Object.values(c.pct).reduce((a, b) => a + b, 0)), 100);
+});
+test('renderRecibo: neto con centavos agrega "CON NN/100" sin tocar numeroALetras', () => {
+  const item2 = { ...ITEM, neto: 395310.67 };
+  const args2 = { ...ARGS, item: item2 };
+  const html = run(`renderRecibo(${J(args2)})`);
+  assert.ok(html.includes('CON 67/100'));
+});

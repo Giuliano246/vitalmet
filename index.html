@@ -18375,14 +18375,19 @@ function _reciboComposicion(item,conceptosCat){
   const byCod={};cd.forEach(c=>{byCod[c.codigo]=Number(c.importe)||0;});
   const conc=item.liquidacion_conceptos||[];
   const sumD=codes=>r2(conc.filter(c=>c.dc==='D'&&codes.includes(c.codigo)).reduce((a,c)=>a+(Number(c.importe)||0),0));
-  const ss={emp:r2((byCod['644']||0)+(byCod['646']||0)+(byCod['647']||0)+(byCod['643']||0)),trab:sumD(['200'])};
-  const os={emp:r2(byCod['645']||0),trab:sumD(['202','207','208'])};
-  const inssjp={emp:r2(byCod['642']||0),trab:sumD(['201'])};
-  const scvo={emp:r2(byCod['640']||0)};
-  const art={emp:r2(byCod['648']!=null?byCod['648']:(Number(item.art)||0))};
+  // R43: liquidaciones confirmadas ANTES de la migración 083 no tienen contribuciones_detalle
+  // (columna nueva) — sin el detalle por código, todo el costo patronal cae en "Seguridad
+  // Social" (item.contribuciones) y el ART en item.art; el resto queda en 0 (no hay cómo
+  // reconstruir el desglose por OS/INSSJP/SCVO sin el detalle).
+  const tieneDetalle=cd.length>0;
+  const ss={emp:tieneDetalle?r2((byCod['644']||0)+(byCod['646']||0)+(byCod['647']||0)+(byCod['643']||0)):r2(Number(item.contribuciones)||0),trab:sumD(['200'])};
+  const os={emp:tieneDetalle?r2(byCod['645']||0):0,trab:sumD(['202','207','208'])};
+  const inssjp={emp:tieneDetalle?r2(byCod['642']||0):0,trab:sumD(['201'])};
+  const scvo={emp:tieneDetalle?r2(byCod['640']||0):0};
+  const art={emp:tieneDetalle?r2(byCod['648']!=null?byCod['648']:(Number(item.art)||0)):r2(Number(item.art)||0)};
   const sindical={emp:0,trab:sumD(['203','205','211','206'])};
   const otrosDesc={trab:r2(conc.filter(c=>c.dc==='D').reduce((a,c)=>a+(Number(c.importe)||0),0))};
-  const sumContribuciones=r2(cd.reduce((a,c)=>a+(Number(c.importe)||0),0));
+  const sumContribuciones=tieneDetalle?r2(cd.reduce((a,c)=>a+(Number(c.importe)||0),0)):r2(Number(item.contribuciones)||0);
   const otros={
     emp:r2(sumContribuciones-(ss.emp+os.emp+inssjp.emp+scvo.emp+art.emp)),
     trab:r2(otrosDesc.trab-(sindical.trab+ss.trab+os.trab+inssjp.trab)),
@@ -18439,6 +18444,11 @@ function renderRecibo(args){
   const comp=_reciboComposicion(item,conceptosCat);
   const conc=(item.liquidacion_conceptos||[]).slice().sort((x,y)=>(x.orden||0)-(y.orden||0));
   const cd=item.contribuciones_detalle||[];
+  // R44: numeroALetras trunca a entero (Math.floor de su propio argumento) — los centavos se
+  // agregan acá como "CON NN/100", sin tocar numeroALetras (tiene sus propios tests).
+  const netoNum=Number(item.neto)||0;
+  const netoEnt=Math.floor(netoNum),netoCent=Math.round((netoNum-netoEnt)*100);
+  const netoLetras=numeroALetras(netoEnt)+(netoCent>0?` CON ${String(netoCent).padStart(2,'0')}/100`:'');
   const cantDisp=c=>{
     const n=Number(c.cantidad)||0;if(!n)return'';
     const s=Number.isInteger(n)?String(n):n.toLocaleString('es-AR');
@@ -18479,7 +18489,7 @@ function renderRecibo(args){
       <table class="recibo-tbl"><tr><th>COD.</th><th>CONCEPTO</th><th>UNIDAD</th><th>BASE</th><th>MONTO</th></tr>${conc.map(rowConcepto).join('')}</table>
       <div class="recibo-compo">COMPOSICIÓN LABORAL: Remunerativo: ${fmt2(item.bruto)} &nbsp; No Remunerativo: ${fmt2(item.no_remunerativo)} &nbsp; Descuentos: ${fmt2(item.aportes)}</div>
       <div class="recibo-bar">SUELDO NETO <span>${fmt2(item.neto)}</span></div>
-      <div class="recibo-neto-letras">Sueldo neto en pesos: ${esc(numeroALetras(item.neto))}</div>
+      <div class="recibo-neto-letras">Sueldo neto en pesos: ${esc(netoLetras)}</div>
       <div class="recibo-nota">Incluido aumento de futuros convenios, leyes y/o resoluciones.</div>
       <div class="recibo-footer">
         <div class="recibo-firmas"><div>....................................<br>Firma del empleado</div><div>....................................<br>Firma del empleador</div></div>
