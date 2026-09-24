@@ -763,19 +763,77 @@ Audita la numeración de asientos: detecta **huecos** o **duplicados**. Revisalo
 - **Estados contables RT 54 (Contabilidad → Estados contables → EECC RT 54):** elegí el ejercicio, cargá el TC de cierre (para el anexo de moneda extranjera) y tocá **Vista previa**: ves el Estado de situación patrimonial por rubro (corriente / no corriente), el Estado de resultados por función y el Flujo de efectivo sintético, con la columna del ejercicio anterior reexpresada a moneda de cierre. **Exportar Excel** baja un libro con carátula, ESP, ER, Evolución del PN, Flujo de efectivo, notas de composición de rubros y los anexos (moneda extranjera, bienes de uso, previsiones, costo de ventas, gastos por naturaleza, partes relacionadas), en el mismo orden que el modelo del Consejo. Corré antes los ajustes de cierre y el ajuste por inflación. Si una cuenta con saldo no tiene rubro, la vista previa lo avisa y el ESP no cuadra hasta que lo asignes.
 - **Rubro RT 54:** cada cuenta imputable tiene un rubro (Plan de cuentas → Editar) que define dónde se expone en los estados contables y alimenta el reporte de Ratios.
 
-### 11.9 Sueldos y Libro de Sueldos Digital (ARCA)
+### 11.9 Sueldos: motor de liquidación completo (UOM + fuera de convenio + Ganancias + ARCA)
 
-El ERP **no liquida sueldos**: registra lo que liquidó la contadora, genera el asiento de devengamiento y arma el archivo del **Libro de Sueldos Digital** para subir a ARCA.
+Desde septiembre de 2026 el ERP **liquida sueldos**: calcula el recibo completo (básico, antigüedad, presentismo, horas extras, feriados, licencias, vacaciones, no remunerativo de paritaria, aportes, Impuesto a las Ganancias 4ª categoría y contribuciones patronales), lo contabiliza y lo imprime. La contadora sigue revisando y confirmando cada liquidación — el sistema no reemplaza su control, se lo simplifica. Planta liquida bajo el convenio **UOM CCT 260/75 rama 17**; administración, **fuera de convenio**.
 
-- **Empleados:** un legajo por persona. Además de nombre, CUIL, categoría y centro de costo (fábrica / administración, que define las cuentas de gasto), abrí **Datos ARCA** y completá lo que va al F.931: **CBU** y forma de pago (la ley exige acreditación bancaria), **código de obra social** (RNOS, 6 dígitos), **código de actividad** SICOSS (3 dígitos), cónyuge, hijos, marcas CCT / SCVO y los códigos de situación, condición, modalidad (008 = tiempo completo indeterminado), siniestrado, localidad y situación de revista. Los defaults sirven para un operario en relación de dependencia; la contadora confirma cada legajo. Un empleado dado de baja no aparece en liquidaciones nuevas, pero su histórico queda.
-- **Conceptos ARCA (botón en la barra de Sueldos):** el catálogo de conceptos del recibo con **tus códigos** (100 básico, 130 horas extras, 300 jubilación, 320 obra social…). Son los mismos códigos que la contadora asocia a los conceptos de ARCA en Libro de Sueldos Digital → Conceptos. El **tipo** define qué hace cada uno: *remunerativo* suma al bruto, *no remunerativo* al no remunerativo, *descuento* a los aportes, *informativo* no suma (asignaciones familiares). Un concepto usado no se borra: se desactiva.
-- **Liquidación:** **+ Liquidación** → período (por defecto el mes anterior), tipo (mensual, quincena, SAC, vacaciones, final) y fecha de pago. Por cada empleado cargá los importes del recibo. Los % de arriba (aportes 17, contribuciones 27,35, ART 3) pre-calculan aportes, neto, contribuciones y ART al tipear el bruto; todos los campos son editables para que coincidan con el recibo real. **⏱ Traer horas de planta** suma las horas productivas de los timers del mes por operario y sugiere bruto = horas × valor hora.
-- **Botón ARCA de cada fila:** ahí van los **conceptos del recibo** (código, cantidad, unidades, importe; débito/crédito se deduce del tipo) y las **bases imponibles** del F.931. Con conceptos cargados, bruto / no remunerativo / aportes / neto **se calculan desde los conceptos** y la fila queda bloqueada (contribuciones y ART siguen a mano: no van al LSD, ARCA los calcula). **Prellenar desde el bruto** copia el bruto remunerativo a las bases 1–9 (con el tope de aportes configurado en 1/4/5), pone remuneración bruta = remunerativo + no remunerativo y base 10 = bruto − importe a detraer. Días trabajados (30) **o** horas: no ambos.
-- **Guardar borrador → Confirmar:** al confirmar se genera el asiento de devengamiento con fecha fin de mes (gastos por centro al debe; Sueldos a pagar por el neto y Cargas sociales a pagar por aportes + contribuciones + ART al haber). En liquidaciones mensuales o por quincena te pregunta si registrás también la **provisión de SAC** (1/12 del bruto); al confirmar un SAC, la provisión acumulada hasta ese mes se consume sola. No se puede cargar dos veces el mismo mes y tipo: editá la existente.
-- **Pagar netos / Pagar F.931:** un asiento contra la cuenta bancaria real por el **importe exacto** de la liquidación (Sueldos a pagar o Cargas a pagar contra Banco). Si pagaste otro monto o en dos veces, registralo como asiento manual: el badge PAGADO significa pagado completo y saca la liquidación del cashflow y de la alerta de vencimiento del F.931. Una liquidación con pagos registrados no se puede editar ni eliminar hasta anular esos asientos.
-- **Anular:** una confirmada vuelve a borrador (el asiento queda ANULADO, nunca se borra; motivo obligatorio). Un borrador se elimina.
-- **LSD (Libro de Sueldos Digital):** el botón **LSD** de cada liquidación abre el exportador. Completá una vez el **CUIT del empleador**, el tipo de empresa (Dec. 814/01), el importe a detraer (Ley 27.430) y el tope de aportes — quedan guardados. Elegí envío **SJ** (liquidación + F.931) o **RE** (solo rectifica el F.931), tipo de liquidación, **número de liquidación** (mayor a los ya enviados del período; el ERP sugiere el siguiente) y fecha de pago. El preview muestra el archivo línea por línea con su largo y **lista todo lo que ARCA rechazaría** (CUIL sin verificador, CBU inválido, empleado sin conceptos, sin obra social o actividad, días y horas a la vez, etc.): hasta que no esté limpio no hay descarga. **Descargar TXT** baja `LSD_AAAAMM_tipo_nro.txt`, guarda el número de liquidación (el botón pasa a **LSD ✓**) y lo subís en ARCA → Libro de Sueldos Digital → Carga de liquidación. Se puede exportar un borrador para validar en ARCA antes de confirmar.
-- **Alertas:** el F.931 vence entre el 7 y el 10 del mes siguiente; el panel "Para hoy" avisa desde el día 2 y marca vencido pasado el 9 si no registraste el pago de cargas. El cashflow proyectado suma los netos a la fecha de pago y el F.931 al día 9.
+Antes de liquidar el primer período hay que cargar tres cosas, en este orden: **Escalas y parámetros**, el **legajo** de cada empleado y las **novedades** del período.
+
+#### Escalas y parámetros (Sueldos → Novedades → **Escalas y parámetros**, solo administrador)
+
+Cuatro pestañas, todas con **historial por vigencia** (cada cambio se carga con la fecha desde la que rige; el motor usa siempre la vigente al último día del período que estás liquidando):
+
+- **Escala salarial:** valor hora o básico mensual por categoría UOM (Ingresante, Operario, Oficial…) y por categoría mensualizada (Administrativo, Técnico). **+ Nueva vigencia** copia la tabla actual a una fecha nueva aplicando un % de aumento parejo. Si una categoría queda en 0, el motor avisa al liquidar a un empleado de esa categoría.
+- **Convenio:** IMGR (ingreso mínimo garantizado), no remunerativo de paritaria, % de antigüedad, horas del mes y del día, % de presentismo, tolerancia de ausencias, sepelio, seguro de vida colectivo (SCVO), cuota sindical y redondeo del neto.
+- **Previsional:** topes mínimo y máximo de ANSES, detracción Ley 27.430, porcentajes de aportes (jubilación, INSSJP, obra social, adherentes) y de contribuciones patronales (Dec. 814/01), ART.
+- **Ganancias:** las tablas semestrales (enero y julio) con el Ganancia No Imponible, deducción especial, cónyuge, hijo, hijo con discapacidad y los 9 tramos de la escala. Cargá la tabla nueva apenas ARCA publique los valores del semestre.
+
+Estos parámetros son de configuración: sus alertas (categoría sin valor, parámetro vacío) se ven solo al entrar a esta página, no en el panel "Para hoy".
+
+#### Legajo del empleado
+
+El modal de empleado tiene cinco pestañas:
+
+1. **Datos:** legajo, nombre, CUIL, centro de costo, modalidad (jornal / mensualizado), fecha de ingreso, categoría, obra social, nombre tal como figura en las órdenes de producción (para "Traer horas de planta"), tarea, contratación, lugar de pago, banco.
+2. **Remuneración:** **convenio** (UOM o fuera de convenio — cambia qué campos siguen), **categoría de la escala salarial** (UOM) o **sueldo pactado** (fuera de convenio), horas semanales, % de antigüedad (solo fuera de convenio; en UOM lo define el convenio), fecha de ingreso reconocida (si difiere de la real, para antigüedad de otro empleador), afiliado al sindicato, cobra presentismo.
+3. **Conceptos fijos:** adicionales fijos que se pagan todos los meses (% del básico o importe, ej. tarea peligrosa, título) y conceptos recurrentes con vigencia y cuotas (préstamos, cuotas de cualquier tipo) — cada cuota liquidada avanza sola el contador de "pagas" al confirmar.
+4. **Ganancias:** tildá "Se retiene Impuesto a las Ganancias" solo para los empleados alcanzados (4ª categoría); hijos con discapacidad; y la lista de deducciones informadas por F.572 web (alquiler, servicio doméstico, cuota médica, seguro de vida, intereses hipotecarios, donaciones, gastos educativos) con el importe mensual y el período de vigencia.
+5. **ARCA:** los datos del F.931/LSD que ya existían (CBU, forma de pago, obra social, cónyuge, hijos, marcas, códigos de situación/condición/actividad/modalidad).
+
+**Baja de empleado** (botón en el legajo, oculto si ya está dado de baja): fecha de egreso, causa (renuncia, despido sin causa, despido con causa, mutuo acuerdo, fin de contrato, fallecimiento), si hubo preaviso otorgado, tope indemnizatorio del CCT (se precarga desde Configuración) y días de vacaciones ya gozadas en el año. El preview muestra los renglones que va a generar (proporcionales del mes, SAC proporcional, vacaciones no gozadas y, si corresponde, indemnización por antigüedad + preaviso + integración del mes) antes de crear la liquidación de tipo **final** en borrador. El empleado no queda dado de baja hasta que confirmás esa liquidación.
+
+#### Novedades por período (Sueldos → **Novedades**)
+
+Elegí período y tipo (mensual / 1ª quincena / 2ª quincena) y completá, por empleado, días trabajados, horas normales (jornales), horas extras al 50 % y al 100 %, feriados no trabajados y trabajados, ausencias injustificadas, días de enfermedad, accidente y licencia paga (con su tipo), días sin goce de sueldo, días de vacaciones, adelanto, premio por producción y observaciones. Sin fila cargada, el motor asume el período completo sin novedades.
+
+**⏱ Precargar horas de planta** suma las horas productivas de los timers de Modo Planta del período (por la orden asignada al operario, vía el nombre cargado en el legajo) y las pone en "Horas norm." de los jornales que la tengan vacía — no pisa lo que ya escribiste. Importante: los días de enfermedad, accidente o licencia paga van en sus propias columnas, **no** los sumes en "Horas norm.": el motor de liquidación los computa aparte.
+
+#### Liquidar con Calcular
+
+En la liquidación (Sueldos → **+ Liquidación**, período/tipo/fecha de pago como antes) apareció el botón **⚙ Calcular**: corre el motor para todos los empleados activos, usando la escala, el convenio, los parámetros previsionales, la tabla de Ganancias vigente y las novedades cargadas. Genera automáticamente el básico, antigüedad, presentismo, horas extras, feriados, licencias, vacaciones, el complemento IMGR, el no remunerativo de paritaria, los conceptos fijos y recurrentes del legajo, aportes con topes, sindicales, contribuciones y — si el empleado está marcado — la retención de Ganancias.
+
+- Cada renglón generado por el motor queda con **origen "auto"**; si editás un renglón a mano, pasa a **"manual"** y Calcular no lo vuelve a tocar (así podés corregir un caso puntual sin perder el resto del cálculo).
+- En el detalle de cada empleado, el ícono de traza junto a cada concepto muestra la fórmula exacta que usó el motor (por ejemplo "4.485,97 × 90 h" o "básico × 1 % × 3 años").
+- **↺ Recalcular** (por empleado) descarta también los renglones manuales y vuelve a correr el motor de cero para ese empleado.
+- Volver a apretar **⚙ Calcular** para todos conserva los renglones manuales cuyo código el motor no genera en esa corrida (para no duplicar), pero **si el código coincide con uno que el motor sí calcula, el renglón manual se pisa** — si necesitás mantener ese ajuste, volvé a cargarlo después de Calcular.
+- El botón te avisa con alertas (no bloquean el guardado) cuando falta un valor de escala, un empleado no tiene fecha de ingreso, no hay novedad cargada, se superó un tope, se perdió el presentismo por ausencias, un préstamo llegó a la última cuota, etc.
+
+**SAC** (tipo de liquidación "SAC", período 06 o 12): calcula el aguinaldo sobre la mejor remuneración del semestre (completo o proporcional si el empleado ingresó en el semestre) — a diferencia de una liquidación mensual, **no vuelve a sumar el sueldo del mes**, solo el aguinaldo y lo que corresponde sobre él (aportes, contribuciones, Ganancias).
+
+**Liquidación final:** se genera desde el botón **Baja** del legajo (ver arriba), no desde "+ Liquidación".
+
+#### Recibos
+
+Cada liquidación **confirmada** muestra el botón **🖨 Recibos**: imprime en un solo documento el recibo de haberes de todos los empleados de esa liquidación, dos páginas por empleado (idéntico al formato que emitía antes la contadora) y dos copias — **ORIGINAL** y **DUPLICADO** — marcadas en el ángulo superior izquierdo. La página 1 trae los datos del empleado, el período, el bloque de sueldo bruto (conceptos con signo), la composición laboral y el neto en letras; la página 2 abre el costo total del empleador (seguridad social, obra social, INSSJP, ART, SCVO, sindical) con una torta de porcentajes.
+
+Antes de imprimir el primer recibo, completá en **Configuración → Imputación → Recibo de haberes**: razón social, domicilio y actividad (encabezado del recibo), y el último depósito previsional — período, fecha y banco — que se muestra en todos los recibos hasta que lo actualices con el próximo F.931 pagado. Ahí mismo está el **tope indemnizatorio** que se precarga en la baja de empleado.
+
+Para liquidaciones cargadas **antes** de este motor (sin el detalle de contribuciones nuevo), el recibo igual se imprime: usa el total de contribuciones y ART ya guardado como si fuera todo "Seguridad Social" — la página 2 sale menos desglosada, pero cierra al 100 %.
+
+#### Conceptos ARCA (padrón, marcas y TXT)
+
+El botón **Conceptos** ahora trae, para cada código propio, el **código ARCA** (de un catálogo de 142 posibles, importado del padrón real del CUIT de Vitalmet) y sus **15 marcas** (qué subsistema del F.931 suma cada concepto: SIPA, INSSJP, obra social, FSR, RENATEA, AAFF, FNE, LRT, diferencial, especial). La **regla** es la fórmula que usa el motor para calcularlo solo (dejarla vacía = concepto que siempre se carga a mano). Un concepto usado en liquidaciones no se borra, se desactiva.
+
+- **Importar padrón…** lee el CSV que bajás de ARCA (Libro de Sueldos Digital → Conceptos, separado por `;`) y compara contra tu catálogo: da de alta como histórico inactivo lo que está en ARCA y no en el ERP, lista lo que está en el ERP y todavía no diste de alta en ARCA, y avisa si las marcas no coinciden.
+- **Exportar TXT (todos)** / **Exportar TXT (faltan en ARCA)** generan el archivo de carga masiva de conceptos (195 posiciones) para subir en ARCA → Libro de Sueldos Digital → Conceptos; **Excel ARCA** arma la misma información en planilla.
+- **Bloqueo del LSD:** antes de exportar el Libro de Sueldos Digital de una liquidación, el sistema verifica que todos los conceptos usados tengan código ARCA y no sean históricos ("legacy"). Si falta alguno, el preview del LSD lo lista y no deja descargar hasta que lo completes en Conceptos.
+
+#### Preguntas para la contadora (no bloquean el uso del sistema)
+
+1. Cómo mapea en el LSD los códigos 224, 225 y 516 del recibo de septiembre de 2026, que no están en el padrón de ARCA.
+2. Porcentaje del aporte solidario UOM para no afiliados y valor vigente del seguro de sepelio.
+3. Si el tope de aportes se controla por quincena o por mes.
+4. Tope indemnizatorio vigente del CCT 260/75 (3 × promedio).
 
 ---
 

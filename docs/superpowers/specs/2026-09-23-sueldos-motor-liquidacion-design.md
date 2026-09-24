@@ -1,7 +1,7 @@
 # Sueldos: motor de liquidación completo (UOM + fuera de convenio + Ganancias + ARCA) — Diseño
 
 **Fecha:** 2026-09-23
-**Estado:** diseño aprobado en conversación, pendiente de plan de implementación.
+**Estado:** implementado en la rama `feat/sueldos-motor`, 2026-09-24; rulings en el ledger del sprint (`.superpowers/sdd/2026-09-23-sueldos-motor-liquidacion/progress.md`, R1–R45). Falta correr la migración 083 en prod y el smoke con datos reales (ver "Verificación" más abajo).
 **Origen:** pedido del usuario (2026-09-23): "quiero que mires todas las posibilidades y las agregues, debe ser lo más completo posible" sobre conceptos no remunerativos, antigüedad, bonos, etc. Decisiones tomadas en la sesión: el ERP pasa a ser **liquidador completo** (la contadora revisa y confirma); planta bajo **UOM CCT 260/75 rama 17**, administración **fuera de convenio**; escala cargada **a mano con historial**; **Ganancias 4ta categoría sí** (uno o más empleados alcanzados); novedades **cargadas a mano por período** con precarga opcional desde los timers de planta; motor de reglas **configurable** (opción 1); recibo impreso **igual al que emite hoy el sistema de la contadora** (dos páginas, duplicado); códigos de concepto **adoptados del padrón ARCA existente**.
 
 **Material de referencia** (en `docs/sueldos/referencia/`):
@@ -324,7 +324,53 @@ Suite existente (`sueldos.test.js`, `sueldos-lsd.test.js`) debe seguir verde; `c
 
 ## Verificación
 
-- Suite `node --test tests/` verde.
-- Migración 083 validada contra Postgres local con esquema stub (como la 082) y luego en el SQL Editor de prod.
-- Smoke E2E en prod: cargar escala y parámetros, calcular la 2ª quincena de septiembre para un jornal y comparar contra el recibo de la contadora renglón por renglón; exportar TXT de conceptos y subirlo a ARCA en homologación de LSD; imprimir un recibo y compararlo con la foto.
-- Manual de usuario actualizado (md + docx).
+### Suite y estado del código (hecho)
+
+- [x] `node --test tests/*.test.js` → 334 pass / 0 fail (2026-09-24).
+- [x] `node -e "require('./tests/_harness').load()"` sin error.
+- [x] Manual de usuario actualizado (`docs/MANUAL_USUARIO.md` §11.9 + `docs/MANUAL_USUARIO.docx` regenerado con pandoc).
+- [x] `CLAUDE.md` con el bloque "Sueldos 083 — motor de liquidación".
+
+### Paso 1 — Correr la migración 083 en prod (usuario, antes de cualquier push)
+
+1. Abrir el SQL Editor de prod (Supabase → proyecto `dqvlqhaxgvtilhiuatpv` → SQL Editor).
+2. Pegar y correr el contenido completo de `migrations/083_sueldos_motor.sql` (es idempotente: `BEGIN`/`COMMIT`, `IF NOT EXISTS`, `ON CONFLICT`).
+3. Al terminar sin error, correr el bloque **VERIFICACIÓN** que está comentado al pie del archivo (quitar los `--` y ejecutar el `SELECT`) y confirmar:
+   - `arca` = 116 (conceptos_arca sembrados, incluye el código de uso libre 551001).
+   - `padron` = 121 (conceptos_sueldo con `origen='padron'`, los códigos adoptados del padrón real de Vitalmet).
+   - `seed` = 26 (conceptos_sueldo con `origen='seed'` y `regla` cargada — los que calcula el motor).
+   - `escala` = 50 (8 categorías jornal × 5 vigencias + 10 categorías mensualizadas).
+   - `pol` = 6 (policies RLS en `sueldos_novedades`: tenant_isolation, planta_lockdown, contador_no_ins/upd/del, modulo_sueldos).
+4. Si algún número no coincide, no seguir: revisar el log de la migración antes de tocar el frontend (regla del proyecto — SQL antes que código).
+5. Recién con la migración corrida y verificada: `git push origin main` (Netlify deploya el frontend).
+
+### Paso 2 — Cargar datos reales antes de liquidar (usuario)
+
+Antes de calcular la primera liquidación con el motor, en Sueldos → **Escalas y parámetros**:
+- [ ] Cargar el valor hora de las categorías reales que tengan empleados (además de "Ingresante", que ya viene sembrada) y del/los empleado/s con IMGR aplicable.
+- [ ] Cargar el importe de ART (pestaña Previsional) y el importe de sepelio (pestaña Convenio) — vienen en 0 hasta que el usuario los complete con la póliza real.
+- [ ] En el legajo de cada empleado alcanzado por Ganancias: tildar "Se retiene Impuesto a las Ganancias" y cargar sus deducciones F.572 (pestaña Ganancias).
+
+### Paso 3 — Smoke checklist en prod (usuario, con datos reales)
+
+- [ ] Cargar novedades de la 2ª quincena de septiembre de 2026 (Sueldos → Novedades → período 09/2026, tipo "2ª quincena").
+- [ ] Liquidar esa quincena para un jornal con **⚙ Calcular** y comparar el resultado, renglón por renglón, contra el recibo real que emitió la contadora (el mismo que sirvió de referencia para el diseño).
+- [ ] Exportar el TXT de conceptos "faltan en ARCA" (Conceptos → Exportar TXT (faltan en ARCA)) y subirlo en ARCA → Libro de Sueldos Digital → Conceptos.
+- [ ] Exportar el LSD de esa liquidación (botón LSD) y confirmar que el preview no lista rechazos.
+- [ ] Imprimir un recibo (🖨 Recibos) y compararlo visualmente con la foto del recibo real (encabezado, bloques, neto en letras, página 2).
+
+### Pendientes menores (deferred durante el sprint, no bloquean)
+
+Catálogo y RLS (T1): `recibo_nro` sin UNIQUE y queda NULL si no hay `config_contable`; el contador de cuotas del préstamo 227 avanza por cada ítem con ese código (dos quincenas del mismo mes = 2 cuotas) y sobre todas las entradas 227 del ítem; los seeds de los conceptos 470-472/493 se re-aplican en cada corrida de la migración; el INSERT del padrón (paso 2d) no guarda empresa/origen; el `ON CONFLICT` del seed (2c) no refresca `tipo`/`nombre` de conceptos ya existentes; el concepto '400' (préstamo otorgado) queda activo como haber no remunerativo; el concepto '2' queda activo sin regla.
+
+Importador/exportador ARCA (T2, T7): `ARCA_MARCAS_POS` descartado (ver Ruling R15 en el ledger); `parseArcaPadron` deja asignaciones sin uso; el contador de marcas de la UI no se actualiza en vivo; importar/exportar sin `try/catch` ni `setBusy` externos; mensajes de "fuera de catálogo" inconsistentes entre sí; sin validación de largo de `codigo_arca` en `parseArcaPadron`.
+
+Fechas y texto (T3): la aproximación de 180 días para "6 meses" no quedó comentada en el código; sin tests de bordes de mes adicionales a los de la review.
+
+Motor de cálculo (T4): `base3` sólo considera AAFF; queda código muerto (`bases`, `adicImp`, `CONTRIB_CODIGOS`); la cantidad de los adicionales fijos no tiene clamp a 999,99; los conceptos recurrentes fuerzan `origen:'auto'`; período `null` sin guard explícito; el push del básico (concepto '1') es explícito y saltea `aplica()`/chequeo de activo; `bases.no_rem` se lee después del redondeo; la alerta de licencia sin concepto re-agregador también dispara para jornales con `horas_normales` cargadas a mano.
+
+Ganancias (T5): el seguro de vida se deduce al 100 % del GNI en vez de un tope anual prorrateado; el tope del 5 % se aplica sobre la ganancia bruta y no es acumulativo mes a mes; la rama de `quincena2` cae en la rama "mensual" sin test dedicado; el test 4 sólo assertea un campo; en liquidación `'final'` sin códigos 20/28 se restan los doceavos sin sumar el SAC real correspondiente.
+
+SAC y liquidación final (T6): `mutuo_acuerdo` en período de prueba genera el concepto 531 (punto a confirmar legalmente); el régimen de vacaciones para empleados ingresados el año anterior con menos de 180 días trabajados en el año del egreso no está cubierto; el redondeo de días de vacaciones no quedó documentado en el código; el tramo de vacaciones se toma a la fecha de egreso y no al 31/12; los "2 meses de preaviso" aplican justo al cumplir 5 años sin margen; M5 lee 531/532 desde el array de conceptos en vez de una referencia directa.
+
+Pantallas (T8, T9, T10, T11, T12): Escalas y parámetros sin botón borrar; en Baja de empleado, `previewBaja` hardcodea el centro de costo (dc) al armar 900/901 y puede disparar doble toast si falla dentro de `saveBajaEmpleado`; Novedades hace upsert de filas vacías para todos los empleados activos, no sólo los editados; en el detalle de liquidación, `liqdPrellenar` sigue usando `detraer`/`tope` de `configContable` en vez de `sueldos_parametros_previsionales`, la traza del SAC queda con `base=1`/`"1"`, `liqCalcular` no guarda contra un catálogo de conceptos vacío, `sinArca` ignora códigos ausentes del catálogo, y quedó un comentario viejo sobre `_liqDetalle`; el walkthrough manual del paso 5 (verificación visual en navegador) sigue pendiente. Recibo: la leyenda de la torta no oculta los segmentos en 0, la localidad del encabezado queda hardcodeada en `''` (no hay columna `localidad_recibo`), la posición de Nro./Piso/Depto. es aproximada, y el botón "Imprimir recibo" del detalle de un empleado individual es inalcanzable en liquidaciones ya confirmadas — el camino operativo es "🖨 Recibos" por liquidación completa (Ruling R42).
