@@ -206,3 +206,27 @@ test('computeRecibo: licencia paga sin concepto a valor día en el catálogo ale
   assert.equal(imp(r, '1'), 1000000);   // 1.200.000 × 25/30, sin línea que reintegre los 5 días
   assert.ok(r.alertas.some(a => /licencia paga sin concepto/i.test(a)));
 });
+
+// ─── Fix round 1 de Task 11 (review 1f16ca9) ────────────────────────────
+test("computeRecibo: tipo 'sac' NO paga el básico del mes — el único haber es el aguinaldo (C3, R38)", () => {
+  // Mensualizado fuera de convenio, sueldo 1.000.000: el SAC entra como regla `fijo` de 500.000
+  // (lo que inyecta liqCalcularEmpleado desde computeSAC). Antes de R38 computeRecibo pusheaba
+  // además el código '1' con el mes entero → bruto 1.500.000.
+  const emp = { ...EMP, convenio:'fuera', modalidad:'mensual', categoria_escala:null, sueldo_pactado:1000000,
+    fecha_ingreso:'2020-01-01', fecha_ingreso_reconocida:null,
+    adicionales_fijos:[{ codigo:'28', importe:100000 }], conceptos_recurrentes:[{ codigo:'28', importe:50000 }] };
+  const catSac = CAT.concat([
+    { codigo:'20', nombre:'SAC', tipo:'remunerativo', codigo_arca:'120000', marcas:'111111111111100', regla:{auto:true,base:'fijo',importe:500000,cantidad:'1',orden:15} },
+    { codigo:'28', nombre:'Adicional', tipo:'remunerativo', codigo_arca:'160002', marcas:'111111111111100', regla:{orden:25} },
+  ]);
+  const r = recibo({ empleado:emp, escala:null, novedad:{}, tipo:'sac', catalogo:catSac });
+  assert.equal(imp(r, '20'), 500000);
+  assert.equal(r.conceptos.find(c => c.codigo === '1'), undefined);    // sin básico del mes
+  assert.equal(r.conceptos.find(c => c.codigo === '28'), undefined);   // sin adicionales fijos ni recurrentes del legajo
+  assert.equal(r.conceptos.find(c => c.codigo === '102'), undefined);  // sin no remunerativa paritaria
+  assert.equal(r.totales.bruto, 500000);
+  assert.equal(r.bases.rem_bruto, 500000);
+  assert.equal(r.totales.aportes, 85000);      // 11 + 3 + 3 % sobre 500.000
+  assert.equal(r.totales.neto, 415000);
+  assert.equal(r.f931.base1, 500000);
+});
