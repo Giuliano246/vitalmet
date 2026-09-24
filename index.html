@@ -2169,9 +2169,9 @@ body.no-costos .solo-costos{display:none!important}
     <div class="modal-body">
       <p style="margin:0 0 12px 0;color:var(--text3);font-size:12px">Cargá los números de la liquidación de la contadora. Los % de abajo pre-calculan aportes, contribuciones y neto como ayuda — <b>todos los campos son editables</b> para que coincidan con el recibo real. Al confirmar se genera el asiento de devengamiento.</p>
       <div class="form-row" style="grid-template-columns:150px 170px 150px 1fr"><div class="form-group"><label>Período *</label><input type="month" id="liq-periodo"></div><div class="form-group"><label>Tipo</label><select id="liq-tipo"><option value="mensual">Mensual</option><option value="quincena1">1ª quincena</option><option value="quincena2">2ª quincena</option><option value="sac">SAC (aguinaldo)</option><option value="vacaciones">Vacaciones</option><option value="final">Liquidación final</option><option value="otro">Otro</option></select></div><div class="form-group"><label>Fecha de pago</label><input type="date" id="liq-fecha-pago"></div><div class="form-group"><label>Observaciones</label><input type="text" id="liq-obs"></div></div>
-      <div class="form-row" style="grid-template-columns:150px 170px 150px 1fr;margin-bottom:4px"><div class="form-group"><label>Aportes % (empleado)</label><input type="number" id="liq-pct-aportes" value="17" step="0.01" oninput="liqRecalcularTodo()"></div><div class="form-group"><label>Contribuciones % (patronal)</label><input type="number" id="liq-pct-contrib" value="27.35" step="0.01" oninput="liqRecalcularTodo()"></div><div class="form-group"><label>ART %</label><input type="number" id="liq-pct-art" value="3" step="0.01" oninput="liqRecalcularTodo()"></div><div class="form-group"><label>&nbsp;</label><button class="btn btn-ghost" id="btn-liq-horas" onclick="liqTraerHoras()" title="Suma las horas productivas de los timers de Modo Planta del período (por la orden asignada al operario) y sugiere el bruto = horas × valor hora" style="border-color:var(--teal);color:var(--teal)">⏱ Traer horas de planta</button></div></div>
+      <div class="form-row" style="grid-template-columns:150px 170px 150px 1fr;margin-bottom:4px"><div class="form-group"><label>Aportes % (empleado)</label><input type="number" id="liq-pct-aportes" value="17" step="0.01" oninput="liqRecalcularTodo()"></div><div class="form-group"><label>Contribuciones % (patronal)</label><input type="number" id="liq-pct-contrib" value="27.35" step="0.01" oninput="liqRecalcularTodo()"></div><div class="form-group"><label>ART %</label><input type="number" id="liq-pct-art" value="3" step="0.01" oninput="liqRecalcularTodo()"></div><div class="form-group"><label>&nbsp;</label><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-ghost" id="btn-liq-horas" onclick="liqTraerHoras()" title="Suma las horas productivas de los timers de Modo Planta del período (por la orden asignada al operario) y sugiere el bruto = horas × valor hora" style="border-color:var(--teal);color:var(--teal)">⏱ Traer horas de planta</button><button class="btn btn-primary" id="btn-liq-calcular" onclick="liqCalcular()" title="Calcula bruto, no remunerativo, aportes, neto, conceptos y F.931 con el motor de liquidación para todos los empleados de la lista">⚙ Calcular</button></div></div></div>
       <div id="liq-horas-info" style="display:none;margin-bottom:8px;font-size:11px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:8px 10px"></div>
-      <div style="display:grid;grid-template-columns:1fr 110px 110px 110px 110px 110px 100px 70px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Empleado</div><div style="text-align:right">Bruto</div><div style="text-align:right">No remun.</div><div style="text-align:right">Aportes</div><div style="text-align:right">Neto</div><div style="text-align:right">Contrib.</div><div style="text-align:right">ART</div><div title="Conceptos por empleado (registro 03 del LSD) y bases del F.931">ARCA</div></div>
+      <div style="display:grid;grid-template-columns:1fr 110px 110px 110px 110px 110px 100px 34px 70px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Empleado</div><div style="text-align:right">Bruto</div><div style="text-align:right">No remun.</div><div style="text-align:right">Aportes</div><div style="text-align:right">Neto</div><div style="text-align:right">Contrib.</div><div style="text-align:right">ART</div><div title="Alertas del motor de liquidación">Alertas</div><div title="Conceptos por empleado (registro 03 del LSD) y bases del F.931">ARCA</div></div>
       <div id="liq-items-list" style="display:flex;flex-direction:column;gap:6px"></div>
       <div id="liq-resumen" style="margin-top:12px;font-size:12px;color:var(--text2)"></div>
       <p style="margin:10px 0 0 0;color:var(--text3);font-size:11px">Para exportar el <b>Libro de Sueldos Digital</b> cada empleado necesita sus conceptos (botón ARCA): con conceptos cargados, bruto / no remunerativo / aportes / neto se calculan desde ellos y quedan bloqueados en la fila.</p>
@@ -2186,10 +2186,10 @@ body.no-costos .solo-costos{display:none!important}
 <!-- MODAL: Detalle ARCA por empleado (conceptos del registro 03 + bases F.931 del registro 04) -->
 <div class="modal-overlay" id="modal-liq-detalle">
   <div class="modal" style="width:860px">
-    <div class="modal-header"><div class="modal-title">Conceptos y F.931 <span id="liqd-titulo" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="modal-close" onclick="closeModal('modal-liq-detalle')">×</button></div>
+    <div class="modal-header"><div class="modal-title">Conceptos y F.931 <span id="liqd-titulo" style="color:var(--accent);margin-left:8px;font-weight:400"></span></div><button class="btn btn-ghost btn-sm" onclick="liqRecalcularEmpleado(_liqdEmp)" title="Recalcula este empleado con el motor de liquidación, descartando las ediciones manuales sin marcar">↺ Recalcular</button><button class="modal-close" onclick="closeModal('modal-liq-detalle')">×</button></div>
     <div class="modal-body">
       <div class="section-label" style="margin:0 0 6px">Conceptos liquidados (recibo)</div>
-      <div style="display:grid;grid-template-columns:1fr 90px 70px 130px 60px 32px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Concepto</div><div style="text-align:right">Cantidad</div><div>Unid.</div><div style="text-align:right">Importe</div><div>D/C</div><div></div></div>
+      <div style="display:grid;grid-template-columns:1fr 90px 70px 130px 60px 60px 22px 32px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Concepto</div><div style="text-align:right">Cantidad</div><div>Unid.</div><div style="text-align:right">Importe</div><div>D/C</div><div>Origen</div><div></div><div></div></div>
       <div id="liqd-conceptos" style="display:flex;flex-direction:column;gap:6px"></div>
       <div style="display:flex;gap:8px;align-items:center;margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="liqdAddConcepto()">+ Concepto</button><span id="liqd-totales" style="font-size:12px;color:var(--text2)"></span></div>
       <div class="section-label" style="margin:16px 0 6px">F.931 — bases imponibles (registro 04)</div>
@@ -2215,6 +2215,10 @@ body.no-costos .solo-costos{display:none!important}
         <div class="form-group"><label>Base 9 · LRT (ART)</label><input type="number" id="liqd-base9" min="0" step="0.01"></div>
         <div class="form-group"><label>Base 10 · detracción</label><input type="number" id="liqd-base10" min="0" step="0.01"></div>
       </div>
+      <div class="section-label" style="margin:16px 0 6px">Contribuciones patronales</div>
+      <div id="liqd-contribuciones" style="font-size:12px;color:var(--text2)"></div>
+      <div class="section-label" id="liqd-ganancias-label" style="margin:16px 0 6px;display:none">Ganancias (4ta categoría)</div>
+      <div id="liqd-ganancias" style="font-size:12px;color:var(--text2)"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-liq-detalle')">Cancelar</button>
@@ -6153,19 +6157,21 @@ function openLiquidacion(liqId){
   // Filas: empleados activos + los que ya están en la liquidación (aunque estén de baja)
   const prev={};(l?.liquidacion_items||[]).forEach(i=>{prev[i.empleado_id]=i;});
   _liqHorasEmp={};(l?.liquidacion_items||[]).forEach(i=>{if(i.detalle?.horas_planta)_liqHorasEmp[i.empleado_id]=i.detalle.horas_planta;});
-  // Detalle ARCA por empleado (082): conceptos del registro 03 + bases F.931
+  // Detalle ARCA por empleado (082/083): conceptos del registro 03 (con origen/traza/base del
+  // motor) + bases F.931 + Ganancias/contribuciones patronales calculadas (Task 11)
   _liqDetalle={};(l?.liquidacion_items||[]).forEach(i=>{
-    const cs=(i.liquidacion_conceptos||[]).slice().sort((a,b)=>(a.orden||0)-(b.orden||0)).map(c=>({codigo:c.codigo,cantidad:parseFloat(c.cantidad)||0,unidades:c.unidades||'',importe:parseFloat(c.importe)||0,periodo_ajuste:c.periodo_ajuste||''}));
-    if(cs.length||i.f931)_liqDetalle[i.empleado_id]={conceptos:cs,f931:i.f931||null};
+    const cs=(i.liquidacion_conceptos||[]).slice().sort((a,b)=>(a.orden||0)-(b.orden||0)).map(c=>({codigo:c.codigo,cantidad:parseFloat(c.cantidad)||0,unidades:c.unidades||'',importe:parseFloat(c.importe)||0,periodo_ajuste:c.periodo_ajuste||'',origen:c.origen==='auto'?'auto':'manual',traza:c.traza||null,base:c.base!=null?parseFloat(c.base):null}));
+    if(cs.length||i.f931)_liqDetalle[i.empleado_id]={conceptos:cs,f931:i.f931||null,ganancias:i.ganancias||null,contribuciones_detalle:i.contribuciones_detalle||null,alertas:[]};
   });
   const infoEl=document.getElementById('liq-horas-info');if(infoEl){infoEl.style.display='none';infoEl.innerHTML='';}
   const filas=[...activos];
   Object.keys(prev).forEach(eid=>{if(!filas.some(e=>e.id===eid)){const e=empleados.find(x=>x.id===eid);if(e)filas.push(e);}});
   const NUM=(eid,k,v)=>`<input type="number" step="0.01" min="0" value="${v||0}" data-liq-emp="${eid}" data-liq-campo="${k}" oninput="liqOnInput('${eid}','${k}')" style="text-align:right">`;
   document.getElementById('liq-items-list').innerHTML=filas.map(e=>{const p=prev[e.id]||{};return`
-    <div style="display:grid;grid-template-columns:1fr 110px 110px 110px 110px 110px 100px 70px;gap:6px;align-items:center">
+    <div style="display:grid;grid-template-columns:1fr 110px 110px 110px 110px 110px 100px 34px 70px;gap:6px;align-items:center">
       <div style="font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(e.nombre)}">${esc(e.nombre)}<span style="color:var(--text3);font-size:10px"> · ${e.centro==='fabricacion'?'fáb':'adm'}</span></div>
       ${NUM(e.id,'bruto',p.bruto)}${NUM(e.id,'no_remunerativo',p.no_remunerativo)}${NUM(e.id,'aportes',p.aportes)}${NUM(e.id,'neto',p.neto)}${NUM(e.id,'contribuciones',p.contribuciones)}${NUM(e.id,'art',p.art)}
+      <span id="liq-alertas-${e.id}" style="text-align:center;color:var(--accent);cursor:help"></span>
       <button class="btn btn-ghost btn-sm" id="liqd-btn-${e.id}" onclick="liqOpenDetalle('${e.id}')" title="Conceptos del recibo (registro 03) y bases F.931 (registro 04) para el LSD">ARCA</button>
     </div>`;}).join('');
   Object.keys(_liqDetalle).forEach(eid=>liqAplicarDetalle(eid));
@@ -6192,6 +6198,43 @@ function liqOnInput(eid,campo){
 function liqRecalcularTodo(){
   document.querySelectorAll('[data-liq-campo="bruto"]').forEach(inp=>liqOnInput(inp.dataset.liqEmp,'bruto'));
 }
+// ═══ Motor de liquidación (083) enchufado al modal — Calcular / Recalcular (Task 11) ═══
+// Calcula un empleado con computeRecibo (o computeSAC para tipo 'sac'); conserva los conceptos
+// origen:'manual' que la contadora haya agregado a mano salvo que se fuerce (Recalcular).
+function liqCalcularEmpleado(eid,forzar){
+  const e=empleados.find(x=>x.id===eid);if(!e)return null;
+  const periodo=g('liq-periodo')+'-01',tipo=g('liq-tipo');
+  // La liquidación final la genera el legajo (Baja, Task 9) — Calcular no la toca.
+  if(tipo==='final')return null;
+  const prev=_liqDetalle[eid];
+  const manuales=forzar?[]:(prev?.conceptos||[]).filter(c=>c.origen==='manual');
+  let r;
+  if(tipo==='sac'){
+    const ctx=_ctxRecibo(e,periodo,'sac',null);const s=computeSAC({empleado:e,periodo,acumulados:ctx.acumulados.sac,catalogo:conceptosSueldo});
+    // El SAC se liquida como un "mes" cuyo único haber es el SAC → aportes/contribuciones/Ganancias
+    // salen del motor igual: se apaga la regla automática de los conceptos de básico/horas/etc. y
+    // se inyecta el SAC como concepto fijo en su lugar.
+    const cat=conceptosSueldo.map(c=>c.codigo===s.codigo?{...c,regla:{auto:true,base:'fijo',importe:s.importe,cantidad:'1',orden:15}}:(c.regla?.base&&['basico','valor_hora','valor_hora_extra','valor_dia','valor_dia_vacaciones','no_rem_paritaria','complemento_imgr','basico_mas_antiguedad'].includes(c.regla.base)?{...c,regla:{...c.regla,auto:false}}:c));
+    r=computeRecibo({...ctx,catalogo:cat,novedad:{}});r.alertas.push(`SAC: ${s.formula}`);
+  }else{
+    const nov=sueldosNovedades.find(n=>n.empleado_id===eid&&n.periodo===periodo&&n.tipo===tipo)||null;
+    r=computeRecibo(_ctxRecibo(e,periodo,tipo,nov));
+  }
+  const conceptos=r.conceptos.concat(manuales);const t=computeItemDesdeConceptos(conceptos,conceptosSueldo);
+  _liqDetalle[eid]={conceptos,f931:r.f931,ganancias:r.ganancias,contribuciones_detalle:r.contribuciones,alertas:r.alertas};
+  _liqSet(eid,'bruto',t.bruto);_liqSet(eid,'no_remunerativo',t.no_remunerativo);_liqSet(eid,'aportes',t.aportes);_liqSet(eid,'neto',t.neto);
+  _liqSet(eid,'contribuciones',r.contribuciones_total);_liqSet(eid,'art',r.art);
+  const al=document.getElementById(`liq-alertas-${eid}`);if(al){al.textContent=r.alertas.length?'⚠ '+r.alertas.length:'';al.title=r.alertas.join('\n');}
+  return r;
+}
+function liqCalcular(){
+  if(!sueldosConvenio.length||!sueldosPrevisional.length)return notify('Cargá primero Escalas y parámetros (convenio y previsional)','err');
+  let n=0,al=0;document.querySelectorAll('[data-liq-campo="bruto"]').forEach(inp=>{const r=liqCalcularEmpleado(inp.dataset.liqEmp,false);if(r){n++;al+=r.alertas.length;}});
+  Object.keys(_liqDetalle).forEach(eid=>liqAplicarDetalle(eid));liqResumen();_modalDirty['modal-liquidacion']=true;
+  if(!n)return notify(g('liq-tipo')==='final'?'La liquidación final se genera desde el legajo (Baja)':'Nada para calcular','err');
+  notify(`${n} recibos calculados${al?` · ${al} alertas (ícono ⚠ en la fila)`:''}`);
+}
+function liqRecalcularEmpleado(eid){liqCalcularEmpleado(eid,true);liqAplicarDetalle(eid);liqResumen();liqOpenDetalle(eid);}
 function _liqItems(){
   const porEmp={};
   document.querySelectorAll('[data-liq-emp]').forEach(inp=>{
@@ -6200,8 +6243,8 @@ function _liqItems(){
   });
   Object.keys(_liqHorasEmp).forEach(eid=>{if(porEmp[eid])porEmp[eid].detalle={horas_planta:_liqHorasEmp[eid]};});
   Object.keys(_liqDetalle).forEach(eid=>{const d=_liqDetalle[eid];if(!porEmp[eid]||!d)return;
-    if((d.conceptos||[]).length)porEmp[eid].conceptos=d.conceptos.map(c=>({codigo:c.codigo,cantidad:c.cantidad||0,unidades:c.unidades||null,importe:c.importe||0,periodo_ajuste:c.periodo_ajuste||null}));
-    if(d.f931)porEmp[eid].f931=d.f931;});
+    if((d.conceptos||[]).length)porEmp[eid].conceptos=d.conceptos.map(c=>({codigo:c.codigo,cantidad:c.cantidad||0,unidades:c.unidades||null,importe:c.importe||0,periodo_ajuste:c.periodo_ajuste||null,origen:c.origen||'manual',traza:c.traza||null,base:c.base??null}));
+    if(d.f931)porEmp[eid].f931=d.f931;if(d.ganancias)porEmp[eid].ganancias=d.ganancias;if(d.contribuciones_detalle)porEmp[eid].contribuciones_detalle=d.contribuciones_detalle;});
   return Object.values(porEmp).filter(i=>i.bruto>0||i.no_remunerativo>0||i.neto>0);
 }
 // ── Parte de horas desde los timers de planta (Fase 2, 066) ──
@@ -6434,6 +6477,8 @@ function liqOpenDetalle(eid){
   const d=_liqDetalle[eid]||{conceptos:[],f931:null};
   _liqdRows=(d.conceptos||[]).length?d.conceptos.map(c=>({...c})):liqdConceptosDefault(eid);
   renderLiqdConceptos();
+  renderLiqdContribuciones(d.contribuciones_detalle);
+  renderLiqdGanancias(d.ganancias);
   const f=d.f931||{};
   const set=(k,v)=>{const el=document.getElementById('liqd-'+k);if(el)el.value=(v===undefined||v===null)?'':v;};
   set('dias',f.dias??30);set('horas',f.horas??0);set('rem_bruta',f.rem_bruta);
@@ -6446,27 +6491,50 @@ function renderLiqdConceptos(){
   const activos=conceptosSueldo.filter(c=>c.activo!==false);
   const opts=(sel)=>{const list=activos.slice();const cur=_conceptoCat(sel);if(cur&&!list.includes(cur))list.push(cur);
     return list.map(c=>`<option value="${esc(c.codigo)}"${c.codigo===sel?' selected':''}>${esc(c.codigo)} · ${esc(c.nombre)}</option>`).join('');};
-  document.getElementById('liqd-conceptos').innerHTML=_liqdRows.map((r,i)=>{const cat=_conceptoCat(r.codigo);const dc=cat?.tipo==='descuento'?'D':'C';return`
-    <div style="display:grid;grid-template-columns:1fr 90px 70px 130px 60px 32px;gap:6px;align-items:center">
+  document.getElementById('liqd-conceptos').innerHTML=_liqdRows.map((r,i)=>{const cat=_conceptoCat(r.codigo);const dc=cat?.tipo==='descuento'?'D':'C';const origen=r.origen==='auto'?'auto':'manual';return`
+    <div style="display:grid;grid-template-columns:1fr 90px 70px 130px 60px 60px 22px 32px;gap:6px;align-items:center">
       <select onchange="liqdOnRow(${i},'codigo',this.value)">${opts(r.codigo)}</select>
       <input type="number" step="0.01" min="0" max="999.99" value="${r.cantidad||0}" oninput="liqdOnRow(${i},'cantidad',this.value)" style="text-align:right" title="Obligatoria para SAC proporcional, adelanto vacacional y horas extras (conceptos ARCA 123000/150000/130000)">
       <input type="text" maxlength="1" value="${esc(r.unidades||'')}" oninput="liqdOnRow(${i},'unidades',this.value)" placeholder="${esc(cat?.unidades||'')}" title="$ % A Q M D H (opcional)">
       <input type="number" step="0.01" min="0" value="${r.importe||0}" oninput="liqdOnRow(${i},'importe',this.value)" style="text-align:right">
       <span class="badge ${dc==='D'?'badge-coral':'badge-green'}" style="font-size:9px;justify-self:start">${dc==='D'?'D · desc.':'C · haber'}</span>
+      <span class="badge ${origen==='auto'?'badge-teal':'badge-amber'}" style="font-size:9px;justify-self:start" title="${origen==='auto'?'Calculado por el motor':'Editado a mano'}">${origen}</span>
+      <span title="${esc(r.traza?.formula||'')}" style="cursor:help;color:var(--text3);font-size:12px">${r.traza?.formula?'ⓘ':''}</span>
       <button class="btn btn-ghost btn-sm" onclick="liqdDelRow(${i})" title="Quitar">×</button>
     </div>`;}).join('')||`<div style="font-size:12px;color:var(--text3);padding:6px 0">Sin conceptos — agregá los del recibo.</div>`;
   const t=computeItemDesdeConceptos(_liqdRows,conceptosSueldo);
   document.getElementById('liqd-totales').innerHTML=`Bruto <span class="mono">${fmtARS(t.bruto)}</span> · No rem. <span class="mono">${fmtARS(t.no_remunerativo)}</span> · Descuentos <span class="mono">${fmtARS(t.aportes)}</span> · Neto <b class="mono" style="color:var(--green)">${fmtARS(t.neto)}</b>`;
 }
+// Bloques de solo lectura del detalle (Task 11): contribuciones patronales que salieron del
+// motor y el estado de Ganancias del período, si el empleado la tiene activa.
+function renderLiqdContribuciones(list){
+  const el=document.getElementById('liqd-contribuciones');if(!el)return;
+  if(!list||!list.length){el.innerHTML='<span style="color:var(--text3)">Sin contribuciones calculadas — usá "Calcular" en la liquidación.</span>';return;}
+  const total=list.reduce((a,c)=>a+(Number(c.importe)||0),0);
+  el.innerHTML=list.map(c=>`<div style="display:flex;justify-content:space-between;padding:1px 0"><span>${esc(c.nombre||c.codigo)}${c.pct!=null?` <span style="color:var(--text3)">(${c.pct} %)</span>`:''}</span><span class="mono">${fmtARS(c.importe)}</span></div>`).join('')+
+    `<div style="display:flex;justify-content:space-between;font-weight:600;margin-top:4px;border-top:1px solid var(--border);padding-top:4px"><span>Total</span><span class="mono">${fmtARS(total)}</span></div>`;
+}
+function renderLiqdGanancias(gan){
+  const el=document.getElementById('liqd-ganancias'),label=document.getElementById('liqd-ganancias-label');
+  if(!el)return;
+  if(!gan){el.innerHTML='';if(label)label.style.display='none';return;}
+  if(label)label.style.display='';
+  el.innerHTML=`GNSI acum. <span class="mono">${fmtARS(gan.gnsi_acum)}</span> · Impuesto acum. <span class="mono">${fmtARS(gan.impuesto_acum)}</span> · Retenido previo <span class="mono">${fmtARS(gan.retenido_previo)}</span> · Retención del mes <b class="mono" style="color:var(--accent)">${fmtARS(gan.retencion_mes)}</b>`;
+}
+// R: editar cualquier campo de una fila que vino del motor (origen 'auto') la pasa a 'manual' —
+// re-renderiza para reflejar el badge; las filas ya manuales no vuelven a re-renderizar en cada
+// tecla (mantiene el foco mientras se tipea).
 function liqdOnRow(i,k,v){const r=_liqdRows[i];if(!r)return;
-  if(k==='codigo'){r.codigo=v;const cat=_conceptoCat(v);if(cat?.unidades&&!r.unidades)r.unidades=cat.unidades;renderLiqdConceptos();return;}
-  if(k==='unidades'){r.unidades=(v||'').toUpperCase().slice(0,1);return;}
+  const eraAuto=r.origen==='auto';
+  if(k==='codigo'){r.codigo=v;const cat=_conceptoCat(v);if(cat?.unidades&&!r.unidades)r.unidades=cat.unidades;if(eraAuto)r.origen='manual';renderLiqdConceptos();return;}
+  if(k==='unidades'){r.unidades=(v||'').toUpperCase().slice(0,1);if(eraAuto){r.origen='manual';renderLiqdConceptos();}return;}
   r[k]=Math.max(0,parseFloat(String(v).replace(',','.'))||0);
+  if(eraAuto){r.origen='manual';renderLiqdConceptos();return;}
   const t=computeItemDesdeConceptos(_liqdRows,conceptosSueldo);
   document.getElementById('liqd-totales').innerHTML=`Bruto <span class="mono">${fmtARS(t.bruto)}</span> · No rem. <span class="mono">${fmtARS(t.no_remunerativo)}</span> · Descuentos <span class="mono">${fmtARS(t.aportes)}</span> · Neto <b class="mono" style="color:var(--green)">${fmtARS(t.neto)}</b>`;
 }
 function liqdDelRow(i){_liqdRows.splice(i,1);renderLiqdConceptos();}
-function liqdAddConcepto(){const c=conceptosSueldo.find(x=>x.activo!==false);if(!c)return;_liqdRows.push({codigo:c.codigo,cantidad:0,unidades:c.unidades||'',importe:0,periodo_ajuste:''});renderLiqdConceptos();}
+function liqdAddConcepto(){const c=conceptosSueldo.find(x=>x.activo!==false);if(!c)return;_liqdRows.push({codigo:c.codigo,cantidad:0,unidades:c.unidades||'',importe:0,periodo_ajuste:'',origen:'manual'});renderLiqdConceptos();}
 function liqdPrellenar(){
   const t=computeItemDesdeConceptos(_liqdRows,conceptosSueldo);
   const f=computeF931Default({bruto:t.bruto,noRem:t.no_remunerativo,detraer:parseFloat(g('liqd-detraer'))||0,tope:parseFloat(configContable?.lsd_tope_aportes)||0});
@@ -6483,7 +6551,10 @@ function liqdAplicar(){
   const f931={dias:Math.round(num('dias')),horas:Math.round(num('horas')),rem_bruta:num('rem_bruta'),detraer:num('detraer')};
   for(let i=1;i<=10;i++)f931['base'+i]=num('base'+i);
   if(f931.dias>0&&f931.horas>0)return notify('ARCA acepta días trabajados O horas trabajadas, no ambos','err');
-  _liqDetalle[eid]={conceptos:rows,f931};
+  // Conserva ganancias/contribuciones_detalle/alertas que vinieron del motor (Calcular) —
+  // este modal no las recalcula, solo edita conceptos y bases F.931.
+  const prevD=_liqDetalle[eid]||{};
+  _liqDetalle[eid]={conceptos:rows,f931,ganancias:prevD.ganancias||null,contribuciones_detalle:prevD.contribuciones_detalle||null,alertas:prevD.alertas||[]};
   if(!rows.length)delete _liqDetalle[eid];
   liqAplicarDetalle(eid,true);liqResumen();
   _modalDirty['modal-liquidacion']=true;
@@ -6674,10 +6745,15 @@ let _lsdLiq=null;
 function openLSD(id){
   const l=liquidaciones.find(x=>x.id===id);if(!l)return;
   _lsdLiq=l;const cfg=configContable||{};
+  // Detracción/tope previsionales ahora viven en sueldos_parametros_previsionales (083) — se
+  // toma el vigente al fin del período liquidado; configContable queda de fallback (liquidaciones
+  // pre-083 sin parámetros previsionales cargados en esa fecha).
+  const prevParam=vigenteA(sueldosPrevisional,finPeriodo(l.periodo,l.tipo));
   document.getElementById('lsd-titulo').textContent=`${LIQ_TIPO_LABEL[l.tipo]||l.tipo} ${liqPeriodoFmt(l.periodo)}${l.estado==='borrador'?' · BORRADOR (confirmala antes de subir)':''}`;
   const s=(id,v)=>{document.getElementById(id).value=(v===undefined||v===null)?'':v;};
   s('lsd-cuit',cfg.cuit_empleador||'');s('lsd-tipo-empresa',String(cfg.lsd_tipo_empresa??1));
-  s('lsd-detraer',parseFloat(cfg.lsd_importe_detraer)||0);s('lsd-tope',parseFloat(cfg.lsd_tope_aportes)||0);
+  s('lsd-detraer',prevParam?parseFloat(prevParam.detraccion)||0:parseFloat(cfg.lsd_importe_detraer)||0);
+  s('lsd-tope',prevParam?parseFloat(prevParam.tope_max)||0:parseFloat(cfg.lsd_tope_aportes)||0);
   s('lsd-envio','SJ');s('lsd-tipo-liq',LSD_TIPO_LIQ[l.tipo]||'M');
   s('lsd-nro',l.lsd_nro||sugerirNroLSD(liquidaciones,l.periodo));
   s('lsd-fecha-pago',l.fecha_pago||hoyLocal());s('lsd-dias-tope',0);
@@ -6685,6 +6761,10 @@ function openLSD(id){
 }
 function armarLSDInput(){
   const l=_lsdLiq;if(!l)return null;
+  // Conceptos sin código ARCA (o históricos/legacy del padrón) no se pueden informar — mejor
+  // frenar acá con un error claro que dejar que ARCA rechace el archivo.
+  const sinArca=(l.liquidacion_items||[]).flatMap(i=>(i.liquidacion_conceptos||[])).map(c=>_conceptoCat(c.codigo)).filter(c=>c&&c.tipo!=='informativo'&&(!c.codigo_arca||c.legacy)).map(c=>c.codigo);
+  if(sinArca.length){notify(`Conceptos sin código ARCA o históricos: ${[...new Set(sinArca)].join(', ')} — corregí el catálogo`,'err');return null;}
   const detraer=parseFloat(g('lsd-detraer'))||0,tope=parseFloat(g('lsd-tope'))||0;
   const tipoEmpresa=parseInt(g('lsd-tipo-empresa'));const fechaPago=(g('lsd-fecha-pago')||'').replace(/-/g,'');
   const diasTope=parseInt(g('lsd-dias-tope'))||0;
@@ -6692,7 +6772,10 @@ function armarLSDInput(){
     const e=empleados.find(x=>x.id===i.empleado_id)||{};
     const conceptos=(i.liquidacion_conceptos||[]).slice().sort((a,b)=>(a.orden||0)-(b.orden||0))
       .map(c=>({codigo:c.codigo,cantidad:parseFloat(c.cantidad)||0,unidades:c.unidades||'',importe:parseFloat(c.importe)||0,dc:c.dc,periodo_ajuste:c.periodo_ajuste||''}));
-    const f=Object.assign(computeF931Default({bruto:parseFloat(i.bruto)||0,noRem:parseFloat(i.no_remunerativo)||0,detraer,tope}),i.f931||{});
+    // Con f931 del motor (083/Task 11) se usa tal cual — las bases ya salen de las MARCAS de
+    // cada concepto real liquidado; computeF931Default queda de fallback (liquidaciones cargadas
+    // a mano, sin motor, donde f931 es null).
+    const f=i.f931||computeF931Default({bruto:parseFloat(i.bruto)||0,noRem:parseFloat(i.no_remunerativo)||0,detraer,tope});
     return {nombre:e.nombre||'?',cuil:e.cuil,legajo:e.legajo,dependencia:e.dependencia,cbu:e.cbu,formaPago:e.forma_pago||3,diasTope,fechaPago,conceptos,
       reg4:{conyuge:e.conyuge?1:0,hijos:e.hijos||0,cct:e.marca_cct!==false?1:0,scvo:e.marca_scvo!==false?1:0,reduccion:e.marca_reduccion?1:0,
         tipoEmpresa,situacion:e.cod_situacion||'1',condicion:e.cod_condicion||'1',actividad:e.cod_actividad||'',modalidad:e.cod_modalidad||'008',
@@ -6722,8 +6805,9 @@ async function descargarLSD(){
   const blob=new Blob([r.txt],{type:'text/plain;charset=us-ascii'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nombre;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
   try{
-    if(configContable)await PATCH('config_contable',{cuit_empleador:normalizarCuit(inp.cuit),lsd_tipo_empresa:parseInt(g('lsd-tipo-empresa'))||1,
-      lsd_importe_detraer:parseFloat(g('lsd-detraer'))||0,lsd_tope_aportes:parseFloat(g('lsd-tope'))||0},`?empresa_id=eq.${currentEmpresa.id}`);
+    // lsd_importe_detraer/lsd_tope_aportes ya no se escriben acá — viven en
+    // sueldos_parametros_previsionales (083), con su propia vigencia por fecha.
+    if(configContable)await PATCH('config_contable',{cuit_empleador:normalizarCuit(inp.cuit),lsd_tipo_empresa:parseInt(g('lsd-tipo-empresa'))||1},`?empresa_id=eq.${currentEmpresa.id}`);
     await PATCH('liquidaciones',{lsd_nro:inp.nro,lsd_exportado_at:new Date().toISOString()},`?id=eq.${l.id}`);
     await reload('liquidaciones','config_contable');
     _lsdLiq=liquidaciones.find(x=>x.id===l.id)||l;
