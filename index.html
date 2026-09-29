@@ -882,6 +882,9 @@ body.no-costos .solo-costos{display:none!important}
                 <div class="form-group"><label>Horas por día</label><input type="number" step="0.01" id="cv-horas_dia"></div>
                 <div class="form-group"><label style="visibility:hidden">.</label><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);text-transform:none;letter-spacing:0"><input type="checkbox" id="cv-tope_por_quincena" style="width:auto">Tope por quincena</label></div>
               </div>
+              <div class="form-row">
+                <div class="form-group"><label>Período de prueba (meses)</label><input type="number" step="1" min="0" max="12" id="cv-periodo_prueba_meses" title="LCT 92 bis (Ley 27.742): 6 meses; el CCT puede extenderlo a 8 (6 a 99 empleados) o 12 (hasta 5). En período de prueba no hay indemnización ni preaviso (art. 48 Ley 27.802)"></div>
+              </div>
               <div class="form-row triple">
                 <div class="form-group"><label>Presentismo (%)</label><input type="number" step="0.001" id="cv-presentismo_pct"></div>
                 <div class="form-group"><label>Presentismo tolerancia (días)</label><input type="number" step="1" id="cv-presentismo_tolerancia_dias"></div>
@@ -935,9 +938,10 @@ body.no-costos .solo-costos{display:none!important}
                 <div class="form-group"><label>Obra social (%)</label><input type="number" step="0.001" id="pv-contrib_os_pct"></div>
                 <div class="form-group"><label>FSR (%)</label><input type="number" step="0.001" id="pv-contrib_fsr_pct"></div>
               </div>
-              <div class="form-row">
+              <div class="form-row triple">
                 <div class="form-group"><label>ART (%)</label><input type="number" step="0.001" id="pv-art_pct"></div>
                 <div class="form-group"><label>ART fijo ($)</label><input type="number" step="0.01" id="pv-art_fijo"></div>
+                <div class="form-group"><label>FAL Ley 27.802 (%)</label><input type="number" step="0.001" id="pv-fal_pct" title="Fondo de Asistencia Laboral (Título II Ley 27.802, vigente desde el 1/11/2026 por Dec. 408/2026): 2,5 % PyME / 1 % grandes empresas sobre la base SIPA. Se ingresa con el F.931 y reduce la contribución SIPA en la misma proporción (art. 76)"></div>
               </div>
             </div>
           </div>
@@ -2310,6 +2314,10 @@ body.no-costos .solo-costos{display:none!important}
       <div class="form-row" style="grid-template-columns:1fr 1fr">
         <div class="form-group"><label>Tope indemnizatorio (CCT)</label><input type="number" id="baja-tope" min="0" step="0.01" oninput="previewBaja()"></div>
         <div class="form-group"><label>Vacaciones gozadas en el año (días)</label><input type="number" id="baja-vac-gozadas" min="0" step="1" oninput="previewBaja()"></div>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr">
+        <div class="form-group"><label>Importe pactado (mutuo acuerdo, art. 241)</label><input type="number" id="baja-pactado" min="0" step="0.01" oninput="previewBaja()" title="Sólo para mutuo acuerdo: la suma libremente pactada por escritura pública o ante autoridad (código 535)"></div>
+        <div class="form-group"><label>Indemnización anterior actualizada (reingreso, art. 255)</label><input type="number" id="baja-indem-anterior" min="0" step="0.01" oninput="previewBaja()" title="Si el empleado reingresó y ya cobró una indemnización por el cese anterior: importe actualizado por IPC que se descuenta del art. 245"></div>
       </div>
       <div style="display:flex;gap:8px;margin:4px 0 10px"><button type="button" class="btn btn-ghost btn-sm" onclick="previewBaja()">Recalcular</button></div>
       <div style="display:grid;grid-template-columns:70px 1fr 130px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Cód.</div><div>Concepto</div><div style="text-align:right">Importe</div></div>
@@ -5772,7 +5780,7 @@ function renderSueldos(filter=''){
   const etbody=document.getElementById('empleados-tbody');
   const elist=empleados.filter(e=>!f||(e.nombre||'').toLowerCase().includes(f)||(e.legajo||'').toLowerCase().includes(f));
   if(etbody)etbody.innerHTML=elist.length?elist.map(e=>
-    `<tr><td class="mono">${esc(e.legajo)||'—'}</td><td style="font-weight:500">${esc(e.nombre)}</td><td class="mono" style="font-size:11px">${esc(e.cuil)||'—'}</td><td style="font-size:11px">${esc(e.categoria)||'—'}</td><td><span class="badge ${e.centro==='fabricacion'?'badge-blue':'badge-purple'}">${e.centro==='fabricacion'?'FÁBRICA':'ADMIN'}</span></td><td style="font-size:11px">${e.modalidad==='jornal'?'Jornal':'Mensual'}</td><td class="mono" style="font-size:11px">${fmtFecha(e.fecha_ingreso)||'—'}</td><td><span class="badge ${e.activo!==false?'badge-green':'badge-coral'}">${e.activo!==false?'ACTIVO':'BAJA'}</span></td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="openEmpleado('${e.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="toggleEmpleado('${e.id}')">${e.activo!==false?'Dar de baja':'Reactivar'}</button>${e.activo!==false&&!e.fecha_egreso?`<button class="btn btn-ghost btn-sm" onclick="openBajaEmpleado('${e.id}')" title="Generar liquidación final por egreso" style="color:var(--coral)">Baja</button>`:''}</td></tr>`
+    `<tr><td class="mono">${esc(e.legajo)||'—'}</td><td style="font-weight:500">${esc(e.nombre)}</td><td class="mono" style="font-size:11px">${esc(e.cuil)||'—'}</td><td style="font-size:11px">${esc(e.categoria)||'—'}</td><td><span class="badge ${e.centro==='fabricacion'?'badge-blue':'badge-purple'}">${e.centro==='fabricacion'?'FÁBRICA':'ADMIN'}</span></td><td style="font-size:11px">${e.modalidad==='jornal'?'Jornal':'Mensual'}</td><td class="mono" style="font-size:11px">${fmtFecha(e.fecha_ingreso)||'—'}</td><td><span class="badge ${e.activo!==false?'badge-green':'badge-coral'}">${e.activo!==false?'ACTIVO':'BAJA'}</span></td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="openEmpleado('${e.id}')">Editar</button><button class="btn btn-ghost btn-sm" onclick="toggleEmpleado('${e.id}')">${e.activo!==false?'Dar de baja':'Reactivar'}</button>${e.activo!==false&&!e.fecha_egreso?`<button class="btn btn-ghost btn-sm" onclick="openBajaEmpleado('${e.id}')" title="Generar liquidación final por egreso" style="color:var(--coral)">Baja</button>`:''}${e.fecha_egreso?`<button class="btn btn-ghost btn-sm" onclick="imprimirCertificadoTrabajo('${e.id}')" title="Certificado de trabajo art. 80 LCT / art. 25 Ley 27.802 (45 días hábiles desde el egreso)${e.certificado_trabajo_at?` — emitido el ${fmtFecha(e.certificado_trabajo_at.slice(0,10))}`:''}">${e.certificado_trabajo_at?'Certificado ✓':'Certificado'}</button>`:''}</td></tr>`
   ).join(''):`<tr><td colspan="9" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Sin empleados cargados.</td></tr>`;
 }
 
@@ -5794,6 +5802,21 @@ function imprimirRecibosLiquidacion(liqId){
   const win=window.open('','_blank');if(!win)return notify('El navegador bloqueó la ventana emergente','err');
   win.document.write(`<!DOCTYPE html><html><head><title>Recibos ${liqPeriodoFmt(l.periodo)}</title></head><body>${items.map((i,idx)=>renderRecibo({..._reciboArgs(l,i),sinCss:idx>0})).join('')}</body></html>`);win.document.close();
   setTimeout(()=>win.print(),500);
+}
+// Certificado de trabajo (art. 80 LCT / art. 25 Ley 27.802) para un legajo dado de baja. Deja
+// registrada la fecha de emisión en `empleados.certificado_trabajo_at` (alerta de 45 días hábiles).
+async function imprimirCertificadoTrabajo(eid){
+  const e=empleados.find(x=>x.id===eid);if(!e)return;
+  if(!e.fecha_egreso)return notify('El legajo no tiene fecha de egreso','err');
+  const cfg=configContable||{};
+  const capacitaciones=(typeof competenciasList!=='undefined'?competenciasList:[]).filter(c=>c.empleado_id===e.id||(c.persona&&e.nombre&&String(c.persona).trim().toUpperCase()===String(e.nombre).trim().toUpperCase())).map(c=>c.habilidad).filter(Boolean);
+  const html=renderCertificadoTrabajo({empresa:{razon_social:cfg.razon_social_recibo||currentEmpresa?.nombre||'',domicilio:cfg.domicilio_recibo||'',localidad:'',cuit:cfg.cuit_empleador||''},
+    empleado:e,acumulados:(sueldosAcumulados||[]).filter(a=>a.empleado_id===e.id),capacitaciones,fechaEmision:hoyLocal()});
+  const win=window.open('','_blank');if(!win)return notify('El navegador bloqueó la ventana emergente','err');
+  win.document.write(`<!DOCTYPE html><html><head><title>Certificado de trabajo ${esc(e.nombre||'')}</title></head><body>${html}</body></html>`);win.document.close();
+  setTimeout(()=>win.print(),300);
+  try{await PATCH('empleados',{certificado_trabajo_at:new Date().toISOString()},`?id=eq.${e.id}`);await reload('empleados');renderAll();}
+  catch(err){notify(msgError(err),'err');}
 }
 
 // ── Novedades del mes (Task 10) ──
@@ -6107,6 +6130,8 @@ function openBajaEmpleado(id){
   document.getElementById('baja-preaviso').checked=false;
   document.getElementById('baja-tope').value=configContable?.tope_indemnizatorio||'';
   document.getElementById('baja-vac-gozadas').value=_bajaVacGozadas(id,hoyLocal())||0;
+  document.getElementById('baja-pactado').value='';
+  document.getElementById('baja-indem-anterior').value='';
   document.getElementById('baja-preview').innerHTML='';
   openModal('modal-baja-empleado');
   previewBaja();
@@ -6117,7 +6142,10 @@ function previewBaja(){
     const periodo=fe.slice(0,7)+'-01';const nov=sueldosNovedades.find(n=>n.empleado_id===e.id&&n.periodo===periodo&&n.tipo==='mensual')||null;
     const ctx=_ctxRecibo({...e,fecha_egreso:fe},periodo,'mensual',nov);const mes=computeRecibo(ctx);
     const fin=computeLiquidacionFinal({empleado:e,fechaEgreso:fe,causa:g('baja-causa'),preavisoOtorgado:document.getElementById('baja-preaviso').checked,
-      topeIndemnizatorio:parseFloat(g('baja-tope'))||0,acumulados:ctx.acumulados.sac,catalogo:conceptosSueldo,convenio:ctx.convenio,escala:ctx.escala,previsional:ctx.previsional,
+      topeIndemnizatorio:parseFloat(g('baja-tope'))||0,importePactado:parseFloat(g('baja-pactado'))||0,indemnizacionAnterior:parseFloat(g('baja-indem-anterior'))||0,
+      // Ley 27.802 art. 51: la base indemnizatoria mira los 12 meses anteriores al egreso (puede cruzar el
+      // año calendario) → se pasan TODOS los acumulados del empleado; computeSAC filtra su semestre solo.
+      acumulados:(sueldosAcumulados||[]).filter(a=>a.empleado_id===e.id),catalogo:conceptosSueldo,convenio:ctx.convenio,escala:ctx.escala,previsional:ctx.previsional,
       vacacionesGozadasAnio:parseFloat(g('baja-vac-gozadas'))||0,reciboMes:mes});
     // R34: Ganancias sobre la LIQUIDACIÓN FINAL COMPLETA (mes parcial + SAC + vacaciones +
     // indemnizaciones), no solo el mes parcial que ya trae mes.ganancias — se descartan los 900/901
@@ -7216,7 +7244,7 @@ function renderConvenioPanel(){
   s('cv-presentismo_pct',row?.presentismo_pct??0);s('cv-presentismo_tolerancia_dias',row?.presentismo_tolerancia_dias??0);
   s('cv-sepelio_importe',row?.sepelio_importe??0);s('cv-scvo_importe',row?.scvo_importe??0);
   s('cv-cuota_sindical_pct',row?.cuota_sindical_pct??2.5);s('cv-aporte_solidario_pct',row?.aporte_solidario_pct??2);
-  s('cv-redondeo_a',row?.redondeo_a??10);
+  s('cv-redondeo_a',row?.redondeo_a??10);s('cv-periodo_prueba_meses',row?.periodo_prueba_meses??6);
   const chkEl=document.getElementById('cv-tope_por_quincena');
   if(chkEl)chkEl.checked=row?row.tope_por_quincena!==false:true;
 }
@@ -7230,7 +7258,8 @@ async function saveConvenio(){
     presentismo_pct:num('cv-presentismo_pct'),presentismo_tolerancia_dias:parseInt(g('cv-presentismo_tolerancia_dias'))||0,
     sepelio_importe:num('cv-sepelio_importe'),scvo_importe:num('cv-scvo_importe'),
     cuota_sindical_pct:num('cv-cuota_sindical_pct'),aporte_solidario_pct:num('cv-aporte_solidario_pct'),
-    redondeo_a:num('cv-redondeo_a'),tope_por_quincena:document.getElementById('cv-tope_por_quincena')?.checked!==false};
+    redondeo_a:num('cv-redondeo_a'),tope_por_quincena:document.getElementById('cv-tope_por_quincena')?.checked!==false,
+    periodo_prueba_meses:parseInt(g('cv-periodo_prueba_meses'))||6};
   const existente=sueldosConvenio.find(v=>v.vigencia_desde===fecha);
   setBusy('btn-save-convenio',true);
   try{
@@ -7253,7 +7282,7 @@ function renderPrevisionalPanel(){
   s('pv-contrib_sipa_pct',row?.contrib_sipa_pct??10.77);s('pv-contrib_inssjp_pct',row?.contrib_inssjp_pct??1.59);
   s('pv-contrib_fne_pct',row?.contrib_fne_pct??0.94);s('pv-contrib_aaff_pct',row?.contrib_aaff_pct??4.70);
   s('pv-contrib_os_pct',row?.contrib_os_pct??5.10);s('pv-contrib_fsr_pct',row?.contrib_fsr_pct??0.90);
-  s('pv-art_pct',row?.art_pct??0);s('pv-art_fijo',row?.art_fijo??0);
+  s('pv-art_pct',row?.art_pct??0);s('pv-art_fijo',row?.art_fijo??0);s('pv-fal_pct',row?.fal_pct??0);
 }
 async function savePrevisional(){
   const fecha=g('pv-vigencia_desde');
@@ -7267,7 +7296,7 @@ async function savePrevisional(){
     contrib_sipa_pct:num('pv-contrib_sipa_pct'),contrib_inssjp_pct:num('pv-contrib_inssjp_pct'),
     contrib_fne_pct:num('pv-contrib_fne_pct'),contrib_aaff_pct:num('pv-contrib_aaff_pct'),
     contrib_os_pct:num('pv-contrib_os_pct'),contrib_fsr_pct:num('pv-contrib_fsr_pct'),
-    art_pct:num('pv-art_pct'),art_fijo:num('pv-art_fijo'),
+    art_pct:num('pv-art_pct'),art_fijo:num('pv-art_fijo'),fal_pct:num('pv-fal_pct'),
     ganancias_tope_retencion_pct:num('pv-ganancias_tope_retencion_pct')};
   const existente=sueldosPrevisional.find(v=>v.vigencia_desde===fecha);
   setBusy('btn-save-previsional',true);
@@ -7922,6 +7951,13 @@ function computeAlertas(){
       titulo:f931.vencidas.length?`F.931 vencido sin pago registrado`:`F.931 por vencer (día 7-10)`,
       detalle:todas.slice(0,3).map(x=>`${x.periodo} · ${fmtARS(x.cargas)} (vto ~${x.vto.slice(8)}/${x.vto.slice(5,7)})`).join('  —  ')+masDe(todas)});
   }
+
+  // Ley 27.802 art. 25 (LCT 80): certificado de trabajo dentro de los 45 días hábiles del egreso
+  // (≈ 63 días corridos). Se avisa desde el egreso hasta 90 días después si no se emitió.
+  const certPend=empleados.filter(e=>e.fecha_egreso&&!e.certificado_trabajo_at&&e.fecha_egreso<=hoy&&e.fecha_egreso>=hoyLocal(-90));
+  if(certPend.length)out.push({sev:certPend.some(e=>e.fecha_egreso<hoyLocal(-45))?'crit':'warn',page:'sueldos',count:certPend.length,
+    titulo:uno(certPend.length,'Certificado de trabajo pendiente (45 días hábiles, art. 25 Ley 27.802)','Certificados de trabajo pendientes (45 días hábiles, art. 25 Ley 27.802)'),
+    detalle:certPend.slice(0,3).map(e=>esc(e.nombre)+` (egreso ${fmtFecha(e.fecha_egreso)})`).join('  —  ')+masDe(certPend)});
 
   const rep=calcReordenTodos().filter(r=>r.bajo);
   if(rep.length)out.push({sev:'crit',page:'mp',count:rep.length,
@@ -18079,7 +18115,7 @@ function computeGanancias(ctx){
 
 // ─── Sueldos 083: motor de liquidación (puro) ─────────────────────────
 // Ver docs/superpowers/specs/2026-09-23-sueldos-motor-liquidacion-design.md §Motor.
-const CONTRIB_CODIGOS={scvo:'640',inssjp:'642',fsr:'643',sipa:'644',os:'645',fne:'646',aaff:'647',art:'648'};
+const CONTRIB_CODIGOS={scvo:'640',inssjp:'642',fsr:'643',sipa:'644',os:'645',fne:'646',aaff:'647',art:'648',fal:'649'};
 function computeRecibo(ctx){
   const r2=x=>Math.round(x*100)/100;
   const e=ctx.empleado||{},nov=ctx.novedad||{},conv=ctx.convenio||{},prev=ctx.previsional||{},esc=ctx.escala||null;
@@ -18201,13 +18237,23 @@ function computeRecibo(ctx){
   const topeMax=r2(num(prev.tope_max)*fTope),topeMin=r2(num(prev.tope_min)*fTope);
   let remTopeado=remBruto;if(topeMax>0&&remBruto>topeMax){remTopeado=topeMax;alertas.push(`Remuneración supera el tope máximo de aportes (${topeMax})`);}
   if(topeMin>0&&remTopeado<topeMin&&remBruto>0)remTopeado=topeMin;
-  const basesD={rem_bruto:remBruto,no_rem:noRem,no_rem_os:noRemOs,rem_topeado:remTopeado,fijo_param:0};
+  // Ley 27.802 art. 27 (LCT 92 ter): a tiempo parcial el aporte de obra social se calcula sobre la
+  // remuneración que correspondería a tiempo completo de la categoría (rem_topeado_tc). Con jornada
+  // completa (fJor = 1) coincide con rem_topeado.
+  let remTopeadoTc=remTopeado;
+  if(fJor<1&&remBruto>0){const tc=r2(remBruto/fJor);remTopeadoTc=topeMax>0?Math.min(tc,topeMax):tc;
+    alertas.push(`Jornada a tiempo parcial (${num(e.horas_semanales)} h): obra social sobre el equivalente a tiempo completo (${remTopeadoTc})`);}
+  const basesD={rem_bruto:remBruto,no_rem:noRem,no_rem_os:noRemOs,rem_topeado:remTopeado,rem_topeado_tc:remTopeadoTc,fijo_param:0};
   // Descuentos
   cat.filter(c=>c.tipo==='descuento'&&c.regla?.auto&&aplica(c)).sort((a,b)=>(a.regla.orden||0)-(b.regla.orden||0)).forEach(c=>{
     const g=c.regla,q=cantidadDe(g);if(['ganancias','redondeo'].includes(g.base))return;
     if(g.base==='fijo'){push(c,1,q,q,`${q}`);return;}
     if(g.base==='fijo_param'){push(c,1,num(conv[g.importe_param])*fPer,num(conv[g.importe_param]),`${conv[g.importe_param]} × ${fPer}`);return;}
-    const b=basesD[g.base]||0,p=num(prev[g.pct_param]??conv[g.pct_param]);
+    // regla.tiempo_completo (084): el concepto se calcula sobre el equivalente a tiempo completo
+    // (obra social a tiempo parcial, LCT 92 ter). Es una marca y no un cambio de `base` para que
+    // la migración sea retrocompatible con el frontend anterior.
+    const baseKey=(g.tiempo_completo&&g.base==='rem_topeado')?'rem_topeado_tc':g.base;
+    const b=basesD[baseKey]||0,p=num(prev[g.pct_param]??conv[g.pct_param]);
     // La cantidad multiplica la base porcentual tal cual (207 Obra social adherentes: 0 adherentes →
     // no genera línea); el fallback a 1 es sólo para reglas cuya `cantidad` literal es '1'.
     const cantLit=(g.cantidad||'1')==='1',factor=cantLit?1:q;
@@ -18220,6 +18266,11 @@ function computeRecibo(ctx){
     if(c.regla?.tope_pct_neto){const max=r2(t.neto*num(c.regla.tope_pct_neto)/100);if(imp>max){imp=max;alertas.push(`${c.nombre}: limitado al ${c.regla.tope_pct_neto} % del neto`);}}
     if(rc.cuotas_total&&num(rc.cuotas_pagadas)+1>=num(rc.cuotas_total))alertas.push(`${c.nombre}: última cuota (${num(rc.cuotas_pagadas)+1}/${rc.cuotas_total})`);
     push(c,1,imp,imp,rc.cuotas_total?`cuota ${num(rc.cuotas_pagadas)+1}/${rc.cuotas_total}`:'recurrente');});
+  // Ley 27.802 art. 37 (LCT 133): los descuentos voluntarios (adelantos, préstamos, embargos,
+  // seguros — `regla.art133` en el catálogo) no pueden superar en conjunto el 20 % de la
+  // remuneración en dinero. Alerta, no bloquea: la contadora decide cómo diferir el excedente.
+  {const volunt=r2(conceptos.filter(x=>porCod[x.codigo]?.regla?.art133).reduce((a,x)=>a+x.importe,0));const remDinero=r2(remBruto+noRem);
+    if(volunt>0&&remDinero>0&&volunt>r2(remDinero*0.2))alertas.push(`Descuentos voluntarios ${volunt} superan el 20 % de la remuneración en dinero (${r2(remDinero*0.2)}) — art. 133 LCT / art. 37 Ley 27.802`);}
   // Ganancias (Task 5) — se enchufa acá
   let gan=null;
   if(e.ganancias_aplica&&typeof computeGanancias==='function'&&ctx.ganTabla&&['mensual','quincena2','sac','final'].includes(tipo)){
@@ -18236,14 +18287,18 @@ function computeRecibo(ctx){
   // del empleado — las contribuciones patronales van sobre rem_bruto sin topear (ídem f931.base10).
   const detr=r2(num(prev.detraccion)*(parcial?diasCal/30:fPer));
   const baseSipa=Math.max(0,r2(remBruto-detr)),baseOs=r2(remBruto+noRemOs);
+  // Ley 27.802 Título II: Fondo de Asistencia Laboral (fal_pct sobre la base SIPA, código 649) con
+  // reducción equivalente de la contribución SIPA (art. 76) — el costo patronal total no cambia.
+  const falPct=num(prev.fal_pct),sipaPct=Math.max(0,r2(num(prev.contrib_sipa_pct)-falPct));
   const contribuciones=[
     {codigo:'640',nombre:'SVC',pct:null,base:r2(num(conv.scvo_importe)*fPer),importe:r2(num(conv.scvo_importe)*fPer)},
     {codigo:'642',nombre:'CONTRIBUCION INSSJP',pct:num(prev.contrib_inssjp_pct),base:baseSipa,importe:r2(baseSipa*num(prev.contrib_inssjp_pct)/100)},
     {codigo:'643',nombre:'CONTRIBUCION ANSSAL',pct:num(prev.contrib_fsr_pct),base:baseOs,importe:r2(baseOs*num(prev.contrib_fsr_pct)/100)},
-    {codigo:'644',nombre:'CONTRIBUCION JUBILACION',pct:num(prev.contrib_sipa_pct),base:baseSipa,importe:r2(baseSipa*num(prev.contrib_sipa_pct)/100)},
+    {codigo:'644',nombre:'CONTRIBUCION JUBILACION',pct:sipaPct,base:baseSipa,importe:r2(baseSipa*sipaPct/100)},
     {codigo:'645',nombre:'CONTRIBUCION OBRA SOCIAL',pct:num(prev.contrib_os_pct),base:baseOs,importe:r2(baseOs*num(prev.contrib_os_pct)/100)},
     {codigo:'646',nombre:'CONTRIBUCION FONDO DESEMPLEO',pct:num(prev.contrib_fne_pct),base:baseSipa,importe:r2(baseSipa*num(prev.contrib_fne_pct)/100)},
     {codigo:'647',nombre:'CONTRIBUCION SUBSIDIO FAMILIAR',pct:num(prev.contrib_aaff_pct),base:baseSipa,importe:r2(baseSipa*num(prev.contrib_aaff_pct)/100)},
+    {codigo:'649',nombre:'CONTRIBUCION FAL (Ley 27.802)',pct:falPct,base:baseSipa,importe:r2(baseSipa*falPct/100)},
   ].filter(x=>x.importe>0);
   const art=r2(remBruto*num(prev.art_pct)/100+num(prev.art_fijo)*fPer);
   const contribTotal=r2(contribuciones.reduce((a,x)=>a+x.importe,0));
@@ -18274,7 +18329,7 @@ function computeRecibo(ctx){
   const ordenDe=cod=>porCod[cod]?.regla?.orden;
   conceptos.sort((a,b)=>{const oa=ordenDe(a.codigo),ob=ordenDe(b.codigo);
     if(oa==null&&ob==null)return 0;if(oa==null)return 1;if(ob==null)return -1;return oa-ob;});
-  return {conceptos,totales,bases:{rem_bruto:remBruto,no_rem:noRemFinal,no_rem_os:noRemOs,rem_topeado:remTopeado,tope_max_prorr:topeMax,dias_trabajados:diasTrab,horas_normales:horasNorm,factor_periodo:fPer,factor_jornada:fJor,valor_hora:valorHora,valor_hora_extra:vhe,valor_dia_vacaciones:valorDiaVac,antiguedad_anios:anios},
+  return {conceptos,totales,bases:{rem_bruto:remBruto,no_rem:noRemFinal,no_rem_os:noRemOs,rem_topeado:remTopeado,rem_topeado_tc:remTopeadoTc,tope_max_prorr:topeMax,dias_trabajados:diasTrab,horas_normales:horasNorm,factor_periodo:fPer,factor_jornada:fJor,valor_hora:valorHora,valor_hora_extra:vhe,valor_dia_vacaciones:valorDiaVac,antiguedad_anios:anios},
     f931,contribuciones,contribuciones_total:contribTotal,art,ganancias:gan,alertas};
 }
 
@@ -18293,6 +18348,33 @@ function computeSAC(ctx){
   return {codigo:completo?'20':'28',mejor_rem:mejor,dias_semestre:diasSem,dias_trabajados:diasTrab,importe,
     formula:`${mejor} × 50 %${completo?'':` × ${diasTrab}/${diasSem}`}`};
 }
+// Ley 27.802 art. 51 (LCT 245): base de la indemnización por antigüedad = mejor remuneración
+// MENSUAL, NORMAL y HABITUAL devengada en el último año (los 12 meses cerrados anteriores al mes
+// de egreso). Por mes (las quincenas se suman): fijo = bruto − variables − excluidos, donde
+// `variables` (horas extras, feriados trabajados, premios: regla.indemniz='variable') y `excluidos`
+// (SAC, vacaciones: regla.indemniz='excluir') vienen de v_sueldos_acumulados. Habitual = conceptos
+// devengados al menos 6 meses en el año; normal = variables promediadas a los últimos 6 meses o al
+// año, lo que sea más favorable. La remuneración vigente (escala/pactado) actúa como piso del fijo.
+function computeBaseIndemnizatoria(acumulados,fechaEgreso,remMensual){
+  const r2=x=>Math.round(x*100)/100,num=v=>Number(v)||0;
+  const y=Number(String(fechaEgreso||'').slice(0,4)),m=Number(String(fechaEgreso||'').slice(5,7));
+  const idx=(a,b)=>a*12+(b-1);const fin=idx(y,m)-1,ini=fin-11;
+  const porMes={};
+  (acumulados||[]).forEach(a=>{if(['sac','final'].includes(a.tipo))return;const k=idx(num(a.anio),num(a.mes));if(!(k>=ini&&k<=fin))return;
+    const p=porMes[k]||(porMes[k]={bruto:0,variables:0,excluidos:0});p.bruto+=num(a.bruto);p.variables+=num(a.variables);p.excluidos+=num(a.excluidos);});
+  const keys=Object.keys(porMes).map(Number).sort((a,b)=>a-b);
+  const fijos=keys.map(k=>porMes[k].bruto-porMes[k].variables-porMes[k].excluidos);
+  const mejorFijo=r2(Math.max(num(remMensual),0,...fijos));
+  const habituales=keys.filter(k=>porMes[k].variables>0).length>=6;
+  let promVar=0;
+  if(habituales){
+    const ult6=keys.filter(k=>k>fin-6);
+    const p6=ult6.length?ult6.reduce((a,k)=>a+porMes[k].variables,0)/ult6.length:0;
+    const p12=keys.reduce((a,k)=>a+porMes[k].variables,0)/keys.length;
+    promVar=r2(Math.max(p6,p12));
+  }
+  return {base:r2(mejorFijo+promVar),mejor_fijo:mejorFijo,prom_variables:promVar,variables_habituales:habituales,meses:keys.length};
+}
 function computeLiquidacionFinal(ctx){
   const r2=x=>Math.round(x*100)/100;const num=v=>Number(v)||0;const e=ctx.empleado||{},fe=ctx.fechaEgreso,cat=ctx.catalogo||[];
   const porCod={};cat.forEach(c=>{porCod[c.codigo]=c;});const out=[],alertas=[];
@@ -18302,7 +18384,10 @@ function computeLiquidacionFinal(ctx){
   // 1. Conceptos del mes parcial (ya calculados por computeRecibo)
   ((ctx.reciboMes||{}).conceptos||[]).forEach(c=>out.push(c));
   const remMensual=num(e.modalidad==='jornal'?num(ctx.escala?.valor_hora)*num(ctx.convenio?.horas_mes||200):(e.convenio==='fuera'?e.sueldo_pactado:ctx.escala?.basico_mensual));
-  const mejorNormal=r2(Math.max(remMensual,...(ctx.acumulados||[]).filter(a=>!['sac','final'].includes(a.tipo)).map(a=>num(a.bruto))));
+  // Ley 27.802 art. 51 (LCT 245): mejor remuneración mensual, normal y habitual del último año —
+  // no el bruto máximo histórico (ver computeBaseIndemnizatoria).
+  const bi=computeBaseIndemnizatoria(ctx.acumulados||[],fe,remMensual);
+  const mejorNormal=bi.base;
   const fechaIngreso=e.fecha_ingreso_reconocida||e.fecha_ingreso;
   // 2. SAC proporcional — R24: si el semestre no tiene acumulados cargados (mejor_rem=0),
   // se recalcula con la mejor remuneración normal y habitual como piso, misma fórmula y mismos
@@ -18329,38 +18414,59 @@ function computeLiquidacionFinal(ctx){
   const vacProp=Math.max(0,diasVacProp-num(ctx.vacacionesGozadasAnio));
   const vDia=num(ctx.reciboMes?.bases?.valor_dia_vacaciones)||r2(remMensual/25);
   push('517',vacProp*vDia,vacProp,`${vacProp} d × ${vDia}`);push('521',vacProp*vDia/12,1,'517 / 12');
-  // 4. Indemnizaciones (despido sin causa / mutuo acuerdo)
-  const indemniza=['despido_sin_causa','mutuo_acuerdo'].includes(ctx.causa);
+  // 4. Indemnizaciones — Ley 27.802 (arts. 48/51/52/53 → LCT 231/245/248/255; art. 241 mutuo acuerdo)
+  const causa=ctx.causa;
   let aniosInd=ant.anios+(ant.meses>3||(ant.meses===3&&ant.dias>0)?1:0);
-  // R28 (art. 92 bis LCT): antigüedad < 3 meses = período de prueba, sin indemnización por
-  // antigüedad (530) ni integración del mes de despido (532); sólo preaviso de 15 días
-  // (cantidad 0,5 mes) si no se otorgó, y su SAC proporcional (533).
-  const enPeriodoPrueba=ant.anios===0&&ant.meses<3;
-  if(indemniza&&enPeriodoPrueba){
-    alertas.push('Período de prueba: sin indemnización por antigüedad ni integración (art. 92 bis)');
-    if(!ctx.preavisoOtorgado){
-      push('531',mejorNormal*0.5,0.5,`${mejorNormal} × 0,5 mes (preaviso período de prueba, 15 días)`);
-      const p=out.find(c=>c.codigo==='531')?.importe||0;push('533',p/12,1,'531 / 12');
-    }
-  }else if(indemniza){
+  // Período de prueba: 6 meses (LCT 92 bis según Ley 27.742; el CCT puede extenderlo a 8/12 →
+  // convenio.periodo_prueba_meses). Sin indemnización por antigüedad, integración NI preaviso
+  // (art. 48 Ley 27.802 eliminó el preaviso de 15 días del período de prueba).
+  const ppMeses=num(ctx.convenio?.periodo_prueba_meses)||6;
+  const enPeriodoPrueba=ant.anios===0&&ant.meses<ppMeses;
+  const conIndemnizacion=['despido_sin_causa','fallecimiento'].includes(causa);
+  if(causa==='mutuo_acuerdo'){
+    // art. 241 LCT: extinción por voluntad concurrente — no hay indemnización legal; la suma se
+    // pacta libremente (escritura pública o ante autoridad) y se carga en la baja (código 535).
+    alertas.push('Mutuo acuerdo (art. 241): sin indemnización legal — la suma pactada se carga a mano en el campo "Importe pactado" (escritura pública o ante autoridad)');
+    if(num(ctx.importePactado)>0)push('535',num(ctx.importePactado),1,'suma pactada art. 241');
+  }
+  if(conIndemnizacion&&enPeriodoPrueba){
+    alertas.push(`Período de prueba (${ppMeses} meses): sin indemnización por antigüedad, integración ni preaviso (art. 92 bis LCT, art. 48 Ley 27.802)`);
+  }else if(conIndemnizacion){
     // R11/R27: el mínimo garantizado de 1 base (art. 245) respeta el tope del CCT — la base es
     // mejorNormal recortada por topeIndemnizatorio (si > 0), y el mínimo se aplica sobre ESA
-    // base, no sobre mejorNormal sin tope. Preaviso (531) e integración (532) también se
-    // calculan sobre mejorNormal (mejor remuneración normal y habitual), no sobre el básico.
-    let base=mejorNormal;if(num(ctx.topeIndemnizatorio)>0&&base>num(ctx.topeIndemnizatorio)){base=num(ctx.topeIndemnizatorio);alertas.push('Indemnización con tope del CCT (3 × promedio)');}
+    // base. Ley 27.802: el tope nunca deja la base por debajo del 67 % de mejorNormal.
+    // Preaviso (531) e integración (532) se calculan sobre mejorNormal sin tope.
+    let base=mejorNormal;const piso67=r2(mejorNormal*0.67);
+    if(num(ctx.topeIndemnizatorio)>0&&base>num(ctx.topeIndemnizatorio)){
+      base=num(ctx.topeIndemnizatorio);
+      if(base<piso67){base=piso67;alertas.push(`Tope del CCT por debajo del 67 % de la remuneración normal y habitual: se aplica el piso (${piso67}) — art. 245 LCT`);}
+      else alertas.push('Indemnización con tope del CCT (3 × promedio)');
+    }
     if(!num(ctx.topeIndemnizatorio))alertas.push('Sin tope indemnizatorio cargado: se usa la mejor remuneración sin tope');
-    push('530',Math.max(base*aniosInd,base),aniosInd,`${base} × ${aniosInd} años (mín. 1 mes)`);
-    if(!ctx.preavisoOtorgado){const meses=ant.anios>=5?2:1;push('531',mejorNormal*meses,meses,`${mejorNormal} × ${meses} mes`);
+    let ind=Math.max(base*aniosInd,base),formula=`${base} × ${aniosInd} años (mín. 1 mes)`;
+    if(causa==='fallecimiento'){ind=ind*0.5;formula+=' × 50 % (art. 248)';}
+    if(num(ctx.indemnizacionAnterior)>0){
+      // art. 255 LCT: reingreso — se deduce lo pagado por el cese anterior, actualizado por IPC;
+      // nunca menos de lo que corresponde por el último período (piso de 1 mes).
+      const ded=num(ctx.indemnizacionAnterior);ind=Math.max(base,ind-ded);formula+=` − ${ded} anterior (art. 255, mín. 1 mes)`;
+      alertas.push('Reingreso: se descontó la indemnización anterior actualizada por IPC (art. 255 LCT)');
+    }
+    push('530',ind,aniosInd,formula);
+    // Preaviso e integración sólo en despido sin causa (art. 231/233); no en fallecimiento.
+    if(causa==='despido_sin_causa'&&!ctx.preavisoOtorgado){
+      // art. 48 Ley 27.802 (LCT 231 b): 1 mes si la antigüedad no excede 5 años; 2 meses si los supera.
+      const meses=(ant.anios>5||(ant.anios===5&&(ant.meses>0||ant.dias>0)))?2:1;push('531',mejorNormal*meses,meses,`${mejorNormal} × ${meses} mes`);
       const ultimo=Number(finPeriodo(fe.slice(0,7)+'-01','mensual').slice(8,10)),diaEg=Number(fe.slice(8,10));
       const faltan=ultimo-diaEg;if(faltan>0)push('532',mejorNormal/30*faltan,faltan,`${mejorNormal}/30 × ${faltan} d`);
       const p=out.find(c=>c.codigo==='531')?.importe||0,i=out.find(c=>c.codigo==='532')?.importe||0;push('533',(p+i)/12,1,'(531 + 532) / 12');}
-  }else if(ctx.causa==='despido_con_causa')alertas.push('Despido con causa: sólo rubros proporcionales; verificar con asesoramiento legal');
+  }else if(causa==='despido_con_causa')alertas.push('Despido con causa: sólo rubros proporcionales; verificar con asesoramiento legal');
+  if(bi.meses>0)alertas.push(`Base indemnizatoria: mejor fijo ${bi.mejor_fijo}${bi.prom_variables?` + variables promedio ${bi.prom_variables}`:''} sobre ${bi.meses} mes(es) del último año`);
   // M4: mismo criterio de orden que computeRecibo — regla.orden del catálogo, estable; los
   // conceptos sin regla/orden (p. ej. los del recibo del mes parcial) quedan al final.
   const ordenDe=cod=>porCod[cod]?.regla?.orden;
   out.sort((a,b)=>{const oa=ordenDe(a.codigo),ob=ordenDe(b.codigo);
     if(oa==null&&ob==null)return 0;if(oa==null)return 1;if(ob==null)return -1;return oa-ob;});
-  return {conceptos:out,alertas,detalle:{anios_indemnizacion:aniosInd,mejor_rem_normal:mejorNormal,dias_vac_prop:vacProp,valor_dia_vac:vDia,antiguedad:ant.texto}};
+  return {conceptos:out,alertas,detalle:{anios_indemnizacion:aniosInd,mejor_rem_normal:mejorNormal,base_indemnizatoria:bi,dias_vac_prop:vacProp,valor_dia_vac:vDia,antiguedad:ant.texto,periodo_prueba:enPeriodoPrueba}};
 }
 
 // ─── Sueldos 083: Recibo de haberes (Task 12) ─────────────────────────
@@ -18380,7 +18486,8 @@ function _reciboComposicion(item,conceptosCat){
   // Social" (item.contribuciones) y el ART en item.art; el resto queda en 0 (no hay cómo
   // reconstruir el desglose por OS/INSSJP/SCVO sin el detalle).
   const tieneDetalle=cd.length>0;
-  const ss={emp:tieneDetalle?r2((byCod['644']||0)+(byCod['646']||0)+(byCod['647']||0)+(byCod['643']||0)):r2(Number(item.contribuciones)||0),trab:sumD(['200'])};
+  // 649 = Fondo de Asistencia Laboral (Ley 27.802): contribución con destino a la seguridad social.
+  const ss={emp:tieneDetalle?r2((byCod['644']||0)+(byCod['646']||0)+(byCod['647']||0)+(byCod['643']||0)+(byCod['649']||0)):r2(Number(item.contribuciones)||0),trab:sumD(['200'])};
   const os={emp:tieneDetalle?r2(byCod['645']||0):0,trab:sumD(['202','207','208'])};
   const inssjp={emp:tieneDetalle?r2(byCod['642']||0):0,trab:sumD(['201'])};
   const scvo={emp:tieneDetalle?r2(byCod['640']||0):0};
@@ -18396,6 +18503,49 @@ function _reciboComposicion(item,conceptosCat){
   const pctOf=v=>costoTotal>0?r2(v/costoTotal*100):0;
   const pct={neto:pctOf(Number(item.neto)||0),otrosDesc:pctOf(otrosDesc.trab),ss:pctOf(ss.emp),os:pctOf(os.emp),inssjp:pctOf(inssjp.emp),scvo:pctOf(scvo.emp),art:pctOf(art.emp)};
   return {sindical,ss,os,inssjp,art,scvo,otros,otrosDesc,costoTotal,pct};
+}
+// Certificado de trabajo (art. 80 LCT — art. 25 Ley 27.802): dentro de los 45 días hábiles del
+// egreso el empleador entrega la constancia con los datos de la relación, la función, las
+// capacitaciones y la constancia de ingreso de aportes (cumplida también si la información está
+// en el sitio de ARCA/ANSES). Pura: devuelve el HTML completo listo para imprimir.
+function renderCertificadoTrabajo(args){
+  const a=args||{},empresa=a.empresa||{},e=a.empleado||{};
+  const r2=x=>Math.round((Number(x)||0)*100)/100;
+  const fmt2=n=>(Number(n)||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const causas={renuncia:'Renuncia',despido_sin_causa:'Despido sin justa causa',despido_con_causa:'Despido con justa causa',mutuo_acuerdo:'Mutuo acuerdo (art. 241 LCT)',fin_contrato:'Vencimiento del plazo',fallecimiento:'Fallecimiento'};
+  // últimos 12 meses con liquidación confirmada (quincenas sumadas por mes), del más reciente al más viejo
+  const porMes={};(a.acumulados||[]).filter(x=>!['sac','final'].includes(x.tipo)).forEach(x=>{const k=`${String(x.mes).padStart(2,'0')}/${x.anio}`,o=`${x.anio}-${String(x.mes).padStart(2,'0')}`;
+    const p=porMes[o]||(porMes[o]={k,rem:0,norem:0});p.rem+=Number(x.bruto)||0;p.norem+=Number(x.no_remunerativo)||0;});
+  const meses=Object.keys(porMes).sort().reverse().slice(0,12).map(o=>porMes[o]);
+  const filas=meses.map(m=>`<tr><td>${esc(m.k)}</td><td style="text-align:right">${fmt2(m.rem)}</td><td style="text-align:right">${fmt2(m.norem)}</td><td style="text-align:right">${fmt2(r2(m.rem+m.norem))}</td></tr>`).join('');
+  const capac=(a.capacitaciones||[]).length?`<ul>${a.capacitaciones.map(c=>`<li>${esc(c)}</li>`).join('')}</ul>`:'<p class="cert-linea">Sin capacitaciones registradas en el legajo.</p>';
+  return `<style>
+    .cert-pagina{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#000;max-width:720px;margin:0 auto;padding:24px 32px;page-break-after:always}
+    .cert-pagina h1{font-size:16px;text-align:center;margin:0 0 4px;letter-spacing:1px}
+    .cert-pagina h2{font-size:11px;text-align:center;font-weight:normal;margin:0 0 20px;color:#333}
+    .cert-emp{border:1px solid #000;padding:8px 10px;margin-bottom:16px}
+    .cert-pagina p{line-height:1.5;margin:8px 0;text-align:justify}
+    .cert-tbl{width:100%;border-collapse:collapse;margin:8px 0 14px;font-size:11px}
+    .cert-tbl th,.cert-tbl td{border:1px solid #000;padding:3px 6px}
+    .cert-tbl th{background:#eee;text-align:left}
+    .cert-firma{margin-top:56px;display:flex;justify-content:flex-end}
+    .cert-firma div{text-align:center;width:260px;border-top:1px solid #000;padding-top:4px}
+    .cert-nota{font-size:10px;color:#333;margin-top:18px}
+    @media print{body{margin:0}.cert-pagina{page-break-after:always}}
+  </style>
+  <div class="cert-pagina">
+    <h1>CERTIFICADO DE TRABAJO</h1>
+    <h2>Art. 80 de la Ley de Contrato de Trabajo · art. 25 de la Ley 27.802</h2>
+    <div class="cert-emp"><b>${esc(empresa.razon_social||'')}</b> · CUIT ${esc(_reciboCuit(empresa.cuit))}<br>${esc(empresa.domicilio||'')}${empresa.localidad?` · ${esc(empresa.localidad)}`:''}</div>
+    <p>Se certifica que <b>${esc(e.nombre||'')}</b>, CUIL ${esc(_reciboCuit(e.cuil))}${e.legajo?`, legajo N° ${esc(e.legajo)}`:''}, prestó servicios en relación de dependencia para ${esc(empresa.razon_social||'')} desde el <b>${esc(fmtFecha(e.fecha_ingreso))}</b> hasta el <b>${esc(fmtFecha(e.fecha_egreso))}</b>, desempeñando la función de <b>${esc(e.tarea||e.categoria_escala||'')}</b>${e.categoria_escala&&e.tarea?` (categoría ${esc(e.categoria_escala)})`:''}${e.causa_egreso?`, habiéndose extinguido la relación por ${esc(causas[e.causa_egreso]||e.causa_egreso)}`:''}.</p>
+    <p><b>Remuneraciones percibidas</b> (últimos doce meses liquidados):</p>
+    <table class="cert-tbl"><tr><th>Período</th><th style="text-align:right">Remunerativo</th><th style="text-align:right">No remunerativo</th><th style="text-align:right">Total</th></tr>${filas||'<tr><td colspan="4">Sin liquidaciones confirmadas en el sistema.</td></tr>'}</table>
+    <p><b>Capacitaciones realizadas:</b></p>${capac}
+    <p><b>Aportes y contribuciones:</b> durante el período certificado se practicaron las retenciones y se ingresaron los aportes y contribuciones con destino al Sistema de Seguridad Social mediante las declaraciones juradas mensuales (F.931). La constancia detallada de los aportes ingresados está disponible para el trabajador en el sitio web de ARCA / ANSES, conforme al art. 25 de la Ley 27.802.</p>
+    <p>Se extiende el presente a pedido del interesado, a los efectos legales que estime corresponder, en ${esc(empresa.localidad||'la sede de la empresa')} el ${esc(fmtFecha(a.fechaEmision||''))}.</p>
+    <div class="cert-firma"><div>Firma y aclaración del empleador<br>${esc(empresa.razon_social||'')}</div></div>
+    <p class="cert-nota">Entrega dentro de los 45 días hábiles de la extinción del contrato (art. 25 Ley 27.802). Se cumple poniéndolo a disposición en formato físico en la sede de la empresa o en formato digital con constancia fehaciente de entrega.</p>
+  </div>`;
 }
 const RECIBO_MESES=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
 function _reciboPeriodoLabel(periodo,tipo){

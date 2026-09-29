@@ -774,8 +774,8 @@ Antes de liquidar el primer período hay que cargar tres cosas, en este orden: *
 Cuatro pestañas, todas con **historial por vigencia** (cada cambio se carga con la fecha desde la que rige; el motor usa siempre la vigente al último día del período que estás liquidando):
 
 - **Escala salarial:** valor hora o básico mensual por categoría UOM (Ingresante, Operario, Oficial…) y por categoría mensualizada (Administrativo, Técnico). **+ Nueva vigencia** copia la tabla actual a una fecha nueva aplicando un % de aumento parejo. Si una categoría queda en 0, el motor avisa al liquidar a un empleado de esa categoría.
-- **Convenio:** IMGR (ingreso mínimo garantizado), no remunerativo de paritaria, % de antigüedad, horas del mes y del día, % de presentismo, tolerancia de ausencias, sepelio, seguro de vida colectivo (SCVO), cuota sindical y redondeo del neto.
-- **Previsional:** topes mínimo y máximo de ANSES, detracción Ley 27.430, porcentajes de aportes (jubilación, INSSJP, obra social, adherentes) y de contribuciones patronales (Dec. 814/01), ART.
+- **Convenio:** IMGR (ingreso mínimo garantizado), no remunerativo de paritaria, % de antigüedad, horas del mes y del día, % de presentismo, tolerancia de ausencias, sepelio, seguro de vida colectivo (SCVO), cuota sindical, redondeo del neto y **período de prueba** en meses (6 por ley; el CCT puede llevarlo a 8 o 12 — en período de prueba no hay indemnización ni preaviso).
+- **Previsional:** topes mínimo y máximo de ANSES, detracción Ley 27.430, porcentajes de aportes (jubilación, INSSJP, obra social, adherentes) y de contribuciones patronales (Dec. 814/01), ART y **FAL** (Fondo de Asistencia Laboral, Ley 27.802): desde el 1/11/2026 el 2,5 % de la base SIPA para PyME (1 % grandes empresas). El sistema ya trae cargada esa vigencia; el FAL se paga con el F.931 y baja en la misma proporción la contribución de jubilación, así que el costo total no cambia. Si ARCA posterga la fecha, editá o borrá la vigencia 2026-11-01.
 - **Ganancias:** las tablas semestrales (enero y julio) con el Ganancia No Imponible, deducción especial, cónyuge, hijo, hijo con discapacidad y los 9 tramos de la escala. Cargá la tabla nueva apenas ARCA publique los valores del semestre.
 
 Estos parámetros son de configuración: sus alertas (categoría sin valor, parámetro vacío) se ven solo al entrar a esta página, no en el panel "Para hoy".
@@ -792,6 +792,18 @@ El modal de empleado tiene cinco pestañas:
 
 **Baja de empleado** (botón en el legajo, oculto si ya está dado de baja): fecha de egreso, causa (renuncia, despido sin causa, despido con causa, mutuo acuerdo, fin de contrato, fallecimiento), si hubo preaviso otorgado, tope indemnizatorio del CCT (se precarga desde Configuración) y días de vacaciones ya gozadas en el año. El preview muestra los renglones que va a generar (proporcionales del mes, SAC proporcional, vacaciones no gozadas y, si corresponde, indemnización por antigüedad + preaviso + integración del mes) antes de crear la liquidación de tipo **final** en borrador. El empleado no queda dado de baja hasta que confirmás esa liquidación.
 
+Cómo calcula la baja desde la **Ley 27.802** (Modernización Laboral):
+
+- **Base de la indemnización:** la mejor remuneración mensual, normal y habitual de los **últimos 12 meses** liquidados. No cuentan el aguinaldo ni las vacaciones. Las horas extras, feriados trabajados, premios y bonos sólo entran si se pagaron al menos 6 meses en el año, y entran promediados (últimos 6 meses o el año, lo que dé más). El preview te muestra la base usada en las alertas.
+- **Tope del convenio con piso:** si cargaste el tope indemnizatorio y queda por debajo del 67 % de esa remuneración, el sistema aplica el 67 %.
+- **Período de prueba** (6 meses, o lo que diga Escalas y parámetros → Convenio): sólo proporcionales. No hay indemnización ni preaviso.
+- **Preaviso:** un mes hasta 5 años de antigüedad, dos meses si los supera.
+- **Mutuo acuerdo (art. 241):** el sistema no calcula indemnización. Cargá en **Importe pactado** la suma acordada por escritura pública o ante la autoridad laboral; sale como "Gratificación por cese".
+- **Fallecimiento:** la mitad de la indemnización por antigüedad, sin preaviso ni integración.
+- **Reingreso:** si el empleado ya había cobrado una indemnización por un cese anterior, cargá ese importe actualizado por IPC en **Indemnización anterior actualizada** y el sistema lo descuenta (nunca deja menos de un mes).
+
+**Certificado de trabajo:** una vez cargada la fecha de egreso, en la lista de empleados aparece el botón **Certificado**. Imprime el certificado del art. 80 (datos de la relación, función, remuneraciones de los últimos 12 meses, capacitaciones y constancia de aportes) y deja registrada la fecha de emisión. Hay **45 días hábiles** desde el egreso para entregarlo; mientras no lo emitas, el panel "Para hoy" te lo recuerda.
+
 #### Novedades por período (Sueldos → **Novedades**)
 
 Elegí período y tipo (mensual / 1ª quincena / 2ª quincena) y completá, por empleado, días trabajados, horas normales (jornales), horas extras al 50 % y al 100 %, feriados no trabajados y trabajados, ausencias injustificadas, días de enfermedad, accidente y licencia paga (con su tipo), días sin goce de sueldo, días de vacaciones, adelanto, premio por producción y observaciones. Sin fila cargada, el motor asume el período completo sin novedades.
@@ -807,6 +819,8 @@ En la liquidación (Sueldos → **+ Liquidación**, período/tipo/fecha de pago 
 - **↺ Recalcular** (por empleado) descarta también los renglones manuales y vuelve a correr el motor de cero para ese empleado.
 - Volver a apretar **⚙ Calcular** para todos conserva los renglones manuales cuyo código el motor no genera en esa corrida (para no duplicar), pero **si el código coincide con uno que el motor sí calcula, el renglón manual se pisa** — si necesitás mantener ese ajuste, volvé a cargarlo después de Calcular.
 - El botón te avisa con alertas (no bloquean el guardado) cuando falta un valor de escala, un empleado no tiene fecha de ingreso, no hay novedad cargada, se superó un tope, se perdió el presentismo por ausencias, un préstamo llegó a la última cuota, etc.
+- **Tope del 20 % de descuentos (Ley 27.802):** adelantos, cuotas de préstamo, embargos y seguros voluntarios no pueden superar en conjunto el 20 % de lo que cobra el empleado en dinero. Si se pasan, aparece la alerta con el importe máximo; el descuento no se recorta solo, lo decidís vos con la contadora.
+- **Jornada reducida:** si el legajo tiene menos de 48 horas semanales, el aporte de obra social se calcula como si trabajara tiempo completo (lo exige la ley); jubilación e INSSJP van sobre lo que cobra realmente.
 
 **SAC** (tipo de liquidación "SAC", período 06 o 12): calcula el aguinaldo sobre la mejor remuneración del semestre (completo o proporcional si el empleado ingresó en el semestre) — a diferencia de una liquidación mensual, **no vuelve a sumar el sueldo del mes**, solo el aguinaldo y lo que corresponde sobre él (aportes, contribuciones, Ganancias).
 

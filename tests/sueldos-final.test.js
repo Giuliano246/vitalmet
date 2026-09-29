@@ -76,14 +76,16 @@ test('computeLiquidacionFinal: tope indemnizatorio y mínimo de un mes', () => {
   assert.equal(run(`computeLiquidacionFinal(${J({ ...base, topeIndemnizatorio:0 })})`).conceptos.find(c=>c.codigo==='530').importe, 1000000);   // mínimo 1 mes
   assert.equal(run(`computeLiquidacionFinal(${J({ ...base, topeIndemnizatorio:700000 })})`).conceptos.find(c=>c.codigo==='530').importe, 700000);
 });
-test('computeLiquidacionFinal R28: período de prueba (< 3 meses) — sin 530/532, preaviso de 15 días', () => {
+test('computeLiquidacionFinal R28 / Ley 27.802: período de prueba (6 meses) — sólo proporcionales, sin 530/531/532/533', () => {
+  // Hasta la 083 el período de prueba era de 3 meses y pagaba 15 días de preaviso; desde la
+  // Ley 27.742 son 6 meses y el art. 48 de la Ley 27.802 elimina el preaviso en período de prueba.
   const r = run(`computeLiquidacionFinal(${J({ empleado:{fecha_ingreso:'2026-08-01',modalidad:'mensual',convenio:'fuera',sueldo_pactado:900000}, fechaEgreso:'2026-09-20', causa:'despido_sin_causa', preavisoOtorgado:false, topeIndemnizatorio:0,
     acumulados:[], catalogo:CAT, vacacionesGozadasAnio:0, reciboMes:{conceptos:[],bases:{valor_dia_vacaciones:30000,dias_trabajados:20}} })})`);
   const codigos = r.conceptos.map(c => c.codigo);
-  ['28','517','521','531','533'].forEach(c => assert.ok(codigos.includes(c), `falta ${c}`));
-  ['530','532'].forEach(c => assert.ok(!codigos.includes(c), `no debería estar ${c}`));
-  assert.equal(r.conceptos.find(c => c.codigo === '531').importe, 450000);   // mejorNormal (900.000) × 0,5
-  assert.ok(r.alertas.includes('Período de prueba: sin indemnización por antigüedad ni integración (art. 92 bis)'));
+  ['28','517','521'].forEach(c => assert.ok(codigos.includes(c), `falta ${c}`));
+  ['530','531','532','533'].forEach(c => assert.ok(!codigos.includes(c), `no debería estar ${c}`));
+  assert.equal(r.detalle.periodo_prueba, true);
+  assert.ok(r.alertas.some(a => a.startsWith('Período de prueba (6 meses)')));
 });
 test('computeLiquidacionFinal: con preaviso otorgado no hay 531/532/533', () => {
   const r = run(`computeLiquidacionFinal(${J({ empleado:{fecha_ingreso:'2024-05-10',modalidad:'mensual',convenio:'fuera',sueldo_pactado:1200000}, fechaEgreso:'2026-09-20', causa:'despido_sin_causa', preavisoOtorgado:true, topeIndemnizatorio:0,
