@@ -829,10 +829,27 @@ body.no-costos .solo-costos{display:none!important}
             <option value="quincena2">2ª quincena</option>
           </select>
           <button class="btn btn-ghost" onclick="novPrecargarHoras()" title="Suma las horas productivas de los timers de Modo Planta del período y las precarga en &quot;Horas norm.&quot; de los jornales que no tengan dato cargado — no pisa lo ya escrito" style="border-color:var(--teal);color:var(--teal)">⏱ Precargar horas de planta</button>
+          <button class="btn btn-ghost" onclick="novTraerVacaciones()" title="Completa &quot;Vacaciones (d)&quot; con los días programados en Sueldos → Vacaciones que caen en este período — no pisa lo ya escrito">🏖 Traer vacaciones programadas</button>
           <button class="btn btn-primary" id="btn-save-nov" onclick="saveNovedades()">Guardar</button>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Empleado</th><th>Días trab.</th><th>Horas norm.</th><th>Extras 50</th><th>Extras 100</th><th>Feriados no trab.</th><th>Feriado trab. (hs)</th><th>Aus. injust.</th><th>Enfermedad (d)</th><th>Accidente (d)</th><th>Lic. paga (d)</th><th>Tipo lic.</th><th>Sin goce (d)</th><th>Vacaciones (d)</th><th>Adelanto $</th><th>Premio $</th><th>Obs.</th></tr></thead><tbody id="nov-tbody"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Empleado</th><th>Días trab.</th><th>Horas norm.</th><th>Extras 50</th><th>Extras 100</th><th>Feriados no trab.</th><th>Feriado trab. (hs)</th><th title="Banco de horas: extras trabajadas que se acreditan en lugar de pagarse">Banco + (hs)</th><th title="Banco de horas: horas libres que se compensan; al jornal se le pagan como normales">Banco − (hs)</th><th>Aus. injust.</th><th>Enfermedad (d)</th><th>Accidente (d)</th><th>Lic. paga (d)</th><th>Tipo lic.</th><th>Sin goce (d)</th><th>Vacaciones (d)</th><th>Adelanto $</th><th>Premio $</th><th>Obs.</th></tr></thead><tbody id="nov-tbody"></tbody></table></div>
         <div style="margin-top:8px;font-size:11px;color:var(--text3)">Para jornales, "Horas norm." son sólo horas efectivamente trabajadas — no incluyas ahí los días de enfermedad, accidente o licencia paga: esos se cargan en sus propias columnas y el motor de liquidación los computa aparte.</div>
+      </div>
+    </div>
+    <!-- VACACIONES (Ley 27.802 art. 41 → LCT 154) -->
+    <div class="page" id="page-sueldosvac">
+      <div class="page-header"><div class="page-title">Vacaciones</div><div class="page-sub">// programación, notificación con 30 días y saldo por empleado — período legal 1/10 al 30/4</div><div class="tabs"></div></div>
+      <div class="page-content">
+        <div class="stats-bar" id="sueldosvac-stats"></div>
+        <div class="toolbar">
+          <label style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px">Año vacacional<input type="number" id="vac-anio" min="2020" max="2100" step="1" onchange="renderSueldosVacaciones()" style="width:90px"></label>
+          <button class="btn btn-primary" onclick="openVacacion()">+ Programar vacaciones</button>
+        </div>
+        <div class="section-label" style="margin:4px 0 6px">Saldo por empleado</div>
+        <div class="table-wrap"><table><thead><tr><th>Empleado</th><th>Antigüedad al 31/12</th><th>Corresponden</th><th>Programados</th><th>Saldo</th><th></th></tr></thead><tbody id="vac-resumen-tbody"></tbody></table></div>
+        <div class="section-label" style="margin:16px 0 6px">Tramos programados</div>
+        <div class="table-wrap"><table><thead><tr><th>Empleado</th><th>Desde</th><th>Hasta</th><th>Días</th><th>Notificado</th><th>Estado</th><th>Observaciones</th><th></th></tr></thead><tbody id="vac-tbody"></tbody></table></div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text3)">Cada tramo tiene que ser de 7 días o más, notificarse por escrito con 30 días de anticipación y caer entre el 1/10 y el 30/4, salvo acuerdo. Cada trabajador tiene que tener vacaciones en verano al menos una vez cada tres años.</div>
       </div>
     </div>
     <!-- ESCALAS Y PARÁMETROS DE SUELDOS -->
@@ -893,7 +910,7 @@ body.no-costos .solo-costos{display:none!important}
               <div class="form-row triple">
                 <div class="form-group"><label>SCVO ($)</label><input type="number" step="0.01" id="cv-scvo_importe"></div>
                 <div class="form-group"><label>Cuota sindical (%)</label><input type="number" step="0.001" id="cv-cuota_sindical_pct"></div>
-                <div class="form-group"><label>Aporte solidario (%)</label><input type="number" step="0.001" id="cv-aporte_solidario_pct"></div>
+                <div class="form-group"><label>Aporte solidario (%)</label><input type="number" step="0.001" id="cv-aporte_solidario_pct" oninput="cvCheckSolidario()" title="Aporte de convenio para no afiliados. Tope legal: 2 % (art. 9 Ley 14.250 según Ley 27.802). La cuota sindical de los afiliados no tiene ese tope"><div id="cv-solidario-aviso" style="font-size:11px;color:var(--coral);margin-top:3px"></div></div>
               </div>
             </div>
           </div>
@@ -2133,6 +2150,13 @@ body.no-costos .solo-costos{display:none!important}
           <div class="form-group"><label>Fecha de ingreso reconocida</label><input type="date" id="emp-ingreso-reconocida" title="Completar solo si difiere de la fecha de ingreso real (antigüedad reconocida de otro empleador)"></div>
         </div>
         <div class="form-group"><label>Condición</label><div style="display:flex;gap:14px;font-size:12px;padding-top:6px"><label><input type="checkbox" id="emp-afiliado" checked> Afiliado al sindicato</label><label><input type="checkbox" id="emp-presentismo" checked> Cobra presentismo</label></div></div>
+        <div class="section-label" style="margin:12px 0 6px">Ley 27.802 — dejar vacío si no aplica</div>
+        <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
+          <div class="form-group"><label>Alta bajo RIFL desde</label><input type="date" id="emp-rifl-desde" title="Régimen de Incentivo a la Formalización Laboral (arts. 156-163): si el alta encuadra, durante 48 meses las contribuciones bajan a 2 % (SIPA + FNE + AAFF) y 3 % (INSSJP). Es optativo y se ejerce al dar el alta en ARCA"></div>
+          <div class="form-group"><label>Contrato a plazo fijo: vence el</label><input type="date" id="emp-plazo-hasta" title="Sólo para contratos a plazo fijo. Se usa en la baja: vencimiento del plazo (art. 250) o despido antes del vencimiento (art. 95)"></div>
+          <div class="form-group"><label>Banco de horas: acuerdo del</label><input type="date" id="emp-banco-acuerdo" title="Fecha del acuerdo escrito de compensación de horas (art. 197 bis LCT)"></div>
+        </div>
+        <div class="form-group"><label style="display:flex;align-items:center;gap:6px;font-size:12px;text-transform:none;letter-spacing:0;color:var(--text2)"><input type="checkbox" id="emp-banco-horas" style="width:auto"> Tiene acuerdo escrito de banco de horas: las extras se acreditan y se compensan con horas libres</label></div>
       </div>
       <div data-emptab="conceptos" style="display:none">
         <div class="section-label" style="margin:0 0 6px">Adicionales fijos (% del básico o importe fijo, todos los meses)</div>
@@ -2319,6 +2343,11 @@ body.no-costos .solo-costos{display:none!important}
         <div class="form-group"><label>Importe pactado (mutuo acuerdo, art. 241)</label><input type="number" id="baja-pactado" min="0" step="0.01" oninput="previewBaja()" title="Sólo para mutuo acuerdo: la suma libremente pactada por escritura pública o ante autoridad (código 535)"></div>
         <div class="form-group"><label>Indemnización anterior actualizada (reingreso, art. 255)</label><input type="number" id="baja-indem-anterior" min="0" step="0.01" oninput="previewBaja()" title="Si el empleado reingresó y ya cobró una indemnización por el cese anterior: importe actualizado por IPC que se descuenta del art. 245"></div>
       </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="form-group"><label>Base indemnizatoria a mano</label><input type="number" id="baja-base-manual" min="0" step="0.01" oninput="previewBaja()" title="Mejor remuneración mensual, normal y habitual del último año. Completala sólo si el sistema no tiene liquidado el último año del empleado (historia anterior al ERP): reemplaza a la calculada"></div>
+        <div class="form-group"><label>Fecha de reingreso</label><input type="date" id="baja-reingreso" onchange="previewBaja()" title="Sólo si hubo reingreso: la indemnización nunca baja de la que corresponde por este último período"></div>
+        <div class="form-group"><label>Plazo fijo: vencía el</label><input type="date" id="baja-fin-plazo" onchange="previewBaja()" title="Sólo contratos a plazo fijo. En un despido antes del vencimiento la antigüedad se cuenta hasta esta fecha (art. 95)"></div>
+      </div>
       <div style="display:flex;gap:8px;margin:4px 0 10px"><button type="button" class="btn btn-ghost btn-sm" onclick="previewBaja()">Recalcular</button></div>
       <div style="display:grid;grid-template-columns:70px 1fr 130px;gap:6px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px"><div>Cód.</div><div>Concepto</div><div style="text-align:right">Importe</div></div>
       <table style="width:100%;border-collapse:collapse"><tbody id="baja-preview"></tbody></table>
@@ -2326,6 +2355,31 @@ body.no-costos .solo-costos{display:none!important}
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-baja-empleado')">Cancelar</button>
       <button class="btn btn-primary" id="btn-save-baja" onclick="saveBajaEmpleado()">Generar liquidación final</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Vacaciones -->
+<div class="modal-overlay" id="modal-vacacion">
+  <div class="modal" style="width:560px">
+    <div class="modal-header"><div class="modal-title" id="vac-modal-title">Programar vacaciones</div><button class="modal-close" onclick="closeModal('modal-vacacion')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row" style="grid-template-columns:1fr 130px">
+        <div class="form-group"><label>Empleado *</label><select id="vac-empleado" onchange="vacValidar()"></select></div>
+        <div class="form-group"><label>Año vacacional</label><input type="number" id="vac-f-anio" min="2020" max="2100" step="1" oninput="vacValidar()"></div>
+      </div>
+      <div class="form-row triple">
+        <div class="form-group"><label>Desde *</label><input type="date" id="vac-desde" onchange="vacValidar()"></div>
+        <div class="form-group"><label>Hasta *</label><input type="date" id="vac-hasta" onchange="vacValidar()"></div>
+        <div class="form-group"><label>Notificado el</label><input type="date" id="vac-notificado" onchange="vacValidar()" title="Fecha de la notificación escrita. Si la dejás vacía se completa al imprimir la notificación"></div>
+      </div>
+      <div class="form-group"><label style="display:flex;align-items:center;gap:6px;font-size:12px;text-transform:none;letter-spacing:0;color:var(--text2)"><input type="checkbox" id="vac-acuerdo" style="width:auto" onchange="vacValidar()"> Hay acuerdo con el trabajador para tomarlas fuera del período 1/10 al 30/4</label></div>
+      <div class="form-group"><label>Observaciones</label><input type="text" id="vac-obs"></div>
+      <div id="vac-validacion" style="font-size:12px;display:flex;flex-direction:column;gap:3px;margin-top:6px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-vacacion')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-vac" onclick="saveVacacion()">Guardar</button>
     </div>
   </div>
 </div>
@@ -3429,7 +3483,7 @@ let preciosBase=[];
 let insumos=[],herramientas=[];
 let cuentasContables=[],asientos=[],asientoLineas=[],indicesIpc=[],configContable=null,ejercicios=[],cheques=[],empleados=[],liquidaciones=[],conceptosSueldo=[],conceptosArca=[];
 let sueldosEscala=[],sueldosConvenio=[],sueldosPrevisional=[],sueldosGanTablas=[];
-let sueldosNovedades=[],sueldosAcumulados=[];
+let sueldosNovedades=[],sueldosAcumulados=[],sueldosVacaciones=[];
 let facturasRecibidas=[];
 let ordenesPago=[];
 let facturasEmitidas=[]; // listado unificado Ventas → Facturas emitidas (sprint 3 hoja 2026-09-07)
@@ -4379,6 +4433,7 @@ const TBL={
   sueldos_ganancias_tablas:{label:'Tablas de Ganancias',q:'?order=vigencia_desde.desc',set:r=>{sueldosGanTablas=r||[];_dirtyPages.add('sueldosparam');}},
   sueldos_novedades:{label:'Novedades de sueldos',q:'?order=periodo.desc',set:r=>{sueldosNovedades=r||[];_dirtyPages.add('sueldosnov');}},
   v_sueldos_acumulados:{label:'Acumulados de sueldos',q:'?order=anio.desc,mes.desc',set:r=>{sueldosAcumulados=r||[];}},
+  sueldos_vacaciones:{label:'Vacaciones programadas',q:'?order=desde.desc',set:r=>{sueldosVacaciones=r||[];_dirtyPages.add('sueldosvac');}},
 };
 let _lastLoadAllAt=0;
 async function _loadTables(nombres){
@@ -4403,7 +4458,7 @@ async function loadAll(){
 }
 
 // ─── NAV ──────────────────────────────────────────────────────────
-const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',planos:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',femitidas:'ventas',clientes:'ventas',ctacte:'ventas',mailings:'ventas',precios:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',kpiscalidad:'calidad',revdir:'calidad',auditorias:'calidad',competencias:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',eecc:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',bienesuso:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',exportables:'contabilidad',sueldos:'contabilidad',sueldosnov:'contabilidad',sueldosparam:'contabilidad',config:'config'};
+const PAGE_TO_GROUP={dash:'dash',mp:'inventario',pt:'inventario',cert:'inventario',insumos:'inventario',herramientas:'inventario',op:'produccion',planos:'produccion',eficiencia:'produccion',compras:'compras',presupuestos:'ventas',ventas:'ventas',femitidas:'ventas',clientes:'ventas',ctacte:'ventas',mailings:'ventas',precios:'ventas',costos:'analisis',trace:'analisis',ncr:'calidad',doccontrol:'calidad',pqptpl:'calidad',kpiscalidad:'calidad',revdir:'calidad',auditorias:'calidad',competencias:'calidad',cuentas:'contabilidad',asientosp:'contabilidad',cobpag:'contabilidad',cheques:'contabilidad',librodiario:'contabilidad',libromayor:'contabilidad',balance:'contabilidad',estado:'contabilidad',balgral:'contabilidad',eecc:'contabilidad',ratios:'contabilidad',ipc:'contabilidad',ajuste:'contabilidad',bienesuso:'contabilidad',cierre:'contabilidad',compha:'contabilidad',compej:'contabilidad',bimon:'contabilidad',periodos:'contabilidad',correlatividad:'contabilidad',conciliacion:'contabilidad',exportables:'contabilidad',sueldos:'contabilidad',sueldosnov:'contabilidad',sueldosvac:'contabilidad',sueldosparam:'contabilidad',config:'config'};
 const GROUP_TABS={
   inventario:[{k:'mp',l:'Materia prima'},{k:'pt',l:'Productos terminados'},{k:'cert',l:'Certificados MTC'},{k:'insumos',l:'Insumos'},{k:'herramientas',l:'Herramientas'}],
   produccion:[{k:'op',l:'Órdenes'},{k:'planos',l:'Planos'},{k:'eficiencia',l:'Eficiencia'}],
@@ -4412,7 +4467,7 @@ const GROUP_TABS={
     {k:'asientosp',l:'Asientos'},
     {k:'cobpag',l:'Cobros y Pagos'},
     {k:'cheques',l:'Cheques'},
-    {k:'nomina',l:'Sueldos',sub:[{k:'sueldos',l:'Liquidaciones'},{k:'sueldosnov',l:'Novedades'},{k:'sueldosparam',l:'Escalas y parámetros'}]},
+    {k:'nomina',l:'Sueldos',sub:[{k:'sueldos',l:'Liquidaciones'},{k:'sueldosnov',l:'Novedades'},{k:'sueldosvac',l:'Vacaciones'},{k:'sueldosparam',l:'Escalas y parámetros'}]},
     {k:'correlatividad',l:'Correlatividad'},
     {k:'conciliacion',l:'Conciliación bancaria'},
     {k:'exportables',l:'Exportables'},
@@ -4427,7 +4482,7 @@ const GROUP_TABS={
 };
 // Mapa sub-página → tab-padre (para resaltar la tab principal cuando se está en una sub-página)
 const PAGE_TO_PARENT={
-  sueldos:'nomina',sueldosnov:'nomina',sueldosparam:'nomina',
+  sueldos:'nomina',sueldosnov:'nomina',sueldosvac:'nomina',sueldosparam:'nomina',
   kpiscalidad:'sgc',revdir:'sgc',auditorias:'sgc',competencias:'sgc',
   librodiario:'libros',libromayor:'libros',
   balance:'estados',estado:'estados',balgral:'estados',eecc:'estados',
@@ -5838,6 +5893,7 @@ function renderSueldosNovedades(){
   tbody.innerHTML=activos.length?activos.map(e=>{
     const nov=sueldosNovedades.find(n=>n.empleado_id===e.id&&n.periodo===periodoDB&&n.tipo===tipo)||{};
     const esJornal=e.modalidad==='jornal';
+    const saldoBanco=e.banco_horas?computeBancoHoras(sueldosNovedades,e.id).saldo:0;
     const num=(campo,width,step,extra)=>`<input type="number" step="${step}" style="width:${width}px" data-nov-emp="${e.id}" data-nov-campo="${campo}" value="${esc(nov[campo]??'')}"${extra||''}>`;
     return `<tr>
       <td style="font-weight:500;white-space:nowrap">${esc(e.nombre)}</td>
@@ -5847,6 +5903,8 @@ function renderSueldosNovedades(){
       <td>${num('hs_extra_100',55,'0.5')}</td>
       <td>${num('feriados_no_trabajados',50,'1')}</td>
       <td>${num('feriados_trabajados_hs',55,'0.5')}</td>
+      <td>${num('hs_banco_acreditadas',55,'0.5',e.banco_horas?` title="Saldo del banco: ${saldoBanco} h"`:' disabled title="Sin acuerdo de banco de horas en el legajo"')}</td>
+      <td>${num('hs_banco_compensadas',55,'0.5',e.banco_horas?` title="Saldo del banco: ${saldoBanco} h"`:' disabled title="Sin acuerdo de banco de horas en el legajo"')}</td>
       <td>${num('ausencias_injustificadas',55,'0.5')}</td>
       <td>${num('enfermedad_dias',50,'0.5')}</td>
       <td>${num('accidente_dias',50,'0.5')}</td>
@@ -5858,7 +5916,7 @@ function renderSueldosNovedades(){
       <td>${num('premio_produccion',80,'0.01')}</td>
       <td><input type="text" style="width:150px" data-nov-emp="${e.id}" data-nov-campo="observaciones" value="${esc(nov.observaciones||'')}"></td>
     </tr>`;
-  }).join(''):`<tr><td colspan="17" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Sin empleados activos.</td></tr>`;
+  }).join(''):`<tr><td colspan="19" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Sin empleados activos.</td></tr>`;
 }
 function _novRows(){const por={};document.querySelectorAll('[data-nov-emp]').forEach(inp=>{const k=inp.dataset.novCampo;let v=inp.type==='number'?(inp.value===''?null:parseFloat(inp.value)):inp.value;if(k==='feriados_no_trabajados'&&v!==null)v=Math.round(v);(por[inp.dataset.novEmp]=por[inp.dataset.novEmp]||{empleado_id:inp.dataset.novEmp})[k]=v;});return Object.values(por);}
 async function saveNovedades(){
@@ -5877,6 +5935,112 @@ async function novPrecargarHoras(){
     if(hs&&inp&&inp.value===''){inp.value=g('nov-tipo')==='mensual'?hs:Math.round(hs/2*100)/100;n++;}
   });
   notify(n?`${n} jornales precargados desde los timers — revisá y guardá`:'No hay horas de planta para ese período');
+}
+
+function novTraerVacaciones(){
+  const periodo=g('nov-periodo'),tipo=g('nov-tipo');if(!periodo)return notify('Indicá el período primero','err');
+  const fin=finPeriodo(periodo+'-01',tipo),ini=tipo==='quincena2'?`${periodo}-16`:`${periodo}-01`;let n=0;
+  empleados.filter(e=>e.activo!==false).forEach(e=>{
+    const d=diasVacacionesEnPeriodo(sueldosVacaciones,e.id,ini,fin);
+    const inp=document.querySelector(`[data-nov-emp="${e.id}"][data-nov-campo="vacaciones_dias"]`);
+    if(d>0&&inp&&inp.value===''){inp.value=d;n++;}
+  });
+  notify(n?`${n} empleado(s) con vacaciones precargadas — revisá y guardá`:'No hay vacaciones programadas en ese período');
+}
+
+// ── Vacaciones programadas (Ley 27.802 art. 41 → LCT 154) ──
+let _vacEditId=null;
+function _vacAnioDefault(){const h=hoyLocal();return Number(h.slice(5,7))>=5?Number(h.slice(0,4)):Number(h.slice(0,4))-1;}
+function vacDiasCorresponden(e,anio){
+  const fin=`${anio}-12-31`,ing=e.fecha_ingreso_reconocida||e.fecha_ingreso;if(!ing||ing>fin)return 0;
+  const ini=`${anio}-01-01`,real=e.fecha_ingreso||ing;
+  return diasVacacionesLCT(antiguedadEntre(ing,fin).anios,_dias(real>ini?real:ini,fin));
+}
+function _vacDias(v){return v.desde&&v.hasta?_dias(v.desde,v.hasta):Number(v.dias)||0;}
+function renderSueldosVacaciones(){
+  const anioEl=document.getElementById('vac-anio');if(!anioEl)return;
+  if(!anioEl.value)anioEl.value=_vacAnioDefault();
+  const anio=Number(anioEl.value),hoy=hoyLocal();
+  const activos=empleados.filter(e=>e.activo!==false);
+  const delAnio=sueldosVacaciones.filter(v=>Number(v.anio)===anio);
+  const resumen=activos.map(e=>{const tr=delAnio.filter(v=>v.empleado_id===e.id);const corr=vacDiasCorresponden(e,anio),prog=tr.reduce((a,v)=>a+_vacDias(v),0);
+    return {e,corr,prog,saldo:corr-prog,sinNotificar:tr.filter(v=>!v.notificado_el).length};});
+  const st=document.getElementById('sueldosvac-stats');
+  if(st)st.innerHTML=`
+    <div class="stat-card"><div class="stat-label">Días que corresponden</div><div class="stat-value" style="color:var(--blue)">${resumen.reduce((a,r)=>a+r.corr,0)}</div></div>
+    <div class="stat-card"><div class="stat-label">Días programados</div><div class="stat-value" style="color:var(--green)">${resumen.reduce((a,r)=>a+r.prog,0)}</div></div>
+    <div class="stat-card"><div class="stat-label">Empleados con saldo sin programar</div><div class="stat-value" style="color:${resumen.some(r=>r.saldo>0)?'var(--amber)':'var(--text3)'}">${resumen.filter(r=>r.saldo>0).length}</div></div>
+    <div class="stat-card"><div class="stat-label">Tramos sin notificar</div><div class="stat-value" style="color:${delAnio.some(v=>!v.notificado_el)?'var(--coral)':'var(--text3)'}">${delAnio.filter(v=>!v.notificado_el).length}</div></div>`;
+  const tb1=document.getElementById('vac-resumen-tbody');
+  if(tb1)tb1.innerHTML=resumen.length?resumen.map(r=>`<tr><td style="font-weight:500">${esc(r.e.nombre)}</td><td class="mono" style="font-size:11px">${esc(antiguedadEntre(r.e.fecha_ingreso_reconocida||r.e.fecha_ingreso,`${anio}-12-31`).texto)}</td><td class="mono">${r.corr}</td><td class="mono">${r.prog}</td><td class="mono" style="color:${r.saldo>0?'var(--amber)':r.saldo<0?'var(--coral)':'var(--text3)'}">${r.saldo}</td><td><button class="btn btn-ghost btn-sm" onclick="openVacacion(null,'${r.e.id}')">+ Programar</button></td></tr>`).join('')
+    :`<tr><td colspan="6" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Sin empleados activos.</td></tr>`;
+  const tb2=document.getElementById('vac-tbody');
+  if(tb2)tb2.innerHTML=delAnio.length?delAnio.slice().sort((a,b)=>String(a.desde).localeCompare(String(b.desde))).map(v=>{
+    const e=empleados.find(x=>x.id===v.empleado_id)||{};
+    const val=validarVacaciones({desde:v.desde,hasta:v.hasta,notificado_el:v.notificado_el,acuerdoFueraPeriodo:v.acuerdo_fuera_periodo,diasCorresponden:vacDiasCorresponden(e,anio),
+      programadas:delAnio.filter(x=>x.empleado_id===v.empleado_id&&x.id!==v.id),historial:sueldosVacaciones.filter(x=>x.empleado_id===v.empleado_id&&Number(x.anio)<anio)});
+    const obs=[...val.errores,...val.avisos];
+    const estado=v.hasta<hoy?'<span class="badge badge-teal">GOZADAS</span>':v.desde<=hoy?'<span class="badge badge-ok">EN CURSO</span>':v.notificado_el?'<span class="badge badge-blue">NOTIFICADA</span>':'<span class="badge badge-coral">SIN NOTIFICAR</span>';
+    return `<tr><td style="font-weight:500">${esc(e.nombre||'')}</td><td class="mono" style="font-size:11px">${fmtFecha(v.desde)}</td><td class="mono" style="font-size:11px">${fmtFecha(v.hasta)}</td><td class="mono">${_vacDias(v)}</td><td class="mono" style="font-size:11px">${fmtFecha(v.notificado_el)||'—'}</td><td>${estado}</td><td style="font-size:11px;color:${val.errores.length?'var(--coral)':'var(--text3)'};max-width:280px">${obs.map(esc).join(' · ')||'—'}</td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="imprimirNotificacionVacaciones('${v.id}')" title="Imprime la notificación escrita (original y duplicado) y registra la fecha">🖨 Notificación</button><button class="btn btn-ghost btn-sm" onclick="openVacacion('${v.id}')">Editar</button><button class="btn btn-danger btn-sm" onclick="deleteVacacion('${v.id}')">✗</button></td></tr>`;
+  }).join(''):`<tr><td colspan="8" class="empty-cell" style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Sin vacaciones programadas para ${anio}. El período legal va del 1/10/${anio} al 30/4/${anio+1}.</td></tr>`;
+}
+function openVacacion(id,empleadoId){
+  _vacEditId=id||null;const v=id?sueldosVacaciones.find(x=>x.id===id):null;
+  const sel=document.getElementById('vac-empleado');
+  sel.innerHTML=empleados.filter(e=>e.activo!==false||e.id===v?.empleado_id).map(e=>`<option value="${e.id}">${esc(e.nombre)}</option>`).join('');
+  sel.value=v?.empleado_id||empleadoId||sel.value;sel.disabled=!!v;
+  document.getElementById('vac-modal-title').textContent=v?'Editar vacaciones':'Programar vacaciones';
+  document.getElementById('vac-f-anio').value=v?.anio||document.getElementById('vac-anio').value||_vacAnioDefault();
+  document.getElementById('vac-desde').value=v?.desde||'';document.getElementById('vac-hasta').value=v?.hasta||'';
+  document.getElementById('vac-notificado').value=v?.notificado_el||'';
+  document.getElementById('vac-acuerdo').checked=!!v?.acuerdo_fuera_periodo;
+  document.getElementById('vac-obs').value=v?.observaciones||'';
+  openModal('modal-vacacion');vacValidar();
+}
+function _vacForm(){
+  const eid=g('vac-empleado'),anio=Number(g('vac-f-anio'))||_vacAnioDefault(),e=empleados.find(x=>x.id===eid)||{};
+  const val=validarVacaciones({desde:g('vac-desde'),hasta:g('vac-hasta'),notificado_el:g('vac-notificado')||null,acuerdoFueraPeriodo:document.getElementById('vac-acuerdo').checked,
+    diasCorresponden:vacDiasCorresponden(e,anio),programadas:sueldosVacaciones.filter(x=>x.empleado_id===eid&&Number(x.anio)===anio&&x.id!==_vacEditId),
+    historial:sueldosVacaciones.filter(x=>x.empleado_id===eid&&Number(x.anio)<anio)});
+  return {eid,anio,e,val};
+}
+function vacValidar(){
+  const {e,anio,val}=_vacForm();const box=document.getElementById('vac-validacion');if(!box)return val;
+  const corr=vacDiasCorresponden(e,anio);
+  box.innerHTML=`<div style="color:var(--text2)">Corresponden <b>${corr}</b> días por antigüedad · ya programados <b>${val.ya_programados}</b> · este tramo <b>${val.dias}</b>${val.temporada_verano?' · en temporada de verano':''}</div>`
+    +val.errores.map(x=>`<div style="color:var(--coral)">✗ ${esc(x)}</div>`).join('')+val.avisos.map(x=>`<div style="color:var(--amber)">⚠ ${esc(x)}</div>`).join('');
+  return val;
+}
+async function saveVacacion(){
+  const {eid,anio,val}=_vacForm();
+  if(!eid)return notify('Elegí el empleado','err');
+  if(val.errores.length)return notify(val.errores[0],'err');
+  const data={empleado_id:eid,anio,desde:g('vac-desde'),hasta:g('vac-hasta'),dias:val.dias,notificado_el:g('vac-notificado')||null,
+    acuerdo_fuera_periodo:document.getElementById('vac-acuerdo').checked,observaciones:g('vac-obs')||null};
+  setBusy('btn-save-vac',true);
+  try{
+    if(_vacEditId)await PATCH('sueldos_vacaciones',data,`?id=eq.${_vacEditId}`);
+    else await POST('sueldos_vacaciones',{empresa_id:currentEmpresa.id,...data});
+    await reload('sueldos_vacaciones');_modalDirty['modal-vacacion']=false;closeModal('modal-vacacion',true);_vacEditId=null;
+    renderAll();notify('Vacaciones guardadas');
+  }catch(e){notify(msgError(e),'err');}
+  finally{setBusy('btn-save-vac',false,'Guardar');}
+}
+async function deleteVacacion(id){
+  if(!confirm('¿Eliminar este tramo de vacaciones?'))return;
+  try{await DEL('sueldos_vacaciones',`?id=eq.${id}`);await reload('sueldos_vacaciones');renderAll();notify('Tramo eliminado');}
+  catch(e){notify(msgError(e),'err');}
+}
+async function imprimirNotificacionVacaciones(id){
+  const v=sueldosVacaciones.find(x=>x.id===id);if(!v)return;
+  const e=empleados.find(x=>x.id===v.empleado_id)||{},cfg=configContable||{},fecha=v.notificado_el||hoyLocal();
+  const win=window.open('','_blank');if(!win)return notify('El navegador bloqueó la ventana emergente','err');
+  win.document.write(`<!DOCTYPE html><html><head><title>Vacaciones ${esc(e.nombre||'')}</title></head><body>${renderNotificacionVacaciones({empresa:{razon_social:cfg.razon_social_recibo||currentEmpresa?.nombre||'',cuit:cfg.cuit_empleador||''},empleado:e,vacacion:{...v,dias:_vacDias(v)},fechaEmision:fecha})}</body></html>`);win.document.close();
+  setTimeout(()=>win.print(),300);
+  if(!v.notificado_el){
+    try{await PATCH('sueldos_vacaciones',{notificado_el:fecha},`?id=eq.${id}`);await reload('sueldos_vacaciones');renderAll();}
+    catch(err){notify(msgError(err),'err');}
+  }
 }
 
 // ── Empleados (CRUD) ──
@@ -5918,6 +6082,8 @@ function openEmpleado(id){
   document.getElementById('emp-presentismo').checked=e?e.presentismo!==false:true;
   s('emp-antiguedad-pct',e?.antiguedad_pct);
   s('emp-ingreso-reconocida',e?.fecha_ingreso_reconocida);
+  s('emp-rifl-desde',e?.rifl_desde);s('emp-plazo-hasta',e?.contrato_plazo_hasta);s('emp-banco-acuerdo',e?.banco_horas_acuerdo);
+  document.getElementById('emp-banco-horas').checked=!!e?.banco_horas;
   empOnConvenioChange();
   // Conceptos fijos (083)
   _empAdic=(e?.adicionales_fijos||[]).map(a=>({codigo:a.codigo,modo:a.pct!=null?'pct':'importe',valor:a.pct!=null?Number(a.pct):Number(a.importe)||0}));
@@ -6056,6 +6222,9 @@ async function saveEmpleado(){
       afiliado_sindicato:chk('emp-afiliado'),presentismo:chk('emp-presentismo'),
       antiguedad_pct:g('emp-antiguedad-pct')?parseFloat(g('emp-antiguedad-pct')):null,
       fecha_ingreso_reconocida:g('emp-ingreso-reconocida')||null,
+      // Ley 27.802 (085)
+      rifl_desde:g('emp-rifl-desde')||null,contrato_plazo_hasta:g('emp-plazo-hasta')||null,
+      banco_horas:chk('emp-banco-horas'),banco_horas_acuerdo:g('emp-banco-acuerdo')||null,
       adicionales_fijos:_empAdic.filter(r=>r.codigo).map(r=>({codigo:r.codigo,...(r.modo==='pct'?{pct:r.valor||0}:{importe:r.valor||0})})),
       conceptos_recurrentes:_empRec.filter(r=>r.codigo).map(r=>({codigo:r.codigo,importe:r.importe||0,desde:r.desde||null,hasta:r.hasta||null,cuotas_total:r.cuotas_total||null,cuotas_pagadas:r.cuotas_pagadas||0})),
       // Ganancias (083)
@@ -6132,6 +6301,8 @@ function openBajaEmpleado(id){
   document.getElementById('baja-vac-gozadas').value=_bajaVacGozadas(id,hoyLocal())||0;
   document.getElementById('baja-pactado').value='';
   document.getElementById('baja-indem-anterior').value='';
+  document.getElementById('baja-base-manual').value='';document.getElementById('baja-reingreso').value='';
+  document.getElementById('baja-fin-plazo').value=e.contrato_plazo_hasta||'';
   document.getElementById('baja-preview').innerHTML='';
   openModal('modal-baja-empleado');
   previewBaja();
@@ -6143,6 +6314,8 @@ function previewBaja(){
     const ctx=_ctxRecibo({...e,fecha_egreso:fe},periodo,'mensual',nov);const mes=computeRecibo(ctx);
     const fin=computeLiquidacionFinal({empleado:e,fechaEgreso:fe,causa:g('baja-causa'),preavisoOtorgado:document.getElementById('baja-preaviso').checked,
       topeIndemnizatorio:parseFloat(g('baja-tope'))||0,importePactado:parseFloat(g('baja-pactado'))||0,indemnizacionAnterior:parseFloat(g('baja-indem-anterior'))||0,
+      baseManual:parseFloat(g('baja-base-manual'))||0,fechaReingreso:g('baja-reingreso')||null,fechaFinPlazo:g('baja-fin-plazo')||null,
+      bancoHorasSaldo:e.banco_horas?computeBancoHoras(sueldosNovedades,e.id).saldo:0,
       // Ley 27.802 art. 51: la base indemnizatoria mira los 12 meses anteriores al egreso (puede cruzar el
       // año calendario) → se pasan TODOS los acumulados del empleado; computeSAC filtra su semestre solo.
       acumulados:(sueldosAcumulados||[]).filter(a=>a.empleado_id===e.id),catalogo:conceptosSueldo,convenio:ctx.convenio,escala:ctx.escala,previsional:ctx.previsional,
@@ -7235,6 +7408,7 @@ function _spVigList(tipo,elId,idPrefix){
   if(fechaEl)fechaEl.value=row?row.vigencia_desde:(vigSel||'');
   return {list,vigSel,row};
 }
+function cvCheckSolidario(){const el=document.getElementById('cv-solidario-aviso');if(el)el.textContent=(parseFloat(g('cv-aporte_solidario_pct'))||0)>2?'Supera el tope legal del 2 % (Ley 27.802)':'';}
 function renderConvenioPanel(){
   const {row}=_spVigList('convenio','cv-vig-list','cv-');
   const s=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v??0;};
@@ -7243,7 +7417,7 @@ function renderConvenioPanel(){
   s('cv-antiguedad_pct',row?.antiguedad_pct??1);s('cv-horas_mes',row?.horas_mes??200);s('cv-horas_dia',row?.horas_dia??8);
   s('cv-presentismo_pct',row?.presentismo_pct??0);s('cv-presentismo_tolerancia_dias',row?.presentismo_tolerancia_dias??0);
   s('cv-sepelio_importe',row?.sepelio_importe??0);s('cv-scvo_importe',row?.scvo_importe??0);
-  s('cv-cuota_sindical_pct',row?.cuota_sindical_pct??2.5);s('cv-aporte_solidario_pct',row?.aporte_solidario_pct??2);
+  s('cv-cuota_sindical_pct',row?.cuota_sindical_pct??2.5);s('cv-aporte_solidario_pct',row?.aporte_solidario_pct??2);cvCheckSolidario();
   s('cv-redondeo_a',row?.redondeo_a??10);s('cv-periodo_prueba_meses',row?.periodo_prueba_meses??6);
   const chkEl=document.getElementById('cv-tope_por_quincena');
   if(chkEl)chkEl.checked=row?row.tope_por_quincena!==false:true;
@@ -7959,6 +8133,13 @@ function computeAlertas(){
     titulo:uno(certPend.length,'Certificado de trabajo pendiente (45 días hábiles, art. 25 Ley 27.802)','Certificados de trabajo pendientes (45 días hábiles, art. 25 Ley 27.802)'),
     detalle:certPend.slice(0,3).map(e=>esc(e.nombre)+` (egreso ${fmtFecha(e.fecha_egreso)})`).join('  —  ')+masDe(certPend)});
 
+  // Ley 27.802 art. 41 (LCT 154): vacaciones que empiezan en los próximos 45 días sin notificación
+  // escrita. Crítica si ya faltan menos de 30 días (el plazo legal ya no se puede cumplir).
+  const vacSinNotif=(sueldosVacaciones||[]).filter(v=>!v.notificado_el&&v.desde>=hoy&&v.desde<=hoyLocal(45));
+  if(vacSinNotif.length)out.push({sev:vacSinNotif.some(v=>v.desde<hoyLocal(30))?'crit':'warn',page:'sueldosvac',count:vacSinNotif.length,
+    titulo:uno(vacSinNotif.length,'Vacaciones sin notificar por escrito (30 días de anticipación)','Vacaciones sin notificar por escrito (30 días de anticipación)'),
+    detalle:vacSinNotif.slice(0,3).map(v=>esc(empleados.find(e=>e.id===v.empleado_id)?.nombre||'')+` (desde ${fmtFecha(v.desde)})`).join('  —  ')+masDe(vacSinNotif)});
+
   const rep=calcReordenTodos().filter(r=>r.bajo);
   if(rep.length)out.push({sev:'crit',page:'mp',count:rep.length,
     titulo:uno(rep.length,'Material bajo punto de reorden','Materiales bajo punto de reorden'),
@@ -8510,6 +8691,7 @@ const PAGE_RENDERS={
   cheques:[renderCheques],
   sueldos:[renderSueldos],
   sueldosnov:[renderSueldosNovedades],
+  sueldosvac:[renderSueldosVacaciones],
   sueldosparam:[renderSueldosParam],
   librodiario:[renderLibroDiario],
   libromayor:[populateLibroMayorSel,renderLibroMayor],
@@ -14357,7 +14539,7 @@ function aplicarPermisos(){
   const navItems=document.querySelectorAll('.nav-item');
   if(esAdmin||!currentUserData){navItems.forEach(n=>n.style.display='flex');return;}
   // Mapeo grupo → módulos (si tiene acceso a alguno del grupo, se muestra)
-  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op','planos','eficiencia'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte','mailings','precios'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl','sgc'],contabilidad:['cuentas','asientosp','cobpag','cheques','sueldos','sueldosnov','sueldosparam','librodiario','libromayor','balance','estado','balgral','eecc','bimon','ratios','compha','compej','ipc','ajuste','bienesuso','cierre','periodos','correlatividad','conciliacion','exportables']};
+  const groupMods={dash:['dash'],inventario:['mp','pt','cert','insumos','herramientas'],produccion:['op','planos','eficiencia'],compras:['compras'],ventas:['presupuestos','ventas','clientes','ctacte','mailings','precios'],analisis:['costos','trace'],calidad:['ncr','doccontrol','pqptpl','sgc'],contabilidad:['cuentas','asientosp','cobpag','cheques','sueldos','sueldosnov','sueldosvac','sueldosparam','librodiario','libromayor','balance','estado','balgral','eecc','bimon','ratios','compha','compej','ipc','ajuste','bienesuso','cierre','periodos','correlatividad','conciliacion','exportables']};
   navItems.forEach(n=>{
     const g=n.dataset.group;
     if(g==='config'){n.style.display='none';return;}
@@ -18149,7 +18331,14 @@ function computeRecibo(ctx){
   // y los conceptos 7/8/37 (base 'valor_dia') reintegran esos días aparte (spec §8).
   const ausencias=num(nov.ausencias_injustificadas)+num(nov.licencia_sin_goce_dias)+num(nov.enfermedad_dias)+num(nov.accidente_dias)+num(nov.licencia_paga_dias);
   const diasTrab=Math.max(0,(nov.dias_trabajados!=null?num(nov.dias_trabajados):diasCal)-ausencias-num(nov.vacaciones_dias));
-  const horasNorm=esJornal?(nov.horas_normales!=null?num(nov.horas_normales):diasTrab*horasDia*fJor):0;
+  // Ley 27.802 art. 42 (LCT 197 bis): banco de horas por acuerdo escrito (legajo.banco_horas). Las
+  // horas ACREDITADAS son extras trabajadas que no se pagan: quedan a favor del trabajador. Las
+  // COMPENSADAS son horas no trabajadas que se pagan como normales (sólo cambia el jornal; al
+  // mensualizado no se le descuenta nada). Equivalencia 1 a 1 salvo que el acuerdo diga otra cosa.
+  const bancoAcred=num(nov.hs_banco_acreditadas),bancoComp=num(nov.hs_banco_compensadas),bancoOk=!!e.banco_horas;
+  if((bancoAcred>0||bancoComp>0)&&!bancoOk)alertas.push('Banco de horas cargado sin acuerdo escrito en el legajo (art. 197 bis LCT): no se compensa');
+  if(bancoOk&&(bancoAcred>0||bancoComp>0))alertas.push(`Banco de horas: ${bancoAcred} h acreditadas (no se pagan como extras) y ${bancoComp} h compensadas (se pagan como horas normales)`);
+  const horasNorm=esJornal?(nov.horas_normales!=null?num(nov.horas_normales):diasTrab*horasDia*fJor)+(bancoOk?bancoComp:0):0;
   const parcial=diasCal<dPer||num(nov.vacaciones_dias)>0;   // mes de ingreso/egreso o vacaciones → tope prorrateado
   if(!e.fecha_ingreso)alertas.push('Sin fecha de ingreso: antigüedad 0');
   if(!nov||!Object.keys(nov).length)alertas.push('Sin novedades cargadas: se asume período completo');
@@ -18271,6 +18460,13 @@ function computeRecibo(ctx){
   // remuneración en dinero. Alerta, no bloquea: la contadora decide cómo diferir el excedente.
   {const volunt=r2(conceptos.filter(x=>porCod[x.codigo]?.regla?.art133).reduce((a,x)=>a+x.importe,0));const remDinero=r2(remBruto+noRem);
     if(volunt>0&&remDinero>0&&volunt>r2(remDinero*0.2))alertas.push(`Descuentos voluntarios ${volunt} superan el 20 % de la remuneración en dinero (${r2(remDinero*0.2)}) — art. 133 LCT / art. 37 Ley 27.802`);}
+  // Ley 27.802 art. 133 (art. 9 Ley 14.250): los aportes de convenio a favor del sindicato válidos
+  // para afiliados y no afiliados (aporte solidario) no pueden superar el 2 % de la remuneración.
+  // La cuota de afiliación queda expresamente EXCLUIDA de ese tope.
+  if(esUom&&e.afiliado_sindicato===false&&num(conv.aporte_solidario_pct)>2)alertas.push(`Aporte solidario ${num(conv.aporte_solidario_pct)} % supera el tope del 2 % para aportes sindicales de convenio (art. 9 Ley 14.250, texto Ley 27.802)`);
+  // LCT 130 (sin cambios): los adelantos no entran en el tope del 20 % del art. 133, pero no pueden
+  // superar el 50 % de la remuneración del período.
+  if(num(nov.adelanto)>r2((remBruto+noRem)*0.5))alertas.push(`Adelanto ${num(nov.adelanto)} supera el 50 % de la remuneración del período (${r2((remBruto+noRem)*0.5)}) — art. 130 LCT`);
   // Ganancias (Task 5) — se enchufa acá
   let gan=null;
   if(e.ganancias_aplica&&typeof computeGanancias==='function'&&ctx.ganTabla&&['mensual','quincena2','sac','final'].includes(tipo)){
@@ -18289,15 +18485,23 @@ function computeRecibo(ctx){
   const baseSipa=Math.max(0,r2(remBruto-detr)),baseOs=r2(remBruto+noRemOs);
   // Ley 27.802 Título II: Fondo de Asistencia Laboral (fal_pct sobre la base SIPA, código 649) con
   // reducción equivalente de la contribución SIPA (art. 76) — el costo patronal total no cambia.
-  const falPct=num(prev.fal_pct),sipaPct=Math.max(0,r2(num(prev.contrib_sipa_pct)-falPct));
+  // Ley 27.802 arts. 156-163 (RIFL): por las altas encuadradas (legajo.rifl_desde) y durante 48
+  // meses, 2 % TOTAL por SIPA + FNE + AAFF y 3 % INSSJP; el FAL se ingresa completo, sin la
+  // reducción del art. 76. Obra social y FSR no cambian.
+  const falPct=num(prev.fal_pct);
+  const _idxMes=f=>Number(String(f).slice(0,4))*12+Number(String(f).slice(5,7))-1;
+  const riflMes=e.rifl_desde?_idxMes(periodo)-_idxMes(e.rifl_desde)+1:0,enRifl=riflMes>=1&&riflMes<=48;
+  if(enRifl)alertas.push(`RIFL: contribuciones reducidas, mes ${riflMes} de 48 (arts. 156-163 Ley 27.802)`);
+  const sipaPct=enRifl?2:Math.max(0,r2(num(prev.contrib_sipa_pct)-falPct));
+  const inssjpPct=enRifl?3:num(prev.contrib_inssjp_pct),fnePct=enRifl?0:num(prev.contrib_fne_pct),aaffPct=enRifl?0:num(prev.contrib_aaff_pct);
   const contribuciones=[
     {codigo:'640',nombre:'SVC',pct:null,base:r2(num(conv.scvo_importe)*fPer),importe:r2(num(conv.scvo_importe)*fPer)},
-    {codigo:'642',nombre:'CONTRIBUCION INSSJP',pct:num(prev.contrib_inssjp_pct),base:baseSipa,importe:r2(baseSipa*num(prev.contrib_inssjp_pct)/100)},
+    {codigo:'642',nombre:'CONTRIBUCION INSSJP',pct:inssjpPct,base:baseSipa,importe:r2(baseSipa*inssjpPct/100)},
     {codigo:'643',nombre:'CONTRIBUCION ANSSAL',pct:num(prev.contrib_fsr_pct),base:baseOs,importe:r2(baseOs*num(prev.contrib_fsr_pct)/100)},
-    {codigo:'644',nombre:'CONTRIBUCION JUBILACION',pct:sipaPct,base:baseSipa,importe:r2(baseSipa*sipaPct/100)},
+    {codigo:'644',nombre:enRifl?'CONTRIBUCION SIPA + FNE + AAFF (RIFL)':'CONTRIBUCION JUBILACION',pct:sipaPct,base:baseSipa,importe:r2(baseSipa*sipaPct/100)},
     {codigo:'645',nombre:'CONTRIBUCION OBRA SOCIAL',pct:num(prev.contrib_os_pct),base:baseOs,importe:r2(baseOs*num(prev.contrib_os_pct)/100)},
-    {codigo:'646',nombre:'CONTRIBUCION FONDO DESEMPLEO',pct:num(prev.contrib_fne_pct),base:baseSipa,importe:r2(baseSipa*num(prev.contrib_fne_pct)/100)},
-    {codigo:'647',nombre:'CONTRIBUCION SUBSIDIO FAMILIAR',pct:num(prev.contrib_aaff_pct),base:baseSipa,importe:r2(baseSipa*num(prev.contrib_aaff_pct)/100)},
+    {codigo:'646',nombre:'CONTRIBUCION FONDO DESEMPLEO',pct:fnePct,base:baseSipa,importe:r2(baseSipa*fnePct/100)},
+    {codigo:'647',nombre:'CONTRIBUCION SUBSIDIO FAMILIAR',pct:aaffPct,base:baseSipa,importe:r2(baseSipa*aaffPct/100)},
     {codigo:'649',nombre:'CONTRIBUCION FAL (Ley 27.802)',pct:falPct,base:baseSipa,importe:r2(baseSipa*falPct/100)},
   ].filter(x=>x.importe>0);
   const art=r2(remBruto*num(prev.art_pct)/100+num(prev.art_fijo)*fPer);
@@ -18375,6 +18579,77 @@ function computeBaseIndemnizatoria(acumulados,fechaEgreso,remMensual){
   }
   return {base:r2(mejorFijo+promVar),mejor_fijo:mejorFijo,prom_variables:promVar,variables_habituales:habituales,meses:keys.length};
 }
+// Ley 27.802 art. 42 (LCT 197 bis): saldo del banco de horas de un empleado = Σ horas acreditadas
+// − Σ horas compensadas de todas sus novedades hasta el período indicado (inclusive).
+function computeBancoHoras(novedades,empleadoId,hastaPeriodo){
+  const r2=x=>Math.round(x*100)/100;let a=0,c=0;
+  (novedades||[]).forEach(n=>{if(n.empleado_id!==empleadoId)return;if(hastaPeriodo&&String(n.periodo||'')>hastaPeriodo)return;
+    a+=Number(n.hs_banco_acreditadas)||0;c+=Number(n.hs_banco_compensadas)||0;});
+  return {acreditadas:r2(a),compensadas:r2(c),saldo:r2(a-c)};
+}
+// Ley 27.802 art. 41 (LCT 154): valida un tramo de vacaciones. `programadas` = otros tramos ya
+// cargados del mismo año vacacional; `historial` = tramos de años anteriores (para la regla de
+// verano una vez cada tres años). Errores bloquean el guardado; avisos no.
+function validarVacaciones(a){
+  const v=a||{},errores=[],avisos=[];
+  const dia=f=>Date.parse(f+'T00:00:00Z'),dias=(d,h)=>Math.round((dia(h)-dia(d))/86400000)+1;
+  if(!v.desde||!v.hasta)return {dias:0,errores:['Completá las fechas de inicio y fin'],avisos,ya_programados:0,temporada_verano:false};
+  if(v.hasta<v.desde)return {dias:0,errores:['La fecha de fin es anterior a la de inicio'],avisos,ya_programados:0,temporada_verano:false};
+  const n=dias(v.desde,v.hasta);
+  const ya=(v.programadas||[]).reduce((s,p)=>s+(p.desde&&p.hasta?dias(p.desde,p.hasta):Number(p.dias)||0),0);
+  const corresponden=Number(v.diasCorresponden)||0,restan=corresponden-ya;
+  if(corresponden>0&&ya+n>corresponden)errores.push(`Supera los días que corresponden: ${corresponden} por antigüedad, ${ya} ya programados, ${n} en este tramo`);
+  // fraccionamiento: cada tramo de 7 días o más, salvo que sea todo el saldo que queda
+  if(n<7&&!(corresponden>0&&n===restan))errores.push('Cada tramo de vacaciones no puede ser inferior a 7 días (art. 154 LCT)');
+  // período legal 1/10 al 30/4 del año siguiente
+  const md=v.desde.slice(5),enPeriodo=md>='10-01'||md<='04-30';
+  if(!enPeriodo&&!v.acuerdoFueraPeriodo)errores.push('Inicio fuera del período legal (1/10 al 30/4): requiere acuerdo con el trabajador');
+  // notificación escrita con 30 días de anticipación
+  if(!v.notificado_el)avisos.push('Falta notificar por escrito la fecha de inicio (30 días de anticipación)');
+  else if(Math.round((dia(v.desde)-dia(v.notificado_el))/86400000)<30)errores.push('La notificación tiene menos de 30 días de anticipación al inicio (art. 154 LCT)');
+  // temporada de verano (21/12 al 20/3) al menos una vez cada tres años
+  const tocaVerano=(d,h)=>{for(let t=dia(d);t<=dia(h);t+=86400000){const x=new Date(t).toISOString().slice(5,10);if(x>='12-21'||x<='03-20')return true;}return false;};
+  const verano=tocaVerano(v.desde,v.hasta)||(v.programadas||[]).some(p=>p.desde&&p.hasta&&tocaVerano(p.desde,p.hasta));
+  if(!verano&&(v.historial||[]).length){
+    const porAnio={};(v.historial||[]).forEach(h=>{if(h.desde&&h.hasta)porAnio[h.anio]=(porAnio[h.anio]||false)||tocaVerano(h.desde,h.hasta);});
+    const ult=Object.keys(porAnio).map(Number).sort((x,y)=>y-x).slice(0,2);
+    if(ult.length===2&&ult.every(y=>!porAnio[y]))avisos.push('Tercer año seguido sin vacaciones en temporada de verano: corresponde otorgarlas en verano al menos una vez cada tres años (art. 154 LCT)');
+  }
+  return {dias:n,errores,avisos,ya_programados:ya,temporada_verano:tocaVerano(v.desde,v.hasta)};
+}
+// Días de vacaciones programadas de un empleado que caen dentro de [ini, fin] (ambos inclusive).
+function diasVacacionesEnPeriodo(programadas,empleadoId,ini,fin){
+  const dia=f=>Date.parse(f+'T00:00:00Z');let n=0;
+  (programadas||[]).forEach(p=>{if(p.empleado_id!==empleadoId||!p.desde||!p.hasta)return;
+    const d=p.desde>ini?p.desde:ini,h=p.hasta<fin?p.hasta:fin;if(h>=d)n+=Math.round((dia(h)-dia(d))/86400000)+1;});
+  return n;
+}
+// Notificación escrita de vacaciones (art. 154 LCT): dos copias, una para el legajo con la firma
+// de recepción. Pura: devuelve el HTML listo para imprimir.
+function renderNotificacionVacaciones(args){
+  const a=args||{},empresa=a.empresa||{},e=a.empleado||{},v=a.vacacion||{};
+  const reintegro=v.hasta?new Date(Date.parse(v.hasta+'T00:00:00Z')+86400000).toISOString().slice(0,10):'';
+  const cuerpo=copia=>`<div class="vac-pagina">
+    <div class="vac-copia">${esc(copia)}</div>
+    <h1>NOTIFICACIÓN DE VACACIONES</h1>
+    <h2>Art. 154 de la Ley de Contrato de Trabajo (texto según Ley 27.802)</h2>
+    <p><b>${esc(empresa.razon_social||'')}</b> · CUIT ${esc(_reciboCuit(empresa.cuit))}</p>
+    <p>Sr./Sra. <b>${esc(e.nombre||'')}</b>, CUIL ${esc(_reciboCuit(e.cuil))}${e.legajo?`, legajo N° ${esc(e.legajo)}`:''}:</p>
+    <p>Le comunicamos que gozará de su licencia anual ordinaria correspondiente al año ${esc(v.anio||'')} desde el <b>${esc(fmtFecha(v.desde))}</b> hasta el <b>${esc(fmtFecha(v.hasta))}</b> inclusive, por un total de <b>${esc(v.dias||'')}</b> días corridos, debiendo reintegrarse a sus tareas el <b>${esc(fmtFecha(reintegro))}</b>.</p>
+    <p>La retribución del período se abona al inicio de la licencia (art. 155 LCT). Esta comunicación se cursa con la anticipación prevista en el art. 154 de la LCT.</p>
+    <p>Fecha de notificación: ${esc(fmtFecha(a.fechaEmision||''))}.</p>
+    <div class="vac-firmas"><div>Firma del empleador</div><div>Recibí copia. Firma, aclaración y fecha del trabajador</div></div>
+  </div>`;
+  return `<style>
+    .vac-pagina{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#000;max-width:720px;margin:0 auto;padding:22px 32px;border-bottom:1px dashed #999}
+    .vac-copia{text-align:right;font-size:10px;letter-spacing:1px}
+    .vac-pagina h1{font-size:15px;text-align:center;margin:4px 0}
+    .vac-pagina h2{font-size:10px;text-align:center;font-weight:normal;margin:0 0 14px;color:#333}
+    .vac-pagina p{line-height:1.5;margin:7px 0;text-align:justify}
+    .vac-firmas{margin-top:48px;display:flex;justify-content:space-between;gap:40px}
+    .vac-firmas div{flex:1;text-align:center;border-top:1px solid #000;padding-top:4px;font-size:11px}
+  </style>${cuerpo('ORIGINAL — TRABAJADOR')}${cuerpo('DUPLICADO — LEGAJO')}`;
+}
 function computeLiquidacionFinal(ctx){
   const r2=x=>Math.round(x*100)/100;const num=v=>Number(v)||0;const e=ctx.empleado||{},fe=ctx.fechaEgreso,cat=ctx.catalogo||[];
   const porCod={};cat.forEach(c=>{porCod[c.codigo]=c;});const out=[],alertas=[];
@@ -18387,7 +18662,10 @@ function computeLiquidacionFinal(ctx){
   // Ley 27.802 art. 51 (LCT 245): mejor remuneración mensual, normal y habitual del último año —
   // no el bruto máximo histórico (ver computeBaseIndemnizatoria).
   const bi=computeBaseIndemnizatoria(ctx.acumulados||[],fe,remMensual);
-  const mejorNormal=bi.base;
+  // 085: base cargada a mano en la baja — para legajos con historia anterior al sistema, donde los
+  // acumulados del ERP no cubren el último año y la base calculada caería al sueldo vigente.
+  const baseManual=num(ctx.baseManual);
+  const mejorNormal=baseManual>0?r2(baseManual):bi.base;
   const fechaIngreso=e.fecha_ingreso_reconocida||e.fecha_ingreso;
   // 2. SAC proporcional — R24: si el semestre no tiene acumulados cargados (mejor_rem=0),
   // se recalcula con la mejor remuneración normal y habitual como piso, misma fórmula y mismos
@@ -18414,28 +18692,26 @@ function computeLiquidacionFinal(ctx){
   const vacProp=Math.max(0,diasVacProp-num(ctx.vacacionesGozadasAnio));
   const vDia=num(ctx.reciboMes?.bases?.valor_dia_vacaciones)||r2(remMensual/25);
   push('517',vacProp*vDia,vacProp,`${vacProp} d × ${vDia}`);push('521',vacProp*vDia/12,1,'517 / 12');
-  // 4. Indemnizaciones — Ley 27.802 (arts. 48/51/52/53 → LCT 231/245/248/255; art. 241 mutuo acuerdo)
+  // 4. Indemnizaciones — Ley 27.802 (arts. 28/48/51/52/53 → LCT 95/231/245/248/255; LCT 241 y 250)
   const causa=ctx.causa;
-  let aniosInd=ant.anios+(ant.meses>3||(ant.meses===3&&ant.dias>0)?1:0);
+  // LCT 95 (art. 28): despido antes del vencimiento del plazo fijo → la antigüedad para la
+  // indemnización se cuenta hasta la fecha en que vencía el plazo pactado.
+  let antInd=ant;
+  if(causa==='despido_sin_causa'&&ctx.fechaFinPlazo&&ctx.fechaFinPlazo>fe){
+    antInd=antiguedadEntre(fechaIngreso,ctx.fechaFinPlazo);
+    alertas.push(`Despido antes del vencimiento del plazo fijo (art. 95 LCT): antigüedad computada hasta el ${ctx.fechaFinPlazo.slice(8,10)}/${ctx.fechaFinPlazo.slice(5,7)}/${ctx.fechaFinPlazo.slice(0,4)} (${antInd.texto})`);
+  }
+  const _aniosDe=a=>a.anios+(a.meses>3||(a.meses===3&&a.dias>0)?1:0);
+  let aniosInd=_aniosDe(antInd);
   // Período de prueba: 6 meses (LCT 92 bis según Ley 27.742; el CCT puede extenderlo a 8/12 →
   // convenio.periodo_prueba_meses). Sin indemnización por antigüedad, integración NI preaviso
   // (art. 48 Ley 27.802 eliminó el preaviso de 15 días del período de prueba).
   const ppMeses=num(ctx.convenio?.periodo_prueba_meses)||6;
   const enPeriodoPrueba=ant.anios===0&&ant.meses<ppMeses;
   const conIndemnizacion=['despido_sin_causa','fallecimiento'].includes(causa);
-  if(causa==='mutuo_acuerdo'){
-    // art. 241 LCT: extinción por voluntad concurrente — no hay indemnización legal; la suma se
-    // pacta libremente (escritura pública o ante autoridad) y se carga en la baja (código 535).
-    alertas.push('Mutuo acuerdo (art. 241): sin indemnización legal — la suma pactada se carga a mano en el campo "Importe pactado" (escritura pública o ante autoridad)');
-    if(num(ctx.importePactado)>0)push('535',num(ctx.importePactado),1,'suma pactada art. 241');
-  }
-  if(conIndemnizacion&&enPeriodoPrueba){
-    alertas.push(`Período de prueba (${ppMeses} meses): sin indemnización por antigüedad, integración ni preaviso (art. 92 bis LCT, art. 48 Ley 27.802)`);
-  }else if(conIndemnizacion){
-    // R11/R27: el mínimo garantizado de 1 base (art. 245) respeta el tope del CCT — la base es
-    // mejorNormal recortada por topeIndemnizatorio (si > 0), y el mínimo se aplica sobre ESA
-    // base. Ley 27.802: el tope nunca deja la base por debajo del 67 % de mejorNormal.
-    // Preaviso (531) e integración (532) se calculan sobre mejorNormal sin tope.
+  // Base con el tope del CCT y el piso del 67 % (art. 245). R11/R27: el mínimo de 1 base respeta
+  // el tope. Preaviso (531) e integración (532) se calculan sobre mejorNormal sin tope.
+  const baseTopeada=()=>{
     let base=mejorNormal;const piso67=r2(mejorNormal*0.67);
     if(num(ctx.topeIndemnizatorio)>0&&base>num(ctx.topeIndemnizatorio)){
       base=num(ctx.topeIndemnizatorio);
@@ -18443,12 +18719,38 @@ function computeLiquidacionFinal(ctx){
       else alertas.push('Indemnización con tope del CCT (3 × promedio)');
     }
     if(!num(ctx.topeIndemnizatorio))alertas.push('Sin tope indemnizatorio cargado: se usa la mejor remuneración sin tope');
+    return base;
+  };
+  if(causa==='mutuo_acuerdo'){
+    // art. 241 LCT: extinción por voluntad concurrente — no hay indemnización legal; la suma se
+    // pacta libremente (escritura pública o ante autoridad) y se carga en la baja (código 535).
+    alertas.push('Mutuo acuerdo (art. 241): sin indemnización legal — la suma pactada se carga a mano en el campo "Importe pactado" (escritura pública o ante autoridad)');
+    if(num(ctx.importePactado)>0)push('535',num(ctx.importePactado),1,'suma pactada art. 241');
+  }
+  if(causa==='fin_contrato'){
+    // LCT 250 (sin cambios): vencimiento del plazo fijo con el contrato íntegramente cumplido y un
+    // año o más de duración → indemnización del art. 247 (50 % de la del 245).
+    if(ant.anios>=1){
+      const base=baseTopeada();
+      push('530',Math.max(base*aniosInd,base)*0.5,aniosInd,`${base} × ${aniosInd} años (mín. 1 mes) × 50 % (art. 250 → 247)`);
+      alertas.push('Vencimiento del plazo fijo (art. 250 LCT): 50 % de la indemnización; el preaviso del art. 94 tiene que haberse dado entre 1 y 2 meses antes');
+    }else alertas.push('Vencimiento del plazo fijo con menos de un año de contrato: sin indemnización (art. 250 LCT)');
+  }
+  if(conIndemnizacion&&enPeriodoPrueba){
+    alertas.push(`Período de prueba (${ppMeses} meses): sin indemnización por antigüedad, integración ni preaviso (art. 92 bis LCT, art. 48 Ley 27.802)`);
+  }else if(conIndemnizacion){
+    const base=baseTopeada();
     let ind=Math.max(base*aniosInd,base),formula=`${base} × ${aniosInd} años (mín. 1 mes)`;
-    if(causa==='fallecimiento'){ind=ind*0.5;formula+=' × 50 % (art. 248)';}
+    if(causa==='fallecimiento'){ind=ind*0.5;formula+=' × 50 % (art. 248)';
+      alertas.push('Fallecimiento (art. 248 LCT): el pago dentro de los 30 días del deceso libera al empleador; beneficiarios: cónyuge o conviviente, hijos menores e hijos con CUD, por partes iguales');}
     if(num(ctx.indemnizacionAnterior)>0){
       // art. 255 LCT: reingreso — se deduce lo pagado por el cese anterior, actualizado por IPC;
-      // nunca menos de lo que corresponde por el último período (piso de 1 mes).
-      const ded=num(ctx.indemnizacionAnterior);ind=Math.max(base,ind-ded);formula+=` − ${ded} anterior (art. 255, mín. 1 mes)`;
+      // nunca menos de lo que correspondería si el único período fuera el último (desde el
+      // reingreso). Sin fecha de reingreso cargada el piso es de un mes.
+      const ded=num(ctx.indemnizacionAnterior);
+      const aniosUlt=ctx.fechaReingreso?Math.max(1,_aniosDe(antiguedadEntre(ctx.fechaReingreso,fe))):1;
+      const piso=base*aniosUlt*(causa==='fallecimiento'?0.5:1);
+      ind=Math.max(piso,ind-ded);formula+=` − ${ded} anterior (art. 255, piso: ${aniosUlt} base(s) por el último período)`;
       alertas.push('Reingreso: se descontó la indemnización anterior actualizada por IPC (art. 255 LCT)');
     }
     push('530',ind,aniosInd,formula);
@@ -18460,7 +18762,10 @@ function computeLiquidacionFinal(ctx){
       const faltan=ultimo-diaEg;if(faltan>0)push('532',mejorNormal/30*faltan,faltan,`${mejorNormal}/30 × ${faltan} d`);
       const p=out.find(c=>c.codigo==='531')?.importe||0,i=out.find(c=>c.codigo==='532')?.importe||0;push('533',(p+i)/12,1,'(531 + 532) / 12');}
   }else if(causa==='despido_con_causa')alertas.push('Despido con causa: sólo rubros proporcionales; verificar con asesoramiento legal');
-  if(bi.meses>0)alertas.push(`Base indemnizatoria: mejor fijo ${bi.mejor_fijo}${bi.prom_variables?` + variables promedio ${bi.prom_variables}`:''} sobre ${bi.meses} mes(es) del último año`);
+  if(baseManual>0)alertas.push(`Base indemnizatoria cargada a mano: ${mejorNormal} (la calculada por el sistema era ${bi.base})`);
+  else if(bi.meses>0)alertas.push(`Base indemnizatoria: mejor fijo ${bi.mejor_fijo}${bi.prom_variables?` + variables promedio ${bi.prom_variables}`:''} sobre ${bi.meses} mes(es) del último año`);
+  else alertas.push('Base indemnizatoria sin historia en el sistema: se usa la remuneración vigente — si el empleado tiene más de un mes liquidado afuera, cargá la base a mano');
+  if(num(ctx.bancoHorasSaldo)>0)alertas.push(`Saldo de banco de horas: ${num(ctx.bancoHorasSaldo)} h a favor del trabajador, pendientes de liquidar o compensar antes del egreso`);
   // M4: mismo criterio de orden que computeRecibo — regla.orden del catálogo, estable; los
   // conceptos sin regla/orden (p. ej. los del recibo del mes parcial) quedan al final.
   const ordenDe=cod=>porCod[cod]?.regla?.orden;

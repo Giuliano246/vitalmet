@@ -144,7 +144,7 @@ const CATR = [
   { codigo:'1', nombre:'Sueldo básico', tipo:'remunerativo', codigo_arca:'110000', marcas:'111111111111100', regla:{orden:1} },
   { codigo:'200', nombre:'Jubilación', tipo:'descuento', codigo_arca:'810000', marcas:'000000000000000', regla:{auto:true,base:'rem_topeado',pct_param:'aporte_jubilacion_pct',cantidad:'1',orden:200} },
   { codigo:'202', nombre:'Obra social', tipo:'descuento', codigo_arca:'810002', marcas:'000000000000000', regla:{auto:true,base:'rem_topeado',tiempo_completo:true,pct_param:'aporte_os_pct',cantidad:'1',orden:202} },
-  { codigo:'223', nombre:'Adelanto de sueldo', tipo:'descuento', codigo_arca:'820000', marcas:'000000000000000', regla:{auto:true,base:'fijo',cantidad:'novedad.adelanto',art133:true,orden:223} },
+  { codigo:'223', nombre:'Adelanto de sueldo', tipo:'descuento', codigo_arca:'820000', marcas:'000000000000000', regla:{auto:true,base:'fijo',cantidad:'novedad.adelanto',orden:223} },
   { codigo:'227', nombre:'Cuota de préstamo', tipo:'descuento', codigo_arca:'810007', marcas:'000000000000000', regla:{auto:false,base:'fijo',cantidad:'1',art133:true,orden:227} },
 ];
 const CONV = { horas_mes:200, horas_dia:8, antiguedad_pct:0, redondeo_a:0, tope_por_quincena:true, scvo_importe:0 };
@@ -168,10 +168,12 @@ test('FAL (Título II): línea 649 al fal_pct sobre la base SIPA y contribución
   assert.equal(contribDe(recibo())['649'], undefined);                  // fal_pct 0 → sin línea
 });
 test('art. 133: descuentos voluntarios por encima del 20 % de la remuneración en dinero → alerta (no bloquea)', () => {
-  const r = recibo({ novedad:{adelanto:150000}, empleado:{...EMPR, conceptos_recurrentes:[{codigo:'227',importe:100000,cuotas_total:10,cuotas_pagadas:0,desde:'2026-01-01'}]} });
-  assert.equal(imp(r,'223'), 150000); assert.equal(imp(r,'227'), 100000);
+  // 085: el adelanto (223) quedó fuera del tope — LCT 133 lo exceptúa y lo rige el art. 130
+  const prestamo = importe => ({...EMPR, conceptos_recurrentes:[{codigo:'227',importe,cuotas_total:10,cuotas_pagadas:0,desde:'2026-01-01'}]});
+  const r = recibo({ novedad:{adelanto:150000}, empleado:prestamo(250000) });
+  assert.equal(imp(r,'223'), 150000); assert.equal(imp(r,'227'), 250000);
   assert.ok(r.alertas.some(a => a.includes('20 %') && a.includes('art. 133')), r.alertas.join(' | '));
-  const ok = recibo({ novedad:{adelanto:150000} });
+  const ok = recibo({ novedad:{adelanto:150000}, empleado:prestamo(150000) });
   assert.ok(!ok.alertas.some(a => a.includes('art. 133')));
 });
 test('tiempo parcial (art. 92 ter): la obra social se aporta sobre la remuneración de tiempo completo; jubilación sobre la real', () => {

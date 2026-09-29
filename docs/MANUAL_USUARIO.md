@@ -774,7 +774,7 @@ Antes de liquidar el primer período hay que cargar tres cosas, en este orden: *
 Cuatro pestañas, todas con **historial por vigencia** (cada cambio se carga con la fecha desde la que rige; el motor usa siempre la vigente al último día del período que estás liquidando):
 
 - **Escala salarial:** valor hora o básico mensual por categoría UOM (Ingresante, Operario, Oficial…) y por categoría mensualizada (Administrativo, Técnico). **+ Nueva vigencia** copia la tabla actual a una fecha nueva aplicando un % de aumento parejo. Si una categoría queda en 0, el motor avisa al liquidar a un empleado de esa categoría.
-- **Convenio:** IMGR (ingreso mínimo garantizado), no remunerativo de paritaria, % de antigüedad, horas del mes y del día, % de presentismo, tolerancia de ausencias, sepelio, seguro de vida colectivo (SCVO), cuota sindical, redondeo del neto y **período de prueba** en meses (6 por ley; el CCT puede llevarlo a 8 o 12 — en período de prueba no hay indemnización ni preaviso).
+- **Convenio:** IMGR (ingreso mínimo garantizado), no remunerativo de paritaria, % de antigüedad, horas del mes y del día, % de presentismo, tolerancia de ausencias, sepelio, seguro de vida colectivo (SCVO), cuota sindical, redondeo del neto y **período de prueba** en meses (6 por ley; el CCT puede llevarlo a 8 o 12 — en período de prueba no hay indemnización ni preaviso). El **aporte solidario** de los no afiliados tiene tope legal del 2 %: si cargás más, el campo te avisa en rojo y la liquidación muestra la alerta. La cuota sindical de los afiliados no tiene ese tope.
 - **Previsional:** topes mínimo y máximo de ANSES, detracción Ley 27.430, porcentajes de aportes (jubilación, INSSJP, obra social, adherentes) y de contribuciones patronales (Dec. 814/01), ART y **FAL** (Fondo de Asistencia Laboral, Ley 27.802): desde el 1/11/2026 el 2,5 % de la base SIPA para PyME (1 % grandes empresas). El sistema ya trae cargada esa vigencia; el FAL se paga con el F.931 y baja en la misma proporción la contribución de jubilación, así que el costo total no cambia. Si ARCA posterga la fecha, editá o borrá la vigencia 2026-11-01.
 - **Ganancias:** las tablas semestrales (enero y julio) con el Ganancia No Imponible, deducción especial, cónyuge, hijo, hijo con discapacidad y los 9 tramos de la escala. Cargá la tabla nueva apenas ARCA publique los valores del semestre.
 
@@ -785,7 +785,7 @@ Estos parámetros son de configuración: sus alertas (categoría sin valor, par�
 El modal de empleado tiene cinco pestañas:
 
 1. **Datos:** legajo, nombre, CUIL, centro de costo, modalidad (jornal / mensualizado), fecha de ingreso, categoría, obra social, nombre tal como figura en las órdenes de producción (para "Traer horas de planta"), tarea, contratación, lugar de pago, banco.
-2. **Remuneración:** **convenio** (UOM o fuera de convenio — cambia qué campos siguen), **categoría de la escala salarial** (UOM) o **sueldo pactado** (fuera de convenio), horas semanales, % de antigüedad (solo fuera de convenio; en UOM lo define el convenio), fecha de ingreso reconocida (si difiere de la real, para antigüedad de otro empleador), afiliado al sindicato, cobra presentismo.
+2. **Remuneración:** **convenio** (UOM o fuera de convenio — cambia qué campos siguen), **categoría de la escala salarial** (UOM) o **sueldo pactado** (fuera de convenio), horas semanales, % de antigüedad (solo fuera de convenio; en UOM lo define el convenio), fecha de ingreso reconocida (si difiere de la real, para antigüedad de otro empleador), afiliado al sindicato, cobra presentismo. Abajo, tres datos de la Ley 27.802 que se dejan vacíos si no aplican: **alta bajo RIFL** (contribuciones reducidas por 48 meses para altas que encuadran en el régimen de formalización; es optativo y se ejerce en ARCA al dar el alta), **vencimiento del contrato a plazo fijo** y **banco de horas** (tilde + fecha del acuerdo escrito).
 3. **Conceptos fijos:** adicionales fijos que se pagan todos los meses (% del básico o importe, ej. tarea peligrosa, título) y conceptos recurrentes con vigencia y cuotas (préstamos, cuotas de cualquier tipo) — cada cuota liquidada avanza sola el contador de "pagas" al confirmar.
 4. **Ganancias:** tildá "Se retiene Impuesto a las Ganancias" solo para los empleados alcanzados (4ª categoría); hijos con discapacidad; y la lista de deducciones informadas por F.572 web (alquiler, servicio doméstico, cuota médica, seguro de vida, intereses hipotecarios, donaciones, gastos educativos) con el importe mensual y el período de vigencia.
 5. **ARCA:** los datos del F.931/LSD que ya existían (CBU, forma de pago, obra social, cónyuge, hijos, marcas, códigos de situación/condición/actividad/modalidad).
@@ -800,7 +800,10 @@ Cómo calcula la baja desde la **Ley 27.802** (Modernización Laboral):
 - **Preaviso:** un mes hasta 5 años de antigüedad, dos meses si los supera.
 - **Mutuo acuerdo (art. 241):** el sistema no calcula indemnización. Cargá en **Importe pactado** la suma acordada por escritura pública o ante la autoridad laboral; sale como "Gratificación por cese".
 - **Fallecimiento:** la mitad de la indemnización por antigüedad, sin preaviso ni integración.
-- **Reingreso:** si el empleado ya había cobrado una indemnización por un cese anterior, cargá ese importe actualizado por IPC en **Indemnización anterior actualizada** y el sistema lo descuenta (nunca deja menos de un mes).
+- **Reingreso:** si el empleado ya había cobrado una indemnización por un cese anterior, cargá ese importe actualizado por IPC en **Indemnización anterior actualizada** y la **Fecha de reingreso**. El sistema descuenta lo cobrado, pero nunca deja menos de lo que corresponde por el último período trabajado.
+- **Contrato a plazo fijo:** si vence el plazo y el contrato duró un año o más, corresponde la mitad de la indemnización (causa "Fin de contrato"). Si lo despedís antes del vencimiento, elegí "Despido sin causa": con la fecha de vencimiento cargada, la antigüedad se cuenta hasta ese día.
+- **Base a mano:** si el empleado tiene sueldos liquidados fuera del sistema durante el último año, el ERP no conoce esa historia y usa el sueldo vigente. En ese caso cargá vos la mejor remuneración normal y habitual en **Base indemnizatoria a mano**.
+- **Saldo de banco de horas:** si al egreso le quedan horas a favor, el preview lo avisa para que las liquides o compenses antes.
 
 **Certificado de trabajo:** una vez cargada la fecha de egreso, en la lista de empleados aparece el botón **Certificado**. Imprime el certificado del art. 80 (datos de la relación, función, remuneraciones de los últimos 12 meses, capacitaciones y constancia de aportes) y deja registrada la fecha de emisión. Hay **45 días hábiles** desde el egreso para entregarlo; mientras no lo emitas, el panel "Para hoy" te lo recuerda.
 
@@ -809,6 +812,24 @@ Cómo calcula la baja desde la **Ley 27.802** (Modernización Laboral):
 Elegí período y tipo (mensual / 1ª quincena / 2ª quincena) y completá, por empleado, días trabajados, horas normales (jornales), horas extras al 50 % y al 100 %, feriados no trabajados y trabajados, ausencias injustificadas, días de enfermedad, accidente y licencia paga (con su tipo), días sin goce de sueldo, días de vacaciones, adelanto, premio por producción y observaciones. Sin fila cargada, el motor asume el período completo sin novedades.
 
 **⏱ Precargar horas de planta** suma las horas productivas de los timers de Modo Planta del período (por la orden asignada al operario, vía el nombre cargado en el legajo) y las pone en "Horas norm." de los jornales que la tengan vacía — no pisa lo que ya escribiste. Importante: los días de enfermedad, accidente o licencia paga van en sus propias columnas, **no** los sumes en "Horas norm.": el motor de liquidación los computa aparte.
+
+**Banco de horas:** para los empleados con acuerdo escrito cargado en el legajo se habilitan dos columnas. En **Banco +** van las horas extras trabajadas que se guardan en lugar de pagarse. En **Banco −** van las horas libres que se toma: al jornal se le pagan como horas normales; al mensualizado no le cambia el sueldo. Pasando el mouse por la celda ves el saldo. Si cargás horas de banco a alguien sin acuerdo, la liquidación avisa y no las compensa. La equivalencia es hora por hora; si el acuerdo dice otra cosa, cargá las horas ya convertidas.
+
+**🏖 Traer vacaciones programadas** completa la columna "Vacaciones (d)" con los días cargados en Sueldos → Vacaciones que caen en el período. No pisa lo que ya escribiste.
+
+#### Vacaciones (Sueldos → **Vacaciones**)
+
+Elegí el **año vacacional** (las vacaciones de un año se toman entre el 1/10 de ese año y el 30/4 del siguiente). Arriba ves, por empleado, cuántos días le corresponden por antigüedad, cuántos tiene programados y el saldo. Con **+ Programar** cargás un tramo: fechas, fecha de notificación y, si corresponde, el tilde de acuerdo para tomarlas fuera del período legal.
+
+El sistema valida lo que pide la ley mientras escribís:
+
+- Cada tramo tiene que ser de **7 días o más**, salvo que sea todo el saldo que le queda.
+- La notificación escrita tiene que tener **30 días de anticipación**.
+- Fuera del 1/10 al 30/4 hace falta acuerdo con el trabajador.
+- No puede superar los días que le corresponden.
+- Avisa si el empleado lleva dos años sin vacaciones en verano: le tocan al menos una vez cada tres años.
+
+**🖨 Notificación** imprime la comunicación escrita en original y duplicado, con la fecha de reintegro, y registra la fecha de notificación si estaba vacía. El panel "Para hoy" te avisa de las vacaciones que empiezan dentro de 45 días y todavía no se notificaron.
 
 #### Liquidar con Calcular
 
@@ -819,7 +840,8 @@ En la liquidación (Sueldos → **+ Liquidación**, período/tipo/fecha de pago 
 - **↺ Recalcular** (por empleado) descarta también los renglones manuales y vuelve a correr el motor de cero para ese empleado.
 - Volver a apretar **⚙ Calcular** para todos conserva los renglones manuales cuyo código el motor no genera en esa corrida (para no duplicar), pero **si el código coincide con uno que el motor sí calcula, el renglón manual se pisa** — si necesitás mantener ese ajuste, volvé a cargarlo después de Calcular.
 - El botón te avisa con alertas (no bloquean el guardado) cuando falta un valor de escala, un empleado no tiene fecha de ingreso, no hay novedad cargada, se superó un tope, se perdió el presentismo por ausencias, un préstamo llegó a la última cuota, etc.
-- **Tope del 20 % de descuentos (Ley 27.802):** adelantos, cuotas de préstamo, embargos y seguros voluntarios no pueden superar en conjunto el 20 % de lo que cobra el empleado en dinero. Si se pasan, aparece la alerta con el importe máximo; el descuento no se recorta solo, lo decidís vos con la contadora.
+- **Tope del 20 % de descuentos (Ley 27.802):** cuotas de préstamo y seguros voluntarios no pueden superar en conjunto el 20 % de lo que cobra el empleado en dinero. Si se pasan, aparece la alerta con el importe máximo; el descuento no se recorta solo, lo decidís vos con la contadora. Los **adelantos** van aparte: no entran en ese 20 %, pero no pueden superar el 50 % del sueldo del período. Los embargos judiciales siguen su propio régimen.
+- **RIFL:** si el legajo tiene fecha de alta bajo RIFL, durante 48 meses las contribuciones salen al 2 % (jubilación, fondo de empleo y asignaciones, todo junto) y 3 % (INSSJP). La alerta te dice en qué mes de los 48 está. El FAL se paga completo.
 - **Jornada reducida:** si el legajo tiene menos de 48 horas semanales, el aporte de obra social se calcula como si trabajara tiempo completo (lo exige la ley); jubilación e INSSJP van sobre lo que cobra realmente.
 
 **SAC** (tipo de liquidación "SAC", período 06 o 12): calcula el aguinaldo sobre la mejor remuneración del semestre (completo o proporcional si el empleado ingresó en el semestre) — a diferencia de una liquidación mensual, **no vuelve a sumar el sueldo del mes**, solo el aguinaldo y lo que corresponde sobre él (aportes, contribuciones, Ganancias).
@@ -836,7 +858,7 @@ Para liquidaciones cargadas **antes** de este motor (sin el detalle de contribuc
 
 #### Conceptos ARCA (padrón, marcas y TXT)
 
-El botón **Conceptos** ahora trae, para cada código propio, el **código ARCA** (de un catálogo de 142 posibles, importado del padrón real del CUIT de Vitalmet) y sus **15 marcas** (qué subsistema del F.931 suma cada concepto: SIPA, INSSJP, obra social, FSR, RENATEA, AAFF, FNE, LRT, diferencial, especial). La **regla** es la fórmula que usa el motor para calcularlo solo (dejarla vacía = concepto que siempre se carga a mano). Un concepto usado en liquidaciones no se borra, se desactiva.
+El botón **Conceptos** ahora trae, para cada código propio, el **código ARCA** (de un catálogo de 142 posibles, importado del padrón real del CUIT de Vitalmet) y sus **15 marcas** (qué subsistema del F.931 suma cada concepto: SIPA, INSSJP, obra social, FSR, RENATEA, AAFF, FNE, LRT, diferencial, especial). La **regla** es la fórmula que usa el motor para calcularlo solo (dejarla vacía = concepto que siempre se carga a mano). Un concepto usado en liquidaciones no se borra, se desactiva. Para los **beneficios sociales** y reintegros que la Ley 27.802 deja fuera del sueldo (comedor, gastos médicos, ropa de trabajo, guardería, útiles, sepelio, capacitación, uso del auto por km, transporte público, celular e internet, vivienda) están los conceptos 111 a 119, 121 y 122: son no remunerativos, sin aportes ni contribuciones, y se cargan a mano con comprobante.
 
 - **Importar padrón…** lee el CSV que bajás de ARCA (Libro de Sueldos Digital → Conceptos, separado por `;`) y compara contra tu catálogo: da de alta como histórico inactivo lo que está en ARCA y no en el ERP, lista lo que está en el ERP y todavía no diste de alta en ARCA, y avisa si las marcas no coinciden.
 - **Exportar TXT (todos)** / **Exportar TXT (faltan en ARCA)** generan el archivo de carga masiva de conceptos (195 posiciones) para subir en ARCA → Libro de Sueldos Digital → Conceptos; **Excel ARCA** arma la misma información en planilla.
