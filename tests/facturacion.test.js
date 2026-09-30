@@ -62,3 +62,42 @@ test('buildItemsFactura tolera lista vacía y campos faltantes', () => {
   assert.strictEqual(r[0].descripcion, 'Producto');
   assert.strictEqual(r[0].precio_unit, 0);
 });
+
+// ── Motivo del rechazo de ARCA visible (2026-09-30) ──────────────────
+// La Edge Function devuelve {detail:{mensaje, errores:[{code,msg}],
+// observaciones:[...]}} y el ERP mostraba solo `mensaje`.
+function motivo(detail, statusText) {
+  return erp.run(`mensajeErrorFacturacion(${JSON.stringify(detail)},${JSON.stringify(statusText || '')})`);
+}
+
+test('mensajeErrorFacturacion: string → tal cual', () => {
+  assert.strictEqual(motivo('Sesión inválida o vencida'), 'Sesión inválida o vencida');
+});
+
+test('mensajeErrorFacturacion: rechazo de ARCA muestra código y motivo de cada error', () => {
+  const m = motivo({
+    mensaje: 'AFIP rechazó la solicitud de CAE',
+    resultado: 'R',
+    errores: [{ code: 10247, msg: 'La CUIT receptora informada está inactiva o es inválida.' }],
+    observaciones: [],
+  });
+  assert.match(m, /rechaz/i);
+  assert.match(m, /10247/);
+  assert.match(m, /CUIT receptora informada está inactiva/);
+});
+
+test('mensajeErrorFacturacion: observaciones de ARCA también se muestran', () => {
+  const m = motivo({
+    mensaje: 'AFIP rechazó la solicitud de CAE',
+    resultado: 'R',
+    errores: [],
+    observaciones: ['10015: Para comprobantes tipo B ... DocTipo deberá ser distinto de 99'],
+  });
+  assert.match(m, /10015/);
+  assert.match(m, /DocTipo/);
+});
+
+test('mensajeErrorFacturacion: sin detalle usa el statusText; objeto sin errores usa mensaje', () => {
+  assert.strictEqual(motivo(undefined, 'Bad Gateway'), 'Bad Gateway');
+  assert.strictEqual(motivo({ mensaje: 'WSAA: token inválido' }), 'WSAA: token inválido');
+});
