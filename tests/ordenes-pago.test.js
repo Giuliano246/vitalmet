@@ -193,3 +193,50 @@ test('computeCtaCteProveedores: factura totalmente pagada no aparece como pendie
   assert.strictEqual(r[0].facturas.length, 0);
   assert.strictEqual(r[0].saldoUSD, 0);
 });
+
+// ── repartirImputacionesOP (pago parcial "de una") ────────────────
+
+test('repartirImputacionesOP: sin medios cargados la fila auto muestra su saldo', () => {
+  const r = erp.run(`repartirImputacionesOP(0, [{ id: 'f1', sel: true, monto: null, saldoOP: 121000 }])`);
+  assert.deepStrictEqual({ ...r }, { f1: 121000 });
+});
+
+test('repartirImputacionesOP: pago parcial — la imputación sigue al total de los medios', () => {
+  const r = erp.run(`repartirImputacionesOP(40000, [{ id: 'f1', sel: true, monto: null, saldoOP: 121000 }])`);
+  assert.deepStrictEqual({ ...r }, { f1: 40000 });
+});
+
+test('repartirImputacionesOP: varias facturas, la más vieja primero y nunca más que el saldo', () => {
+  const r = erp.run(`repartirImputacionesOP(150000, [
+    { id: 'vieja', sel: true, monto: null, saldoOP: 100000 },
+    { id: 'nueva', sel: true, monto: null, saldoOP: 80000 },
+    { id: 'no', sel: false, monto: null, saldoOP: 5 },
+  ])`);
+  assert.deepStrictEqual({ ...r }, { vieja: 100000, nueva: 50000 });
+});
+
+test('repartirImputacionesOP: el monto manual se respeta y el resto va a las auto; sin TC queda null', () => {
+  const r = erp.run(`repartirImputacionesOP(100000, [
+    { id: 'a', sel: true, monto: 30000, saldoOP: 100000 },
+    { id: 'b', sel: true, monto: null, saldoOP: 50000 },
+    { id: 'c', sel: true, monto: null, saldoOP: null },
+  ])`);
+  assert.deepStrictEqual({ ...r }, { a: 30000, b: 50000, c: null });
+});
+
+test('repartirImputacionesOP: manual mayor que el total no deja resto (la validación lo frena después)', () => {
+  const r = erp.run(`repartirImputacionesOP(10000, [
+    { id: 'a', sel: true, monto: 15000, saldoOP: 20000 },
+    { id: 'b', sel: true, monto: null, saldoOP: 5000 },
+  ])`);
+  assert.deepStrictEqual({ ...r }, { a: 15000, b: 0 });
+});
+
+test('validarOrdenPago acepta pago parcial de una sola factura (imputación = total de medios)', () => {
+  const r = erp.run(`validarOrdenPago(${JSON.stringify({
+    total: 40000, medios: [{ tipo: 'banco', monto: 40000, cuenta_contable_id: 'c1' }],
+    imputaciones: [{ factura_id: 'f1', nro: 'A-1', monto: 40000, monto_factura: 40000 }], saldos: { f1: 121000 },
+  })})`);
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(r.aCuenta, 0);
+});

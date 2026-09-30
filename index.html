@@ -2956,7 +2956,7 @@ body.no-costos .solo-costos{display:none!important}
         <div class="form-group"><label>TC (si USD)</label><input type="number" id="op-tc" step="0.01" min="0" placeholder="auto" oninput="opRenderFacturas();opRecalc()"></div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 4px">
-        <label style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Facturas pendientes — tildá las que cancelás (podés imputar parcial)</label>
+        <label style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Facturas pendientes — tildá las que pagás · para pagar en partes, cargá en el medio lo que pagás hoy: la imputación se ajusta sola</label>
         <button class="btn btn-ghost btn-sm" onclick="opAutoImputar()" title="Reparte el total de los medios entre las facturas, la más vieja primero">Imputar automático</button>
       </div>
       <div id="op-facturas" style="margin-bottom:12px;max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:var(--r-sm);padding:4px 8px"></div>
@@ -11215,6 +11215,30 @@ function convertirMontoImputacion(monto,monedaDesde,tc,monedaHasta){
   if(tc<=0)return null;
   return monedaDesde==='USD'?r2(monto*tc):r2(monto/tc);
 }
+// Reparte el total de los medios entre las facturas tildadas (en el orden
+// dado: la más vieja primero). Las filas con monto manual lo conservan; las
+// "auto" (monto null) reciben lo que queda, topado por su saldo. Sin medios
+// cargados (total 0) la fila auto muestra su saldo, así el usuario ve qué
+// pagaría. Esto es lo que hace posible el pago parcial "de una": cargás en
+// el medio lo que pagás y la imputación se ajusta sola.
+function repartirImputacionesOP(totalMedios,filas){
+  const r2=n=>Math.round(n*100)/100;
+  totalMedios=r2(parseFloat(totalMedios)||0);
+  const out={};
+  const sel=(filas||[]).filter(f=>f&&f.sel);
+  let resto=totalMedios;
+  sel.forEach(f=>{if(f.monto!=null){const m=r2(parseFloat(f.monto)||0);out[f.id]=m;resto-=m;}});
+  resto=Math.max(0,r2(resto));
+  sel.forEach(f=>{
+    if(f.monto!=null)return;
+    const saldo=f.saldoOP==null?null:r2(parseFloat(f.saldoOP)||0);
+    if(saldo==null){out[f.id]=null;return;}
+    if(totalMedios<=0){out[f.id]=saldo;return;}
+    const apl=r2(Math.min(saldo,resto));
+    out[f.id]=apl;resto=r2(resto-apl);
+  });
+  return out;
+}
 function validarOrdenPago({total,medios,imputaciones,saldos}){
   const errores=[];const r2=n=>Math.round(n*100)/100;
   total=r2(parseFloat(total)||0);medios=medios||[];imputaciones=imputaciones||[];saldos=saldos||{};
@@ -11313,8 +11337,15 @@ function openOrdenPagoModal(opts={}){
   document.getElementById('op-moneda').value=_opDraft.moneda;
   document.getElementById('op-tc').value=_opDraft.tc||'';
   document.getElementById('op-obs').value='';
-  if(fact){_opDraft.imput[fact.id]={sel:true,monto:null};}
-  if(!_opDraft.medios.length)opAddMedio(fact?{monto:null}:null);
+  let preMonto=null;
+  if(fact){
+    _opDraft.imput[fact.id]={sel:true,monto:null};
+    // El medio arranca con el saldo de la factura (en la moneda de la OP):
+    // para pagar en partes, bajás ese monto y la imputación lo sigue.
+    const s=saldoFacturaProveedor(fact,facturasRecibidas,imputacionesVivas(ordenesPago));
+    preMonto=convertirMontoImputacion(s.saldo,fact.moneda,parseFloat(_opDraft.tc)||0,_opDraft.moneda);
+  }
+  if(!_opDraft.medios.length)opAddMedio(fact?{monto:preMonto}:null);
   opRenderFacturas();opRenderMedios();opRecalc();
   openModal('modal-orden-pago');
 }
@@ -11334,30 +11365,39 @@ function _opFacturasPendientes(){
     .map(f=>({f,s:saldoFacturaProveedor(f,facturasRecibidas,vivas)})).filter(x=>x.s.saldo>0.005)
     .sort((a,b)=>(a.f.fecha_vto||a.f.fecha||'').localeCompare(b.f.fecha_vto||b.f.fecha||''));
 }
+function _opTotalMedios(){return Math.round((_opDraft?.medios||[]).reduce((a,m)=>a+(parseFloat(m.monto)||0),0)*100)/100;}
+// Montos a imputar por factura (id → monto en moneda OP), manuales + auto.
+function _opImputacionesCalc(list,monOP,tc){
+  const filas=list.map(({f,s})=>{const im=_opDraft.imput[f.id]||{sel:false,monto:null};return {id:f.id,sel:!!im.sel,monto:im.monto,saldoOP:convertirMontoImputacion(s.saldo,f.moneda,tc,monOP)};});
+  return repartirImputacionesOP(_opTotalMedios(),filas);
+}
 function opRenderFacturas(){
   const w=document.getElementById('op-facturas');if(!w)return;
   const list=_opFacturasPendientes();
   if(!_opDraft.proveedorId){w.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">Elegí el proveedor para ver sus facturas pendientes.</div>';return;}
   if(!list.length){w.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">Este proveedor no tiene facturas con saldo — el pago queda <b>a cuenta</b>.</div>';return;}
   const monOP=document.getElementById('op-moneda').value,tc=_opTc(),hoy=hoyLocal();
+  const calc=_opImputacionesCalc(list,monOP,tc);
   w.innerHTML=`<table style="width:100%;font-size:12px"><thead><tr><th></th><th>Comprobante</th><th>Fecha</th><th>Vto.</th><th style="text-align:right">Saldo</th><th style="text-align:right">Imputar (${esc(monOP)})</th></tr></thead><tbody>`+list.map(({f,s})=>{
     const im=_opDraft.imput[f.id]||{sel:false,monto:null};
     const mon=f.moneda||'ARS';const fmt=mon==='USD'?fmtUSD:fmtARS;
     const saldoOP=convertirMontoImputacion(s.saldo,mon,tc,monOP);
     const venc=f.fecha_vto&&f.fecha_vto<hoy;
-    const val=im.sel?(im.monto==null?(saldoOP==null?'':saldoOP):im.monto):'';
+    const val=im.sel?(calc[f.id]==null?'':calc[f.id]):'';
+    const parcial=im.sel&&saldoOP!=null&&calc[f.id]!=null&&calc[f.id]>0&&calc[f.id]<saldoOP-0.005;
     return `<tr>
       <td><input type="checkbox" ${im.sel?'checked':''} onchange="opToggleFactura('${f.id}',this.checked)" style="accent-color:var(--teal)"></td>
       <td class="mono">${esc(f.nro||'—')}</td>
       <td>${fmtFecha(f.fecha)||'—'}</td>
       <td style="${venc?'color:var(--coral)':'color:var(--text3)'}">${fmtFecha(f.fecha_vto)||'—'}${venc?' <span class="badge badge-coral" style="font-size:9px">VENCIDA</span>':''}</td>
       <td class="mono" style="text-align:right">${fmt(s.saldo)}${s.pagado>0?`<div style="font-size:10px;color:var(--text3)">de ${fmt(s.total)}</div>`:''}</td>
-      <td style="text-align:right"><input type="number" step="0.01" min="0" value="${val===''?'':val}" ${im.sel?'':'disabled'} onchange="opSetImputacion('${f.id}',this.value)" style="width:120px;text-align:right;font-family:var(--mono)"></td>
+      <td style="text-align:right"><input type="number" step="0.01" min="0" value="${val===''?'':val}" ${im.sel?'':'disabled'} onchange="opSetImputacion('${f.id}',this.value)" title="${im.monto==null?'Se ajusta solo al total de los medios (podés escribir otro importe)':'Importe fijado a mano'}" style="width:120px;text-align:right;font-family:var(--mono)${im.monto!=null?';border-color:var(--teal)':''}">${parcial?'<div style="font-size:10px;color:var(--amber,#d99a2b)">pago parcial · quedan '+fmt(Math.max(0,Math.round((s.saldo-(convertirMontoImputacion(calc[f.id],monOP,tc,mon)||0))*100)/100))+'</div>':''}</td>
     </tr>`;
   }).join('')+'</tbody></table>';
 }
 function opToggleFactura(id,sel){_opDraft.imput[id]={sel,monto:null};opRenderFacturas();opRecalc();}
-function opSetImputacion(id,v){if(!_opDraft.imput[id])_opDraft.imput[id]={sel:true};_opDraft.imput[id].monto=parseFloat(v)||0;opRecalc();}
+// Vacío = vuelve a "auto" (sigue al total de los medios).
+function opSetImputacion(id,v){if(!_opDraft.imput[id])_opDraft.imput[id]={sel:true};_opDraft.imput[id].monto=String(v).trim()===''?null:(parseFloat(v)||0);opRenderFacturas();opRecalc();}
 // Reparte el total de los medios entre las facturas tildadas, la más vieja primero.
 function opAutoImputar(){
   const monOP=document.getElementById('op-moneda').value,tc=_opTc();
@@ -11376,14 +11416,15 @@ function opAutoImputar(){
 function opAddMedio(pre){
   const bancoDefault=cuentasBancarias.find(c=>c.activa!==false&&c.cuenta_contable_id);
   _opDraft.medios.push({tipo:'banco',monto:pre?.monto??null,cuenta_bancaria_id:bancoDefault?.id||'',detalle:'',cheque:{numero:'',banco:'',fecha_pago:'',echeq:false}});
-  opRenderMedios();opRecalc();
+  opRenderMedios();opRenderFacturas();opRecalc();
 }
-function opDelMedio(i){_opDraft.medios.splice(i,1);opRenderMedios();opRecalc();}
+function opDelMedio(i){_opDraft.medios.splice(i,1);opRenderMedios();opRenderFacturas();opRecalc();}
 function opMedioChange(i,campo,v){
   const m=_opDraft.medios[i];if(!m)return;
   if(campo.startsWith('cheque.'))m.cheque[campo.slice(7)]=v;
   else m[campo]=campo==='monto'?(parseFloat(v)||0):v;
   if(campo==='tipo')opRenderMedios();
+  if(campo==='monto')opRenderFacturas();
   opRecalc();
 }
 function opRenderMedios(){
@@ -11416,12 +11457,14 @@ function _opArmarPayload(){
     cuenta_bancaria_id:m.tipo==='banco'?(m.cuenta_bancaria_id||null):null,detalle:m.detalle||null,
     cheque:m.tipo==='cheque'?{numero:(m.cheque.numero||'').trim(),banco:(m.cheque.banco||'').trim(),fecha_pago:m.cheque.fecha_pago||'',echeq:!!m.cheque.echeq}:undefined}));
   const saldos={},imputaciones=[];
+  const calc=_opImputacionesCalc(_opFacturasPendientes(),monOP,tc);
   Object.entries(_opDraft.imput).forEach(([fid,im])=>{
     if(!im.sel)return;
     const f=facturasRecibidas.find(x=>x.id===fid);if(!f)return;
     const s=saldoFacturaProveedor(f,facturasRecibidas,vivas);saldos[fid]=s.saldo;
-    const saldoOP=convertirMontoImputacion(s.saldo,f.moneda,tc,monOP);
-    const monto=im.monto==null?saldoOP:im.monto;
+    const monto=calc[fid];
+    // Sin TC para convertir: se deja la imputación en null para que la validación lo diga.
+    if(monto==null){imputaciones.push({factura_id:fid,nro:f.nro,monto:null,monto_factura:null});return;}
     if(!(monto>0))return;
     imputaciones.push({factura_id:fid,nro:f.nro,monto:Math.round(monto*100)/100,monto_factura:convertirMontoImputacion(monto,monOP,tc,f.moneda)});
   });
@@ -16733,7 +16776,7 @@ function renderFacturasRecibidas(filter=''){
       <td class="mono" style="text-align:right;${rojo}">${fmt(s*parseFloat(r.neto||0))}</td>
       <td class="mono" style="text-align:right;${rojo}">${fmt(s*parseFloat(r.iva||0))}</td>
       <td class="mono" style="text-align:right;font-weight:600;${rojo}">${fmt(s*parseFloat(r.total||0))}</td>
-      <td class="mono" style="text-align:right">${(()=>{if((r.tipo||'factura')!=='factura')return '<span style="color:var(--text3)">—</span>';const sf=saldoFacturaProveedor(r,facturasRecibidas,_vivas);return sf.saldo<=0.005?'<span class="badge badge-green">PAGADA</span>':`<span style="color:${sf.pagado>0||sf.nc>0?'var(--amber,#d99a2b)':'var(--coral)'}">${fmt(sf.saldo)}</span>`;})()}</td>
+      <td class="mono" style="text-align:right">${(()=>{if((r.tipo||'factura')!=='factura')return '<span style="color:var(--text3)">—</span>';const sf=saldoFacturaProveedor(r,facturasRecibidas,_vivas);return sf.saldo<=0.005?'<span class="badge badge-green">PAGADA</span>':`<span style="color:${sf.pagado>0||sf.nc>0?'var(--amber,#d99a2b)':'var(--coral)'}">${fmt(sf.saldo)}</span>${sf.pagado>0?`<div style="font-size:9px;color:var(--amber,#d99a2b)" title="Pagada en parte: ${fmt(sf.pagado)} de ${fmt(sf.total)}">PARCIAL · pagado ${fmt(sf.pagado)}</div>`:''}`;})()}</td>
       <td>${matchCell}</td>
       <td class="mono" style="font-size:11px;color:var(--text3)">${r.asiento_id?esc(r.asiento_id):'—'}</td>
       <td style="display:flex;gap:4px">${(r.tipo||'factura')==='factura'&&saldoFacturaProveedor(r,facturasRecibidas,_vivas).saldo>0.005?`<button class="btn btn-ghost btn-sm" onclick="irAPagarFactura('${r.id}')" title="Orden de pago — abre la OP con esta factura tildada" style="color:var(--teal)"><span class="btn-icon"><svg viewBox="0 0 24 24"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Pagar</button><button class="btn btn-ghost btn-sm" onclick="openNCNDModal('${r.id}')">NC/ND</button>`:''}<button class="btn btn-ghost btn-sm" onclick="corregirFacturaRecibida('${r.id}')" title="Anula este comprobante y reabre el formulario precargado para corregirlo">Corregir</button><button class="btn btn-danger btn-sm" onclick="anularFacturaRecibida('${r.id}')" title="Anula el comprobante (el asiento queda anulado, el motivo va al audit log)">Anular</button></td>
