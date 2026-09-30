@@ -509,7 +509,9 @@ Pestaña **Ventas → Facturas emitidas**: el listado único de **todo lo que sa
 
 - **Filtros:** buscador (cliente, CUIT, número, CAE, remito), **cliente**, **tipo** (facturas / NC / ND) y **desde / hasta**. Se combinan; la barra de arriba muestra comprobantes, facturado, NC, ND y **neto** (facturas − NC + ND) de lo filtrado. Ejemplo: cliente YPF + trimestre = cuánto le facturaste neto.
 - **Columnas:** fecha, comprobante (FA/NC/ND con letra, punto de venta y número), cliente (click → ficha), CUIT, **origen** (remito de la venta con link, "Directa", o sobre qué factura / período / comprobante externo va la nota), neto, IVA, total (las NC en rojo y en negativo), CAE y **asiento** (click → asiento; si dice "sin asiento", usá **Regenerar asientos** en Ventas).
-- **Acciones:** **Ver CAE** (comprobante con QR para imprimir o mandar) y **NC/ND** sobre cualquier factura.
+- **Acciones:** **Ver CAE** (muestra número, CAE y vencimiento, y ofrece abrir la página de **Constatación de Comprobantes** de ARCA con los datos precargados: escribís el captcha y ARCA confirma que el comprobante está autorizado) y **NC/ND** sobre cualquier factura. El ERP todavía **no arma el PDF de la factura** para mandar al cliente.
+- **Si ARCA rechaza un comprobante**, el cartel rojo muestra el **código y el motivo** que devolvió ARCA (ej.: `[10247] La CUIT receptora informada está inactiva o es inválida`). Corregí lo que indica (CUIT o condición fiscal del cliente en su ficha, importes) y volvé a facturar: un rechazo no consume número ni CAE.
+- **Dónde ver una factura en ARCA:** las emitidas por el ERP **no** aparecen en "Comprobantes en línea"; aparecen en **Mis Comprobantes → Emitidos** (punto de venta 4), normalmente **al día siguiente**.
 - **Excel:** exporta el listado filtrado. Para ordenar, click en el encabezado de la columna.
 - Los botones **+ Factura directa** y **+ NC/ND libre** también están acá.
 

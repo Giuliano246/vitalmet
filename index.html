@@ -183,7 +183,7 @@ tbody td{padding:8px 8px;font-size:13px;color:var(--text2)}
 .alert-bar.visible{display:block}
 .page{display:none}
 .page.active{display:block}
-.notif{position:fixed;bottom:22px;right:22px;background:var(--surface2);border:1px solid var(--green);border-radius:var(--r-sm);padding:11px 16px;font-size:12px;color:var(--green);z-index:200;transform:translateY(70px);opacity:0;transition:all .3s;pointer-events:none;font-family:var(--mono)}
+.notif{position:fixed;bottom:22px;right:22px;background:var(--surface2);border:1px solid var(--green);border-radius:var(--r-sm);padding:11px 16px;font-size:12px;color:var(--green);z-index:200;transform:translateY(70px);opacity:0;transition:all .3s;pointer-events:none;font-family:var(--mono);max-width:min(640px,calc(100vw - 44px));line-height:1.45}
 .notif.show{transform:translateY(0);opacity:1}
 .empty-cell{padding:0!important}
 .empty-state{padding:48px 24px;text-align:center}
@@ -4989,7 +4989,7 @@ async function emitirFactura(ventaId,skipConfirm){
   const items=buildItemsFactura(venta.venta_items,{tc,ivaPct,incluyenIva:!!configContable?.precios_incluyen_iva});
   const docTipo=cuit.length===11?80:99;
   const docNro=cuit.length===11?cuit:'0';
-  // Condición IVA del receptor (RG 5616, obligatoria desde 2026-09-01)
+  // Condición IVA del receptor (RG 5616; ARCA rechaza sin el dato desde el 1/12/2026, manual WSFEv1 v4.8)
   const COND_IVA_AFIP={RI:1,exento:4,consumidor_final:5,monotributo:6};
   const payload={
     punto_venta:Number(configContable?.punto_venta)||1,
@@ -5018,9 +5018,7 @@ async function emitirFactura(ventaId,skipConfirm){
     });
     if(!res.ok){
       const errBody=await res.json().catch(()=>({}));
-      const detail=errBody.detail;
-      const msg=typeof detail==='string'?detail:(detail?.mensaje||JSON.stringify(detail)||res.statusText);
-      throw new Error(msg);
+      throw new Error(mensajeErrorFacturacion(errBody.detail,res.statusText));
     }
     const data=await res.json();
     // Insert en facturas_emitidas
@@ -5173,7 +5171,7 @@ async function emitirFacturaDirecta(){
   if(btn){btn.disabled=true;btn.textContent='Solicitando CAE...';}
   try{
     const res=await fetch(`${BILLING_URL}/facturar`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${currentSession.access_token}`},body:JSON.stringify(payload)});
-    if(!res.ok){const eb=await res.json().catch(()=>({}));const d=eb.detail;throw new Error(typeof d==='string'?d:(d?.mensaje||JSON.stringify(d)||res.statusText));}
+    if(!res.ok){const eb=await res.json().catch(()=>({}));throw new Error(mensajeErrorFacturacion(eb.detail,res.statusText));}
     const data=await res.json();
     const notas=[obsUser,moneda==='USD'?`Facturado en USD a TC $${tc}`:'',(data.observaciones&&data.observaciones.length)?data.observaciones.join('; '):''].filter(Boolean).join(' · ')||null;
     const rows=await POST('facturas_emitidas',{
@@ -5515,7 +5513,7 @@ function validarAsociacionNota({modo,desde,hasta,letra,pv,nro,fecha}){
 }
 async function _emitirComprobanteAFIP(payload){
   const res=await fetch(`${BILLING_URL}/facturar`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${currentSession.access_token}`},body:JSON.stringify(payload)});
-  if(!res.ok){const eb=await res.json().catch(()=>({}));const d=eb.detail;throw new Error(typeof d==='string'?d:(d?.mensaje||JSON.stringify(d)||res.statusText));}
+  if(!res.ok){const eb=await res.json().catch(()=>({}));throw new Error(mensajeErrorFacturacion(eb.detail,res.statusText));}
   return res.json();
 }
 const COND_IVA_AFIP_NOTA={RI:1,exento:4,consumidor_final:5,monotributo:6};
@@ -8648,12 +8646,19 @@ function msgError(e){
   if(/jwt expired|token.*expired|invalid.*token/i.test(m))return 'La sesión venció. Recargá la página y volvé a entrar.';
   return m;
 }
+let _notifTimer=null;
 function notify(msg,type){
   const el=document.getElementById('notif');
   el.textContent=(type==='err'?'✗ ':'✓ ')+msg;
   el.style.borderColor=type==='err'?'var(--red)':'var(--green)';
   el.style.color=type==='err'?'var(--red)':'var(--green)';
-  el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3200);
+  // Un error largo (p.ej. el motivo de un rechazo de ARCA) tiene que
+  // poder leerse: ~70 ms por carácter, entre 3,2 y 20 s. El timer se
+  // reinicia para que un aviso anterior no lo cierre antes de tiempo.
+  const ms=type==='err'?Math.min(20000,Math.max(3200,String(msg).length*70)):3200;
+  el.classList.add('show');
+  if(_notifTimer)clearTimeout(_notifTimer);
+  _notifTimer=setTimeout(()=>{el.classList.remove('show');_notifTimer=null;},ms);
 }
 
 // Render por página: renderAll() marca TODAS las páginas como sucias pero
@@ -17779,6 +17784,20 @@ function resolverClienteVenta(venta,clientes){
 function cuitParaFacturar(venta,cli){
   const raw=(venta&&(venta.cuit||venta.cuit_cliente))||(cli&&cli.cuit)||'';
   return String(raw).replace(/\D/g,'');
+}
+// Mensaje de error de la Edge Function `facturacion` para el usuario.
+// El body de error es {detail}: string (auth, WSAA, red) u objeto
+// {mensaje, resultado, errores:[{code,msg}], observaciones:[texto]}
+// cuando ARCA rechazó el comprobante. Antes se mostraba solo `mensaje`
+// ("AFIP rechazó la solicitud de CAE") y el motivo quedaba escondido.
+function mensajeErrorFacturacion(detail,statusText){
+  if(typeof detail==='string'&&detail.trim())return detail;
+  if(!detail||typeof detail!=='object')return statusText||'Error desconocido';
+  const partes=[];
+  (detail.errores||[]).forEach(e=>{if(e&&(e.code||e.msg))partes.push(`[${e.code??'?'}] ${String(e.msg||'').trim()}`);});
+  (detail.observaciones||[]).forEach(o=>{const t=String(o||'').trim();if(t)partes.push(t);});
+  const cab=detail.mensaje||statusText||'ARCA rechazó el comprobante';
+  return partes.length?`${cab}: ${partes.join(' · ')}`:cab;
 }
 function tipoComprobanteVentaAFIP(condicionFiscal,tieneCuit){
   if(condicionFiscal==='RI'||condicionFiscal==='monotributo')return {tipo:1,letra:'A'};
