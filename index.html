@@ -5364,8 +5364,9 @@ async function verFactura(facturaEmitidaId){
   if(!f){notify('Factura no encontrada','err');return;}
   const numero=`${f.tipo_comprobante}-${String(f.punto_venta).padStart(5,'0')}-${String(f.numero).padStart(8,'0')}`;
   const msg=`Comprobante ${numero}\nCAE: ${f.cae}\nVto CAE: ${f.cae_vto}\nTotal: $${f.imp_total}\nAmbiente: ${f.afip_environment}`;
-  if(f.qr_url){
-    if(confirm(`${msg}\n\n¿Abrir QR oficial de AFIP en otra pestaña?`))window.open(f.qr_url,'_blank');
+  const urlArca=urlConstatacionArca(f.qr_url);
+  if(urlArca){
+    if(confirm(`${msg}\n\n¿Constatar el comprobante en ARCA (otra pestaña)?\nEn la página de ARCA escribí el captcha y confirmá.`))window.open(urlArca,'_blank');
   } else {
     alert(msg);
   }
@@ -17790,6 +17791,16 @@ function cuitParaFacturar(venta,cli){
 // {mensaje, resultado, errores:[{code,msg}], observaciones:[texto]}
 // cuando ARCA rechazó el comprobante. Antes se mostraba solo `mensaje`
 // ("AFIP rechazó la solicitud de CAE") y el motivo quedaba escondido.
+// URL para constatar un comprobante en ARCA desde el botón Ver CAE.
+// El qr_url guardado es el destino oficial del QR (RG 4892):
+// https://www.afip.gob.ar/fe/qr/?p=<base64url>. Esa página redirigía a
+// Constatación de Comprobantes, pero desde 2026-09 responde en blanco
+// (un código "BL…" y la hora). La página real recibe el mismo `p`.
+function urlConstatacionArca(qrUrl){
+  if(!qrUrl)return null;
+  const m=String(qrUrl).match(/[?&]p=([A-Za-z0-9_\-=]+)/);
+  return m?`https://servicioscf.afip.gob.ar/publico/comprobantes/cae.aspx?p=${m[1]}`:String(qrUrl);
+}
 function mensajeErrorFacturacion(detail,statusText){
   if(typeof detail==='string'&&detail.trim())return detail;
   if(!detail||typeof detail!=='object')return statusText||'Error desconocido';

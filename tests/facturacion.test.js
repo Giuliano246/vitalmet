@@ -101,3 +101,19 @@ test('mensajeErrorFacturacion: sin detalle usa el statusText; objeto sin errores
   assert.strictEqual(motivo(undefined, 'Bad Gateway'), 'Bad Gateway');
   assert.strictEqual(motivo({ mensaje: 'WSAA: token inválido' }), 'WSAA: token inválido');
 });
+
+// ── Ver CAE: ir directo a Constatación de Comprobantes (2026-09-30) ──
+// https://www.afip.gob.ar/fe/qr/?p=… (destino oficial del QR, RG 4892)
+// hoy responde una página en blanco con un código de bloqueo. La página
+// real es servicioscf.afip.gob.ar/publico/comprobantes/cae.aspx?p=<mismo p>.
+test('urlConstatacionArca: reusa el payload p del qr_url oficial', () => {
+  const p = 'eyJ2ZXIiOjF9';
+  const u = erp.run(`urlConstatacionArca(${JSON.stringify('https://www.afip.gob.ar/fe/qr/?p=' + p)})`);
+  assert.strictEqual(u, 'https://servicioscf.afip.gob.ar/publico/comprobantes/cae.aspx?p=' + p);
+});
+
+test('urlConstatacionArca: sin p reconocible devuelve la URL original; vacío → null', () => {
+  assert.strictEqual(erp.run(`urlConstatacionArca('https://otra.cosa/x')`), 'https://otra.cosa/x');
+  assert.strictEqual(erp.run(`urlConstatacionArca('')`), null);
+  assert.strictEqual(erp.run(`urlConstatacionArca(null)`), null);
+});
