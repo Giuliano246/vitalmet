@@ -26,7 +26,7 @@ Prioridad alta:
 
 1. **Cuenta corriente de clientes sobre comprobantes.** Hoy se arma con `ventas.total` en USD y cobros convertidos al TC del cobro: mezcla bases y monedas, un cobro en pesos sin TC no baja la cuenta, y las facturas directas no generan cargo. Rehacer `computeCtaCte` sobre `facturas_emitidas`.
 2. **Recibo con imputación a facturas y varios medios** (espejo de la 074 del lado ventas): tablas `recibos` / `recibo_medios` / `recibo_imputaciones`, saldo por factura emitida. Destraba diferencias de cambio y anticipos de clientes.
-3. **PDF de factura / NC / ND con CAE y QR.** `facturas_emitidas` no guarda ítems: hace falta columna `items` antes de poder imprimir facturas directas y notas libres.
+3. ~~PDF de factura / NC / ND con CAE y QR.~~ **Hecho el 2026-10-06 (migración 087):** botón PDF por comprobante y PDF de todos los filtrados; el detalle se guarda en `facturas_emitidas.items` desde la bitácora de ARCA.
 4. **Factura de Crédito Electrónica MiPyME.** No hay tipos FCE en el frontend ni en la Edge Function. Confirmar si algún cliente grande ya la exige.
 5. **Liquidación mensual de IVA.** La posición no arrastra saldos del período anterior y no hay asiento de liquidación.
 6. **Ingresos Brutos mensual.** No hay base por jurisdicción ni exportable; clientes sin provincia.
