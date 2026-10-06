@@ -1144,6 +1144,8 @@ body.no-costos .solo-costos{display:none!important}
           <div class="form-group" style="margin:0"><label>Desde</label><input type="date" id="ld-desde" onchange="renderLibroDiario()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans)"></div>
           <div class="form-group" style="margin:0"><label>Hasta</label><input type="date" id="ld-hasta" onchange="renderLibroDiario()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans)"></div>
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('ld-desde').value='';document.getElementById('ld-hasta').value='';renderLibroDiario()">Limpiar</button>
+          <button class="btn btn-sm" onclick="imprimirLibroDiario()" title="PDF con hojas numeradas y transporte, listo para imprimir">Imprimir / PDF</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportarLibroCSV('diario')">Excel (CSV)</button>
           <div style="flex:1"></div>
           <div class="stat-card" style="padding:8px 14px"><div class="stat-label">Asientos</div><div class="stat-value" id="ld-stat-cantidad" style="font-size:14px">—</div></div>
           <div class="stat-card" style="padding:8px 14px"><div class="stat-label">Total movimientos</div><div class="stat-value" id="ld-stat-total" style="color:var(--green);font-size:13px">—</div></div>
@@ -1160,6 +1162,8 @@ body.no-costos .solo-costos{display:none!important}
           <div class="form-group" style="margin:0"><label>Desde</label><input type="date" id="lm-desde" onchange="renderLibroMayor()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans)"></div>
           <div class="form-group" style="margin:0"><label>Hasta</label><input type="date" id="lm-hasta" onchange="renderLibroMayor()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans)"></div>
           <button class="btn btn-ghost btn-sm" onclick="document.getElementById('lm-desde').value='';document.getElementById('lm-hasta').value='';renderLibroMayor()">Limpiar</button>
+          <button class="btn btn-sm" onclick="imprimirLibroMayor()" title="PDF de la cuenta elegida; sin cuenta elegida imprime todas las que tuvieron movimientos">Imprimir / PDF</button>
+          <button class="btn btn-ghost btn-sm" onclick="exportarLibroCSV('mayor')">Excel (CSV)</button>
         </div>
         <div class="stats-bar" id="lm-stats" style="display:none"></div>
         <div id="lm-content" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:14px;font-family:var(--mono);font-size:12px"></div>
@@ -1506,7 +1510,7 @@ body.no-costos .solo-costos{display:none!important}
 
     <!-- CONTABILIDAD: Exportables -->
     <div class="page" id="page-exportables">
-      <div class="page-header"><div class="page-title">Exportables</div><div class="page-sub">// subdiarios, IVA y mayores en CSV — listos para el estudio contable</div><div class="tabs"></div></div>
+      <div class="page-header"><div class="page-title">Exportables</div><div class="page-sub">// subdiarios, IVA y mayores en CSV, y libros en PDF para imprimir</div><div class="tabs"></div></div>
       <div class="page-content">
         <div class="toolbar">
           <label style="font-size:12px;color:var(--text2)">Período <input type="month" id="exp-mes" style="margin-left:6px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans)"></label>
@@ -3762,25 +3766,26 @@ function alicuotaImplicita(neto,iva){
 }
 async function expIvaVentas(desde,hasta){
   // Libro IVA Ventas: NC en negativo, alícuota implícita, receptor.
-  const fe=await GET('facturas_emitidas',`?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha,punto_venta,numero&select=fecha,tipo_comprobante,punto_venta,numero,doc_tipo,doc_nro,imp_neto,imp_iva,imp_total,cae,ventas(cliente)`);
+  const fe=await GET('facturas_emitidas',`?fecha=gte.${desde}&fecha=lte.${hasta}&afip_environment=eq.produccion&order=fecha,punto_venta,numero&select=fecha,tipo_comprobante,punto_venta,numero,doc_tipo,doc_nro,imp_neto,imp_iva,imp_total,cae,ventas(cliente)`);
   const filas=[['Fecha','Tipo','Comprobante','Cliente','Doc receptor','Neto','IVA','Alíc. %','Total','CAE']];
-  let n=0,i=0,t=0;
+  let n=0,i=0,t=0;const crudas=[];
   for(const f of fe){
     const cb=cbteAfipInfo(f.tipo_comprobante);
     const neto=cb.signo*(+f.imp_neto||0),iva=cb.signo*(+f.imp_iva||0),tot=cb.signo*(+f.imp_total||0);
     n+=neto;i+=iva;t+=tot;
+    crudas.push([csvFecha(f.fecha),cb.label,`${String(f.punto_venta).padStart(5,'0')}-${String(f.numero).padStart(8,'0')}`,f.ventas?.cliente||'',String(f.doc_nro||''),neto,iva,String(alicuotaImplicita(f.imp_neto,f.imp_iva)||''),tot,String(f.cae||'')]);
     filas.push([csvFecha(f.fecha),cb.label,`${String(f.punto_venta).padStart(5,'0')}-${String(f.numero).padStart(8,'0')}`,
       f.ventas?.cliente||'',f.doc_nro||'',csvNum(neto),csvNum(iva),alicuotaImplicita(f.imp_neto,f.imp_iva)||'',csvNum(tot),f.cae]);
   }
   filas.push(['','','','','TOTALES',csvNum(n),csvNum(i),'',csvNum(t),'']);
-  return {nombre:`iva_ventas_${desde}_a_${hasta}.csv`,contenido:csvArmar(filas),
+  return {nombre:`iva_ventas_${desde}_a_${hasta}.csv`,contenido:csvArmar(filas),crudas,
           resumen:`IVA ventas: ${fe.length} comprobantes · neto ${csvNum(n)} · IVA ${csvNum(i)}`};
 }
 async function expPosicionIva(desde,hasta){
   // Posición mensual de IVA en ARS: DF − CF − percepciones − retenciones.
   // Comprobantes en USD se convierten por su tipo de cambio.
   const [fe,fr]=await Promise.all([
-    GET('facturas_emitidas',`?fecha=gte.${desde}&fecha=lte.${hasta}&select=tipo_comprobante,imp_iva`),
+    GET('facturas_emitidas',`?fecha=gte.${desde}&fecha=lte.${hasta}&afip_environment=eq.produccion&select=tipo_comprobante,imp_iva`),
     GET('facturas_recibidas',`?fecha_contable=gte.${desde}&fecha_contable=lte.${hasta}&select=id,tipo,iva,moneda,tipo_cambio`),
   ]);
   const df=fe.reduce((s,f)=>s+cbteAfipInfo(f.tipo_comprobante).signo*(+f.imp_iva||0),0);
@@ -3859,6 +3864,7 @@ async function expIvaCompras(desde,hasta){
     'Neto s/desglose','IVA s/desglose','No gravado','Exento',
     'Percep IVA','Percep IIBB','Jurisd. IIBB','Percep Gcias','Otros imp','Total']];
   const tot=new Array(18).fill(0); // acumuladores de las columnas numéricas
+  const crudas=[]; // misma fila con números sin formatear (para el PDF)
   const tipoLbl={factura:'FA',nota_credito:'NC',nota_debito:'ND'};
   for(const f of fr){
     const p=pm[f.proveedor_id]||{nombre:'',cuit:''};
@@ -3882,11 +3888,12 @@ async function expIvaCompras(desde,hasta){
       s*percep('percepcion_ganancias'),s*percep('otros'),s*(parseFloat(f.total)||0),
     ];
     nums.forEach((n,i)=>tot[i]+=n);
+    crudas.push({txt:[csvFecha(f.fecha),`${tipoLbl[f.tipo||'factura']}-${f.letra||'A'}`,f.nro||'',p.nombre||'',p.cuit||''],nums});
     filas.push([csvFecha(f.fecha),`${tipoLbl[f.tipo||'factura']}-${f.letra||'A'}`,f.nro,p.nombre,p.cuit,
       ...nums.map((n,i)=>i===14?jur:csvNum(n))]);
   }
   filas.push(['','','','TOTALES','',...tot.map((n,i)=>i===14?'':csvNum(n))]);
-  return {nombre:`iva_compras_${desde}_a_${hasta}.csv`,contenido:csvArmar(filas),
+  return {nombre:`iva_compras_${desde}_a_${hasta}.csv`,contenido:csvArmar(filas),crudas,
           resumen:`IVA compras: ${fr.length} comprobantes · total ${csvNum(tot[17])}`};
 }
 // Libro Diario formal (obs. auditoría 068): todos los asientos
@@ -4078,14 +4085,14 @@ async function expPlanCuentas(){
 }
 const EXPORT_BUILDERS=[
   {titulo:'Subdiario de ventas',fn:expSubdiarioVentas},
-  {titulo:'IVA ventas',fn:expIvaVentas},
+  {titulo:'IVA ventas',fn:expIvaVentas,pdf:pdfIvaVentas},
   {titulo:'Subdiario de compras',fn:expSubdiarioCompras},
-  {titulo:'IVA compras',fn:expIvaCompras},
+  {titulo:'IVA compras',fn:expIvaCompras,pdf:pdfIvaCompras},
   {titulo:'Posición IVA del mes',fn:expPosicionIva},
   {titulo:'Retenciones sufridas',fn:expRetenciones},
   {titulo:'Retenciones practicadas (a proveedores)',fn:expRetencionesPracticadas},
-  {titulo:'Libro Diario',fn:expLibroDiario},
-  {titulo:'Mayores',fn:expMayores},
+  {titulo:'Libro Diario',fn:expLibroDiario,pdf:(d,h)=>generarLibroPDF(libroDiarioModelo(asientos,asientoLineas,cuentasContables,d,h))},
+  {titulo:'Mayores',fn:expMayores,pdf:(d,h)=>generarLibroPDF(libroMayorModelo(asientos,asientoLineas,cuentasContables,'',d,h))},
   {titulo:'Libro IVA Digital — Ventas comprobantes (TXT ARCA)',fn:expLidVentasCbte},
   {titulo:'Libro IVA Digital — Ventas alícuotas (TXT ARCA)',fn:expLidVentasAlic},
   {titulo:'Libro IVA Digital — Compras comprobantes (TXT ARCA)',fn:expLidComprasCbte},
@@ -4135,6 +4142,12 @@ async function exportarUno(idx){
   }catch(e){notify('Error al exportar: '+e.message,'err');}
   finally{btns.forEach(b=>b.disabled=false);}
 }
+async function exportarUnoPDF(idx){
+  const r=periodoRango(document.getElementById('exp-mes').value);
+  if(!r)return notify('Elegí un mes válido','err');
+  try{await EXPORT_BUILDERS[idx].pdf(r.desde,r.hasta);}
+  catch(e){notify('Error al generar el PDF: '+e.message,'err');}
+}
 function renderExportables(){
   const mesEl=document.getElementById('exp-mes');
   if(mesEl&&!mesEl.value){
@@ -4144,7 +4157,7 @@ function renderExportables(){
   document.getElementById('exportables-lista').innerHTML=EXPORT_BUILDERS.map((b,i)=>
     `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid var(--border);border-radius:var(--r-sm)">
        <span style="font-size:13px;color:var(--text)">${esc(b.titulo)}</span>
-       <button class="btn btn-ghost btn-sm" onclick="exportarUno(${i})">Descargar</button>
+       <span style="display:flex;gap:6px">${b.pdf?`<button class="btn btn-ghost btn-sm" onclick="exportarUnoPDF(${i})" title="Versión para imprimir, con hojas numeradas y transporte">PDF para imprimir</button>`:''}<button class="btn btn-ghost btn-sm" onclick="exportarUno(${i})">Descargar</button></span>
      </div>`).join('');
 }
 async function descargarCarpeta(){
@@ -4593,6 +4606,7 @@ function showPage(p,recordId){
   // Deep-link: el hash refleja la página activa (F5 y links compartibles)
   if(location.hash!=='#'+p)history.replaceState(null,'','#'+p);
   if(_dirtyPages.has(p))renderPage(p);
+  _asegurarSalidaPagina(p);
   const group=PAGE_TO_GROUP[p]||p;
   document.querySelectorAll(`.nav-item[data-group="${group}"]`).forEach(e=>e.classList.add('active'));
   // Inyectar tabs si el grupo tiene sub-páginas
@@ -12717,6 +12731,244 @@ async function deleteAsiento(id){
     await DEL('asientos',`?id=eq.${id}`);
     await reload('asientos','asiento_lineas');renderAll();notify('Asiento eliminado');
   }catch(e){notify(msgError(e),'err');}
+}
+
+// ─── LIBROS Y LISTADOS IMPRIMIBLES (PDF) ──────────────────────────────
+// generarLibroPDF(modelo): encabezado con razón social y CUIT en cada hoja,
+// hojas numeradas y transporte de las columnas de importe.
+// modelo = {titulo, subtitulo, orient:'p'|'l', archivo, sumar:[idx de columnas],
+//   columnas:[{t, w, num}], filas:[ [celdas] | {grupo:'txt'} | {nota:'txt'} | {total:[celdas]} ]}
+// Los modelos (libroDiarioModelo, libroMayorModelo, …) son puros y tienen
+// tests en tests/libros-pdf.test.js.
+function _empresaDatos(){const c=configContable||{};return {razon:c.razon_social_recibo||'VITALMET S.A.',cuit:'34-59751980-1',domicilio:c.domicilio_recibo||'Perú 246, Villa Martelli, Buenos Aires'};}
+function _fmt2(n){return (parseFloat(n)||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function _periodoTxt(desde,hasta){return desde&&hasta?`Período: ${fmtFecha(desde)} al ${fmtFecha(hasta)}`:desde?`Desde el ${fmtFecha(desde)}`:hasta?`Hasta el ${fmtFecha(hasta)}`:'Todos los movimientos';}
+// Transporte por hoja (pura): con la hoja en la que cae cada fila, devuelve el
+// acumulado de las columnas a sumar al final de cada hoja.
+function libroTransportes(filas,sumar,hojaDeFila,nHojas){
+  const acum=sumar.map(()=>0),porHoja=[];
+  for(let h=1;h<=nHojas;h++){
+    filas.forEach((f,i)=>{if(hojaDeFila[i]!==h||!Array.isArray(f))return;sumar.forEach((c,k)=>{if(typeof f[c]==='number')acum[k]+=f[c];});});
+    porHoja.push(acum.map(x=>Math.round(x*100)/100));
+  }
+  return porHoja;
+}
+function generarLibroPDF(m,opts={}){
+  if(!window.jspdf){notify('Librería PDF no cargada. Recargá la página.','err');return null;}
+  if(!m.filas.length){notify('No hay movimientos para imprimir en ese período','err');return null;}
+  const {jsPDF}=window.jspdf,emp=_empresaDatos(),nCols=m.columnas.length,sumar=m.sumar||[];
+  const celda=v=>typeof v==='number'?_fmt2(v):(v??'');
+  const body=m.filas.map(f=>{
+    if(Array.isArray(f))return f.map(celda);
+    if(f.grupo!=null)return [{content:f.grupo,colSpan:nCols,styles:{fontStyle:'bold',fillColor:[236,236,236]}}];
+    if(f.nota!=null)return [{content:f.nota,colSpan:nCols,styles:{fontStyle:'italic',textColor:[105,105,105]}}];
+    return f.total.map(v=>({content:celda(v),styles:{fontStyle:'bold'}}));
+  });
+  const columnStyles={};m.columnas.forEach((c,i)=>{columnStyles[i]={halign:c.num?'right':'left',...(c.w?{cellWidth:c.w}:{})};});
+  const fs=m.fontSize||(nCols>14?5.5:nCols>10?6.5:8);
+  const base={head:[m.columnas.map(c=>c.t)],body,startY:31,margin:{top:31,bottom:16,left:10,right:10},theme:'grid',rowPageBreak:'avoid',
+    styles:{fontSize:fs,cellPadding:1,overflow:'linebreak',lineColor:[205,205,205],lineWidth:0.1,textColor:[30,30,30]},
+    headStyles:{fillColor:[40,40,40],textColor:[255,255,255],fontSize:fs,halign:'center'},columnStyles};
+  // Pasada 1: en qué hoja cae cada fila (la paginación es idéntica en la 2).
+  const hojaDeFila=[];
+  const d1=new jsPDF({unit:'mm',format:'a4',orientation:m.orient||'p'});
+  d1.autoTable({...base,didDrawCell:d=>{if(d.section==='body'&&d.column.index===0)hojaDeFila[d.row.index]=d.pageNumber;}});
+  const nHojas=d1.internal.getNumberOfPages();
+  const transp=sumar.length?libroTransportes(m.filas,sumar,hojaDeFila,nHojas):[];
+  const txtTransp=vals=>sumar.map((c,k)=>`${m.columnas[c].t}: ${_fmt2(vals[k])}`).join('     ');
+  const doc=new jsPDF({unit:'mm',format:'a4',orientation:m.orient||'p'});
+  const W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),folio0=parseInt(m.folioDesde)||1;
+  doc.autoTable({...base,didDrawPage:d=>{
+    const n=d.pageNumber;
+    doc.setTextColor(30,30,30);doc.setFont('helvetica','bold');doc.setFontSize(10);doc.text(emp.razon,10,10);
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text(`CUIT ${emp.cuit}  ·  ${emp.domicilio}`,10,14.5);
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.text(m.titulo,W-10,10,{align:'right'});
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.text(m.subtitulo||'',W-10,15,{align:'right'});
+    doc.text(`Hoja ${folio0+n-1}`,W-10,20,{align:'right'});
+    doc.setDrawColor(120);doc.setLineWidth(0.2);doc.line(10,22.5,W-10,22.5);
+    doc.setFontSize(8);
+    if(sumar.length&&n>1){doc.setFont('helvetica','italic');doc.text('Transporte de la hoja anterior —   '+txtTransp(transp[n-2]),W-10,27.5,{align:'right'});}
+    if(sumar.length){doc.setFont('helvetica','bold');doc.text((n<nHojas?'Transporte a la hoja siguiente —   ':'TOTALES —   ')+txtTransp(transp[n-1]),W-10,H-9,{align:'right'});}
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(120);doc.text(`Emitido el ${fmtFecha(hoyLocal())} desde VitalStock`,10,H-5);
+  }});
+  if(opts.devolver)return {doc,nHojas,transp};
+  doc.save(m.archivo||'libro.pdf');
+  notify(`PDF generado: ${nHojas} hoja${nHojas===1?'':'s'}`);
+  return {nHojas};
+}
+// Libro Diario (pura): asientos confirmados del período, en ARS.
+function libroDiarioModelo(asList,lineas,cuentas,desde,hasta){
+  const r2=x=>Math.round(x*100)/100,cById={},porAs={};
+  (cuentas||[]).forEach(c=>{cById[c.id]=c;});
+  (lineas||[]).forEach(l=>{(porAs[l.asiento_id]=porAs[l.asiento_id]||[]).push(l);});
+  const list=(asList||[]).filter(a=>a.estado==='confirmado'&&(!desde||a.fecha>=desde)&&(!hasta||a.fecha<=hasta))
+    .sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')||(a.numero||0)-(b.numero||0));
+  const filas=[];let d=0,h=0;
+  for(const a of list){
+    const lns=(porAs[a.id]||[]).slice().sort((x,y)=>(x.orden||0)-(y.orden||0));
+    lns.forEach((l,i)=>{
+      const c=cById[l.cuenta_id]||l.cuentas_contables||{codigo:'?',nombre:'(cuenta eliminada)'};
+      const de=r2(toARS(l.debe,a)||0),ha=r2(toARS(l.haber,a)||0);d+=de;h+=ha;
+      filas.push([i?'':fmtFecha(a.fecha),i?'':String(a.numero??''),c.codigo||'',(ha>0&&!de?'      a  ':'')+(c.nombre||''),de||'',ha||'']);
+    });
+    filas.push({nota:`${a.descripcion||'Sin descripción'}${a.comprobante_nro?' — '+a.comprobante_nro:''}${a.moneda==='USD'?` — en USD, tipo de cambio ${_fmt2(a.tipo_cambio)}`:''}`});
+  }
+  return {titulo:'LIBRO DIARIO',subtitulo:_periodoTxt(desde,hasta),archivo:`Libro_Diario_${desde||'inicio'}_a_${hasta||hoyLocal()}.pdf`,sumar:[4,5],
+    columnas:[{t:'Fecha',w:19},{t:'Asiento',w:15},{t:'Código',w:20},{t:'Cuenta'},{t:'Debe',w:30,num:true},{t:'Haber',w:30,num:true}],
+    filas,asientos:list.length,debe:r2(d),haber:r2(h)};
+}
+// Libro Mayor (pura): una cuenta, o todas las que tuvieron movimientos. Con
+// "desde" arranca del saldo anterior. Saldo según la naturaleza de la cuenta.
+function libroMayorModelo(asList,lineas,cuentas,cuentaId,desde,hasta){
+  const r2=x=>Math.round(x*100)/100,asMap={};
+  (asList||[]).forEach(a=>{if(a.estado==='confirmado'&&(!hasta||a.fecha<=hasta))asMap[a.id]=a;});
+  const porCta={};
+  (lineas||[]).forEach(l=>{const a=asMap[l.asiento_id];if(!a)return;(porCta[l.cuenta_id]=porCta[l.cuenta_id]||[]).push({l,a});});
+  const ctas=(cuentas||[]).filter(c=>cuentaId?c.id===cuentaId:!!porCta[c.id]).sort((a,b)=>(a.codigo||'').localeCompare(b.codigo||'',undefined,{numeric:true}));
+  const filas=[];
+  for(const c of ctas){
+    const deudora=['activo','egreso'].includes(c.tipo),sg=deudora?1:-1;
+    const movs=(porCta[c.id]||[]).sort((x,y)=>(x.a.fecha||'').localeCompare(y.a.fecha||'')||(x.a.numero||0)-(y.a.numero||0));
+    let saldo=0,td=0,th=0;const cuerpo=[];
+    movs.forEach(({l,a})=>{
+      const de=r2(toARS(l.debe,a)||0),ha=r2(toARS(l.haber,a)||0);
+      if(desde&&a.fecha<desde){saldo=r2(saldo+sg*(de-ha));return;}
+      saldo=r2(saldo+sg*(de-ha));td+=de;th+=ha;
+      cuerpo.push([fmtFecha(a.fecha),String(a.numero??''),(l.descripcion||a.descripcion||'')+(a.comprobante_nro?' — '+a.comprobante_nro:''),de||'',ha||'',saldo]);
+    });
+    const saldoAnt=r2(saldo-sg*(td-th));
+    if(!cuerpo.length&&!cuentaId&&Math.abs(saldoAnt)<0.005)continue;
+    filas.push({grupo:`${c.codigo} — ${c.nombre}   (saldo ${deudora?'deudor':'acreedor'})`});
+    if(desde)filas.push({total:['','',`Saldo anterior al ${fmtFecha(desde)}`,'','',saldoAnt]});
+    filas.push(...cuerpo);
+    filas.push({total:['','','Totales de la cuenta',r2(td),r2(th),saldo]});
+  }
+  const una=cuentaId?ctas[0]:null;
+  return {titulo:'LIBRO MAYOR',subtitulo:(una?`${una.codigo} ${una.nombre} · `:'')+_periodoTxt(desde,hasta),sumar:una?[3,4]:[],
+    archivo:`Libro_Mayor_${una?una.codigo+'_':''}${desde||'inicio'}_a_${hasta||hoyLocal()}.pdf`,
+    columnas:[{t:'Fecha',w:19},{t:'Asiento',w:15},{t:'Detalle'},{t:'Debe',w:28,num:true},{t:'Haber',w:28,num:true},{t:'Saldo',w:30,num:true}],filas,cuentas:ctas.length};
+}
+// Libro IVA Ventas / Compras (puras): a partir de las filas crudas de los exportables.
+function libroIvaVentasModelo(crudas,desde,hasta){
+  return {titulo:'LIBRO IVA VENTAS',subtitulo:_periodoTxt(desde,hasta),orient:'l',archivo:`Libro_IVA_Ventas_${String(desde).slice(0,7)}.pdf`,sumar:[5,6,8],
+    columnas:[{t:'Fecha',w:19},{t:'Tipo',w:16},{t:'Comprobante',w:30},{t:'Cliente'},{t:'CUIT / Doc.',w:26},{t:'Neto gravado',w:30,num:true},{t:'IVA',w:28,num:true},{t:'Alíc. %',w:14,num:true},{t:'Total',w:30,num:true},{t:'CAE',w:30}],
+    filas:(crudas||[]).map(f=>f.slice())};
+}
+function libroIvaComprasModelo(crudas,desde,hasta){
+  // nums del exportable: 0-1 10,5 % · 2-3 21 % · 4-5 27 % · 6-7 otras · 8-9 sin desglose ·
+  // 10 no gravado · 11 exento · 12 perc. IVA · 13 perc. IIBB · 15 perc. Gcias · 16 otros · 17 total
+  const filas=(crudas||[]).map(({txt,nums:n})=>[...txt,n[2],n[3],n[0],n[1],n[4],n[5],n[6]+n[8],n[7]+n[9],n[10]+n[11],n[12],n[13],n[15]+n[16],n[17]].map(v=>typeof v==='number'?(Math.round(v*100)/100||''):v));
+  const N=t=>({t,w:13.2,num:true});
+  return {titulo:'LIBRO IVA COMPRAS',subtitulo:_periodoTxt(desde,hasta),orient:'l',archivo:`Libro_IVA_Compras_${String(desde).slice(0,7)}.pdf`,fontSize:5.8,
+    sumar:[5,6,7,8,9,10,11,12,13,14,15,16,17],
+    columnas:[{t:'Fecha',w:14},{t:'Tipo',w:9},{t:'Comprobante',w:24},{t:'Proveedor'},{t:'CUIT',w:19},N('Neto 21%'),N('IVA 21%'),N('Neto 10,5%'),N('IVA 10,5%'),N('Neto 27%'),N('IVA 27%'),N('Otros netos'),N('Otros IVA'),N('No grav./Ex.'),N('Perc. IVA'),N('Perc. IIBB'),N('Otras perc.'),{t:'Total',w:16,num:true}],filas};
+}
+async function pdfIvaVentas(d,h){const r=await expIvaVentas(d,h);generarLibroPDF(libroIvaVentasModelo(r.crudas,d,h));}
+async function pdfIvaCompras(d,h){const r=await expIvaCompras(d,h);generarLibroPDF(libroIvaComprasModelo(r.crudas,d,h));}
+function imprimirLibroDiario(){generarLibroPDF(libroDiarioModelo(asientos,asientoLineas,cuentasContables,g('ld-desde'),g('ld-hasta')));}
+function imprimirLibroMayor(){generarLibroPDF(libroMayorModelo(asientos,asientoLineas,cuentasContables,g('lm-cuenta'),g('lm-desde'),g('lm-hasta')));}
+async function exportarLibroCSV(cual){
+  const pre=cual==='diario'?'ld':'lm',fechas=asientos.map(a=>a.fecha).filter(Boolean).sort();
+  const desde=g(pre+'-desde')||fechas[0],hasta=g(pre+'-hasta')||fechas[fechas.length-1];
+  if(!desde)return notify('No hay asientos para exportar','err');
+  try{const r=await (cual==='diario'?expLibroDiario:expMayores)(desde,hasta);descargarTexto(r.nombre,r.contenido);notify(r.resumen,'ok');}
+  catch(e){notify('Error al exportar: '+e.message,'err');}
+}
+// ── Salida genérica de cualquier pantalla: Imprimir/PDF y Excel ───────
+// Toma las tablas visibles tal como están filtradas en pantalla. Las columnas
+// de acciones (encabezado vacío) no salen. Si la pantalla no usa tablas,
+// abre la vista de impresión del navegador con el contenido.
+function _tablasVisibles(rootId){
+  const root=document.getElementById(rootId);
+  return root?[...root.querySelectorAll('table')].filter(t=>t.offsetParent!==null&&t.querySelector('tbody tr')):[];
+}
+function tablaAMatriz(tb){
+  const txt=el=>(el.innerText??el.textContent??'').replace(/\s*\n\s*/g,' ').trim();
+  const fila=tr=>{const out=[];[...tr.children].forEach(td=>{const span=parseInt(td.getAttribute&&td.getAttribute('colspan'))||1;out.push({v:txt(td),der:(td.style&&td.style.textAlign==='right')});for(let k=1;k<span;k++)out.push({v:'',der:false});});return out;};
+  const hr=tb.querySelector('thead tr:last-child');
+  const head=hr?fila(hr).map(c=>c.v):[];
+  let rows=[...tb.querySelectorAll('tbody tr, tfoot tr')].filter(tr=>!tr.querySelector('.empty-state')&&!tr.querySelector('.empty-cell')).map(fila);
+  const n=Math.max(head.length,...rows.map(r=>r.length),0);
+  const keep=[];for(let i=0;i<n;i++){if(!head.length||head[i]||(i<head.length-1&&rows.some(r=>r[i]&&r[i].v)))keep.push(i);}
+  const der=keep.map(i=>rows.some(r=>r[i]&&r[i].der));
+  return {head:head.length?keep.map(i=>head[i]||''):[],rows:rows.map(r=>keep.map(i=>(r[i]&&r[i].v)||'')),der};
+}
+function _filtrosTxt(rootId){
+  const root=document.getElementById(rootId);if(!root)return '';
+  return [...root.querySelectorAll('input[type=date],input[type=month]')].filter(i=>i.value&&i.offsetParent!==null).map(i=>{
+    const lab=(i.closest('.form-group')?.querySelector('label')?.textContent||i.closest('label')?.childNodes[0]?.textContent||'').trim();
+    return `${lab} ${i.type==='month'?i.value.split('-').reverse().join('/'):fmtFecha(i.value)}`.trim();}).join(' · ');
+}
+function imprimirTablaPagina(rootId,titulo){
+  const tablas=_tablasVisibles(rootId);
+  if(!tablas.length)return _imprimirHTML(rootId,titulo);
+  if(!window.jspdf){notify('Librería PDF no cargada. Recargá la página.','err');return;}
+  const ms=tablas.map(tablaAMatriz).filter(m=>m.rows.length);
+  if(!ms.length)return notify('No hay datos para imprimir','err');
+  const maxCols=Math.max(...ms.map(m=>m.head.length||(m.rows[0]||[]).length));
+  const {jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4',orientation:maxCols>7?'l':'p'});
+  const W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),emp=_empresaDatos(),sub=_filtrosTxt(rootId);
+  let y=27;
+  ms.forEach(m=>{
+    const nC=m.head.length||(m.rows[0]||[]).length,fs=nC>12?6:nC>8?7:8,cs={};
+    m.der.forEach((d,i)=>{if(d)cs[i]={halign:'right'};});
+    doc.autoTable({head:m.head.length?[m.head]:undefined,body:m.rows,startY:y,margin:{top:27,bottom:12,left:10,right:10},theme:'grid',
+      styles:{fontSize:fs,cellPadding:1.1,overflow:'linebreak',lineColor:[205,205,205],lineWidth:0.1,textColor:[30,30,30]},
+      headStyles:{fillColor:[40,40,40],textColor:[255,255,255],fontSize:fs},columnStyles:cs});
+    y=doc.lastAutoTable.finalY+7;
+  });
+  const n=doc.internal.getNumberOfPages();
+  for(let p=1;p<=n;p++){
+    doc.setPage(p);doc.setTextColor(30,30,30);doc.setFont('helvetica','bold');doc.setFontSize(10);doc.text(emp.razon,10,10);
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text(`CUIT ${emp.cuit}`,10,14.5);
+    doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text(titulo,W-10,10,{align:'right'});
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.text(sub,W-10,15,{align:'right'});
+    doc.text(`Hoja ${p} de ${n}`,W-10,20,{align:'right'});
+    doc.setDrawColor(120);doc.setLineWidth(0.2);doc.line(10,22.5,W-10,22.5);
+    doc.setFontSize(7);doc.setTextColor(120);doc.text(`Emitido el ${fmtFecha(hoyLocal())} desde VitalStock`,10,H-5);
+  }
+  doc.save(`${titulo.replace(/[^a-z0-9áéíóúñ]+/gi,'_')}_${hoyLocal()}.pdf`);
+}
+function exportarTablaPagina(rootId,titulo){
+  const ms=_tablasVisibles(rootId).map(tablaAMatriz).filter(m=>m.rows.length);
+  if(!ms.length)return notify('Esta pantalla no tiene una tabla con datos para exportar','err');
+  const limpio=v=>String(v).replace(/^(US\$|USD|\$)\s*/,'');
+  const filas=[];
+  ms.forEach((m,i)=>{if(i)filas.push([]);if(m.head.length)filas.push(m.head);m.rows.forEach(r=>filas.push(r.map(limpio)));});
+  descargarTexto(`${titulo.replace(/[^a-z0-9áéíóúñ]+/gi,'_')}_${hoyLocal()}.csv`,csvArmar(filas));
+  notify('Exportado a Excel (CSV)');
+}
+function _imprimirHTML(rootId,titulo){
+  const root=document.getElementById(rootId);
+  const src=root?(root.querySelector('.page-content')||root):null;
+  if(!src||!(src.innerText||'').trim())return notify('No hay datos para imprimir','err');
+  const emp=_empresaDatos(),win=window.open('','_blank');
+  if(!win)return notify('El navegador bloqueó la ventana de impresión: permití las ventanas emergentes','err');
+  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(titulo)}</title><style>
+    :root{--bg:#fff;--surface:#fff;--surface2:#fff;--border:#ccc;--text:#111;--text2:#333;--text3:#666;--accent:#111;--green:#0a6b3a;--coral:#b3261e;--red:#b3261e;--blue:#1d4f91;--teal:#0f6b6b;--purple:#5a3d8a;--mono:ui-monospace,Menlo,monospace;--sans:Helvetica,Arial,sans-serif;--r-sm:4px;--r-xs:3px}
+    body{font-family:Helvetica,Arial,sans-serif;font-size:11px;color:#111;margin:14mm 12mm}
+    table{border-collapse:collapse;width:100%}th,td{border-bottom:1px solid #ddd;padding:3px 6px;text-align:left}
+    button,input,select,.btn,.toolbar,.tabs,canvas{display:none!important}
+    .stats-bar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px}.stat-card{border:1px solid #ccc;padding:6px 10px;border-radius:4px}
+    h1{font-size:15px;margin:0}.enc{display:flex;justify-content:space-between;border-bottom:1px solid #444;padding-bottom:6px;margin-bottom:12px}
+  </style></head><body><div class="enc"><div><b>${esc(emp.razon)}</b><br>CUIT ${esc(emp.cuit)}</div><div style="text-align:right"><h1>${esc(titulo)}</h1>${esc(_filtrosTxt(rootId))}<br>Emitido el ${fmtFecha(hoyLocal())}</div></div>${src.innerHTML}</body></html>`);
+  win.document.close();
+  setTimeout(()=>win.print(),350);
+}
+// Pantallas de consulta que no tenían ninguna salida: se les agrega la
+// botonera al entrar (showPage). Clave = página, valor = título del impreso.
+const PAGINAS_CON_SALIDA={balance:'Balance de comprobación',estado:'Estado de resultados',balgral:'Balance general',ratios:'Ratios',bimon:'Balance bimonetario',
+  compha:'Histórico vs. ajustado',compej:'Comparativo de ejercicios',conciliacion:'Conciliación bancaria',periodos:'Períodos contables',correlatividad:'Correlatividad de comprobantes',
+  cheques:'Cheques',cobpag:'Cobros y pagos',ctacte:'Cuenta corriente de clientes',cuentas:'Plan de cuentas',asientosp:'Asientos',bienesuso:'Bienes de uso',costos:'Costos y rentabilidad',
+  mp:'Stock de materia prima',pt:'Stock de productos terminados',insumos:'Stock de insumos',herramientas:'Herramientas',femitidas:'Facturas emitidas',trace:'Trazabilidad'};
+function _asegurarSalidaPagina(p){
+  const titulo=PAGINAS_CON_SALIDA[p];if(!titulo)return;
+  const hdr=document.querySelector(`#page-${p} .page-header`);
+  if(!hdr||hdr.querySelector('.salida-btns'))return;
+  const d=document.createElement('div');
+  d.className='salida-btns';d.style.cssText='display:flex;gap:6px;margin-top:8px';
+  d.innerHTML=`<button class="btn btn-ghost btn-sm" onclick="imprimirTablaPagina('page-${p}','${titulo}')" title="Imprime lo que estás viendo, con los filtros aplicados">Imprimir / PDF</button><button class="btn btn-ghost btn-sm" onclick="exportarTablaPagina('page-${p}','${titulo}')" title="Baja lo que estás viendo a Excel">Excel (CSV)</button>`;
+  hdr.appendChild(d);
 }
 
 // ─── LIBRO DIARIO ─────────────────────────────────────────────
