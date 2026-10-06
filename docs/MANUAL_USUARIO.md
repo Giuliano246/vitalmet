@@ -310,6 +310,10 @@ El grupo **Compras** tiene 4 pestañas: **Órdenes de compra**, **Inspección de
 
 Cargalos primero, así después podés elegirlos en la OC.
 
+**Retenciones al pagarle:** en la ficha del proveedor (Editar) hay una sección **Retenciones al pagarle**. Con **+ Régimen de retención** elegís qué se le retiene (por ejemplo *Ganancias · 78 · Enajenación de bienes muebles*), si es **inscripto o no inscripto** y, si presentó un **certificado de exclusión**, el número y hasta cuándo rige (mientras esté vigente no se le retiene). Un proveedor sin regímenes cargados no tiene retenciones. Los que sí tienen aparecen con la marca **RET** en la lista.
+
+**Cuenta corriente del proveedor:** el botón **Cta. cte.** de cada fila abre todos sus movimientos (facturas, notas de crédito y débito, órdenes de pago) con el saldo corrido por moneda, y se puede **imprimir** o bajar a **Excel**.
+
 **Para cargar:** **+ Nuevo proveedor** → **Razón social** *, **CUIT**, **Contacto**, **Teléfono**, **Email**, **Condición de pago** (ej.: "30 días FF"), **Dirección**, **Observaciones**.
 
 **Sección "Calidad — AVL" del mismo modal** (API Q1 5.6):
@@ -416,7 +420,19 @@ Es la forma de **pagarle a un proveedor**. Una orden de pago (OP-nnnn) tiene un 
 4. La barra de abajo muestra **Total medios**, **Imputado** y **A cuenta** (lo que no imputaste a ninguna factura: queda como saldo a favor con el proveedor y descuenta de su deuda). Si hay diferencia el sistema te avisa antes de registrar.
 5. **Registrar orden de pago** → se arma el asiento (Proveedores contra cada medio) y te ofrece el **PDF** de la orden para entregar al proveedor con los cheques (lleva las facturas canceladas, los medios y un espacio para "recibí conforme").
 
-**Moneda:** la OP puede ser en pesos o dólares. Si la factura está en otra moneda se convierte por el **TC** de la orden.
+**Dónde queda la orden:** en **Compras → Órdenes de pago**, con el botón **PDF** para volver a bajarla cuando quieras. También llegás desde **Contabilidad → Cobros y pagos** (el pago muestra su número de OP y el botón **OP PDF**), desde la **factura** (dice "pagada con OP-nnnn") y desde el **cheque** que emitió.
+
+**Retenciones (Ganancias y otras):** si el proveedor tiene regímenes de retención cargados, la orden **calcula sola la retención** y la agrega como un renglón más entre los medios, en ámbar, con la cuenta: base del pago (sin IVA ni percepciones) + lo ya pagado en el mes − mínimo no sujeto × alícuota − lo ya retenido en el mes.
+
+- Desde el botón **Pagar** de una factura, el total a cancelar es el saldo de la factura: la retención **se descuenta** de lo que transferís (factura de $1.210.000 con retención de $15.520 → transferís $1.194.480).
+- Si escribís vos el importe del medio, ese es lo que **efectivamente pagás** y la retención se suma arriba para llegar al total cancelado.
+- Si el pago no llega al mínimo, la orden lo avisa ("sin retención — no supera el mínimo no sujeto") y **guarda la base** para acumularla con el próximo pago del mes.
+- Podés **corregir el importe a mano** (queda marcado "importe a mano") o quitar la retención con la **×**; **↻ Recalcular retenciones** vuelve al cálculo automático.
+- Al registrar, el asiento manda la retención a la cuenta de *retenciones a depositar* y te ofrece el **certificado de retención** en PDF junto con la orden. Los certificados se numeran solos por impuesto.
+
+En **Compras → Retenciones** está el listado mensual de todo lo retenido, con el certificado de cada una, el total a depositar por impuesto, **Excel** e **Imprimir**. Anular la orden anula también sus retenciones.
+
+**Moneda:** la OP puede ser en pesos o dólares. Si la factura está en otra moneda se convierte por el **TC** de la orden. Las retenciones siempre se calculan en pesos.
 
 **Anular:** desde la lista, con motivo. El asiento queda anulado (no se borra), las facturas recuperan su saldo y los cheques que emitió la orden pasan a anulados. Si un cheque ya fue **debitado**, la OP no se puede anular (la plata ya salió): corregilo con un asiento manual.
 
@@ -706,6 +722,12 @@ El asiento se arma **automáticamente** (caja/banco contra deudores) y el cobro 
 
 **Método "Cheque diferido":** el cobro entra a la cuenta **Cheques en cartera** (no a caja/banco) y se abre el modal para completar número, banco y fecha de pago del cheque. En un pago, sale por **Cheques emitidos**.
 
+**Recibo de cobranza:** al registrar un cobro el sistema ofrece el **recibo en PDF** para el cliente (número REC, valores recibidos incluyendo retenciones, total). Después queda en la lista de movimientos, botón **Recibo**.
+
+**Movimientos:** la lista tiene buscador, filtro cobros/pagos y fechas. Cada fila lleva al **asiento** (#N) y, si el pago es una orden de pago, a la **OP** y su PDF. Los anulados quedan a la vista, marcados.
+
+**Retenciones sufridas:** al pie, **Ver certificados del mes** lista las retenciones que te practicaron los clientes (las de cobros anulados aparecen tachadas y no suman).
+
 ### 11.4 Cheques
 
 Cartera de cheques diferidos (propios y de terceros), en ARS o USD. Aparecen en el panel "Para hoy" cuando se acerca la fecha de depósito o pago.
@@ -723,7 +745,11 @@ Cartera de cheques diferidos (propios y de terceros), en ARS o USD. Aparecen en 
 
 ### 11.5 Libros y estados contables
 
-Todo de **consulta** (elegís un rango de fechas y mirás):
+Todo de **consulta** (elegís un rango de fechas y mirás). **Todas se pueden imprimir:**
+
+- **Libro diario** y **Libro mayor** tienen el botón **Imprimir / PDF**: arma el libro con razón social y CUIT en cada hoja, **hojas numeradas** y **transporte** de debe y haber de una hoja a la siguiente. El mayor imprime la cuenta elegida (arrancando del saldo anterior si pusiste "Desde"), o todas las cuentas con movimientos si no elegiste ninguna. **Excel (CSV)** baja lo mismo en planilla.
+- El resto de las pantallas (balances, estado de resultados, ratios, conciliación, cheques, cobros y pagos, cuenta corriente, plan de cuentas, stock, etc.) tienen arriba **Imprimir / PDF** y **Excel (CSV)**, que sacan lo que estás viendo con los filtros aplicados.
+- Los **libros de IVA ventas e IVA compras** se imprimen desde **Exportables → PDF para imprimir** (apaisado, compras con el desglose por alícuota y percepciones, con transporte y totales).
 
 | Sección | Qué muestra |
 |---------|-------------|
@@ -911,6 +937,8 @@ Completá y tocá **Guardar configuración**. Si dejás un campo en blanco, ese 
 ## 13. Los 4 circuitos completos (lo más importante)
 
 Si entendés estos cuatro circuitos, sabés usar el ERP. Seguilos en orden.
+
+**Retenciones a proveedores:** en este mismo panel se eligen las cuentas de *retenciones a depositar* (Ganancias, IIBB, SUSS, IVA) y se mantienen los **regímenes de retención**: código, concepto, mínimo no sujeto, alícuota de inscriptos y no inscriptos (o escala), mínimo de retención y forma de cálculo (acumulado mensual como la RG 830, o por pago). Vienen cargados los regímenes usuales de Ganancias con importes de referencia: **hay que revisarlos contra la norma vigente** y actualizarlos cuando ARCA los cambie.
 
 ### Circuito A — Vender (de la cotización al cobro)
 
