@@ -597,6 +597,7 @@ body.no-costos .solo-costos{display:none!important}
           <div class="tab" onclick="switchComprasTab('prov')">Proveedores</div>
           <div class="tab" onclick="switchComprasTab('facturas')">Facturas recibidas</div>
           <div class="tab" onclick="switchComprasTab('op')">Órdenes de pago</div>
+          <div class="tab" onclick="switchComprasTab('ret')">Retenciones</div>
         </div>
       </div>
       <div class="page-content">
@@ -642,6 +643,18 @@ body.no-costos .solo-costos{display:none!important}
             <button class="btn btn-primary btn-sm" onclick="openOrdenPagoModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Orden de pago</button>
           </div>
           <div class="table-wrap"><table><thead><tr><th>Nro</th><th>Fecha</th><th>Proveedor</th><th>Medios</th><th>Imputado a</th><th style="text-align:right">A cuenta</th><th style="text-align:right">Total</th><th>Asiento</th><th></th></tr></thead><tbody id="opg-tbody"></tbody></table></div>
+        </div>
+        <div id="compras-tab-ret" style="display:none">
+          <div class="stats-bar" id="retp-stats"></div>
+          <div class="toolbar">
+            <label style="font-size:12px;color:var(--text2)">Mes <input type="month" id="retp-mes" onchange="renderRetencionesPracticadas()" style="margin-left:6px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 9px;color:var(--text);font-size:13px;font-family:var(--sans)"></label>
+            <select id="retp-imp" onchange="renderRetencionesPracticadas()" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 9px;color:var(--text);font-size:13px"><option value="">Todos los impuestos</option><option value="ganancias">Ganancias</option><option value="iibb">Ingresos Brutos</option><option value="suss">SUSS</option><option value="iva">IVA</option></select>
+            <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:5px"><input type="checkbox" id="retp-cero" onchange="renderRetencionesPracticadas()"> ver pagos sin retención</label>
+            <div style="flex:1"></div>
+            <button class="btn btn-ghost btn-sm" onclick="exportRetencionesPracticadasCSV()">Excel (CSV)</button>
+            <button class="btn btn-ghost btn-sm" onclick="imprimirTablaPagina('compras-tab-ret','Retenciones practicadas a proveedores')">Imprimir / PDF</button>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Certificado</th><th>Proveedor</th><th>CUIT</th><th>Impuesto</th><th>Régimen</th><th>OP</th><th style="text-align:right">Base</th><th style="text-align:right">Alíc.</th><th style="text-align:right">Retenido</th><th></th></tr></thead><tbody id="retp-tbody"></tbody></table></div>
         </div>
       </div>
     </div>
@@ -1625,6 +1638,15 @@ body.no-costos .solo-costos{display:none!important}
             <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);font-weight:600;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Retenciones sufridas (en cobranzas)</div>
             <div class="form-row"><div class="form-group"><label>Retención Ganancias</label><select id="cfg-cta-ret-ganancias"></select></div><div class="form-group"><label>Retención IIBB</label><select id="cfg-cta-ret-iibb"></select></div></div>
             <div class="form-row"><div class="form-group"><label>Retención SUSS</label><select id="cfg-cta-ret-suss"></select></div><div class="form-group"><label>Retención IVA</label><select id="cfg-cta-ret-iva"></select></div></div>
+          </div>
+
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:18px;margin-bottom:14px">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--amber,#d99a2b);font-weight:600;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)">Retenciones a proveedores (practicadas en órdenes de pago)</div>
+            <div class="form-row"><div class="form-group"><label>Ganancias retenidas a depositar</label><select id="cfg-cta-retp-ganancias"></select></div><div class="form-group"><label>IIBB retenido a depositar</label><select id="cfg-cta-retp-iibb"></select></div></div>
+            <div class="form-row"><div class="form-group"><label>SUSS retenido a depositar</label><select id="cfg-cta-retp-suss"></select></div><div class="form-group"><label>IVA retenido a depositar</label><select id="cfg-cta-retp-iva"></select></div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0 6px"><label style="margin:0">Regímenes de retención</label><button type="button" class="btn btn-ghost btn-sm" onclick="openRegimenModal()">+ Régimen</button></div>
+            <div class="table-wrap"><table style="font-size:12px"><thead><tr><th>Impuesto</th><th>Código</th><th>Concepto</th><th>Cálculo</th><th style="text-align:right">Mín. no sujeto</th><th style="text-align:right">Inscr. %</th><th style="text-align:right">No inscr. %</th><th style="text-align:right">Mín. retención</th><th></th></tr></thead><tbody id="cfg-regimenes"></tbody></table></div>
+            <div style="font-size:11px;color:var(--text3);margin-top:8px">Los importes vienen cargados con valores de referencia de la RG 830: <b>revisalos contra la norma vigente</b> antes de usarlos y actualizalos cuando ARCA los modifique. A cada proveedor se le asignan sus regímenes desde Compras → Proveedores → Editar.</div>
           </div>
 
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);padding:18px;margin-bottom:14px">
@@ -2851,6 +2873,10 @@ body.no-costos .solo-costos{display:none!important}
       <div class="form-row"><div class="form-group"><label>Email</label><input type="email" id="prov-email" placeholder="ventas@aceros.com"></div><div class="form-group"><label>Condición de pago</label><input type="text" id="prov-cond" placeholder="30 días FF"></div></div>
       <div class="form-row single"><div class="form-group"><label>Dirección</label><input type="text" id="prov-dir" placeholder="Av. Industrial 1234"></div></div>
       <div class="form-row single"><div class="form-group"><label>Observaciones</label><input type="text" id="prov-obs" placeholder="Notas internas"></div></div>
+      <div style="margin:14px 0 8px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Retenciones al pagarle (Ganancias y otras)</div>
+      <div id="prov-ret-list"></div>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="provRetAdd()">+ Régimen de retención</button>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">La orden de pago calcula sola la retención de cada régimen cargado acá. Sin regímenes, no se le retiene nada. Los regímenes y sus importes están en Configuración → Imputación contable.</div>
       <div style="margin:14px 0 8px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Calidad — AVL (evaluación de proveedores)</div>
       <div class="form-row"><div class="form-group"><label>Criticidad</label><select id="prov-criticidad"><option value="no_critico">No crítico</option><option value="critico">Crítico (material/servicio O&amp;G)</option></select></div><div class="form-group"><label>Estado AVL</label><select id="prov-aprobado"><option value="false">No aprobado</option><option value="true">Aprobado</option></select></div></div>
       <div class="form-row single"><div class="form-group"><label>Alcance de la aprobación</label><input type="text" id="prov-alcance" placeholder="Ej: materia prima AISI 4130 / tratamiento térmico"></div></div>
@@ -2940,6 +2966,37 @@ body.no-costos .solo-costos{display:none!important}
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-prov-rapido')">Cancelar</button>
       <button class="btn btn-primary" id="btn-save-pr" onclick="saveProvRapido()">Crear y usar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Régimen de retención a proveedores (mig 086) -->
+<div class="modal-overlay" id="modal-regimen">
+  <div class="modal" style="width:660px;max-width:95vw">
+    <div class="modal-header"><div class="modal-title" id="modal-regimen-title">Régimen de retención</div><button class="modal-close" onclick="closeModal('modal-regimen')">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="retreg-id">
+      <div class="form-row" style="grid-template-columns:1fr 1fr 2fr">
+        <div class="form-group"><label>Impuesto *</label><select id="retreg-impuesto"><option value="ganancias">Ganancias</option><option value="iibb">Ingresos Brutos</option><option value="suss">SUSS</option><option value="iva">IVA</option></select></div>
+        <div class="form-group"><label>Código de régimen *</label><input type="text" id="retreg-codigo" placeholder="78" maxlength="12"></div>
+        <div class="form-group"><label>Concepto *</label><input type="text" id="retreg-nombre" placeholder="Enajenación de bienes muebles y bienes de cambio" maxlength="120"></div>
+      </div>
+      <div class="form-row" style="grid-template-columns:2fr 1fr 1fr">
+        <div class="form-group"><label>Forma de cálculo</label><select id="retreg-modo"><option value="acumulado_mensual">Acumulado mensual: resta el mínimo y descuenta lo ya retenido (RG 830)</option><option value="por_pago">Por pago: retiene sobre toda la base si supera el mínimo</option></select></div>
+        <div class="form-group"><label>Mínimo no sujeto ($)</label><input type="number" id="retreg-mns" step="0.01" min="0"></div>
+        <div class="form-group"><label>Mínimo de retención ($)</label><input type="number" id="retreg-minret" step="0.01" min="0"></div>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="form-group"><label>Alícuota inscriptos (%)</label><input type="number" id="retreg-ai" step="0.01" min="0" max="100" placeholder="vacío = usa escala"></div>
+        <div class="form-group"><label>Alícuota no inscriptos (%)</label><input type="number" id="retreg-ani" step="0.01" min="0" max="100"></div>
+        <div class="form-group"><label>Jurisdicción (IIBB)</label><input type="text" id="retreg-jur" placeholder="Buenos Aires" maxlength="40"></div>
+      </div>
+      <div class="form-row single"><div class="form-group"><label>Escala para inscriptos — un tramo por renglón: desde ; hasta ; importe fijo ; % sobre el excedente (dejá "hasta" vacío en el último)</label><textarea id="retreg-escala" rows="5" placeholder="0;8000;0;5&#10;8000;16000;400;9" style="font-family:var(--mono);font-size:12px"></textarea></div></div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" id="retreg-activo" checked> Activo (se puede asignar a proveedores)</label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-regimen')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-regimen" onclick="saveRegimen()">Guardar</button>
     </div>
   </div>
 </div>
@@ -4026,6 +4083,7 @@ const EXPORT_BUILDERS=[
   {titulo:'IVA compras',fn:expIvaCompras},
   {titulo:'Posición IVA del mes',fn:expPosicionIva},
   {titulo:'Retenciones sufridas',fn:expRetenciones},
+  {titulo:'Retenciones practicadas (a proveedores)',fn:expRetencionesPracticadas},
   {titulo:'Libro Diario',fn:expLibroDiario},
   {titulo:'Mayores',fn:expMayores},
   {titulo:'Libro IVA Digital — Ventas comprobantes (TXT ARCA)',fn:expLidVentasCbte},
@@ -8679,7 +8737,7 @@ const PAGE_RENDERS={
   eficiencia:[renderEficiencia],
   mailings:[renderMailings],
   precios:[renderPrecios],
-  compras:[renderCompras,renderInspeccion,renderProveedores,renderFacturasRecibidas,renderOrdenesPago],
+  compras:[renderCompras,renderInspeccion,renderProveedores,renderFacturasRecibidas,renderOrdenesPago,renderRetencionesPracticadas],
   presupuestos:[renderPresupuestos],
   ventas:[renderVentas],
   femitidas:[renderFacturasEmitidas],
@@ -11713,7 +11771,8 @@ function renderOrdenesPago(filter=''){
     const anulada=o.estado==='anulada';
     const asiento=asientos.find(a=>a.id===o.asiento_id);
     const facts=imps.map(i=>facturasRecibidas.find(x=>x.id===i.factura_id)?.nro||'?').join(', ');
-    return `<tr style="${anulada?'opacity:.55':''}">
+    const retsOP=retencionesPracticadas.filter(x=>x.orden_pago_id===o.id&&parseFloat(x.monto)>0);
+    return `<tr data-id="${o.id}" style="${anulada?'opacity:.55':''}">
       <td class="mono td-primary">${esc(o.nro)}${anulada?' <span class="badge badge-coral" style="font-size:9px">ANULADA</span>':''}</td>
       <td>${fmtFecha(o.fecha)||'—'}</td>
       <td style="font-weight:500">${esc(prov?.nombre||'—')}</td>
@@ -11721,8 +11780,8 @@ function renderOrdenesPago(filter=''){
       <td class="mono" style="font-size:11px" title="${esc(facts)}">${imps.length?`${imps.length} fact.`:'—'}<div style="font-size:10px;color:var(--text3);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(facts)}</div></td>
       <td class="mono" style="text-align:right;color:${aCuenta>0.005?'var(--amber,#d99a2b)':'var(--text3)'}">${aCuenta>0.005?fmt(aCuenta):'—'}</td>
       <td class="mono" style="text-align:right;font-weight:600">${fmt(parseFloat(o.total)||0)}</td>
-      <td class="mono" style="font-size:11px;color:var(--text3)">${asiento?`N° ${asiento.numero}`:'—'}</td>
-      <td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="generarOrdenPagoPDF('${o.id}')" title="Orden de pago (PDF)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h3"/></svg></span>PDF</button>${anulada?'':`<button class="btn btn-danger btn-sm" onclick="anularOrdenPago('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></span>Anular</button>`}</td>
+      <td class="mono" style="font-size:11px">${asiento?`<a href="#" onclick="showPage('asientosp','${asiento.id}');return false" style="color:var(--accent)" title="Ver el asiento">N° ${asiento.numero}</a>`:'—'}</td>
+      <td style="display:flex;gap:4px">${retsOP.length?`<button class="btn btn-ghost btn-sm" onclick="generarCertificadosRetencionPDF({opId:'${o.id}'})" title="Certificado de retención (PDF)" style="color:var(--amber,#d99a2b)">Cert. ret.</button>`:''}<button class="btn btn-ghost btn-sm" onclick="generarOrdenPagoPDF('${o.id}')" title="Orden de pago (PDF)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h3"/></svg></span>PDF</button>${anulada?'':`<button class="btn btn-danger btn-sm" onclick="anularOrdenPago('${o.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></span>Anular</button>`}</td>
     </tr>`;
   }).join(''):'<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-title">Sin órdenes de pago</div><div class="empty-msg">Registrá la primera con <b>+ Orden de pago</b>: elegís el proveedor, tildás las facturas que cancelás y cargás uno o más medios (transferencia, cheques, caja, tarjeta).</div></div></td></tr>';
 }
@@ -11772,11 +11831,14 @@ function generarOrdenPagoPDF(id){
       let det=m.detalle||'';
       if(m.tipo==='cheque'){const ch=cheques.find(c=>c.id===m.cheque_id);if(ch)det=`Cheque ${ch.echeq?'electrónico ':''}Nº ${ch.numero}${ch.banco?' · '+ch.banco:''} · pago ${fmtFecha(ch.fecha_pago)}`;}
       if(m.tipo==='banco'){const cb=cuentasBancarias.find(c=>c.id===m.cuenta_bancaria_id);det=[cb?.nombre,m.detalle].filter(Boolean).join(' · ');}
-      return [{caja:'Efectivo',banco:'Transferencia',cheque:'Cheque diferido',tarjeta:'Tarjeta de crédito'}[m.tipo]||m.tipo,det,fmtN(m.monto)];
+      if(m.tipo==='retencion'){const rp=retencionesPracticadas.find(x=>x.medio_id===m.id);det=rp?`${RETP_IMPUESTOS[rp.impuesto]||rp.impuesto} · régimen ${rp.regimen_codigo||''} ${rp.regimen_nombre||''}${rp.certificado_nro?' · Certificado Nº '+rp.certificado_nro:''}`:'Retención impositiva';}
+      return [{caja:'Efectivo',banco:'Transferencia',cheque:'Cheque diferido',tarjeta:'Tarjeta de crédito',retencion:'Retención'}[m.tipo]||m.tipo,det,fmtN(m.monto)];
     }),columnStyles:{2:{halign:'right'}}});
   y=doc.lastAutoTable.finalY+6;
   const imputado=imps.reduce((a,i)=>a+(parseFloat(i.monto)||0),0);
   doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text(`TOTAL: ${fmtN(o.total)}`,196,y,{align:'right'});
+  const retenidoOP=medios.filter(m=>m.tipo==='retencion').reduce((a,m)=>a+(parseFloat(m.monto)||0),0);
+  if(retenidoOP>0.005){y+=5;doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text(`Retenciones: ${fmtN(retenidoOP)}   ·   Neto pagado: ${fmtN((parseFloat(o.total)||0)-retenidoOP)}`,196,y,{align:'right'});}
   if((parseFloat(o.total)||0)-imputado>0.005){y+=5;doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text(`A cuenta: ${fmtN((parseFloat(o.total)||0)-imputado)}`,196,y,{align:'right'});}
   if(o.observaciones){y+=8;doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text(`Observaciones: ${o.observaciones}`,14,y);}
   y=Math.max(y+30,240);
@@ -11784,6 +11846,156 @@ function generarOrdenPagoPDF(id){
   doc.setFontSize(8);doc.setTextColor(100);doc.text('Por VITALMET S.A.',52,y+5,{align:'center'});doc.text('Recibí conforme (firma, aclaración y sello)',157,y+5,{align:'center'});
   const safe=(prov.nombre||'prov').replace(/[^a-z0-9]/gi,'_').slice(0,30);
   doc.save(`OrdenPago_${o.nro||'sin-nro'}_${safe}.pdf`);
+}
+
+// ─── Retenciones practicadas: regímenes, listado y certificado (mig 086) ───
+function renderRegimenes(){
+  const tb=document.getElementById('cfg-regimenes');if(!tb)return;
+  const pct=x=>x==null?'—':String(parseFloat(x)).replace('.',',');
+  tb.innerHTML=retencionRegimenes.length?retencionRegimenes.map(r=>`<tr style="${r.activo===false?'opacity:.5':''}"><td>${esc(RETP_IMPUESTOS[r.impuesto]||r.impuesto)}</td><td class="mono">${esc(r.codigo)}</td><td>${esc(r.nombre)}${r.jurisdiccion?` <span style="color:var(--text3)">(${esc(r.jurisdiccion)})</span>`:''}</td><td style="font-size:11px;color:var(--text3)">${r.modo==='por_pago'?'por pago':'acum. mensual'}</td><td class="mono" style="text-align:right">${fmtARS(parseFloat(r.minimo_no_sujeto)||0)}</td><td class="mono" style="text-align:right">${r.alicuota_inscripto==null&&r.escala?'escala':pct(r.alicuota_inscripto)}</td><td class="mono" style="text-align:right">${pct(r.alicuota_no_inscripto)}</td><td class="mono" style="text-align:right">${fmtARS(parseFloat(r.minimo_retencion)||0)}</td><td><button class="btn btn-ghost btn-sm" onclick="openRegimenModal('${r.id}')">Editar</button></td></tr>`).join('')
+    :'<tr><td colspan="9" class="empty-cell" style="padding:16px;text-align:center;color:var(--text3);font-size:12px">Sin regímenes cargados.</td></tr>';
+}
+function openRegimenModal(id){
+  const r=id?retencionRegimenes.find(x=>x.id===id):null;
+  const s=(k,v)=>{document.getElementById(k).value=v??'';};
+  document.getElementById('modal-regimen-title').textContent=r?'Editar régimen de retención':'Nuevo régimen de retención';
+  s('retreg-id',r?.id);s('retreg-impuesto',r?.impuesto||'ganancias');s('retreg-codigo',r?.codigo);s('retreg-nombre',r?.nombre);s('retreg-modo',r?.modo||'acumulado_mensual');
+  s('retreg-mns',r?.minimo_no_sujeto);s('retreg-minret',r?.minimo_retencion);s('retreg-ai',r?.alicuota_inscripto);s('retreg-ani',r?.alicuota_no_inscripto);s('retreg-jur',r?.jurisdiccion);
+  s('retreg-escala',(r?.escala||[]).map(t=>[t.desde,t.hasta??'',t.fijo,t.pct].join(';')).join('\n'));
+  document.getElementById('retreg-activo').checked=r?r.activo!==false:true;
+  openModal('modal-regimen');
+}
+// "desde;hasta;fijo;pct" por renglón → [{desde,hasta,fijo,pct}] (pura, con test).
+function parseEscalaRetencion(txt){
+  const n=x=>{x=String(x??'').trim().replace(/\./g,'').replace(',','.');return x===''?null:Number(x);};
+  const filas=String(txt||'').split(/\r?\n/).map(l=>l.trim()).filter(Boolean).map(l=>{const p=l.split(';');return {desde:n(p[0]),hasta:n(p[1]),fijo:n(p[2])??0,pct:n(p[3])};});
+  if(filas.some(f=>f.desde==null||f.pct==null||[f.desde,f.hasta,f.fijo,f.pct].some(v=>v!=null&&!isFinite(v))))return {ok:false,error:'Escala inválida: cada renglón es desde;hasta;fijo;%'};
+  for(let i=0;i<filas.length;i++){
+    if(filas[i].hasta!=null&&filas[i].hasta<=filas[i].desde)return {ok:false,error:`Escala: en el tramo ${i+1} "hasta" debe ser mayor que "desde"`};
+    if(i<filas.length-1&&filas[i].hasta!==filas[i+1].desde)return {ok:false,error:`Escala: el tramo ${i+2} debe empezar donde termina el ${i+1}`};
+  }
+  return {ok:true,escala:filas.length?filas:null};
+}
+async function saveRegimen(){
+  const id=g('retreg-id'),codigo=g('retreg-codigo'),nombre=g('retreg-nombre');
+  if(!validarCampos([['retreg-codigo',!!codigo,'Cargá el código de régimen'],['retreg-nombre',!!nombre,'Cargá el concepto']]))return;
+  const numO=k=>{const v=document.getElementById(k).value;return v===''?null:parseFloat(v);};
+  const esc_=parseEscalaRetencion(document.getElementById('retreg-escala').value);
+  if(!esc_.ok)return notify(esc_.error,'err');
+  const ai=numO('retreg-ai');
+  if(ai==null&&!esc_.escala)return notify('Cargá la alícuota de inscriptos o una escala','err');
+  const data={impuesto:g('retreg-impuesto'),codigo,nombre,modo:g('retreg-modo'),minimo_no_sujeto:numO('retreg-mns')||0,minimo_retencion:numO('retreg-minret')||0,
+    alicuota_inscripto:ai,alicuota_no_inscripto:numO('retreg-ani'),escala:ai==null?esc_.escala:null,jurisdiccion:g('retreg-jur')||null,
+    activo:document.getElementById('retreg-activo').checked,updated_at:new Date().toISOString()};
+  setBusy('btn-save-regimen',true);
+  try{
+    if(id)await PATCH('retencion_regimenes',data,`?id=eq.${id}`);
+    else await POST('retencion_regimenes',{...data,empresa_id:currentEmpresa.id});
+    await reload('retencion_regimenes');closeModal('modal-regimen',true);renderRegimenes();notify(id?'Régimen actualizado':'Régimen creado');
+  }catch(e){notify(msgError(e),'err');}
+  finally{setBusy('btn-save-regimen',false);}
+}
+function _retpFiltradas(){
+  const mesEl=document.getElementById('retp-mes');
+  if(mesEl&&!mesEl.value)mesEl.value=hoyLocal().slice(0,7);
+  const mes=mesEl?.value||'',imp=document.getElementById('retp-imp')?.value||'',cero=document.getElementById('retp-cero')?.checked;
+  return retencionesPracticadas.filter(r=>(!mes||String(r.fecha||'').slice(0,7)===mes)&&(!imp||r.impuesto===imp)&&(cero||parseFloat(r.monto)>0))
+    .sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')||(a.certificado_nro||'').localeCompare(b.certificado_nro||''));
+}
+function renderRetencionesPracticadas(){
+  const tb=document.getElementById('retp-tbody'),st=document.getElementById('retp-stats');if(!tb||!st)return;
+  const f2=n=>'$ '+(parseFloat(n)||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const list=_retpFiltradas(),vivas=list.filter(r=>r.estado!=='anulada');
+  const porImp={};vivas.forEach(r=>{porImp[r.impuesto]=(porImp[r.impuesto]||0)+(parseFloat(r.monto)||0);});
+  st.innerHTML=`<div class="stat-card"><div class="stat-label">Certificados del mes</div><div class="stat-value" style="color:var(--accent)">${vivas.filter(r=>parseFloat(r.monto)>0).length}</div></div>`
+    +(Object.keys(porImp).length?Object.entries(porImp).map(([k,v])=>`<div class="stat-card"><div class="stat-label">${esc(RETP_IMPUESTOS[k]||k)} a depositar</div><div class="stat-value" style="color:var(--amber,#d99a2b);font-size:14px">${f2(v)}</div></div>`).join(''):'');
+  tb.innerHTML=list.length?list.map(r=>{
+    const prov=proveedores.find(p=>p.id===r.proveedor_id)||{},op=ordenesPago.find(o=>o.id===r.orden_pago_id),an=r.estado==='anulada',conMonto=parseFloat(r.monto)>0;
+    return `<tr data-id="${r.id}" style="${an?'opacity:.55':''}"><td>${fmtFecha(r.fecha)||'—'}</td>
+      <td class="mono td-primary">${esc(r.certificado_nro||'—')}${an?' <span class="badge badge-coral" style="font-size:9px">ANULADA</span>':''}${r.manual?' <span class="badge badge-amber" style="font-size:9px" title="El importe se cargó a mano en la orden de pago">A MANO</span>':''}</td>
+      <td style="font-weight:500">${esc(prov.nombre||'—')}</td><td class="mono" style="font-size:11px">${esc(prov.cuit||'—')}</td>
+      <td>${esc(RETP_IMPUESTOS[r.impuesto]||r.impuesto)}</td><td style="font-size:11px" title="${esc(r.detalle?.formula||'')}">${esc(r.regimen_codigo||'')} · ${esc(r.regimen_nombre||'')}${!conMonto&&r.detalle?.motivo?`<div style="color:var(--text3)">${esc(r.detalle.motivo)}</div>`:''}</td>
+      <td class="mono" style="font-size:11px">${op?`<a href="#" onclick="switchComprasTab('op');showPage('compras','${op.id}');return false" style="color:var(--accent)">${esc(op.nro)}</a>`:'—'}</td>
+      <td class="mono" style="text-align:right">${f2(r.base_calculo)}</td><td class="mono" style="text-align:right">${r.alicuota==null?(conMonto?'escala':'—'):String(parseFloat(r.alicuota)).replace('.',',')+' %'}</td>
+      <td class="mono" style="text-align:right;font-weight:600">${f2(r.monto)}</td>
+      <td>${conMonto?`<button class="btn btn-ghost btn-sm" onclick="generarCertificadosRetencionPDF({retId:'${r.id}'})" title="Certificado de retención (PDF)">PDF</button>`:''}</td></tr>`;
+  }).join(''):'<tr><td colspan="11" class="empty-cell"><div class="empty-state"><div class="empty-title">Sin retenciones en el período</div><div class="empty-msg">Se generan solas al registrar una <b>orden de pago</b> a un proveedor que tenga regímenes de retención cargados (Proveedores → Editar).</div></div></td></tr>';
+}
+// Filas del listado de retenciones practicadas (pura): sirve al CSV de la
+// pestaña y al exportable mensual. Las anuladas van aparte, sin sumar.
+function retencionesPracticadasFilas(list,provs,ops,facturas){
+  const tot={};
+  const filas=[['Fecha','Certificado','Impuesto','Cód. régimen','Régimen','CUIT','Proveedor','Condición','Orden de pago','Comprobantes','Base de cálculo','Alícuota %','Importe retenido','Estado']];
+  (list||[]).forEach(r=>{
+    const p=(provs||[]).find(x=>x.id===r.proveedor_id)||{},o=(ops||[]).find(x=>x.id===r.orden_pago_id)||{};
+    const cbtes=(o.orden_pago_imputaciones||[]).map(i=>((facturas||[]).find(f=>f.id===i.factura_id)||{}).nro).filter(Boolean).join(' / ');
+    if(r.estado!=='anulada')tot[r.impuesto]=(tot[r.impuesto]||0)+(parseFloat(r.monto)||0);
+    filas.push([csvFecha(r.fecha),r.certificado_nro||'',RETP_IMPUESTOS[r.impuesto]||r.impuesto,r.regimen_codigo||'',r.regimen_nombre||'',p.cuit||'',p.nombre||'',
+      r.condicion==='no_inscripto'?'No inscripto':'Inscripto',o.nro||'',cbtes,csvNum(r.base_calculo),r.alicuota==null?'escala':csvNum(r.alicuota),csvNum(r.monto),r.estado==='anulada'?'ANULADA':'Vigente']);
+  });
+  Object.entries(tot).forEach(([k,v])=>filas.push(['','','','','','','','','','','','TOTAL '+(RETP_IMPUESTOS[k]||k),csvNum(v),'']));
+  return {filas,tot};
+}
+function exportRetencionesPracticadasCSV(){
+  const list=_retpFiltradas().filter(r=>parseFloat(r.monto)>0);
+  if(!list.length)return notify('No hay retenciones en el período','err');
+  const {filas}=retencionesPracticadasFilas(list,proveedores,ordenesPago,facturasRecibidas);
+  descargarTexto(`retenciones_practicadas_${document.getElementById('retp-mes').value||'todas'}.csv`,csvArmar(filas));
+}
+async function expRetencionesPracticadas(desde,hasta){
+  const list=retencionesPracticadas.filter(r=>r.fecha>=desde&&r.fecha<=hasta&&parseFloat(r.monto)>0).sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+  const {filas,tot}=retencionesPracticadasFilas(list,proveedores,ordenesPago,facturasRecibidas);
+  return {nombre:`retenciones_practicadas_${desde}_a_${hasta}.csv`,contenido:csvArmar(filas),
+          resumen:`Retenciones practicadas: ${list.length} certificados · ARS ${csvNum(Object.values(tot).reduce((a,b)=>a+b,0))}`};
+}
+function generarCertificadosRetencionPDF({opId,retId}={}){
+  const lista=retencionesPracticadas.filter(r=>(retId?r.id===retId:r.orden_pago_id===opId)&&parseFloat(r.monto)>0);
+  if(!lista.length)return notify('No hay retenciones para certificar','err');
+  if(!window.jspdf){notify('Librería PDF no cargada. Recargá la página.','err');return;}
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const f2=n=>'$ '+(parseFloat(n)||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const cfg=configContable||{};
+  lista.forEach((r,ix)=>{
+    if(ix)doc.addPage();
+    const prov=proveedores.find(p=>p.id===r.proveedor_id)||{},op=ordenesPago.find(o=>o.id===r.orden_pago_id)||{};
+    const imp=RETP_IMPUESTOS[r.impuesto]||r.impuesto;
+    if(VITALMET_LOGO_DATAURL){try{doc.addImage(VITALMET_LOGO_DATAURL,'JPEG',14,10,42,25);}catch(e){}}
+    doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(40,40,40);
+    doc.text('CERTIFICADO DE RETENCIÓN',196,18,{align:'right'});
+    doc.setFontSize(11);doc.text(r.impuesto==='ganancias'?'Impuesto a las Ganancias':imp,196,25,{align:'right'});
+    doc.setFont('helvetica','normal');doc.setTextColor(60,130,90);doc.text(`Nº ${r.certificado_nro||'—'}`,196,31,{align:'right'});
+    doc.setTextColor(60,60,60);doc.setFontSize(10);doc.text(`Fecha: ${fmtFecha(r.fecha)}`,196,37,{align:'right'});
+    doc.setDrawColor(200);doc.line(14,42,196,42);
+    let y=46;
+    const bloque=(titulo,filas)=>{
+      doc.autoTable({startY:y,margin:{left:14,right:14},theme:'grid',styles:{fontSize:9,cellPadding:1.8},headStyles:{fillColor:[40,40,40]},
+        head:[[{content:titulo,colSpan:2}]],body:filas,columnStyles:{0:{cellWidth:58,fontStyle:'bold'}}});
+      y=doc.lastAutoTable.finalY+5;
+    };
+    bloque('A — Agente de retención',[['Razón social',cfg.razon_social_recibo||'VITALMET S.A.'],['CUIT','34-59751980-1'],['Domicilio',cfg.domicilio_recibo||'Perú 246, Villa Martelli, Buenos Aires']]);
+    bloque('B — Sujeto retenido',[['Apellido y nombre o razón social',prov.nombre||'—'],['CUIT',prov.cuit||'—'],['Domicilio',prov.direccion||'—'],['Condición frente al impuesto',r.condicion==='no_inscripto'?'No inscripto':'Inscripto']]);
+    const cbtes=(op.orden_pago_imputaciones||[]).map(i=>(facturasRecibidas.find(f=>f.id===i.factura_id)||{}).nro).filter(Boolean).join(' · ');
+    const filasC=[['Impuesto',imp],['Régimen',`${r.regimen_codigo||''} — ${r.regimen_nombre||''}`],
+      ['Comprobante que origina la retención',`Orden de pago ${op.nro||'—'} del ${fmtFecha(op.fecha||r.fecha)}`+(cbtes?` — cancela: ${cbtes}`:' — pago a cuenta')],
+      ['Monto del pago sujeto a retención',f2(r.base_calculo)]];
+    if(parseFloat(r.base_acumulada)>0)filasC.push(['Pagos anteriores del mes',f2(r.base_acumulada)]);
+    if(parseFloat(r.minimo_no_sujeto)>0)filasC.push(['Monto no sujeto a retención',f2(r.minimo_no_sujeto)]);
+    filasC.push(['Alícuota',r.alicuota==null?'Según escala':String(parseFloat(r.alicuota)).replace('.',',')+' %']);
+    if(parseFloat(r.retenido_previo)>0)filasC.push(['Retenciones anteriores del mes',f2(r.retenido_previo)]);
+    if(r.moneda_op==='USD'&&r.tipo_cambio)filasC.push(['Pago en dólares',`Tipo de cambio ${_numAR(r.tipo_cambio)}`]);
+    bloque('C — Datos de la retención practicada',filasC);
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(40,40,40);
+    doc.text(`IMPORTE RETENIDO: ${f2(r.monto)}`,196,y+4,{align:'right'});y+=12;
+    if(r.estado==='anulada'){doc.setTextColor(200,60,60);doc.setFontSize(16);doc.text('ANULADO',14,y);doc.setTextColor(60,60,60);y+=8;}
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(100);
+    doc.text('Conserve este certificado: es el comprobante para computar la retención en su declaración jurada.',14,y);
+    const yf=Math.max(y+32,235);
+    doc.setDrawColor(120);doc.line(120,yf,190,yf);
+    doc.text('Firma y aclaración del agente de retención',155,yf+5,{align:'center'});
+  });
+  const p0=proveedores.find(p=>p.id===lista[0].proveedor_id)||{};
+  doc.save(`CertRetencion_${lista.map(r=>r.certificado_nro).join('-')}_${(p0.nombre||'prov').replace(/[^a-z0-9]/gi,'_').slice(0,30)}.pdf`);
 }
 
 function renderCobPag(){
@@ -13971,6 +14183,8 @@ function renderImputacionContable(){
   _llenarSelectCuentas('cfg-cta-ret-iibb',['activo'],c.cta_ret_iibb);
   _llenarSelectCuentas('cfg-cta-ret-suss',['activo'],c.cta_ret_suss);
   _llenarSelectCuentas('cfg-cta-ret-iva',['activo'],c.cta_ret_iva);
+  ['ganancias','iibb','suss','iva'].forEach(k=>_llenarSelectCuentas('cfg-cta-retp-'+k,['pasivo'],c['cta_retp_'+k]));
+  renderRegimenes();
   _llenarSelectCuentas('cfg-cta-stock-mp',['activo'],c.cta_stock_mp);
   _llenarSelectCuentas('cfg-cta-stock-pt',['activo'],c.cta_stock_pt);
   _llenarSelectCuentas('cfg-cta-stock-insumos',['activo'],c.cta_stock_insumos);
@@ -14039,6 +14253,10 @@ async function saveConfigContable(){
     cta_ret_iibb:v('cfg-cta-ret-iibb'),
     cta_ret_suss:v('cfg-cta-ret-suss'),
     cta_ret_iva:v('cfg-cta-ret-iva'),
+    cta_retp_ganancias:v('cfg-cta-retp-ganancias'),
+    cta_retp_iibb:v('cfg-cta-retp-iibb'),
+    cta_retp_suss:v('cfg-cta-retp-suss'),
+    cta_retp_iva:v('cfg-cta-retp-iva'),
     cta_stock_mp:v('cfg-cta-stock-mp'),
     cta_stock_pt:v('cfg-cta-stock-pt'),
     cta_stock_insumos:v('cfg-cta-stock-insumos'),
@@ -15848,7 +16066,7 @@ async function saveRegistroCalidad(){
 // ═══════════════════════════════════════════════════════════
 
 function switchComprasTab(tab){
-  const orden=['oc','inspeccion','prov','facturas','op'];
+  const orden=['oc','inspeccion','prov','facturas','op','ret'];
   document.querySelectorAll('#page-compras .tab').forEach((t,i)=>{t.classList.toggle('active',orden[i]===tab);});
   orden.forEach(k=>{const el=document.getElementById('compras-tab-'+k);if(el)el.style.display=k===tab?'':'none';});
 }
@@ -16238,8 +16456,27 @@ function openProveedorModal(id){
   document.getElementById('prov-alcance').value=p?.alcance_aprobacion||'';
   document.getElementById('prov-fecha-eval').value=p?.fecha_evaluacion||'';
   document.getElementById('prov-fecha-reeval').value=p?.fecha_proxima_evaluacion||'';
+  _provRets=(p?.retenciones||[]).map(r=>({...r}));provRetRender();
   openModal('modal-proveedor');
 }
+// Regímenes de retención del proveedor (mig 086) — se guardan en proveedores.retenciones.
+let _provRets=[];
+function provRetRender(){
+  const w=document.getElementById('prov-ret-list');if(!w)return;
+  const inp='background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-xs);padding:5px 6px;color:var(--text);font-size:11px;width:100%';
+  const regs=retencionRegimenes.filter(r=>r.activo!==false);
+  if(!regs.length&&!_provRets.length){w.innerHTML='<div style="font-size:12px;color:var(--text3);padding:4px 0 8px">Todavía no hay regímenes de retención cargados (Configuración → Imputación contable).</div>';return;}
+  w.innerHTML=_provRets.map((r,i)=>`<div style="display:grid;grid-template-columns:2.2fr 1fr 1fr 1fr 26px;gap:6px;align-items:end;margin-bottom:6px">
+    <div>${i?'':'<label style="font-size:9px">Régimen</label>'}<select onchange="provRetSet(${i},'regimen_id',this.value)" style="${inp}"><option value="">— elegir —</option>${retencionRegimenes.filter(x=>x.activo!==false||x.id===r.regimen_id).map(x=>`<option value="${x.id}" ${x.id===r.regimen_id?'selected':''}>${esc(RETP_IMPUESTOS[x.impuesto]||x.impuesto)} · ${esc(x.codigo)} · ${esc(x.nombre)}</option>`).join('')}</select></div>
+    <div>${i?'':'<label style="font-size:9px">Condición</label>'}<select onchange="provRetSet(${i},'condicion',this.value)" style="${inp}"><option value="inscripto" ${r.condicion!=='no_inscripto'?'selected':''}>Inscripto</option><option value="no_inscripto" ${r.condicion==='no_inscripto'?'selected':''}>No inscripto</option></select></div>
+    <div>${i?'':'<label style="font-size:9px">Cert. exclusión</label>'}<input type="text" value="${esc(r.exclusion_cert||'')}" placeholder="Nº (si tiene)" oninput="provRetSet(${i},'exclusion_cert',this.value)" style="${inp}"></div>
+    <div>${i?'':'<label style="font-size:9px">Excluido hasta</label>'}<input type="date" value="${esc(r.exclusion_hasta||'')}" onchange="provRetSet(${i},'exclusion_hasta',this.value)" title="Mientras el certificado esté vigente no se le retiene" style="${inp}"></div>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="provRetDel(${i})" style="padding:2px 6px" title="Quitar">×</button>
+  </div>`).join('');
+}
+function provRetAdd(){_provRets.push({regimen_id:'',condicion:'inscripto',exclusion_cert:'',exclusion_hasta:''});provRetRender();}
+function provRetSet(i,k,v){if(_provRets[i])_provRets[i][k]=v;}
+function provRetDel(i){_provRets.splice(i,1);provRetRender();}
 function editProveedor(id){openProveedorModal(id);}
 async function saveProveedor(){
   const id=document.getElementById('prov-edit-id').value;
@@ -16247,7 +16484,9 @@ async function saveProveedor(){
   if(!nombre){notify('El nombre es obligatorio','err');return;}
   const cuitVal=document.getElementById('prov-cuit').value.trim();
   if(cuitVal&&!validarCuit(cuitVal)){notify('El CUIT no es válido (dígito verificador)','err');return;}
-  const data={nombre,cuit:document.getElementById('prov-cuit').value.trim()||null,contacto:document.getElementById('prov-contacto').value.trim()||null,telefono:document.getElementById('prov-tel').value.trim()||null,email:document.getElementById('prov-email').value.trim()||null,condicion_pago_default:document.getElementById('prov-cond').value.trim()||null,direccion:document.getElementById('prov-dir').value.trim()||null,observaciones:document.getElementById('prov-obs').value.trim()||null,
+  const rets=_provRets.filter(r=>r.regimen_id).map(r=>({regimen_id:r.regimen_id,condicion:r.condicion==='no_inscripto'?'no_inscripto':'inscripto',exclusion_cert:(r.exclusion_cert||'').trim()||null,exclusion_hasta:r.exclusion_hasta||null}));
+  if(new Set(rets.map(r=>r.regimen_id)).size!==rets.length){notify('Hay un régimen de retención repetido','err');return;}
+  const data={retenciones:rets,nombre,cuit:document.getElementById('prov-cuit').value.trim()||null,contacto:document.getElementById('prov-contacto').value.trim()||null,telefono:document.getElementById('prov-tel').value.trim()||null,email:document.getElementById('prov-email').value.trim()||null,condicion_pago_default:document.getElementById('prov-cond').value.trim()||null,direccion:document.getElementById('prov-dir').value.trim()||null,observaciones:document.getElementById('prov-obs').value.trim()||null,
     criticidad:document.getElementById('prov-criticidad').value,aprobado:document.getElementById('prov-aprobado').value==='true',alcance_aprobacion:document.getElementById('prov-alcance').value.trim()||null,fecha_evaluacion:document.getElementById('prov-fecha-eval').value||null,fecha_proxima_evaluacion:document.getElementById('prov-fecha-reeval').value||null,
     condicion_fiscal:document.getElementById('prov-cond-fiscal').value};
   try{setBusy('btn-save-prov',true);
