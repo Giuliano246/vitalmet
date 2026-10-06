@@ -740,6 +740,8 @@ body.no-costos .solo-costos{display:none!important}
           <select id="femf-tipo" onchange="renderFacturasEmitidas()" title="Filtrar por tipo de comprobante" style="width:auto"><option value="">Todos los tipos</option><option value="fa">Facturas</option><option value="nc">Notas de crédito</option><option value="nd">Notas de débito</option></select>
           <input type="date" id="femf-fdesde" onchange="renderFacturasEmitidas()" title="Desde" style="width:auto"><input type="date" id="femf-fhasta" onchange="renderFacturasEmitidas()" title="Hasta" style="width:auto">
           <button class="btn btn-ghost" onclick="exportFacturasEmitidasCSV()" title="Exportar la lista filtrada a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
+          <select id="femf-copias" onchange="setCbteCopias(this.value)" title="Ejemplares que lleva cada PDF de comprobante" style="width:auto"><option value="3">Original + duplicado + triplicado</option><option value="2">Original + duplicado</option><option value="1">Sólo original</option></select>
+          <button class="btn btn-ghost" onclick="imprimirComprobantesFiltrados()" title="Un PDF con todos los comprobantes filtrados, uno por hoja"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span>PDF</button>
           <button class="btn btn-ghost" onclick="openFacturaDirecta()" style="border-color:var(--teal);color:var(--teal)">+ Factura directa</button>
           <button class="btn btn-ghost" onclick="openNotaLibre()" style="border-color:var(--coral,#e5484d);color:var(--coral,#e5484d)" title="NC/ND con CAE sin factura del ERP: asociada a un período o a un comprobante propio externo">+ NC/ND libre</button>
         </div>
@@ -1681,6 +1683,8 @@ body.no-costos .solo-costos{display:none!important}
             <div class="form-row"><div class="form-group"><label>Previsión para incobrables (regularizadora de activo)</label><select id="cfg-cta-prev-incobrables"></select></div><div class="form-group"><label>Deudores incobrables (gasto)</label><select id="cfg-cta-gasto-incobrables"></select></div></div>
             <div class="form-row"><div class="form-group"><label>Impuesto a las ganancias (gasto)</label><select id="cfg-cta-iigg"></select></div><div class="form-group"><label>Impuesto a las ganancias a pagar (pasivo)</label><select id="cfg-cta-iigg-a-pagar"></select></div></div>
             <div class="form-row"><div class="form-group"><label>Anticipos de clientes (pasivo)</label><select id="cfg-cta-anticipos-clientes"></select></div><div class="form-group"></div></div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:600;margin:14px 0 10px">Datos del emisor en facturas, NC y ND</div>
+            <div class="form-row"><div class="form-group"><label>Ingresos Brutos Nº</label><input type="text" id="cfg-iibb-nro" placeholder="Nº de inscripción (CM o local)"></div><div class="form-group"><label>Inicio de actividades</label><input type="date" id="cfg-inicio-actividades"></div></div>
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:600;margin:14px 0 10px">Recibo de haberes</div>
             <div class="form-row"><div class="form-group"><label>Razón social (recibo)</label><input type="text" id="cfg-razon-social-recibo" placeholder="VITALMET SOCIEDAD ANONIMA"></div><div class="form-group"><label>Domicilio (recibo)</label><input type="text" id="cfg-domicilio-recibo" placeholder="PERU 246, VILLA MARTELLI"></div></div>
             <div class="form-row single"><div class="form-group"><label>Actividad (recibo)</label><input type="text" id="cfg-actividad-recibo" placeholder="Forjado, prensado, estampado y laminado de metales; pulvimetalurgia"></div></div>
@@ -5348,6 +5352,7 @@ function _femFiltros(){
 }
 function renderFacturasEmitidas(){
   const tb=document.getElementById('fem-tbody');if(!tb)return;
+  const selCop=document.getElementById('femf-copias');if(selCop)selCop.value=String(_cbteCopias().length);
   const conFact=new Set(facturasEmitidas.map(f=>resolverClienteFactura(f,ventas,clientes).cliente_id).filter(Boolean));
   _fillSelectKeep(document.getElementById('femf-cliente'),clientes.filter(c=>conFact.has(c.id)).sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'')),'Todos los clientes');
   const rows=filtrarFacturasEmitidas(facturasEmitidas,_femFiltros(),{ventas,clientes});
@@ -5377,7 +5382,7 @@ function renderFacturasEmitidas(){
       <td class="mono" style="text-align:right;font-weight:600;${rojo}">${fmtARS(x.signo*(parseFloat(f.imp_total)||0))}</td>
       <td class="mono" style="font-size:11px">${esc(f.cae||'')||'—'}${f.afip_environment&&f.afip_environment!=='produccion'?' <span class="badge badge-warn" style="font-size:9px" title="Emitida en homologación (prueba)">HOMO</span>':''}</td>
       <td class="mono" style="font-size:11px">${as?`<span onclick="showPage('asientosp','${as.id}')" style="cursor:pointer;color:var(--accent)" title="Ver asiento">#${esc(String(as.numero??''))}</span>`:'<span style="color:var(--coral)" title="Sin asiento contable — usá «Regenerar asientos» en Ventas">sin asiento</span>'}</td>
-      <td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="verFactura('${f.id}')">Ver CAE</button>${x.clase==='fa'?`<button class="btn btn-ghost btn-sm" onclick="openNotaSobreFactura('${f.id}')" style="color:var(--coral,#e5484d)" title="Nota de crédito o débito con CAE sobre esta factura">NC/ND</button>`:''}</td>
+      <td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="imprimirComprobante('${f.id}')" title="Descargar el comprobante en PDF para imprimir o mandar al cliente" style="color:var(--accent)">PDF</button><button class="btn btn-ghost btn-sm" onclick="verFactura('${f.id}')">Ver CAE</button>${x.clase==='fa'?`<button class="btn btn-ghost btn-sm" onclick="openNotaSobreFactura('${f.id}')" style="color:var(--coral,#e5484d)" title="Nota de crédito o débito con CAE sobre esta factura">NC/ND</button>`:''}</td>
     </tr>`;
   }).join(''):`<tr><td colspan="11" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></div><div class="empty-title">${filtrado?'Nada con esos filtros':'Sin comprobantes emitidos'}</div><div class="empty-msg">${filtrado?'Probá ampliar el rango de fechas o sacar el filtro de cliente.':'Las facturas salen desde el botón <b>CAE</b> de una venta entregada, o con <b>+ Factura directa</b>.'}</div></div></td></tr>`;
 }
@@ -5386,6 +5391,245 @@ function exportFacturasEmitidasCSV(){
   if(!rows.length){notify('No hay comprobantes para exportar con esos filtros','err');return;}
   exportCSV(`facturas_emitidas_${hoyLocal()}.csv`,['Fecha','Tipo','Comprobante','Cliente','CUIT/Doc','Origen','Neto','IVA','Total','CAE','Vto CAE'],
     rows.map(x=>{const l=cbteLabel(x.f).split(' ');return [fmtFecha(x.f.fecha),l[0],l[1],x.cliente,x.f.doc_nro||'',origenFacturaEmitida(x.f,x),_numAR(x.signo*(parseFloat(x.f.imp_neto)||0)),_numAR(x.signo*(parseFloat(x.f.imp_iva)||0)),_numAR(x.signo*(parseFloat(x.f.imp_total)||0)),x.f.cae||'',fmtFecha(x.f.cae_vto)];}));
+}
+// ═══ COMPROBANTE IMPRESO — factura / NC / ND con CAE y QR (mig 087) ═══
+// PDF del comprobante electrónico con los datos de la RG 1415 y el QR de
+// la RG 4892. El detalle sale de facturas_emitidas.items (lo que se
+// informó a ARCA, mig 087); si el comprobante no lo tiene se reconstruye
+// desde la venta (prorrateando el neto real) o va en una sola línea.
+// Puras con tests en tests/comprobante-pdf.test.js: comprobanteItems,
+// comprobanteModelo, comprobanteObs, fmtCuitDoc.
+const CBTE_TITULO={fa:'FACTURA',nc:'NOTA DE CRÉDITO',nd:'NOTA DE DÉBITO'};
+const COND_IVA_TXT={RI:'IVA Responsable Inscripto',monotributo:'Responsable Monotributo',exento:'IVA Sujeto Exento',consumidor_final:'Consumidor Final'};
+const DOC_TIPO_TXT={80:'CUIT',86:'CUIL',96:'DNI'};
+function fmtCuitDoc(d){const s=String(d||'').replace(/\D/g,'');return s.length===11?`${s.slice(0,2)}-${s.slice(2,10)}-${s.slice(10)}`:s;}
+// Observaciones imprimibles: las del usuario y la nota de tipo de cambio.
+// Los avisos de ARCA ("10217: …") quedan en el sistema, no en el papel.
+function comprobanteObs(obs){
+  if(!obs||Array.isArray(obs))return '';
+  return String(obs).split(' · ').map(s=>s.trim()).filter(s=>s&&!/^\d{3,6}:/.test(s)&&!/^Asociada a /.test(s)).join(' · ');
+}
+function comprobanteItems(f,{ventaItems,asociada}={}){
+  const r2=n=>Math.round(n*100)/100;
+  const guardados=Array.isArray(f?.items)?f.items.filter(i=>i&&(Number(i.cantidad)||0)>0):[];
+  if(guardados.length)return {estimados:false,items:guardados.map(i=>({descripcion:String(i.descripcion||'Producto'),cantidad:Number(i.cantidad)||0,precio_unit:Number(i.precio_unit)||0,iva_pct:Number(i.iva_pct)>=0?Number(i.iva_pct):21}))};
+  const neto=parseFloat(f?.imp_neto)||0,pct=alicuotaImplicita(neto,f?.imp_iva);
+  const clase=claseNota(f?.tipo_comprobante);
+  const vi=(ventaItems||[]).filter(i=>(Number(i.cantidad)||0)>0);
+  const peso=vi.reduce((s,i)=>s+(Number(i.cantidad)||0)*(Number(i.precio_unitario)||0),0);
+  if(!clase&&vi.length&&peso>0){
+    let resto=neto;
+    return {estimados:true,items:vi.map((i,k)=>{
+      const cant=Number(i.cantidad)||0;
+      const sub=k===vi.length-1?r2(resto):r2(neto*cant*(Number(i.precio_unitario)||0)/peso);
+      resto=r2(resto-sub);
+      return {descripcion:String(i.pieza||i.material||'Producto'),cantidad:cant,precio_unit:sub/cant,iva_pct:pct,subtotal:sub};
+    })};
+  }
+  const ref=asociada?` s/ ${cbteLabel(asociada)}`:f?.cbte_asoc_externo?` s/ ${f.cbte_asoc_externo}`:'';
+  const desc=clase?`${clase==='nc'?'Nota de crédito':'Nota de débito'}${ref}`:'Según detalle de la operación';
+  return {estimados:true,items:[{descripcion:desc,cantidad:1,precio_unit:neto,iva_pct:pct}]};
+}
+// Todo lo que lleva el papel, ya resuelto (pura). A y M discriminan IVA:
+// precios netos + neto gravado + IVA por alícuota. B y C van a precio
+// final; la B informa el IVA contenido (Ley 27.743, transparencia fiscal).
+function comprobanteModelo(f,{cliente,venta,asociada,empresa}={}){
+  const r2=n=>Math.round(n*100)/100;
+  const tipo=Number(f.tipo_comprobante),info=cbteAfipInfo(tipo),clase=claseNota(tipo)||'fa';
+  const letra=info.letra,discrimina=letra==='A'||letra==='M';
+  const {items:base,estimados}=comprobanteItems(f,{ventaItems:venta?.venta_items,asociada});
+  const grupos=new Map();
+  const items=base.map(i=>{
+    const sub=i.subtotal!=null?i.subtotal:r2(i.precio_unit*i.cantidad),iva=r2(sub*i.iva_pct/100);
+    const g=grupos.get(i.iva_pct)||{pct:i.iva_pct,base:0,importe:0};g.base+=sub;g.importe+=iva;grupos.set(i.iva_pct,g);
+    return {descripcion:i.descripcion,cantidad:i.cantidad,precio:r2(i.precio_unit*(discrimina?1:1+i.iva_pct/100)),iva_pct:i.iva_pct,subtotal:discrimina?sub:r2(sub+iva)};
+  });
+  const neto=r2(parseFloat(f.imp_neto)||0),iva=r2(parseFloat(f.imp_iva)||0),total=r2(parseFloat(f.imp_total)||0);
+  let ivas=[...grupos.values()].map(g=>({pct:g.pct,base:r2(g.base),importe:r2(g.importe)})).filter(g=>g.importe>0.005).sort((a,b)=>a.pct-b.pct);
+  // Los importes que valen son los que autorizó ARCA: si el detalle no
+  // cierra contra ellos, el IVA va en un solo renglón con el total real.
+  if(Math.abs(r2(ivas.reduce((s,g)=>s+g.importe,0))-iva)>0.02)ivas=iva>0.005?[{pct:alicuotaImplicita(neto,iva),base:neto,importe:iva}]:[];
+  const doc=String(f.doc_nro||'').replace(/\D/g,''),docTipo=Number(f.doc_tipo);
+  const conDoc=docTipo!==99&&!!doc&&doc!=='0';
+  const nro=_fmtCbte(f.punto_venta||0,f.numero||0);
+  const nombre=cliente?.nombre||venta?.cliente||(conDoc?'':'Consumidor Final');
+  let asociado='';
+  if(asociada)asociado=`Comprobante asociado: ${cbteLabel(asociada)}${asociada.fecha?` del ${fmtFecha(asociada.fecha)}`:''}`;
+  else if(f.cbte_asoc_externo)asociado=`Comprobante asociado: ${f.cbte_asoc_externo}`;
+  else if(f.periodo_asoc_desde)asociado=`Período asociado: ${fmtFecha(f.periodo_asoc_desde)} al ${fmtFecha(f.periodo_asoc_hasta)}`;
+  const e=empresa||{};
+  return {
+    clase,titulo:CBTE_TITULO[clase],letra,codigo:String(tipo).padStart(2,'0'),numero:nro,
+    pv:String(f.punto_venta||0).padStart(5,'0'),nro:String(f.numero||0).padStart(8,'0'),fecha:f.fecha||'',
+    emisor:{razon:e.razon||'',cuit:e.cuit||'',domicilio:e.domicilio||'',cond_iva:COND_IVA_TXT.RI,iibb:e.iibb||'',inicio:e.inicio||''},
+    receptor:{nombre,doc_label:conDoc?(DOC_TIPO_TXT[docTipo]||'Doc.'):'',doc:conDoc?(docTipo===80?fmtCuitDoc(doc):doc):'',
+      cond_iva:COND_IVA_TXT[cliente?.condicion_fiscal]||(discrimina?COND_IVA_TXT.RI:COND_IVA_TXT.consumidor_final),domicilio:cliente?.direccion||''},
+    condicion_venta:(clase==='fa'&&venta?.condicion_pago)||'Cuenta corriente',
+    referencia:clase==='fa'&&venta?[venta.nro_remito?`Remito ${venta.nro_remito}`:'',venta.nro_pedido?`Pedido ${venta.nro_pedido}`:''].filter(Boolean).join(' · '):'',
+    asociado,items,discrimina,estimados,neto,ivas,iva,total,
+    iva_contenido:letra==='B'?iva:null,
+    cae:f.cae||'',cae_vto:f.cae_vto||'',homologacion:!!f.afip_environment&&f.afip_environment!=='produccion',
+    qr_url:f.qr_url||'',obs:comprobanteObs(f.observaciones),
+    archivo:`${info.label}_${nro}_${(nombre||'cliente').replace(/[^a-z0-9]/gi,'_').slice(0,30)}.pdf`,
+  };
+}
+function _empresaComprobante(){const c=configContable||{};return {..._empresaDatos(),iibb:c.iibb_nro||'',inicio:c.inicio_actividades||''};}
+// QR de la RG 4892 como imagen. qrcodejs falla con algunos largos de
+// texto en el nivel M: se reintenta en L antes de darse por vencido.
+function _qrDataURL(texto){
+  if(typeof QRCode==='undefined'||!texto)return null;
+  for(const nivel of [QRCode.CorrectLevel.M,QRCode.CorrectLevel.L]){
+    try{
+      const d=document.createElement('div');
+      new QRCode(d,{text:texto,width:300,height:300,correctLevel:nivel});
+      const c=d.querySelector('canvas');
+      if(c)return c.toDataURL('image/png');
+    }catch(e){}
+  }
+  return null;
+}
+// Dibuja UN comprobante a partir de la página actual del doc (A4, mm).
+function _dibujarComprobante(doc,m,copia){
+  const p0=doc.internal.getNumberOfPages();
+  const gris=[90,90,90],negro=[30,30,30];
+  doc.setDrawColor(60);doc.setLineWidth(0.3);
+  doc.rect(12,10,186,44);doc.line(105,26,105,54);
+  doc.setFillColor(255,255,255);doc.rect(97,10,16,16,'FD');
+  doc.setTextColor(...negro);doc.setFont('helvetica','bold');doc.setFontSize(26);doc.text(m.letra,105,21,{align:'center'});
+  doc.setFontSize(6.5);doc.text(`COD. ${m.codigo}`,105,24.8,{align:'center'});
+  // Emisor
+  if(VITALMET_LOGO_DATAURL){try{doc.addImage(VITALMET_LOGO_DATAURL,'JPEG',16,12.5,34,20);}catch(e){}}
+  doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text(m.emisor.razon,16,39);
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...gris);
+  doc.text(doc.splitTextToSize(m.emisor.domicilio,84)[0]||'',16,44);
+  doc.text(`Condición frente al IVA: ${m.emisor.cond_iva}`,16,49);
+  // Comprobante
+  doc.setTextColor(...negro);doc.setFont('helvetica','bold');doc.setFontSize(m.clase==='fa'?17:14);doc.text(m.titulo,118,19);
+  doc.setFontSize(7);doc.setTextColor(...gris);doc.text(copia||'ORIGINAL',196,14,{align:'right'});
+  doc.setTextColor(...negro);doc.setFontSize(10);doc.text(`Punto de venta: ${m.pv}    Comp. Nº: ${m.nro}`,118,28);
+  doc.text(`Fecha de emisión: ${fmtFecha(m.fecha)}`,118,33.5);
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...gris);
+  doc.text(`CUIT: ${m.emisor.cuit}`,118,40);
+  doc.text(`Ingresos Brutos: ${m.emisor.iibb||'—'}`,118,44.5);
+  doc.text(`Inicio de actividades: ${m.emisor.inicio?fmtFecha(m.emisor.inicio):'—'}`,118,49);
+  // Receptor
+  let y=58;const alto=m.asociado||m.referencia?24:19;
+  doc.rect(12,y,186,alto);
+  const par=(et,val,x,yy,ancho)=>{doc.setFont('helvetica','bold');doc.setTextColor(...negro);doc.text(et,x,yy);const w=doc.getTextWidth(et)+1.5;doc.setFont('helvetica','normal');doc.text(doc.splitTextToSize(String(val||'—'),ancho-w)[0]||'—',x+w,yy);};
+  doc.setFontSize(9);
+  par('Señor(es):',m.receptor.nombre,15,y+6,100);
+  par(m.receptor.doc_label?m.receptor.doc_label+':':'Documento:',m.receptor.doc||'—',118,y+6,78);
+  par('Domicilio:',m.receptor.domicilio,15,y+11.5,100);
+  par('Cond. IVA:',m.receptor.cond_iva,118,y+11.5,78);
+  par('Condición de venta:',m.condicion_venta,15,y+17,100);
+  if(m.asociado||m.referencia){doc.setFont('helvetica','normal');doc.setTextColor(...gris);doc.text(doc.splitTextToSize(m.asociado||m.referencia,180)[0],15,y+22);}
+  y+=alto+4;
+  // Detalle
+  const cols=m.discrimina?['Descripción','Cantidad','Precio unit.','% IVA','Subtotal']:['Descripción','Cantidad','Precio unit.','Subtotal'];
+  const body=m.items.map(i=>m.discrimina?[i.descripcion,_fmtCant(i.cantidad),_fmt2(i.precio),_fmtCant(i.iva_pct),_fmt2(i.subtotal)]:[i.descripcion,_fmtCant(i.cantidad),_fmt2(i.precio),_fmt2(i.subtotal)]);
+  const der={halign:'right'};
+  doc.autoTable({startY:y,margin:{left:12,right:12,top:16,bottom:58},head:[cols],body,theme:'striped',
+    styles:{fontSize:8.5,cellPadding:1.8,textColor:negro},headStyles:{fillColor:[45,45,45],textColor:255,fontSize:8.5},
+    columnStyles:m.discrimina?{1:{...der,cellWidth:20},2:{...der,cellWidth:28},3:{...der,cellWidth:16},4:{...der,cellWidth:30}}:{1:{...der,cellWidth:22},2:{...der,cellWidth:32},3:{...der,cellWidth:34}},
+    didParseCell:d=>{if(d.section==='head'&&d.column.index>0)d.cell.styles.halign='right';}});
+  y=doc.lastAutoTable.finalY+6;
+  // Totales
+  const tot=[];
+  if(m.discrimina){tot.push(['Importe neto gravado',m.neto]);m.ivas.forEach(g=>tot.push([[2.5,5,10.5,21,27].includes(g.pct)?`IVA ${_fmtCant(g.pct)} %`:'IVA',g.importe]));}
+  tot.push(['IMPORTE TOTAL',m.total]);
+  const hTot=tot.length*5.5+(m.iva_contenido!=null?13:0)+(m.obs?10:0);
+  if(y+hTot>238){doc.addPage();y=20;}
+  doc.setFontSize(9.5);
+  tot.forEach((t,k)=>{
+    const ult=k===tot.length-1;
+    doc.setFont('helvetica',ult?'bold':'normal');doc.setTextColor(...negro);
+    if(ult){doc.setDrawColor(60);doc.line(128,y-3.8,198,y-3.8);doc.setFontSize(11);}
+    doc.text(t[0],160,y,{align:'right'});doc.text('$ '+_fmt2(t[1]),196,y,{align:'right'});
+    y+=ult?6.5:5.5;
+  });
+  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(...gris);
+  if(m.iva_contenido!=null){
+    doc.text('Régimen de Transparencia Fiscal al Consumidor (Ley 27.743)',196,y+1,{align:'right'});
+    doc.text(`IVA contenido: $ ${_fmt2(m.iva_contenido)}`,196,y+5,{align:'right'});y+=11;
+  }
+  if(m.obs){doc.text(doc.splitTextToSize('Observaciones: '+m.obs,184).slice(0,2),14,y+2);}
+  // Pie fiscal: QR + CAE (en la última hoja del comprobante)
+  const yp=244;
+  doc.setDrawColor(150);doc.line(12,yp,198,yp);
+  const qr=_qrDataURL(m.qr_url);
+  if(qr){try{doc.addImage(qr,'PNG',13,yp+3,32,32);}catch(e){}}
+  const xp=qr?50:14;
+  doc.setTextColor(...negro);doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text('ARCA',xp,yp+10);
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...gris);
+  doc.text('Agencia de Recaudación y Control Aduanero',xp,yp+15);
+  doc.setFont('helvetica','bold');doc.setTextColor(...negro);doc.setFontSize(9);doc.text('Comprobante autorizado',xp,yp+22);
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...gris);
+  doc.text('Esta Agencia no se responsabiliza por los datos ingresados en el detalle de la operación.',xp,yp+27);
+  doc.setFontSize(10);doc.setTextColor(...negro);
+  doc.setFont('helvetica','bold');doc.text('CAE Nº:',160,yp+10,{align:'right'});doc.setFont('helvetica','normal');doc.text(String(m.cae),162,yp+10);
+  doc.setFont('helvetica','bold');doc.text('Vto. del CAE:',160,yp+16,{align:'right'});doc.setFont('helvetica','normal');doc.text(fmtFecha(m.cae_vto)||'—',162,yp+16);
+  // Hojas del comprobante + marca de homologación
+  const p1=doc.internal.getNumberOfPages(),n=p1-p0+1;
+  for(let p=p0;p<=p1;p++){
+    doc.setPage(p);
+    if(n>1){doc.setFontSize(8);doc.setTextColor(...gris);doc.setFont('helvetica','normal');doc.text(`${m.titulo} ${m.letra} ${m.numero} — hoja ${p-p0+1} de ${n}`,198,290,{align:'right'});}
+    if(m.homologacion){doc.setFont('helvetica','bold');doc.setFontSize(38);doc.setTextColor(225,170,170);doc.text('SIN VALIDEZ FISCAL',105,165,{align:'center',angle:35});doc.setFontSize(14);doc.text('Comprobante de prueba (homologación)',105,180,{align:'center',angle:35});}
+  }
+  doc.setPage(p1);doc.setTextColor(...negro);
+}
+function _fmtCant(n){return (parseFloat(n)||0).toLocaleString('es-AR',{maximumFractionDigits:2});}
+async function _comprobantesModelos(ids){
+  const fs=[];
+  for(let k=0;k<ids.length;k+=40)fs.push(...await GET('facturas_emitidas',`?id=in.(${ids.slice(k,k+40).join(',')})&select=*`));
+  const porId=new Map(fs.map(f=>[f.id,f])),emp=_empresaComprobante();
+  return ids.map(id=>porId.get(id)).filter(Boolean).map(f=>{
+    const rc=resolverClienteFactura(f,ventas,clientes);
+    return comprobanteModelo(f,{cliente:clientes.find(c=>c.id===rc.cliente_id)||null,venta:f.venta_id?ventas.find(v=>v.id===f.venta_id)||null:null,
+      asociada:f.factura_asociada_id?facturasEmitidas.find(x=>x.id===f.factura_asociada_id)||null:null,empresa:emp});
+  });
+}
+function _avisoDatosEmisor(){
+  const c=configContable||{};
+  if(!c.iibb_nro||!c.inicio_actividades)notify('Faltan Ingresos Brutos y/o inicio de actividades del emisor: cargalos en Configuración → Imputación contable para que salgan en el comprobante','err');
+}
+// Ejemplares por comprobante (RG 1415): original para el cliente,
+// duplicado para el archivo propio, triplicado si hace falta otro juego.
+// La elección queda guardada en el navegador y vale para todos los botones.
+const CBTE_COPIAS=['ORIGINAL','DUPLICADO','TRIPLICADO'];
+function _cbteCopias(){let n=3;try{n=parseInt(localStorage.getItem('vs_cbte_copias'),10)||3;}catch(e){}return CBTE_COPIAS.slice(0,Math.min(3,Math.max(1,n)));}
+function setCbteCopias(n){try{localStorage.setItem('vs_cbte_copias',String(n));}catch(e){}}
+function _dibujarComprobantes(doc,modelos){
+  const copias=_cbteCopias();let primera=true;
+  modelos.forEach(m=>copias.forEach(c=>{if(!primera)doc.addPage();primera=false;_dibujarComprobante(doc,m,c);}));
+}
+// Botón "PDF" de una factura, NC o ND (Facturas emitidas y Ventas).
+async function imprimirComprobante(facturaId){
+  if(!window.jspdf){notify('Librería PDF no cargada. Recargá la página.','err');return;}
+  try{
+    const [m]=await _comprobantesModelos([facturaId]);
+    if(!m){notify('Comprobante no encontrado','err');return;}
+    const {jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'});
+    _dibujarComprobantes(doc,[m]);
+    doc.save(m.archivo);
+    if(m.estimados)notify('Este comprobante no tiene el detalle guardado: el PDF lleva los importes autorizados por ARCA y un detalle resumido','ok');
+    _avisoDatosEmisor();
+  }catch(e){notify('No se pudo generar el PDF: '+e.message,'err');}
+}
+// Botón "PDF" de la barra: todos los comprobantes filtrados en un archivo.
+async function imprimirComprobantesFiltrados(){
+  if(!window.jspdf){notify('Librería PDF no cargada. Recargá la página.','err');return;}
+  const rows=filtrarFacturasEmitidas(facturasEmitidas,_femFiltros(),{ventas,clientes});
+  if(!rows.length){notify('No hay comprobantes para imprimir con esos filtros','err');return;}
+  if(rows.length>200){notify(`Son ${rows.length} comprobantes: acotá el filtro (hasta 200 por archivo)`,'err');return;}
+  if(rows.length>1&&!confirm(`¿Generar un PDF con los ${rows.length} comprobantes filtrados (${_cbteCopias().join(' + ').toLowerCase()})?`))return;
+  try{
+    // Cronológico: el listado viene del más nuevo al más viejo
+    const ms=await _comprobantesModelos(rows.map(x=>x.f.id).reverse());
+    const {jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'});
+    _dibujarComprobantes(doc,ms);
+    doc.save(ms.length===1?ms[0].archivo:`Comprobantes_${hoyLocal()}_${ms.length}.pdf`);
+    _avisoDatosEmisor();
+  }catch(e){notify('No se pudo generar el PDF: '+e.message,'err');}
 }
 // Backfill: genera el asiento de las facturas/NC con CAE que no lo tengan,
 // y muestra el motivo exacto si alguna falla (diagnóstico + arreglo).
@@ -8134,7 +8378,7 @@ function renderVentas(filter=''){
     }else if(v.estado==='pendiente'&&v.fecha_entrega_hasta&&v.fecha_entrega_hasta<hoy){
       otdBadge=`<br><span class="badge badge-warn" style="font-size:9px" title="Fecha de entrega prometida: ${fmtFecha(v.fecha_entrega_hasta)}">ATRASADO</span>`;
     }
-    return`<tr data-id="${v.id}"><td class="mono td-primary">${esc(v.nro_remito)}${v.venta_padre_id?` <span class="badge badge-amber" style="font-size:9px" title="Saldo de una entrega parcial — pendiente de enviar y facturar">SALDO</span>`:''}</td><td style="font-weight:500"><span onclick="event.stopPropagation();linkCliente(this.dataset.n)" data-n="${esc(v.cliente)}" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="Ver ficha del cliente">${esc(v.cliente)}</span></td><td>${esc(fmtFecha(v.fecha))||'—'}${otdBadge}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(piezas)}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td>${estadoSelect('ventas',v.id,v.estado,['pendiente','entregado','facturado'],bE)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button>${v.estado==='pendiente'&&!v.factura_emitida_id&&totalU>1?`<button class="btn btn-ghost btn-sm" onclick="openEntregaParcial('${v.id}')" title="Entrega parcial — enviar y facturar una parte, el saldo queda pendiente" style="color:var(--amber,#d99a2b)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M21 3l-7 7"/><path d="M3 3l7 7"/><path d="M12 22v-8"/><path d="M8 18l4 4 4-4"/></svg></span>Parcial</button>`:''}${v.factura_emitida_id?`<button class="btn btn-ghost btn-sm" id="ver-factura-${v.id}" onclick="verFactura('${v.factura_emitida_id}')" title="CAE emitido — ver/descargar"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h3"/></svg></span>CAE</button><button class="btn btn-ghost btn-sm" onclick="openNotaCredito('${v.id}')" title="Nota de crédito o débito con CAE sobre esta factura (devolución / error / descuento / intereses)" style="color:var(--coral,#e5484d)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></span>NC/ND</button>`:`<button class="btn btn-ghost btn-sm" id="emitir-factura-${v.id}" onclick="emitirFactura('${v.id}')" title="Solicitar CAE a AFIP" style="color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m13 2-3 7h8l-9 13 3-9H4z"/></svg></span>Facturar</button>`}${v.estado==='entregado'||v.estado==='facturado'?`<button class="btn btn-ghost btn-sm" onclick="irACobrarVenta('${v.id}')" title="Registrar el cobro — abre Cobros y Pagos con cliente y monto precargados" style="color:var(--teal)"><span class="btn-icon"><svg viewBox="0 0 24 24"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Cobrar</button>`:''}<button class="btn btn-ghost btn-sm" onclick="generateRemitoPDF('${v.id}')" title="Remito de entrega (PDF)" aria-label="Remito PDF"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18h-5"/><path d="M20 18h2v-7l-3-5h-5v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span></button><button class="btn btn-ghost btn-sm" onclick="generateCertConformidadPDF('${v.id}')" title="Certificado de conformidad (PDF)" aria-label="Certificado de conformidad"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg></span></button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>Anular</button></td></tr>`;}):(`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></div><div class="empty-title">Sin ventas registradas</div><div class="empty-msg">Las ventas se generan al convertir un presupuesto aprobado. Andá a <b>Presupuestos</b> y aprobalo.</div></div></td></tr>`);
+    return`<tr data-id="${v.id}"><td class="mono td-primary">${esc(v.nro_remito)}${v.venta_padre_id?` <span class="badge badge-amber" style="font-size:9px" title="Saldo de una entrega parcial — pendiente de enviar y facturar">SALDO</span>`:''}</td><td style="font-weight:500"><span onclick="event.stopPropagation();linkCliente(this.dataset.n)" data-n="${esc(v.cliente)}" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="Ver ficha del cliente">${esc(v.cliente)}</span></td><td>${esc(fmtFecha(v.fecha))||'—'}${otdBadge}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(piezas)}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td>${estadoSelect('ventas',v.id,v.estado,['pendiente','entregado','facturado'],bE)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button>${v.estado==='pendiente'&&!v.factura_emitida_id&&totalU>1?`<button class="btn btn-ghost btn-sm" onclick="openEntregaParcial('${v.id}')" title="Entrega parcial — enviar y facturar una parte, el saldo queda pendiente" style="color:var(--amber,#d99a2b)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M21 3l-7 7"/><path d="M3 3l7 7"/><path d="M12 22v-8"/><path d="M8 18l4 4 4-4"/></svg></span>Parcial</button>`:''}${v.factura_emitida_id?`<button class="btn btn-ghost btn-sm" id="ver-factura-${v.id}" onclick="verFactura('${v.factura_emitida_id}')" title="CAE emitido — ver/descargar"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h3"/></svg></span>CAE</button><button class="btn btn-ghost btn-sm" onclick="imprimirComprobante('${v.factura_emitida_id}')" title="Factura en PDF para imprimir o mandar al cliente" style="color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span>Factura</button><button class="btn btn-ghost btn-sm" onclick="openNotaCredito('${v.id}')" title="Nota de crédito o débito con CAE sobre esta factura (devolución / error / descuento / intereses)" style="color:var(--coral,#e5484d)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></span>NC/ND</button>`:`<button class="btn btn-ghost btn-sm" id="emitir-factura-${v.id}" onclick="emitirFactura('${v.id}')" title="Solicitar CAE a AFIP" style="color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m13 2-3 7h8l-9 13 3-9H4z"/></svg></span>Facturar</button>`}${v.estado==='entregado'||v.estado==='facturado'?`<button class="btn btn-ghost btn-sm" onclick="irACobrarVenta('${v.id}')" title="Registrar el cobro — abre Cobros y Pagos con cliente y monto precargados" style="color:var(--teal)"><span class="btn-icon"><svg viewBox="0 0 24 24"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Cobrar</button>`:''}<button class="btn btn-ghost btn-sm" onclick="generateRemitoPDF('${v.id}')" title="Remito de entrega (PDF)" aria-label="Remito PDF"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18h-5"/><path d="M20 18h2v-7l-3-5h-5v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span></button><button class="btn btn-ghost btn-sm" onclick="generateCertConformidadPDF('${v.id}')" title="Certificado de conformidad (PDF)" aria-label="Certificado de conformidad"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg></span></button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>Anular</button></td></tr>`;}):(`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></div><div class="empty-title">Sin ventas registradas</div><div class="empty-msg">Las ventas se generan al convertir un presupuesto aprobado. Andá a <b>Presupuestos</b> y aprobalo.</div></div></td></tr>`);
 }
 
 // ─── DIGEST DE ALERTAS — "Para hoy" ───────────────────────────────
@@ -14621,6 +14865,8 @@ function renderImputacionContable(){
   document.getElementById('cfg-iva-alicuota').value=c.iva_alicuota!=null?(Number(c.iva_alicuota)*100).toFixed(2).replace(/\.?0+$/,''):'21';
   document.getElementById('cfg-punto-venta').value=c.punto_venta||1;
   document.getElementById('cfg-precios-con-iva').checked=c.precios_incluyen_iva===true;
+  document.getElementById('cfg-iibb-nro').value=c.iibb_nro||'';
+  document.getElementById('cfg-inicio-actividades').value=c.inicio_actividades||'';
   document.getElementById('cfg-razon-social-recibo').value=c.razon_social_recibo||'';
   document.getElementById('cfg-domicilio-recibo').value=c.domicilio_recibo||'';
   document.getElementById('cfg-actividad-recibo').value=c.actividad_recibo||'';
@@ -14691,6 +14937,11 @@ async function saveConfigContable(){
     tope_indemnizatorio:parseFloat(document.getElementById('cfg-tope-indemnizatorio').value)||null,
     updated_at:new Date().toISOString(),
   };
+  // Columnas de la migración 087: sólo se mandan si la base ya las tiene
+  if(configContable&&'iibb_nro' in configContable){
+    data.iibb_nro=document.getElementById('cfg-iibb-nro').value.trim()||null;
+    data.inicio_actividades=document.getElementById('cfg-inicio-actividades').value||null;
+  }
   setBusy('btn-save-cfg-imputacion',true);
   try{
     if(configContable){

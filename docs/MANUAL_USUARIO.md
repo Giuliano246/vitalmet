@@ -533,6 +533,13 @@ Pestaña **Ventas → Facturas emitidas**: el listado único de **todo lo que sa
 - **Excel:** exporta el listado filtrado. Para ordenar, click en el encabezado de la columna.
 - Los botones **+ Factura directa** y **+ NC/ND libre** también están acá.
 
+**Imprimir facturas, notas de crédito y notas de débito.** Cada fila tiene el botón **PDF**: baja el comprobante listo para imprimir o mandar por mail, con la letra y el código, los datos de Vitalmet y del cliente, el detalle, los totales (en las A con el IVA discriminado por alícuota; en las B a precio final con el "IVA contenido" de la Ley 27.743), el **CAE con su vencimiento** y el **código QR** de ARCA. Las NC y ND muestran además el comprobante o período al que están asociadas. El botón **PDF** de la barra arma **un solo archivo con todos los comprobantes filtrados**, uno por hoja y en orden cronológico (hasta 200): filtrá por cliente, tipo o fechas y sacás, por ejemplo, todas las facturas del mes. En **Ventas**, las ventas facturadas tienen el botón **Factura** que baja el mismo PDF.
+
+- El detalle impreso es el que se informó a ARCA al pedir el CAE. Si un comprobante viejo no lo tiene guardado, el PDF sale igual con los importes autorizados y un detalle resumido, y el sistema te avisa.
+- **Ingresos Brutos** e **inicio de actividades** del emisor se cargan una sola vez en **Configuración → Imputación contable → Datos del emisor en facturas, NC y ND**. Mientras falten, salen con una raya y el sistema te lo recuerda al imprimir.
+- **Ejemplares:** el selector de la barra define cuántas hojas lleva cada comprobante: **original + duplicado + triplicado** (lo que viene elegido), **original + duplicado** o **sólo original** (cómodo para mandar por mail). Queda guardado en tu navegador y vale también para el botón **Factura** de Ventas.
+- Los comprobantes emitidos en homologación (pruebas) salen con la marca **SIN VALIDEZ FISCAL**.
+
 ### 8.5 Cuenta corriente
 
 Muestra cuánto te debe cada cliente y desde hace cuánto.
