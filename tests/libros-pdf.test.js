@@ -106,3 +106,42 @@ test('retencionesPracticadasFilas: totales por impuesto sin las anuladas', () =>
   assert.strictEqual(r.filas[2][13], 'ANULADA');
   assert.strictEqual(r.filas[3][12], '15520,00');
 });
+
+test('ctaCteProveedorMovs: saldo por moneda, NC y OP bajan la deuda, OP anulada no cuenta', () => {
+  const facturas = [
+    { id: 'f1', proveedor_id: 'p1', tipo: 'factura', nro: 'A-1', fecha: '2026-09-01', fecha_vto: '2026-09-30', moneda: 'ARS', total: 121000 },
+    { id: 'n1', proveedor_id: 'p1', tipo: 'nota_credito', nro: 'NC-1', fecha: '2026-09-05', moneda: 'ARS', total: 21000 },
+    { id: 'f2', proveedor_id: 'p1', tipo: 'factura', nro: 'A-2', fecha: '2026-09-10', moneda: 'USD', total: 500 },
+    { id: 'fx', proveedor_id: 'p2', tipo: 'factura', nro: 'A-9', fecha: '2026-09-10', moneda: 'ARS', total: 999 },
+  ];
+  const ops = [
+    { id: 'o1', proveedor_id: 'p1', estado: 'confirmada', nro: 'OP-0001', fecha: '2026-09-20', moneda: 'ARS', total: 60000 },
+    { id: 'o2', proveedor_id: 'p1', estado: 'anulada', nro: 'OP-0002', fecha: '2026-09-21', moneda: 'ARS', total: 40000 },
+  ];
+  const r = erp.run(`ctaCteProveedorMovs(${J({ proveedorId: 'p1', facturas, ordenesPago: ops, asientos: [], asientoLineas: [] })})`);
+  assert.strictEqual(r.movs.length, 4);
+  assert.strictEqual(r.saldos.ARS, 40000); // 121.000 − 21.000 − 60.000
+  assert.strictEqual(r.saldos.USD, 500);
+  assert.strictEqual(r.movs.map(m => m.ref).join(','), 'A-1,NC-1,A-2,OP-0001');
+  assert.strictEqual(r.movs[3].saldo, 40000);
+});
+
+test('reciboCobroDatos: valores = líneas al debe; total = lo acreditado al cliente', () => {
+  const a = { id: 'a1', numero: 12, fecha: '2026-10-05', tipo: 'auto-cobranza', estado: 'confirmado', moneda: 'ARS', comprobante_nro: 'REC-0007', cliente_id: 'c1', descripcion: 'Cobro de YPF SA (transferencia)' };
+  const lineas = [
+    { asiento_id: 'a1', cuenta_id: 'b', debe: 98000, haber: 0, orden: 0 },
+    { asiento_id: 'a1', cuenta_id: 'r', debe: 2000, haber: 0, orden: 1, descripcion: 'Cert. 123' },
+    { asiento_id: 'a1', cuenta_id: 'd', debe: 0, haber: 100000, orden: 2 },
+    { asiento_id: 'otro', cuenta_id: 'b', debe: 5, haber: 0 },
+  ];
+  const cuentas = [{ id: 'b', nombre: 'BANCO BBVA' }, { id: 'r', nombre: 'RETENCIONES GANACIAS' }, { id: 'd', nombre: 'DEUDORES' }];
+  const d = erp.run(`reciboCobroDatos(${J(a)}, ${J(lineas)}, ${J(cuentas)}, ${J([{ id: 'c1', nombre: 'YPF SA', cuit: '30-54668997-9' }])})`);
+  assert.strictEqual(d.nro, 'REC-0007');
+  assert.strictEqual(d.total, 100000);
+  assert.strictEqual(d.valores.length, 2);
+  assert.strictEqual(d.valores[1].detalle, 'Cert. 123');
+  assert.strictEqual(d.cliente.cuit, '30-54668997-9');
+  // cobro viejo sin cliente_id: lo saca de la descripción
+  const v = erp.run(`reciboCobroDatos(${J({ ...a, cliente_id: null })}, ${J(lineas)}, ${J(cuentas)}, [])`);
+  assert.strictEqual(v.cliente.nombre, 'YPF SA');
+});
