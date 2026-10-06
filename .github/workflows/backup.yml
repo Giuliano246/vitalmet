@@ -8,17 +8,35 @@
 #
 # Los dumps quedan como artifacts del workflow (repo privado), retención 30 días.
 # Restore: descargar el artifact y `pg_restore -d <db> vitalstock_YYYY-MM-DD.dump`
+#
+# Archivo permanente (tercera copia, fuera de Supabase y de GitHub): el día 1
+# de cada mes, y cuando se corre a mano con una etiqueta (p. ej. el cierre de
+# ejercicio), el dump se cifra con GPG (AES-256) y se sube a un bucket de
+# Cloudflare R2. Sin estos secrets el paso se saltea y el backup diario sigue
+# igual:
+#   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET,
+#   BACKUP_PASSPHRASE (la clave del cifrado: sin ella la copia no se abre).
+# Quedan en  mensual/vitalstock_AAAA-MM.dump.gpg  y  cierres/<etiqueta>_<fecha>.dump.gpg
+# Restore: gpg --decrypt archivo.dump.gpg > archivo.dump  y después pg_restore.
 
 name: backup-db
 
 on:
   schedule:
     - cron: "0 6 * * *" # 03:00 ART
-  workflow_dispatch: {} # correrlo a mano desde la pestaña Actions
+  workflow_dispatch: # correrlo a mano desde la pestaña Actions
+    inputs:
+      etiqueta:
+        description: "Guardar también en el archivo permanente con este nombre (ej.: cierre-2026). Vacío = sólo backup diario."
+        required: false
+        default: ""
 
 jobs:
   dump:
     runs-on: ubuntu-latest
+    env:
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      ETIQUETA: ${{ github.event.inputs.etiqueta }}
     steps:
       # El cliente de pg_dump debe ser >= versión del servidor (PostgreSQL 17).
       # Ubuntu trae el 16 por defecto: instalamos el 17 desde PGDG y lo
@@ -58,3 +76,41 @@ jobs:
           path: vitalstock_*.dump
           retention-days: 30
           if-no-files-found: error
+
+      - name: ¿Toca archivo permanente?
+        id: archivo
+        run: |
+          DESTINO=""
+          if [ -n "$ETIQUETA" ]; then
+            DESTINO="cierres/$(echo "$ETIQUETA" | tr -c 'A-Za-z0-9_-' '-' | sed 's/-*$//')_$(date +%F).dump.gpg"
+          elif [ "$(date +%d)" = "01" ]; then
+            DESTINO="mensual/vitalstock_$(date +%Y-%m).dump.gpg"
+          fi
+          echo "destino=$DESTINO" >> "$GITHUB_OUTPUT"
+          echo "Destino: ${DESTINO:-ninguno (sólo backup diario)}"
+
+      - name: Cifrar y subir al archivo permanente (Cloudflare R2)
+        if: steps.archivo.outputs.destino != '' && env.R2_BUCKET != ''
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          DESTINO: ${{ steps.archivo.outputs.destino }}
+        run: |
+          test -n "$BACKUP_PASSPHRASE" || { echo "Falta el secret BACKUP_PASSPHRASE"; exit 1; }
+          DUMP=$(ls vitalstock_*.dump)
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" \
+            --symmetric --cipher-algo AES256 --output "$DUMP.gpg" "$DUMP"
+          ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          aws s3 cp "$DUMP.gpg" "s3://${R2_BUCKET}/${DESTINO}" --endpoint-url "$ENDPOINT" --no-progress
+          # Verificación: el objeto existe y pesa lo mismo que el archivo local
+          REMOTO=$(aws s3api head-object --bucket "$R2_BUCKET" --key "$DESTINO" --endpoint-url "$ENDPOINT" --query ContentLength --output text)
+          LOCAL=$(stat -c%s "$DUMP.gpg")
+          test "$REMOTO" = "$LOCAL" || { echo "Tamaño distinto: remoto $REMOTO vs local $LOCAL"; exit 1; }
+          echo "Archivado: s3://${R2_BUCKET}/${DESTINO} ($LOCAL bytes)"
+
+      - name: Aviso si tocaba archivar y no hay bucket configurado
+        if: steps.archivo.outputs.destino != '' && env.R2_BUCKET == ''
+        run: echo "::warning::Tocaba copia al archivo permanente pero faltan los secrets de R2 (ver comentario al inicio del workflow)."
