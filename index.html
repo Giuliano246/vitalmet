@@ -636,12 +636,12 @@ body.no-costos .solo-costos{display:none!important}
           <div class="table-wrap"><table><thead><tr><th>Tipo</th><th>OC</th><th>Proveedor</th><th>Nro</th><th>Fecha</th><th>Vto.</th><th>Mon.</th><th>Neto</th><th>IVA</th><th>Total</th><th>Saldo</th><th>Match</th><th>Asiento</th><th></th></tr></thead><tbody id="fr-tbody"></tbody></table></div>
         </div>
         <div id="compras-tab-op" style="display:none">
-          <div class="stats-bar" id="op-stats"></div>
+          <div class="stats-bar" id="opg-stats"></div>
           <div class="toolbar">
             <div class="search-box"><input type="text" placeholder="Buscar por nro, proveedor..." oninput="renderOrdenesPago(this.value)"></div>
             <button class="btn btn-primary btn-sm" onclick="openOrdenPagoModal()"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></svg></span>Orden de pago</button>
           </div>
-          <div class="table-wrap"><table><thead><tr><th>Nro</th><th>Fecha</th><th>Proveedor</th><th>Medios</th><th>Imputado a</th><th style="text-align:right">A cuenta</th><th style="text-align:right">Total</th><th>Asiento</th><th></th></tr></thead><tbody id="op-tbody"></tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>Nro</th><th>Fecha</th><th>Proveedor</th><th>Medios</th><th>Imputado a</th><th style="text-align:right">A cuenta</th><th style="text-align:right">Total</th><th>Asiento</th><th></th></tr></thead><tbody id="opg-tbody"></tbody></table></div>
         </div>
       </div>
     </div>
@@ -2951,9 +2951,9 @@ body.no-costos .solo-costos{display:none!important}
     <div class="modal-body">
       <div class="form-row" style="grid-template-columns:2fr 1fr 1fr 1fr">
         <div class="form-group"><label>Proveedor *</label><select id="op-prov" onchange="opOnProveedorChange()"></select></div>
-        <div class="form-group"><label>Fecha *</label><input type="date" id="op-fecha"></div>
+        <div class="form-group"><label>Fecha *</label><input type="date" id="opg-fecha" onchange="_opRefrescar()"></div>
         <div class="form-group"><label>Moneda</label><select id="op-moneda" onchange="opOnMonedaChange()"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
-        <div class="form-group"><label>TC (si USD)</label><input type="number" id="op-tc" step="0.01" min="0" placeholder="auto" oninput="opRenderFacturas();opRecalc()"></div>
+        <div class="form-group"><label>TC (si USD)</label><input type="number" id="op-tc" step="0.01" min="0" placeholder="auto" oninput="_opRefrescar()"></div>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 4px">
         <label style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Facturas pendientes — tildá las que pagás · para pagar en partes, cargá en el medio lo que pagás hoy: la imputación se ajusta sola</label>
@@ -2968,7 +2968,7 @@ body.no-costos .solo-costos{display:none!important}
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-orden-pago')">Cancelar</button>
-      <button class="btn btn-primary" id="btn-save-op" onclick="registrarOrdenPago()">Registrar orden de pago</button>
+      <button class="btn btn-primary" id="btn-save-opg" onclick="registrarOrdenPago()">Registrar orden de pago</button>
     </div>
   </div>
 </div>
@@ -3246,7 +3246,7 @@ body.no-costos .solo-costos{display:none!important}
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modal-nc')">Cancelar</button>
-      <button class="btn btn-primary" id="btn-save-nc" onclick="saveNC()">Guardar</button>
+      <button class="btn btn-primary" id="btn-save-ncr" onclick="saveNC()">Guardar</button>
     </div>
   </div>
 </div>
@@ -3486,6 +3486,7 @@ let sueldosEscala=[],sueldosConvenio=[],sueldosPrevisional=[],sueldosGanTablas=[
 let sueldosNovedades=[],sueldosAcumulados=[],sueldosVacaciones=[];
 let facturasRecibidas=[];
 let ordenesPago=[];
+let retencionRegimenes=[],retencionesPracticadas=[]; // retenciones a proveedores (mig 086)
 let facturasEmitidas=[]; // listado unificado Ventas → Facturas emitidas (sprint 3 hoja 2026-09-07)
 let periodosContables=[];
 let correlatividad=[];
@@ -4402,6 +4403,8 @@ const TBL={
   cheques:{label:'Cheques',q:'?order=fecha_pago.asc',set:r=>{cheques=r||[];}},
   facturas_recibidas:{label:'Facturas recibidas',q:'?order=created_at.desc',set:r=>{facturasRecibidas=r||[];}},
   ordenes_pago:{label:'Órdenes de pago',q:'?order=fecha.desc,nro.desc&select=*,orden_pago_medios(*),orden_pago_imputaciones(*)',set:r=>{ordenesPago=r||[];}},
+  retencion_regimenes:{label:'Regímenes de retención',q:'?order=impuesto.asc,codigo.asc',set:r=>{retencionRegimenes=r||[];}},
+  retenciones_practicadas:{label:'Retenciones practicadas',q:'?order=fecha.desc,created_at.desc',set:r=>{retencionesPracticadas=r||[];}},
   facturas_emitidas:{label:'Facturas emitidas',q:'?order=fecha.desc,punto_venta.asc,numero.desc&select=id,venta_id,factura_asociada_id,tipo_comprobante,punto_venta,numero,fecha,doc_tipo,doc_nro,imp_neto,imp_iva,imp_total,moneda,cotizacion_moneda,cae,cae_vto,resultado,afip_environment,periodo_asoc_desde,periodo_asoc_hasta,cbte_asoc_externo,created_at',set:r=>{facturasEmitidas=r||[];_dirtyPages.add('femitidas');}},
   periodos_contables:{label:'Períodos',q:'?order=anio.desc,mes.desc',set:r=>{periodosContables=r||[];}},
   v_correlatividad:{label:'Correlatividad',q:'?select=*',set:r=>{correlatividad=r||[];}},
@@ -11245,7 +11248,7 @@ function validarOrdenPago({total,medios,imputaciones,saldos}){
   if(!medios.length)errores.push('Agregá al menos un medio de pago');
   medios.forEach((m,i)=>{
     if((parseFloat(m.monto)||0)<=0)errores.push(`Medio ${i+1}: monto inválido`);
-    if(!m.cuenta_contable_id)errores.push(`Medio ${i+1}: falta la cuenta contable del medio "${m.tipo}" (Configuración → Imputación / Bancos)`);
+    if(!m.cuenta_contable_id)errores.push(m.tipo==='retencion'?'Falta la cuenta de retenciones practicadas (Configuración → Imputación contable → Retenciones a proveedores)':`Medio ${i+1}: falta la cuenta contable del medio "${m.tipo}" (Configuración → Imputación / Bancos)`);
     if(m.tipo==='cheque'&&(!m.cheque||!m.cheque.numero||!m.cheque.fecha_pago))errores.push(`Medio ${i+1}: el cheque necesita número y fecha de pago`);
   });
   const sumMedios=r2(medios.reduce((a,m)=>a+(parseFloat(m.monto)||0),0));
@@ -11260,12 +11263,108 @@ function validarOrdenPago({total,medios,imputaciones,saldos}){
   });
   return {ok:!errores.length,errores,sumMedios,sumImputado,aCuenta:r2(Math.max(0,total-sumImputado))};
 }
-const OP_MEDIO_LABEL={caja:'Caja',banco:'Transf.',cheque:'Cheque',tarjeta:'Tarjeta'};
+const OP_MEDIO_LABEL={caja:'Caja',banco:'Transf.',cheque:'Cheque',tarjeta:'Tarjeta',retencion:'Retención'};
 function resumenMediosOP(medios){
   const n={},orden=[];
   (medios||[]).forEach(m=>{if(!n[m.tipo]){n[m.tipo]=0;orden.push(m.tipo);}n[m.tipo]++;});
   const parts=orden.map(t=>t==='cheque'&&n[t]>1?`${n[t]} cheques`:(OP_MEDIO_LABEL[t]||t));
   return parts.length?parts.join(' + '):'—';
+}
+// ─── RETENCIONES PRACTICADAS A PROVEEDORES (mig 086) ─────────────────
+// El proveedor lleva sus regímenes (proveedores.retenciones). La OP calcula
+// cada retención y la carga como un medio más ('retencion') contra la cuenta
+// de retenciones a depositar. Todo el cálculo es en ARS.
+// Puras con tests en tests/retenciones-practicadas.test.js.
+const RETP_IMPUESTOS={ganancias:'Ganancias',iibb:'Ingresos Brutos',suss:'SUSS',iva:'IVA'};
+// Escala [{desde,hasta,fijo,pct}]: fijo + pct sobre el excedente del tramo.
+function retEscala(escala,base){
+  const n=x=>parseFloat(x)||0;
+  const t=(escala||[]).find(x=>base>n(x.desde)&&(x.hasta==null||base<=n(x.hasta)));
+  return t?Math.round((n(t.fijo)+(base-n(t.desde))*n(t.pct)/100)*100)/100:0;
+}
+// Retención de UN pago. modo 'acumulado_mensual' (RG 830 art. 26): suma los
+// pagos del mes al mismo proveedor y régimen, resta el mínimo no sujeto
+// (sólo inscriptos), aplica alícuota o escala y descuenta lo ya retenido.
+// modo 'por_pago': el mínimo es un umbral y se retiene sobre toda la base.
+function calcularRetencion({regimen,condicion,basePago,baseAcumPrevia=0,retenidoPrevio=0,excluido=false}){
+  const n=x=>parseFloat(x)||0,r2=x=>Math.round(x*100)/100;
+  basePago=r2(n(basePago));
+  const out={base_calculo:basePago,base_acumulada:0,retenido_previo:0,minimo_no_sujeto:0,alicuota:null,sujeto:0,monto:0,motivo:''};
+  if(!regimen||!(basePago>0)){out.motivo='sin base imponible';return out;}
+  const acum=regimen.modo!=='por_pago',noInsc=condicion==='no_inscripto';
+  if(acum){out.base_acumulada=r2(n(baseAcumPrevia));out.retenido_previo=r2(n(retenidoPrevio));}
+  if(excluido){out.motivo='certificado de exclusión vigente';return out;}
+  const baseTot=basePago+out.base_acumulada;
+  const mns=noInsc?0:r2(n(regimen.minimo_no_sujeto));
+  out.minimo_no_sujeto=mns;
+  const sujeto=acum?r2(baseTot-mns):(baseTot>=mns?baseTot:0);
+  if(!(sujeto>0)){out.motivo='no supera el mínimo no sujeto a retención';return out;}
+  out.sujeto=sujeto;
+  let imp;
+  const conEscala=!noInsc&&regimen.alicuota_inscripto==null&&Array.isArray(regimen.escala)&&regimen.escala.length;
+  if(conEscala)imp=retEscala(regimen.escala,sujeto);
+  else{out.alicuota=n(noInsc?regimen.alicuota_no_inscripto:regimen.alicuota_inscripto);imp=sujeto*out.alicuota/100;}
+  const ret=r2(imp-out.retenido_previo);
+  if(ret<=0){out.motivo='ya retenido en pagos anteriores del mes';return out;}
+  if(ret<n(regimen.minimo_retencion)){out.motivo='menor al mínimo de retención';return out;}
+  out.monto=ret;return out;
+}
+// Base y retenido del mes para un proveedor y régimen (sin las anuladas).
+function retAcumuladosMes(practicadas,proveedorId,regimenId,fecha){
+  const mes=String(fecha||'').slice(0,7);let base=0,retenido=0;
+  (practicadas||[]).forEach(r=>{
+    if(r.estado==='anulada'||r.proveedor_id!==proveedorId||r.regimen_id!==regimenId||String(r.fecha||'').slice(0,7)!==mes)return;
+    base+=parseFloat(r.base_calculo)||0;retenido+=parseFloat(r.monto)||0;
+  });
+  return {base:Math.round(base*100)/100,retenido:Math.round(retenido*100)/100};
+}
+// Regímenes activos del proveedor a una fecha (con exclusión vigente o no).
+function retencionesAplicables(prov,regimenes,fecha){
+  return ((prov&&prov.retenciones)||[]).map(x=>{
+    const regimen=(regimenes||[]).find(r=>r.id===x.regimen_id&&r.activo!==false);
+    if(!regimen)return null;
+    return {regimen,condicion:x.condicion||'inscripto',exclusion_cert:x.exclusion_cert||'',
+      excluido:!!(x.exclusion_hasta&&String(x.exclusion_hasta)>=String(fecha||''))};
+  }).filter(Boolean);
+}
+// Parte de una factura que es base de retención: neto de IVA y percepciones
+// (Ganancias / IIBB / SUSS) o el IVA (régimen de IVA).
+function retRatioBase(f,impuesto){
+  const n=x=>parseFloat(x)||0,total=n(f&&f.total);
+  if(!(total>0))return 0;
+  const iva=n(f.iva);
+  if(impuesto==='iva')return Math.min(1,Math.max(0,iva/total));
+  const neto=n(f.neto)+n(f.no_gravado)+n(f.exento);
+  return Math.min(1,Math.max(0,(neto>0?neto:total-iva)/total));
+}
+// Base (ARS) de un pago: Σ imputado × proporción + lo que queda a cuenta
+// (un anticipo no discrimina IVA: va entero, salvo en el régimen de IVA).
+function retBasePago({imputaciones,aCuenta=0,tcARS=1,impuesto}){
+  let b=0;
+  (imputaciones||[]).forEach(i=>{b+=(parseFloat(i.monto)||0)*retRatioBase(i.factura,impuesto);});
+  if(impuesto!=='iva')b+=parseFloat(aCuenta)||0;
+  return Math.round(b*(parseFloat(tcARS)||1)*100)/100;
+}
+// Total de la OP a partir de lo que efectivamente se paga. modo 'bruto': lo
+// pagado YA es el total a cancelar (la retención se descuenta del medio).
+// modo 'neto': lo pagado es lo que sale de caja/banco y la retención se suma
+// arriba — como la retención depende del total, se itera hasta el punto fijo.
+function retResolverOP({pagado,fijo=0,modo,calcular}){
+  const r2=x=>Math.round(x*100)/100,suma=rs=>r2(rs.reduce((a,r)=>a+(parseFloat(r.monto_op)||0),0));
+  const base=r2((parseFloat(pagado)||0)+(parseFloat(fijo)||0));
+  if(modo==='bruto'){const rets=calcular(base);return {total:base,rets,retenido:suma(rets)};}
+  let T=base,rets=[];
+  for(let k=0;k<20;k++){rets=calcular(T);const T2=r2(base+suma(rets));if(Math.abs(T2-T)<0.005)break;T=T2;}
+  return {total:r2(base+suma(rets)),rets,retenido:suma(rets)};
+}
+function retFormulaTxt(c){
+  const f=x=>'$ '+(parseFloat(x)||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  let s='Base '+f(c.base_calculo);
+  if(c.base_acumulada>0)s+=' + '+f(c.base_acumulada)+' pagados en el mes';
+  if(c.minimo_no_sujeto>0)s+=' − mínimo '+f(c.minimo_no_sujeto);
+  s+=c.alicuota!=null?' × '+String(c.alicuota).replace('.',',')+' %':' · según escala';
+  if(c.retenido_previo>0)s+=' − '+f(c.retenido_previo)+' ya retenidos';
+  return s;
 }
 // Cuenta corriente de proveedores (USD): facturas con saldo (por el TC de
 // cada factura) menos pagos a cuenta — remanentes de OPs confirmadas y
@@ -11319,6 +11418,7 @@ function _opCuentaMedio(m){
   if(m.tipo==='caja')return cfg.cta_caja_default||null;
   if(m.tipo==='cheque')return cfg.cta_cheques_emitidos||null;
   if(m.tipo==='tarjeta')return cfg.cta_tarjeta_credito||null;
+  if(m.tipo==='retencion')return cfg['cta_retp_'+(m.ret?.impuesto||'')]||null;
   if(m.tipo==='banco'){const cb=cuentasBancarias.find(c=>c.id===m.cuenta_bancaria_id);return cb?.cuenta_contable_id||cfg.cta_banco_default||null;}
   return null;
 }
@@ -11329,11 +11429,11 @@ function openOrdenPagoModal(opts={}){
   if(!configContable)return notify('Falta configurar la imputación contable (Configuración → Imputación contable)','err');
   const fact=opts.facturaId?facturasRecibidas.find(f=>f.id===opts.facturaId):null;
   _opDraft={proveedorId:opts.proveedorId||fact?.proveedor_id||'',fecha:hoyLocal(),moneda:fact?.moneda||'ARS',tc:parseFloat(fact?.tipo_cambio)||_tcHoy()||'',
-    medios:[],imput:{},obs:''};
+    medios:[],imput:{},obs:'',retCero:[],retOff:{}};
   const sel=document.getElementById('op-prov');
   sel.innerHTML='<option value="">— Seleccioná —</option>'+[...proveedores].sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'','es')).map(p=>`<option value="${p.id}">${esc(p.nombre||'')}</option>`).join('');
   sel.value=_opDraft.proveedorId;
-  document.getElementById('op-fecha').value=_opDraft.fecha;
+  document.getElementById('opg-fecha').value=_opDraft.fecha;
   document.getElementById('op-moneda').value=_opDraft.moneda;
   document.getElementById('op-tc').value=_opDraft.tc||'';
   document.getElementById('op-obs').value='';
@@ -11346,16 +11446,21 @@ function openOrdenPagoModal(opts={}){
     preMonto=convertirMontoImputacion(s.saldo,fact.moneda,parseFloat(_opDraft.tc)||0,_opDraft.moneda);
   }
   if(!_opDraft.medios.length)opAddMedio(fact?{monto:preMonto}:null);
+  // Desde "Pagar" en la factura el medio arranca con el saldo: ese es el
+  // total a cancelar, así que la retención se descuenta de lo que se transfiere.
+  if(fact)opRecalcRetenciones('bruto');
   opRenderFacturas();opRenderMedios();opRecalc();
   openModal('modal-orden-pago');
 }
-function opOnProveedorChange(){_opDraft.proveedorId=document.getElementById('op-prov').value;_opDraft.imput={};opRenderFacturas();opRecalc();}
+function opOnProveedorChange(){_opDraft.proveedorId=document.getElementById('op-prov').value;_opDraft.imput={};_opDraft.retOff={};_opDraft.medios=_opDraft.medios.filter(m=>m.tipo!=='retencion');_opRefrescar();}
+// Recalcula retenciones y redibuja todo el modal de la OP.
+function _opRefrescar(){if(!_opDraft)return;opRecalcRetenciones();opRenderFacturas();opRenderMedios();opRecalc();}
 async function opOnMonedaChange(){
   _opDraft.moneda=document.getElementById('op-moneda').value;
   if(_opDraft.moneda==='USD'&&!(parseFloat(document.getElementById('op-tc').value)>0)){
     await fetchCotizacion();document.getElementById('op-tc').value=_tcHoy()||'';
   }
-  opRenderFacturas();opRecalc();
+  _opRefrescar();
 }
 function _opTc(){return parseFloat(document.getElementById('op-tc').value)||0;}
 function _opFacturasPendientes(){
@@ -11366,10 +11471,49 @@ function _opFacturasPendientes(){
     .sort((a,b)=>(a.f.fecha_vto||a.f.fecha||'').localeCompare(b.f.fecha_vto||b.f.fecha||''));
 }
 function _opTotalMedios(){return Math.round((_opDraft?.medios||[]).reduce((a,m)=>a+(parseFloat(m.monto)||0),0)*100)/100;}
+// Retenciones (mig 086) para un total T de la OP: arma las imputaciones que
+// tendría ese total y calcula cada régimen del proveedor.
+function _opRetCalcular(T){
+  const d=_opDraft,r2=x=>Math.round(x*100)/100;
+  const prov=proveedores.find(p=>p.id===d.proveedorId);
+  const fecha=document.getElementById('opg-fecha').value||hoyLocal();
+  const monOP=document.getElementById('op-moneda').value,tc=_opTc(),tcARS=monOP==='USD'?tc:1;
+  if(!prov||!(tcARS>0)||!(T>0))return [];
+  const aplic=retencionesAplicables(prov,retencionRegimenes,fecha).filter(a=>!d.retOff[a.regimen.id]
+    &&!d.medios.some(m=>m.tipo==='retencion'&&m.ret.manual&&m.ret.regimen_id===a.regimen.id));
+  if(!aplic.length)return [];
+  const list=_opFacturasPendientes(),calc=_opImputacionesCalc(list,monOP,tc,T);
+  const imputaciones=[];let imputado=0;
+  list.forEach(({f})=>{if(!d.imput[f.id]?.sel)return;const m=calc[f.id];if(!(m>0))return;imputaciones.push({factura:f,monto:m});imputado+=m;});
+  const aCuenta=Math.max(0,r2(T-imputado));
+  return aplic.map(a=>{
+    const ac=retAcumuladosMes(retencionesPracticadas,prov.id,a.regimen.id,fecha);
+    const c=calcularRetencion({regimen:a.regimen,condicion:a.condicion,excluido:a.excluido,baseAcumPrevia:ac.base,retenidoPrevio:ac.retenido,
+      basePago:retBasePago({imputaciones,aCuenta,tcARS,impuesto:a.regimen.impuesto})});
+    return {...c,impuesto:a.regimen.impuesto,regimen_id:a.regimen.id,regimen_codigo:a.regimen.codigo,regimen_nombre:a.regimen.nombre,
+      condicion:a.condicion,calculado:c.monto,monto_op:r2(c.monto/tcARS)};
+  });
+}
+// Rearma los medios 'retencion' automáticos. Los que el usuario pisó a mano
+// (ret.manual) o quitó (retOff) no se tocan hasta "Recalcular retenciones".
+function opRecalcRetenciones(modo='neto'){
+  const d=_opDraft;if(!d)return;
+  const r2=x=>Math.round(x*100)/100,sum=a=>r2(a.reduce((s,m)=>s+(parseFloat(m.monto)||0),0));
+  d.medios=d.medios.filter(m=>!(m.tipo==='retencion'&&!m.ret.manual));
+  d.retCero=[];
+  const noRet=d.medios.filter(m=>m.tipo!=='retencion');
+  const res=retResolverOP({pagado:sum(noRet),fijo:sum(d.medios.filter(m=>m.tipo==='retencion')),modo,calcular:_opRetCalcular});
+  res.rets.forEach(c=>{
+    if(c.monto_op>0)d.medios.push({tipo:'retencion',monto:c.monto_op,detalle:'',ret:{...c,manual:false}});
+    else if(c.base_calculo>0)d.retCero.push(c);
+  });
+  if(modo==='bruto'&&res.retenido>0&&noRet[0]&&(parseFloat(noRet[0].monto)||0)>res.retenido)noRet[0].monto=r2(noRet[0].monto-res.retenido);
+}
+function opRetReset(){_opDraft.retOff={};_opDraft.medios=_opDraft.medios.filter(m=>m.tipo!=='retencion');_opRefrescar();}
 // Montos a imputar por factura (id → monto en moneda OP), manuales + auto.
-function _opImputacionesCalc(list,monOP,tc){
+function _opImputacionesCalc(list,monOP,tc,total){
   const filas=list.map(({f,s})=>{const im=_opDraft.imput[f.id]||{sel:false,monto:null};return {id:f.id,sel:!!im.sel,monto:im.monto,saldoOP:convertirMontoImputacion(s.saldo,f.moneda,tc,monOP)};});
-  return repartirImputacionesOP(_opTotalMedios(),filas);
+  return repartirImputacionesOP(total==null?_opTotalMedios():total,filas);
 }
 function opRenderFacturas(){
   const w=document.getElementById('op-facturas');if(!w)return;
@@ -11395,9 +11539,9 @@ function opRenderFacturas(){
     </tr>`;
   }).join('')+'</tbody></table>';
 }
-function opToggleFactura(id,sel){_opDraft.imput[id]={sel,monto:null};opRenderFacturas();opRecalc();}
+function opToggleFactura(id,sel){_opDraft.imput[id]={sel,monto:null};_opRefrescar();}
 // Vacío = vuelve a "auto" (sigue al total de los medios).
-function opSetImputacion(id,v){if(!_opDraft.imput[id])_opDraft.imput[id]={sel:true};_opDraft.imput[id].monto=String(v).trim()===''?null:(parseFloat(v)||0);opRenderFacturas();opRecalc();}
+function opSetImputacion(id,v){if(!_opDraft.imput[id])_opDraft.imput[id]={sel:true};_opDraft.imput[id].monto=String(v).trim()===''?null:(parseFloat(v)||0);_opRefrescar();}
 // Reparte el total de los medios entre las facturas tildadas, la más vieja primero.
 function opAutoImputar(){
   const monOP=document.getElementById('op-moneda').value,tc=_opTc();
@@ -11411,27 +11555,40 @@ function opAutoImputar(){
     _opDraft.imput[f.id]={sel:apl>0,monto:apl>0?Math.round(apl*100)/100:null};
     resto=Math.max(0,resto-apl);
   });
-  opRenderFacturas();opRecalc();
+  _opRefrescar();
 }
 function opAddMedio(pre){
   const bancoDefault=cuentasBancarias.find(c=>c.activa!==false&&c.cuenta_contable_id);
   _opDraft.medios.push({tipo:'banco',monto:pre?.monto??null,cuenta_bancaria_id:bancoDefault?.id||'',detalle:'',cheque:{numero:'',banco:'',fecha_pago:'',echeq:false}});
-  opRenderMedios();opRenderFacturas();opRecalc();
+  _opRefrescar();
 }
-function opDelMedio(i){_opDraft.medios.splice(i,1);opRenderMedios();opRenderFacturas();opRecalc();}
+function opDelMedio(i){const m=_opDraft.medios[i];if(m?.tipo==='retencion')_opDraft.retOff[m.ret.regimen_id]=true;_opDraft.medios.splice(i,1);_opRefrescar();}
 function opMedioChange(i,campo,v){
   const m=_opDraft.medios[i];if(!m)return;
   if(campo.startsWith('cheque.'))m.cheque[campo.slice(7)]=v;
   else m[campo]=campo==='monto'?(parseFloat(v)||0):v;
-  if(campo==='tipo')opRenderMedios();
-  if(campo==='monto')opRenderFacturas();
+  if(m.tipo==='retencion'&&campo==='monto')m.ret.manual=true; // importe pisado a mano
+  if(campo==='tipo'||campo==='monto'){_opRefrescar();return;}
   opRecalc();
 }
 function opRenderMedios(){
   const w=document.getElementById('op-medios');if(!w)return;
   const inp='background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-xs);padding:4px 6px;color:var(--text);font-size:11px;width:100%';
   const bancos=cuentasBancarias.filter(c=>c.activa!==false);
+  const retInfo=(_opDraft.retCero||[]).map(c=>`<div style="font-size:11px;color:var(--text3);padding:4px 0">Retención ${esc(RETP_IMPUESTOS[c.impuesto]||c.impuesto)} · ${esc(c.regimen_codigo||'')} ${esc(c.regimen_nombre||'')}: <b>sin retención</b> — ${esc(c.motivo)} (${esc(retFormulaTxt(c))})</div>`).join('')
+    +((Object.keys(_opDraft.retOff||{}).length||_opDraft.medios.some(m=>m.tipo==='retencion'&&m.ret.manual))?`<div style="font-size:11px;padding:4px 0"><a href="#" onclick="opRetReset();return false" style="color:var(--teal)">↻ Recalcular retenciones</a> <span style="color:var(--text3)">(volver al cálculo automático)</span></div>`:'');
   w.innerHTML=_opDraft.medios.map((m,i)=>{
+    if(m.tipo==='retencion'){
+      const cta=cuentasContables.find(c=>c.id===_opCuentaMedio(m));
+      return `<div style="display:grid;grid-template-columns:130px 1fr 130px 28px;gap:6px;align-items:start;padding:6px 0;border-bottom:1px solid var(--border)">
+      <div><div style="font-size:11px;font-weight:600;color:var(--amber,#d99a2b)">Retención ${esc(RETP_IMPUESTOS[m.ret.impuesto]||m.ret.impuesto)}</div>
+        <div style="font-size:10px;color:${cta?'var(--text3)':'var(--coral)'};margin-top:3px;font-family:var(--mono)">${cta?esc(cta.codigo+' '+cta.nombre):'sin cuenta contable'}</div></div>
+      <div style="font-size:11px"><div>${esc(m.ret.regimen_codigo||'')} · ${esc(m.ret.regimen_nombre||'')}${m.ret.condicion==='no_inscripto'?' <span class="badge badge-coral" style="font-size:9px">NO INSCRIPTO</span>':''}</div>
+        <div style="color:var(--text3);margin-top:2px">${esc(retFormulaTxt(m.ret))}${m.ret.manual?` · <b style="color:var(--amber,#d99a2b)">importe a mano</b> (calculado ${esc(_numAR(m.ret.calculado))})`:''}</div></div>
+      <input type="number" step="0.01" min="0" value="${m.monto==null?'':m.monto}" onchange="opMedioChange(${i},'monto',this.value)" title="Importe retenido — se calcula solo; si lo cambiás queda fijado a mano" style="${inp};text-align:right;color:var(--amber,#d99a2b)">
+      <button class="btn btn-ghost btn-sm" onclick="opDelMedio(${i})" style="padding:2px 6px" title="No retener en este pago">×</button>
+    </div>`;
+    }
     let extra='';
     if(m.tipo==='banco')extra=`<select onchange="opMedioChange(${i},'cuenta_bancaria_id',this.value)" style="${inp}"><option value="">Cuenta banco por defecto</option>${bancos.map(c=>`<option value="${c.id}" ${m.cuenta_bancaria_id===c.id?'selected':''}>${esc(c.nombre)}${c.cuenta_contable_id?'':' (sin cta contable)'}</option>`).join('')}</select>`;
     else if(m.tipo==='cheque')extra=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;align-items:center">
@@ -11448,14 +11605,20 @@ function opRenderMedios(){
       <input type="number" step="0.01" min="0" placeholder="0.00" value="${m.monto==null?'':m.monto}" onchange="opMedioChange(${i},'monto',this.value)" style="${inp};text-align:right;color:var(--coral)">
       <button class="btn btn-ghost btn-sm" onclick="opDelMedio(${i})" style="padding:2px 6px" title="Quitar">×</button>
     </div>`;
-  }).join('')||'<div style="color:var(--text3);font-size:12px;padding:8px 0">Agregá un medio de pago.</div>';
+  }).join('')+retInfo||'<div style="color:var(--text3);font-size:12px;padding:8px 0">Agregá un medio de pago.</div>';
+}
+function _opRetPayload(c){
+  return {impuesto:c.impuesto,regimen_id:c.regimen_id,regimen_codigo:c.regimen_codigo,regimen_nombre:c.regimen_nombre,condicion:c.condicion,
+    base_calculo:c.base_calculo,base_acumulada:c.base_acumulada,retenido_previo:c.retenido_previo,minimo_no_sujeto:c.minimo_no_sujeto,
+    alicuota:c.alicuota,manual:!!c.manual,detalle:{calculado:c.calculado,motivo:c.motivo||null,formula:retFormulaTxt(c)}};
 }
 function _opArmarPayload(){
   const monOP=document.getElementById('op-moneda').value,tc=_opTc();
   const vivas=imputacionesVivas(ordenesPago);
   const medios=_opDraft.medios.map(m=>({tipo:m.tipo,monto:Math.round((parseFloat(m.monto)||0)*100)/100,cuenta_contable_id:_opCuentaMedio(m),
     cuenta_bancaria_id:m.tipo==='banco'?(m.cuenta_bancaria_id||null):null,detalle:m.detalle||null,
-    cheque:m.tipo==='cheque'?{numero:(m.cheque.numero||'').trim(),banco:(m.cheque.banco||'').trim(),fecha_pago:m.cheque.fecha_pago||'',echeq:!!m.cheque.echeq}:undefined}));
+    cheque:m.tipo==='cheque'?{numero:(m.cheque.numero||'').trim(),banco:(m.cheque.banco||'').trim(),fecha_pago:m.cheque.fecha_pago||'',echeq:!!m.cheque.echeq}:undefined,
+    retencion:m.tipo==='retencion'?_opRetPayload(m.ret):undefined}));
   const saldos={},imputaciones=[];
   const calc=_opImputacionesCalc(_opFacturasPendientes(),monOP,tc);
   Object.entries(_opDraft.imput).forEach(([fid,im])=>{
@@ -11469,21 +11632,22 @@ function _opArmarPayload(){
     imputaciones.push({factura_id:fid,nro:f.nro,monto:Math.round(monto*100)/100,monto_factura:convertirMontoImputacion(monto,monOP,tc,f.moneda)});
   });
   const total=Math.round(medios.reduce((a,m)=>a+m.monto,0)*100)/100;
-  return {monOP,tc,medios,imputaciones,saldos,total};
+  const retenido=Math.round(medios.filter(m=>m.tipo==='retencion').reduce((a,m)=>a+m.monto,0)*100)/100;
+  return {monOP,tc,medios,imputaciones,saldos,total,retenido,retCero:(_opDraft.retCero||[]).map(_opRetPayload)};
 }
 function opRecalc(){
   const t=document.getElementById('op-totales');if(!t||!_opDraft)return;
   const p=_opArmarPayload();
   const fmt=p.monOP==='USD'?fmtUSD:fmtARS;
   const v=validarOrdenPago(p);
-  t.innerHTML=`<span>Total medios <b class="mono">${fmt(p.total)}</b></span><span>Imputado <b class="mono">${fmt(v.sumImputado)}</b></span><span>A cuenta <b class="mono" style="color:${v.aCuenta>0?'var(--amber,#d99a2b)':'var(--text2)'}">${fmt(v.aCuenta)}</b></span>`
+  t.innerHTML=`<span>${p.retenido>0?'Total a cancelar':'Total medios'} <b class="mono">${fmt(p.total)}</b></span>${p.retenido>0?`<span>Retenciones <b class="mono" style="color:var(--amber,#d99a2b)">${fmt(p.retenido)}</b></span><span>Neto a pagar <b class="mono">${fmt(p.total-p.retenido)}</b></span>`:''}<span>Imputado <b class="mono">${fmt(v.sumImputado)}</b></span><span>A cuenta <b class="mono" style="color:${v.aCuenta>0?'var(--amber,#d99a2b)':'var(--text2)'}">${fmt(v.aCuenta)}</b></span>`
     +(p.monOP==='USD'&&p.tc>0?`<span style="color:var(--text3);font-size:11px">TC ${_numAR(p.tc)}</span>`:'')
     +(!v.ok&&p.medios.length?`<div style="flex-basis:100%;color:var(--coral);font-size:11px">${esc(v.errores[0])}</div>`:'');
 }
 async function registrarOrdenPago(){
   if(!_opDraft)return;
-  const proveedorId=document.getElementById('op-prov').value,fecha=document.getElementById('op-fecha').value;
-  if(!validarCampos([['op-prov',!!proveedorId,'Elegí el proveedor'],['op-fecha',!!fecha,'Cargá la fecha']]))return;
+  const proveedorId=document.getElementById('op-prov').value,fecha=document.getElementById('opg-fecha').value;
+  if(!validarCampos([['op-prov',!!proveedorId,'Elegí el proveedor'],['opg-fecha',!!fecha,'Cargá la fecha']]))return;
   const p=_opArmarPayload();
   if(p.monOP==='USD'&&!(p.tc>0))return notify('Cargá el tipo de cambio para una orden en USD','err');
   const v=validarOrdenPago(p);
@@ -11492,20 +11656,21 @@ async function registrarOrdenPago(){
   const prov=proveedores.find(x=>x.id===proveedorId);
   const fmt=p.monOP==='USD'?fmtUSD:fmtARS;
   if(v.aCuenta>0.005&&!confirm(`${fmt(v.aCuenta)} quedan A CUENTA de ${prov?.nombre||'el proveedor'} (sin imputar a ninguna factura).\n\n¿Registrar igual?`))return;
-  setBusy('btn-save-op',true);
+  setBusy('btn-save-opg',true);
   try{
     const r=await RPC('registrar_orden_pago',{
-      p_cabecera:{fecha,proveedor_id:proveedorId,moneda:p.monOP,tipo_cambio:p.monOP==='USD'?p.tc:null,total:p.total,observaciones:g('op-obs')||null},
+      p_cabecera:{fecha,proveedor_id:proveedorId,moneda:p.monOP,tipo_cambio:p.monOP==='USD'?p.tc:null,total:p.total,observaciones:g('op-obs')||null,retenciones_cero:p.retCero},
       p_medios:p.medios.map(m=>({...m,cheque:m.cheque||null})),
       p_imputaciones:p.imputaciones.map(i=>({factura_id:i.factura_id,monto:i.monto,monto_factura:i.monto_factura})),
     });
-    await reload('ordenes_pago','asientos','asiento_lineas','cheques');
+    await reload('ordenes_pago','asientos','asiento_lineas','cheques','retenciones_practicadas');
     _modalDirty['modal-orden-pago']=false;closeModal('modal-orden-pago',true);_opDraft=null;
     renderAll();
     notify(`✓ ${r.nro} registrada · Asiento N° ${r.asiento_numero}${r.a_cuenta>0?` · ${fmt(r.a_cuenta)} a cuenta`:''}`);
-    if(confirm(`${r.nro} registrada.\n\n¿Generar el PDF de la orden de pago para el proveedor?`))generarOrdenPagoPDF(r.id);
+    const conRet=retencionesPracticadas.some(x=>x.orden_pago_id===r.id&&parseFloat(x.monto)>0);
+    if(confirm(`${r.nro} registrada.\n\n¿Generar el PDF de la orden de pago${conRet?' y el certificado de retención':''} para el proveedor?\n\n(Después los encontrás en Compras → Órdenes de pago.)`)){generarOrdenPagoPDF(r.id);if(conRet)generarCertificadosRetencionPDF({opId:r.id});}
   }catch(e){notify(msgError(e),'err');}
-  setBusy('btn-save-op',false,'Registrar orden de pago');
+  setBusy('btn-save-opg',false,'Registrar orden de pago');
 }
 async function anularOrdenPago(id){
   const o=ordenesPago.find(x=>x.id===id);if(!o)return;
@@ -11513,7 +11678,7 @@ async function anularOrdenPago(id){
   if(!motivo)return;
   try{
     await RPC('anular_orden_pago',{p_id:id,p_motivo:motivo});
-    await reload('ordenes_pago','asientos','asiento_lineas','cheques');
+    await reload('ordenes_pago','asientos','asiento_lineas','cheques','retenciones_practicadas');
     renderAll();notify(`${o.nro} anulada`);
   }catch(e){notify(msgError(e),'err');}
 }
@@ -11521,7 +11686,7 @@ async function anularOrdenPago(id){
 // ── Listado (Compras → Órdenes de pago) ────────────────────────────
 function renderOrdenesPago(filter=''){
   const f=(filter||'').toLowerCase();
-  const stats=document.getElementById('op-stats'),tbody=document.getElementById('op-tbody');if(!stats||!tbody)return;
+  const stats=document.getElementById('opg-stats'),tbody=document.getElementById('opg-tbody');if(!stats||!tbody)return;
   const cc=computeCtaCteProveedores({proveedores,facturas:facturasRecibidas,ordenesPago,asientos,asientoLineas,tcHoy:_tcHoy()});
   const deudaUSD=cc.reduce((a,c)=>a+Math.max(0,c.saldoUSD),0);
   const hoy=hoyLocal();
@@ -15820,12 +15985,12 @@ async function saveNC(){
     descripcion,disposicion:disp,
     justificacion:document.getElementById('nc-justificacion').value.trim()||null,
     cliente_notificado:notif===''?null:notif==='true'};
-  try{setBusy('btn-save-nc',true);
+  try{setBusy('btn-save-ncr',true);
     if(id){await PATCH('no_conformidades',data,`?id=eq.${id}`);}
     else{await POST('no_conformidades',{...data,empresa_id:currentEmpresa.id});}
     await reload('no_conformidades');closeModal('modal-nc',true);renderAll();notify(id?'NC actualizada':'NC registrada');
   }catch(e){notify(msgError(e),'err');}
-  finally{setBusy('btn-save-nc',false);}
+  finally{setBusy('btn-save-ncr',false);}
 }
 function openCapaModal(id,ncId){
   document.getElementById('modal-capa-title').textContent=id?'Editar acción CAPA':'Nueva acción CAPA';
