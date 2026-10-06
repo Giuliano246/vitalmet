@@ -537,6 +537,7 @@ Pestaña **Ventas → Facturas emitidas**: el listado único de **todo lo que sa
 
 - El detalle impreso es el que se informó a ARCA al pedir el CAE. Si un comprobante viejo no lo tiene guardado, el PDF sale igual con los importes autorizados y un detalle resumido, y el sistema te avisa.
 - **Ingresos Brutos** e **inicio de actividades** del emisor se cargan una sola vez en **Configuración → Imputación contable → Datos del emisor en facturas, NC y ND**. Mientras falten, salen con una raya y el sistema te lo recuerda al imprimir.
+- **Ejemplares:** el selector de la barra define cuántas hojas lleva cada comprobante: **original + duplicado + triplicado** (lo que viene elegido), **original + duplicado** o **sólo original** (cómodo para mandar por mail). Queda guardado en tu navegador y vale también para el botón **Factura** de Ventas.
 - Los comprobantes emitidos en homologación (pruebas) salen con la marca **SIN VALIDEZ FISCAL**.
 
 ### 8.5 Cuenta corriente

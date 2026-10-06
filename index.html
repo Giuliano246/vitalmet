@@ -740,6 +740,7 @@ body.no-costos .solo-costos{display:none!important}
           <select id="femf-tipo" onchange="renderFacturasEmitidas()" title="Filtrar por tipo de comprobante" style="width:auto"><option value="">Todos los tipos</option><option value="fa">Facturas</option><option value="nc">Notas de crédito</option><option value="nd">Notas de débito</option></select>
           <input type="date" id="femf-fdesde" onchange="renderFacturasEmitidas()" title="Desde" style="width:auto"><input type="date" id="femf-fhasta" onchange="renderFacturasEmitidas()" title="Hasta" style="width:auto">
           <button class="btn btn-ghost" onclick="exportFacturasEmitidasCSV()" title="Exportar la lista filtrada a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
+          <select id="femf-copias" onchange="setCbteCopias(this.value)" title="Ejemplares que lleva cada PDF de comprobante" style="width:auto"><option value="3">Original + duplicado + triplicado</option><option value="2">Original + duplicado</option><option value="1">Sólo original</option></select>
           <button class="btn btn-ghost" onclick="imprimirComprobantesFiltrados()" title="Un PDF con todos los comprobantes filtrados, uno por hoja"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span>PDF</button>
           <button class="btn btn-ghost" onclick="openFacturaDirecta()" style="border-color:var(--teal);color:var(--teal)">+ Factura directa</button>
           <button class="btn btn-ghost" onclick="openNotaLibre()" style="border-color:var(--coral,#e5484d);color:var(--coral,#e5484d)" title="NC/ND con CAE sin factura del ERP: asociada a un período o a un comprobante propio externo">+ NC/ND libre</button>
@@ -5351,6 +5352,7 @@ function _femFiltros(){
 }
 function renderFacturasEmitidas(){
   const tb=document.getElementById('fem-tbody');if(!tb)return;
+  const selCop=document.getElementById('femf-copias');if(selCop)selCop.value=String(_cbteCopias().length);
   const conFact=new Set(facturasEmitidas.map(f=>resolverClienteFactura(f,ventas,clientes).cliente_id).filter(Boolean));
   _fillSelectKeep(document.getElementById('femf-cliente'),clientes.filter(c=>conFact.has(c.id)).sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'')),'Todos los clientes');
   const rows=filtrarFacturasEmitidas(facturasEmitidas,_femFiltros(),{ventas,clientes});
@@ -5487,7 +5489,7 @@ function _qrDataURL(texto){
   return null;
 }
 // Dibuja UN comprobante a partir de la página actual del doc (A4, mm).
-function _dibujarComprobante(doc,m){
+function _dibujarComprobante(doc,m,copia){
   const p0=doc.internal.getNumberOfPages();
   const gris=[90,90,90],negro=[30,30,30];
   doc.setDrawColor(60);doc.setLineWidth(0.3);
@@ -5503,7 +5505,7 @@ function _dibujarComprobante(doc,m){
   doc.text(`Condición frente al IVA: ${m.emisor.cond_iva}`,16,49);
   // Comprobante
   doc.setTextColor(...negro);doc.setFont('helvetica','bold');doc.setFontSize(m.clase==='fa'?17:14);doc.text(m.titulo,118,19);
-  doc.setFontSize(7);doc.setTextColor(...gris);doc.text('ORIGINAL',196,14,{align:'right'});
+  doc.setFontSize(7);doc.setTextColor(...gris);doc.text(copia||'ORIGINAL',196,14,{align:'right'});
   doc.setTextColor(...negro);doc.setFontSize(10);doc.text(`Punto de venta: ${m.pv}    Comp. Nº: ${m.nro}`,118,28);
   doc.text(`Fecha de emisión: ${fmtFecha(m.fecha)}`,118,33.5);
   doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...gris);
@@ -5590,6 +5592,16 @@ function _avisoDatosEmisor(){
   const c=configContable||{};
   if(!c.iibb_nro||!c.inicio_actividades)notify('Faltan Ingresos Brutos y/o inicio de actividades del emisor: cargalos en Configuración → Imputación contable para que salgan en el comprobante','err');
 }
+// Ejemplares por comprobante (RG 1415): original para el cliente,
+// duplicado para el archivo propio, triplicado si hace falta otro juego.
+// La elección queda guardada en el navegador y vale para todos los botones.
+const CBTE_COPIAS=['ORIGINAL','DUPLICADO','TRIPLICADO'];
+function _cbteCopias(){let n=3;try{n=parseInt(localStorage.getItem('vs_cbte_copias'),10)||3;}catch(e){}return CBTE_COPIAS.slice(0,Math.min(3,Math.max(1,n)));}
+function setCbteCopias(n){try{localStorage.setItem('vs_cbte_copias',String(n));}catch(e){}}
+function _dibujarComprobantes(doc,modelos){
+  const copias=_cbteCopias();let primera=true;
+  modelos.forEach(m=>copias.forEach(c=>{if(!primera)doc.addPage();primera=false;_dibujarComprobante(doc,m,c);}));
+}
 // Botón "PDF" de una factura, NC o ND (Facturas emitidas y Ventas).
 async function imprimirComprobante(facturaId){
   if(!window.jspdf){notify('Librería PDF no cargada. Recargá la página.','err');return;}
@@ -5597,7 +5609,7 @@ async function imprimirComprobante(facturaId){
     const [m]=await _comprobantesModelos([facturaId]);
     if(!m){notify('Comprobante no encontrado','err');return;}
     const {jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'});
-    _dibujarComprobante(doc,m);
+    _dibujarComprobantes(doc,[m]);
     doc.save(m.archivo);
     if(m.estimados)notify('Este comprobante no tiene el detalle guardado: el PDF lleva los importes autorizados por ARCA y un detalle resumido','ok');
     _avisoDatosEmisor();
@@ -5609,12 +5621,12 @@ async function imprimirComprobantesFiltrados(){
   const rows=filtrarFacturasEmitidas(facturasEmitidas,_femFiltros(),{ventas,clientes});
   if(!rows.length){notify('No hay comprobantes para imprimir con esos filtros','err');return;}
   if(rows.length>200){notify(`Son ${rows.length} comprobantes: acotá el filtro (hasta 200 por archivo)`,'err');return;}
-  if(rows.length>1&&!confirm(`¿Generar un PDF con los ${rows.length} comprobantes filtrados (uno por hoja)?`))return;
+  if(rows.length>1&&!confirm(`¿Generar un PDF con los ${rows.length} comprobantes filtrados (${_cbteCopias().join(' + ').toLowerCase()})?`))return;
   try{
     // Cronológico: el listado viene del más nuevo al más viejo
     const ms=await _comprobantesModelos(rows.map(x=>x.f.id).reverse());
     const {jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'});
-    ms.forEach((m,k)=>{if(k)doc.addPage();_dibujarComprobante(doc,m);});
+    _dibujarComprobantes(doc,ms);
     doc.save(ms.length===1?ms[0].archivo:`Comprobantes_${hoyLocal()}_${ms.length}.pdf`);
     _avisoDatosEmisor();
   }catch(e){notify('No se pudo generar el PDF: '+e.message,'err');}
