@@ -1490,6 +1490,7 @@ body.no-costos .solo-costos{display:none!important}
       <div class="page-header"><div class="page-title">Períodos mensuales</div><div class="page-sub">// cierre y reapertura de períodos contables · bloqueo de imputación</div><div class="tabs"></div></div>
       <div class="page-content">
         <div class="stats-bar" id="periodos-stats"></div>
+        <div class="toolbar"><button class="btn btn-primary btn-sm" onclick="openLiquidacionIva()" title="Débito menos crédito del mes, con arrastre del saldo a favor, percepciones y retenciones; genera el asiento">Liquidar IVA del mes</button></div>
         <div id="periodos-grid"></div>
       </div>
     </div>
@@ -3090,6 +3091,25 @@ body.no-costos .solo-costos{display:none!important}
     </div>
   </div>
 </div>
+<div class="modal-overlay" id="modal-liq-iva">
+  <div class="modal" style="width:760px;max-width:95vw">
+    <div class="modal-header"><div class="modal-title">Liquidación mensual de IVA</div><button class="modal-close" onclick="closeModal('modal-liq-iva',true)">×</button></div>
+    <div class="modal-body">
+      <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-bottom:10px">
+        <div class="form-group" style="margin:0"><label>Mes a liquidar</label><input type="month" id="liqiva-mes"></div>
+        <div class="form-group" style="margin:0;flex:1;min-width:180px"><label>Cuenta "IVA saldo a favor"</label><select id="liqiva-cta-sf"></select></div>
+        <div class="form-group" style="margin:0;flex:1;min-width:180px"><label>Cuenta "IVA a pagar"</label><select id="liqiva-cta-ap"></select></div>
+        <button class="btn btn-primary" id="btn-liqiva-calc" onclick="liqIvaCalcular()">Calcular</button>
+      </div>
+      <div id="liqiva-body"></div>
+      <div id="liqiva-hist" style="margin-top:12px;font-size:11px;color:var(--text3);line-height:1.6"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-liq-iva',true)">Cerrar</button>
+      <button class="btn btn-primary" id="btn-liqiva-gen" onclick="liqIvaGenerar()" disabled>Generar asiento (borrador)</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="modal-recibo">
   <div class="modal" style="width:900px;max-width:95vw">
     <div class="modal-header"><div class="modal-title">Recibo de cobranza <span style="color:var(--text3);font-weight:400;font-size:13px">(varios valores + imputación a facturas)</span></div><button class="modal-close" onclick="closeModal('modal-recibo')">×</button></div>
@@ -3882,7 +3902,45 @@ async function expIvaVentas(desde,hasta){
   return {nombre:`iva_ventas_${desde}_a_${hasta}.csv`,contenido:csvArmar(filas),crudas,
           resumen:`IVA ventas: ${fe.length} comprobantes · neto ${csvNum(n)} · IVA ${csvNum(i)}`};
 }
-async function expPosicionIva(desde,hasta){
+// ─── LIQUIDACIÓN MENSUAL DE IVA ──────────────────────────────────────
+// Sin tabla propia: el arrastre sale de los saldos contables (saldo técnico
+// a favor = cuenta "IVA saldo a favor"; libre disponibilidad = lo que queda
+// en las cuentas de percepciones y retenciones de IVA). El asiento de cada
+// mes (origen_tipo 'liquidacion_iva', comprobante IVA-AAAA-MM) cierra el
+// débito y el crédito y deja esos saldos listos para el mes siguiente.
+// Puras con tests en tests/liquidacion-iva.test.js.
+function computeLiquidacionIva({df=0,cf=0,percep=0,ret=0,stAnterior=0,sldPercepAnt=0,sldRetAnt=0}={}){
+  const r2=x=>Math.round((parseFloat(x)||0)*100)/100;
+  df=r2(df);cf=r2(cf);percep=r2(percep);ret=r2(ret);stAnterior=Math.max(0,r2(stAnterior));sldPercepAnt=Math.max(0,r2(sldPercepAnt));sldRetAnt=Math.max(0,r2(sldRetAnt));
+  const tecnicoMes=r2(df-cf),tecnico=r2(tecnicoMes-stAnterior);
+  const stCierre=tecnico<0?-tecnico:0,aPagarBruto=tecnico>0?tecnico:0;
+  // Los ingresos directos sólo se aplican contra un saldo a pagar; primero percepciones.
+  const dispPercep=r2(percep+sldPercepAnt),dispRet=r2(ret+sldRetAnt);
+  const usaPercep=Math.min(aPagarBruto,dispPercep),usaRet=Math.min(r2(aPagarBruto-usaPercep),dispRet);
+  return {df,cf,percep,ret,stAnterior,sldPercepAnt,sldRetAnt,tecnicoMes,tecnico,stCierre,aPagarBruto,usaPercep:r2(usaPercep),usaRet:r2(usaRet),
+    aPagar:r2(aPagarBruto-usaPercep-usaRet),sldPercep:r2(dispPercep-usaPercep),sldRet:r2(dispRet-usaRet)};
+}
+// Líneas del asiento. ctas: {debito, credito, saldoFavor, percep, ret, aPagar} (ids).
+function armarAsientoLiquidacionIva(l,ctas){
+  const r2=x=>Math.round(x*100)/100,ls=[];
+  const mov=(cuenta_id,importe,descripcion)=>{importe=r2(importe);if(Math.abs(importe)<0.005)return;
+    ls.push({cuenta_id,debe:importe>0?importe:0,haber:importe<0?-importe:0,descripcion,orden:ls.length});};
+  mov(ctas.debito,l.df,'Débito fiscal del mes');
+  mov(ctas.credito,-l.cf,'Crédito fiscal del mes');
+  mov(ctas.saldoFavor,l.stCierre-l.stAnterior,l.stCierre>l.stAnterior?'Saldo técnico a favor que pasa al mes siguiente':'Saldo técnico a favor aplicado');
+  mov(ctas.percep,-l.usaPercep,'Percepciones de IVA aplicadas');
+  mov(ctas.ret,-l.usaRet,'Retenciones de IVA aplicadas');
+  mov(ctas.aPagar,-l.aPagar,'IVA a pagar');
+  return ls;
+}
+// Saldo deudor (debe − haber) de una cuenta con asientos confirmados hasta
+// una fecha (y desde otra, opcional).
+function saldoCuentaHasta(cuentaId,hasta,lineas,asientosList,desde){
+  const ok=new Set((asientosList||[]).filter(a=>a.estado==='confirmado'&&(a.fecha||'')<=hasta&&(!desde||(a.fecha||'')>=desde)).map(a=>a.id));
+  return Math.round((lineas||[]).reduce((s,l)=>l.cuenta_id===cuentaId&&ok.has(l.asiento_id)?s+(parseFloat(l.debe)||0)-(parseFloat(l.haber)||0):s,0)*100)/100;
+}
+// Débito, crédito, percepciones y retenciones de IVA de un período, desde los comprobantes.
+async function posicionIvaDatos(desde,hasta){
   // Posición mensual de IVA en ARS: DF − CF − percepciones − retenciones.
   // Comprobantes en USD se convierten por su tipo de cambio.
   const [fe,fr]=await Promise.all([
@@ -3906,6 +3964,10 @@ async function expPosicionIva(desde,hasta){
   for(const f of fr)if(!conDesglose.has(f.id)&&(+f.iva||0)>0)cf+=factorDe(f)*(+f.iva||0); // históricas sin tax lines
   const rets=(await GET('retenciones_sufridas',`?fecha=gte.${desde}&fecha=lte.${hasta}&tipo=eq.iva&select=monto,moneda,tipo_cambio,asientos(estado)`).catch(()=>[])).filter(r=>r.asientos?.estado!=='anulado');
   const retIva=rets.reduce((s,r)=>s+((r.moneda||'ARS')==='USD'?(parseFloat(r.tipo_cambio)||1):1)*(+r.monto||0),0);
+  return {df,cf,percepIva,retIva};
+}
+async function expPosicionIva(desde,hasta){
+  const {df,cf,percepIva,retIva}=await posicionIvaDatos(desde,hasta);
   const saldoTecnico=df-cf;
   const saldo=saldoTecnico-percepIva-retIva;
   const filas=[['Concepto','Monto ARS'],
@@ -3917,6 +3979,113 @@ async function expPosicionIva(desde,hasta){
     [saldo>=0?'SALDO A PAGAR':'SALDO A FAVOR',csvNum(Math.abs(saldo))]];
   return {nombre:`posicion_iva_${desde}_a_${hasta}.csv`,contenido:csvArmar(filas),
           resumen:`Posición IVA: DF ${csvNum(df)} − CF ${csvNum(cf)} → ${saldo>=0?'a pagar':'a favor'} ${csvNum(Math.abs(saldo))}`};
+}
+// ─── Liquidación de IVA: pantalla ────────────────────────────────────
+let _liqIva=null;
+function _liqIvaCtas(){
+  const cfg=configContable||{},cod=c=>cuentasContables.find(x=>x.codigo===c)?.id||null;
+  let g={};try{g=JSON.parse(localStorage.getItem('liqiva_ctas')||'{}')||{};}catch(e){}
+  const vale=id=>id&&cuentasContables.some(c=>c.id===id)?id:null;
+  return {debito:cfg.cta_iva_debito||null,credito:cfg.cta_iva_credito||null,percep:cfg.cta_percep_iva||null,ret:cfg.cta_ret_iva||null,
+    saldoFavor:vale(g.saldoFavor)||cod('113001'),aPagar:vale(g.aPagar)||cod('213002')};
+}
+function openLiquidacionIva(){
+  const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-1);
+  document.getElementById('liqiva-mes').value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  _liqIva=null;
+  const ctas=_liqIvaCtas(),opts=sel=>'<option value="">— elegir cuenta —</option>'+cuentasContables.filter(c=>c.imputable!==false&&c.activa!==false).map(c=>`<option value="${esc(c.id)}" ${sel===c.id?'selected':''}>${esc(c.codigo)} · ${esc(c.nombre)}</option>`).join('');
+  document.getElementById('liqiva-cta-sf').innerHTML=opts(ctas.saldoFavor);
+  document.getElementById('liqiva-cta-ap').innerHTML=opts(ctas.aPagar);
+  document.getElementById('liqiva-body').innerHTML='<div style="color:var(--text3);font-size:12px;padding:12px 0">Elegí el mes y tocá <b>Calcular</b>.</div>';
+  document.getElementById('btn-liqiva-gen').disabled=true;
+  liqIvaRenderHistorial();
+  openModal('modal-liq-iva');
+}
+function liqIvaRenderHistorial(){
+  const w=document.getElementById('liqiva-hist');if(!w)return;
+  const hs=asientos.filter(a=>a.origen_tipo==='liquidacion_iva'&&a.estado!=='anulado').sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
+  w.innerHTML=hs.length?'<b style="color:var(--text2)">Meses ya liquidados:</b> '+hs.slice(0,12).map(a=>`${esc((a.comprobante_nro||'').replace('IVA-',''))} <span class="mono">(asiento #${a.numero}${a.estado==='borrador'?', <span style="color:var(--amber,#d99a2b)">borrador</span>':''})</span>`).join(' · '):'Todavía no se liquidó ningún mes en el sistema.';
+}
+async function liqIvaCalcular(){
+  const mes=document.getElementById('liqiva-mes').value;
+  if(!/^\d{4}-\d{2}$/.test(mes))return notify('Elegí el mes a liquidar','err');
+  const ctas={..._liqIvaCtas(),saldoFavor:document.getElementById('liqiva-cta-sf').value||null,aPagar:document.getElementById('liqiva-cta-ap').value||null};
+  const faltan=[['debito','IVA Débito Fiscal'],['credito','IVA Crédito Fiscal'],['percep','Percepción de IVA'],['ret','Retención de IVA']].filter(([k])=>!ctas[k]).map(x=>x[1]);
+  if(faltan.length)return notify('Falta configurar en Imputación contable: '+faltan.join(', '),'err');
+  if(!ctas.saldoFavor||!ctas.aPagar)return notify('Elegí las cuentas de "IVA saldo a favor" e "IVA a pagar"','err');
+  try{localStorage.setItem('liqiva_ctas',JSON.stringify({saldoFavor:ctas.saldoFavor,aPagar:ctas.aPagar}));}catch(e){}
+  const desde=mes+'-01',hasta=_finDeMes(mes);
+  const antes=new Date(new Date(desde+'T00:00:00').getTime()-86400000),finAnt=antes.getFullYear()+'-'+String(antes.getMonth()+1).padStart(2,'0')+'-'+String(antes.getDate()).padStart(2,'0');
+  setBusy('btn-liqiva-calc',true);
+  try{
+    const d=await posicionIvaDatos(desde,hasta);
+    const previa=asientos.find(a=>a.origen_tipo==='liquidacion_iva'&&a.estado!=='anulado'&&a.comprobante_nro==='IVA-'+mes);
+    const borradorAnt=asientos.find(a=>a.origen_tipo==='liquidacion_iva'&&a.estado==='borrador'&&(a.fecha||'')<desde);
+    _liqIva={mes,desde,hasta,ctas,d,previa,borradorAnt,
+      // Arrastre según la contabilidad al cierre del mes anterior
+      stAnterior:Math.max(0,saldoCuentaHasta(ctas.saldoFavor,finAnt,asientoLineas,asientos)),
+      sldPercepAnt:Math.max(0,saldoCuentaHasta(ctas.percep,finAnt,asientoLineas,asientos)),
+      sldRetAnt:Math.max(0,saldoCuentaHasta(ctas.ret,finAnt,asientoLineas,asientos)),
+      // Control: lo que la contabilidad registró en el mes en las cuentas de IVA (sin la propia liquidación)
+      libros:{df:-saldoCuentaHasta(ctas.debito,hasta,asientoLineas,asientos.filter(a=>a.origen_tipo!=='liquidacion_iva'),desde),
+              cf:saldoCuentaHasta(ctas.credito,hasta,asientoLineas,asientos.filter(a=>a.origen_tipo!=='liquidacion_iva'),desde)}};
+    liqIvaRender(true);
+  }catch(e){notify(e.message||'Error calculando la posición de IVA','err');}
+  setBusy('btn-liqiva-calc',false,'Calcular');
+}
+function _liqIvaActual(){
+  const v=id=>parseFloat(document.getElementById(id)?.value)||0,x=_liqIva;
+  return computeLiquidacionIva({df:x.d.df,cf:x.d.cf,percep:x.d.percepIva,ret:x.d.retIva,stAnterior:v('liqiva-st'),sldPercepAnt:v('liqiva-sldp'),sldRetAnt:v('liqiva-sldr')});
+}
+function liqIvaRender(inicial){
+  const x=_liqIva;if(!x)return;
+  const w=document.getElementById('liqiva-body'),m=n=>'$ '+_fmt2(n);
+  if(inicial){
+    const inp=(id,val)=>`<input type="number" step="0.01" min="0" id="${id}" value="${val.toFixed(2)}" oninput="liqIvaRender()" style="width:150px;text-align:right;font-family:var(--mono);padding:4px 6px">`;
+    w.innerHTML=`<table style="width:100%;font-size:13px;border-collapse:collapse"><tbody id="liqiva-rows"></tbody></table>
+      <div style="margin-top:12px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-sm);font-size:12px">
+        <div style="font-weight:600;margin-bottom:6px">Saldos que vienen del mes anterior <span style="font-weight:400;color:var(--text3)">(según la contabilidad al ${fmtFecha(x.desde)}; corregilos si no coinciden con la última declaración jurada)</span></div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center">
+          <span>Saldo técnico a favor</span>${inp('liqiva-st',x.stAnterior)}
+          <span>Libre disponibilidad — percepciones</span>${inp('liqiva-sldp',x.sldPercepAnt)}
+          <span>Libre disponibilidad — retenciones</span>${inp('liqiva-sldr',x.sldRetAnt)}
+        </div></div>
+      <div id="liqiva-avisos" style="margin-top:10px;font-size:12px"></div>`;
+  }
+  const l=_liqIvaActual(),fila=(t,v,o={})=>`<tr style="${o.b?'border-top:1px solid var(--border);font-weight:700':''}"><td style="padding:5px 8px;color:${o.b?'var(--text)':'var(--text2)'}">${t}</td><td class="mono" style="padding:5px 8px;text-align:right;${o.c?'color:'+o.c:''}">${v}</td></tr>`;
+  document.getElementById('liqiva-rows').innerHTML=
+    fila('Débito fiscal (ventas, notas de débito y crédito)',m(l.df))+fila('Crédito fiscal (compras)','− '+m(l.cf))+
+    fila('Saldo técnico del mes',m(l.tecnicoMes),{b:1})+fila('Saldo técnico a favor del mes anterior','− '+m(l.stAnterior))+
+    (l.aPagarBruto>0?fila('Impuesto determinado',m(l.aPagarBruto),{b:1})+fila(`Percepciones de IVA (${m(l.percep)} del mes + ${m(l.sldPercepAnt)} de antes)`,'− '+m(l.usaPercep))+fila(`Retenciones de IVA (${m(l.ret)} del mes + ${m(l.sldRetAnt)} de antes)`,'− '+m(l.usaRet))
+      :fila('Saldo técnico a favor que pasa al mes siguiente',m(l.stCierre),{b:1,c:'var(--green)'}))+
+    fila(l.aPagar>0?'IVA A PAGAR':'Sin saldo a pagar',m(l.aPagar),{b:1,c:l.aPagar>0?'var(--coral)':'var(--green)'})+
+    fila('Libre disponibilidad que queda (percepciones + retenciones)',m(l.sldPercep+l.sldRet));
+  const av=[];
+  if(x.previa)av.push(`<div style="color:var(--coral)">Este mes ya tiene liquidación: asiento #${x.previa.numero} (${x.previa.estado}). Para rehacerla, anulá o borrá ese asiento primero.</div>`);
+  if(x.borradorAnt)av.push(`<div style="color:var(--amber,#d99a2b)">La liquidación ${esc((x.borradorAnt.comprobante_nro||'').replace('IVA-',''))} está en borrador: confirmala antes, porque los saldos que se arrastran salen de asientos confirmados.</div>`);
+  const dDf=Math.abs(x.libros.df-x.d.df),dCf=Math.abs(x.libros.cf-x.d.cf);
+  if(dDf>1)av.push(`<div style="color:var(--amber,#d99a2b)">Control: los comprobantes dan un débito de ${m(x.d.df)} y la cuenta contable registró ${m(x.libros.df)} en el mes. Revisá si hay facturas sin asiento o asientos manuales sobre la cuenta.</div>`);
+  if(dCf>1)av.push(`<div style="color:var(--amber,#d99a2b)">Control: los comprobantes dan un crédito de ${m(x.d.cf)} y la cuenta contable registró ${m(x.libros.cf)} en el mes.</div>`);
+  if(!av.length)av.push('<div style="color:var(--green)">✓ Los comprobantes coinciden con lo registrado en las cuentas de IVA del mes.</div>');
+  document.getElementById('liqiva-avisos').innerHTML=av.join('');
+  document.getElementById('btn-liqiva-gen').disabled=!!x.previa;
+}
+async function liqIvaGenerar(){
+  const x=_liqIva;if(!x||x.previa)return;
+  const l=_liqIvaActual(),lineas=armarAsientoLiquidacionIva(l,x.ctas);
+  if(!lineas.length)return notify('No hay nada para liquidar en ese mes','err');
+  const ejCerrado=esFechaEnEjercicioCerrado(x.hasta);
+  if(ejCerrado)return notify(`La fecha ${fmtFecha(x.hasta)} cae en el ejercicio N° ${ejCerrado.numero}, que está cerrado`,'err');
+  if(!confirm(`¿Generar el asiento de liquidación de IVA ${x.mes} con fecha ${fmtFecha(x.hasta)}?\n\n${l.aPagar>0?'IVA a pagar: $ '+_fmt2(l.aPagar):'Saldo técnico a favor: $ '+_fmt2(l.stCierre)}\n\nSe crea en BORRADOR para que lo revises y lo confirmes en Asientos.`))return;
+  setBusy('btn-liqiva-gen',true);
+  try{
+    _validarPartidaDoble(lineas,'Liquidación de IVA');
+    const r=await RPC('crear_asiento',{p_cabecera:{fecha:x.hasta,descripcion:`Liquidación de IVA ${x.mes}`,comprobante_nro:'IVA-'+x.mes,tipo:'auto-liq-iva',origen_tipo:'liquidacion_iva',origen_id:null,estado:'borrador',moneda:'ARS',tipo_cambio:null,tc_tipo:null},p_lineas:lineas});
+    await reload('asientos','asiento_lineas');renderAll();
+    closeModal('modal-liq-iva',true);
+    notify(`Asiento N° ${r.numero} creado en borrador. Revisalo en Asientos y confirmalo.`);
+  }catch(e){notify(e.message||'Error generando el asiento','err');}
+  setBusy('btn-liqiva-gen',false,'Generar asiento (borrador)');
 }
 async function expRetenciones(desde,hasta){
   const rs=(await GET('retenciones_sufridas',`?fecha=gte.${desde}&fecha=lte.${hasta}&order=fecha&select=fecha,tipo,certificado_nro,jurisdiccion,monto,moneda,tipo_cambio,clientes(nombre,cuit),asientos(estado)`).catch(()=>[])).filter(r=>r.asientos?.estado!=='anulado'); // las de cobros anulados no cuentan
