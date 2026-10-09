@@ -557,14 +557,17 @@ Pestaña **Ventas → Facturas emitidas**: el listado único de **todo lo que sa
 
 ### 8.5 Cuenta corriente
 
-Muestra cuánto te debe cada cliente y desde hace cuánto.
+Muestra cuánto te debe cada cliente, **factura por factura**, y desde hace cuánto.
 
-- **Cargos:** ventas facturadas o entregadas (los pedidos pendientes de entrega **no** cuentan).
-- **Cobrado:** lo que se registró en "Cobros y Pagos".
-- **Saldo** y **aging** (antigüedad): columnas **Al día**, **1-30**, **31-60**, **61-90**, **+90 días**.
-- La imputación es **FIFO**: los cobros se aplican primero a las facturas más viejas.
+- **Saldo $:** lo que falta cobrar de cada factura y nota de débito, en pesos (que es lo que dice el comprobante).
+- **Saldo USD:** el mismo saldo pasado a dólares al tipo de cambio con el que se facturó. Si lleva un asterisco, parte está estimada al dólar de hoy (comprobante viejo sin tipo de cambio guardado, o venta sin facturar).
+- **Antigüedad:** columnas **Al día**, **1-30**, **31-60**, **61-90**, **+90 días**. Con el selector de arriba las ves en pesos o en dólares.
+- **Sin facturar:** ventas entregadas que todavía no tienen factura en el sistema. Se muestran en dólares (los pedidos pendientes de entrega **no** cuentan).
+- **A favor:** cobros o notas de crédito por encima de lo facturado.
 
-Tocá un cliente para ver el detalle por factura. Exportás con **Excel**.
+**Qué baja la deuda:** un **recibo** baja las facturas a las que lo imputaste. Lo que queda a cuenta, las notas de crédito sin factura asociada y los cobros viejos cargados sin recibo se aplican solos a la factura más vieja.
+
+**Detalle** muestra los comprobantes del cliente con su saldo y, abajo, los cobros y notas de crédito. **Cobrar** abre el recibo con ese cliente (o con esa factura ya tildada). Exportás con **Excel**.
 
 ### 8.6 Mailings (recordatorios y avisos automáticos)
 
@@ -731,6 +734,22 @@ Lista de todos los asientos (debe = haber).
 ### 11.3 Cobros y pagos
 
 El lugar para registrar **plata que entra o sale**.
+
+#### Recibo con imputación a facturas (la forma recomendada de cobrar)
+
+Botón **+ Recibo con imputación a facturas** (o **Cobrar** desde la cuenta corriente):
+
+1. Elegí el **cliente**: aparecen sus facturas y notas de débito con saldo.
+2. **Tildá** las que te está pagando.
+3. Cargá los **valores recibidos**, uno por renglón: **Transferencia** (elegís la cuenta bancaria), **Cheque de terceros** (número, banco y fecha de pago: entra solo a la cartera de cheques), **Caja** o **Retención sufrida** (impuesto, Nº de certificado y jurisdicción si es IIBB). Podés combinar varios.
+4. La imputación se reparte sola entre las facturas tildadas, la más vieja primero. Si te pagan una parte, cargá lo que entró y queda marcada **PARCIAL**; también podés escribir a mano cuánto va a cada una.
+5. **Registrar recibo.** Se arma el asiento (cada valor contra Deudores), se numera **REC-nnnn** y te ofrece el **PDF**, que lista los comprobantes cancelados.
+
+Si cobrás **en dólares**, elegí moneda USD y el tipo de cambio: las facturas (en pesos) se cancelan por el equivalente. Lo que no imputás a ninguna factura queda **a cuenta** del cliente (te lo avisa antes de registrar).
+
+**Anular un recibo:** desde la lista de movimientos, con motivo. Las facturas vuelven a quedar con saldo y los cheques que todavía están en cartera se anulan. Si un cheque ya se depositó, se endosó o fue rechazado, primero hay que resolver el cheque.
+
+#### Cobro simple (sin imputar)
 
 1. Elegí la pestaña: **Cobro de cliente** o **Pago a proveedor** (esta última abre directamente una **orden de pago** — ver 7.5 — con medios múltiples e imputación a facturas).
 2. Para un cobro completá **Fecha**, **Cliente**, **Monto**, **Moneda** (y **TC** si es en pesos), **Método** (caja / banco / cheque diferido), **Comprobante / recibo**, **Observaciones**.
