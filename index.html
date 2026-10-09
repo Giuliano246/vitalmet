@@ -632,6 +632,7 @@ body.no-costos .solo-costos{display:none!important}
             <select id="frf-tipo" onchange="_frRerender()" title="Filtrar por tipo de comprobante" style="width:auto"><option value="">Todos los tipos</option><option value="factura">Facturas</option><option value="nota_credito">Notas de crédito</option><option value="nota_debito">Notas de débito</option></select>
             <input type="date" id="frf-fdesde" onchange="_frRerender()" title="Desde (fecha de emisión)" style="width:auto"><input type="date" id="frf-fhasta" onchange="_frRerender()" title="Hasta (fecha de emisión)" style="width:auto">
             <button class="btn btn-ghost" onclick="exportFacturasRecibidasCSV()" title="Exportar la lista filtrada a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
+            <button class="btn btn-ghost" onclick="openArcaImport()" title="Cruzar con Mis Comprobantes Recibidos de ARCA y cargar lo que falta">Importar de ARCA</button>
             <button class="btn btn-primary btn-sm" onclick="openFacturaSinOCModal()">+ Factura sin OC</button>
           </div>
           <div class="table-wrap"><table><thead><tr><th>Tipo</th><th>OC</th><th>Proveedor</th><th>Nro</th><th>Fecha</th><th>Vto.</th><th>Mon.</th><th>Neto</th><th>IVA</th><th>Total</th><th>Saldo</th><th>Match</th><th>Asiento</th><th></th></tr></thead><tbody id="fr-tbody"></tbody></table></div>
@@ -3088,6 +3089,21 @@ body.no-costos .solo-costos{display:none!important}
   </div>
 </div>
 <!-- MODAL: Registrar comprobante de proveedor (fiscal completo + 3-way match) -->
+<div class="modal-overlay" id="modal-arca-import">
+  <div class="modal" style="width:1040px;max-width:96vw">
+    <div class="modal-header"><div class="modal-title">Importar comprobantes recibidos de ARCA</div><button class="modal-close" onclick="closeModal('modal-arca-import',true)">×</button></div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">En ARCA entrá a <b>Mis Comprobantes → Recibidos</b>, elegí el período y bajá el <b>Excel</b> o el <b>CSV</b>. Acá se cruza con lo que ya está cargado: lo que falta se abre precargado para que elijas la cuenta y confirmes. Nada se registra solo.</div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('arca-imp-file').click()">Elegir archivo</button>
+        <input type="file" id="arca-imp-file" accept=".xlsx,.xls,.csv,.txt" style="display:none" onchange="onArcaFile(this)">
+        <select id="arca-imp-ver" onchange="renderArcaImport()" style="width:auto"><option value="pend">Ver lo que falta o difiere</option><option value="todos">Ver todos</option></select>
+        <div id="arca-imp-stats" style="font-size:12px;color:var(--text2)"></div>
+      </div>
+      <div id="arca-imp-body"></div>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="modal-factura-recibida">
   <div class="modal" style="width:760px;max-width:95vw">
     <div class="modal-header"><div class="modal-title" id="fr-modal-title">Registrar factura de proveedor</div><button class="modal-close" onclick="closeModal('modal-factura-recibida')">×</button></div>
@@ -17790,8 +17806,112 @@ async function registrarFacturaRecibida(btnId){
     await reload('facturas_recibidas','ordenes_compra','asientos','asiento_lineas','recepciones_oc','oc_items','barras','insumos','herramientas');
     closeModal('modal-factura-recibida',true);renderAll();
     notify({factura:'Factura registrada',nota_credito:'Nota de crédito registrada',nota_debito:'Nota de débito registrada'}[tipo]);
+    if(_arcaImp.volver){_arcaImp.volver=false;openArcaImport();} // seguir con el resto del archivo de ARCA
   }catch(e){notify(e.message||'Error registrando el comprobante','err');}
   finally{setBusy(btnId,false);}
+}
+
+// ─── Importar de ARCA: pantalla ──────────────────────────────────────
+let _arcaImp={comps:[],archivo:'',volver:false};
+function openArcaImport(){
+  renderArcaImport();
+  openModal('modal-arca-import');
+}
+function onArcaFile(input){
+  const file=input.files[0];if(!file)return;
+  const esCsv=/\.(csv|txt)$/i.test(file.name);
+  if(!esCsv&&!window.XLSX){notify('Librería Excel no cargada. Recargá la página.','err');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      let rows;
+      if(esCsv){
+        let txt=new TextDecoder('utf-8').decode(e.target.result);
+        if(txt.includes('�'))txt=new TextDecoder('windows-1252').decode(e.target.result);
+        rows=arcaCsvRows(txt);
+      }else{
+        const wb=XLSX.read(e.target.result,{type:'array'});
+        rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
+      }
+      const r=parseMisComprobantes(rows);
+      if(r.error){notify(r.error,'err');return;}
+      _arcaImp={comps:r.comprobantes,archivo:file.name,volver:false};
+      renderArcaImport();
+    }catch(err){notify('No se pudo leer el archivo: '+(err.message||err),'err');}
+  };
+  reader.readAsArrayBuffer(file);
+  input.value='';
+}
+function renderArcaImport(){
+  const w=document.getElementById('arca-imp-body');if(!w)return;
+  if(!_arcaImp.comps.length){
+    w.innerHTML='<div style="color:var(--text3);font-size:12px;padding:16px 0">Todavía no cargaste ningún archivo.</div>';
+    document.getElementById('arca-imp-stats').innerHTML='';return;
+  }
+  const filas=conciliarArca(_arcaImp.comps,{facturas:facturasRecibidas,proveedores});
+  const ver=document.getElementById('arca-imp-ver').value;
+  const n=e=>filas.filter(x=>x.estado===e).length;
+  const pend=filas.filter(x=>x.estado==='falta'||x.estado==='sin_proveedor');
+  const fmt=x=>(parseFloat(x)||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const totPend=pend.filter(x=>x.moneda==='ARS').reduce((a,x)=>a+(x.tipo==='nota_credito'?-1:1)*x.total,0);
+  document.getElementById('arca-imp-stats').innerHTML=`<b>${esc(_arcaImp.archivo)}</b> · ${filas.length} comprobantes · <span style="color:var(--green)">${n('cargada')} ya cargados</span> · <span style="color:var(--coral)">${pend.length} sin cargar</span> ($ ${fmt(totPend)})${n('difiere')?` · <span style="color:var(--amber,#d99a2b)">${n('difiere')} con otro total</span>`:''}`;
+  const lista=filas.map((x,i)=>({x,i})).filter(({x})=>ver==='todos'||x.estado!=='cargada');
+  if(!lista.length){w.innerHTML='<div style="color:var(--green);font-size:13px;padding:16px 0">✓ Todo lo que informa ARCA en este archivo ya está cargado.</div>';return;}
+  const sinFact=ocsSinFacturaRegistrada().filter(o=>o.estado!=='anulada');
+  const T={factura:'FA',nota_credito:'NC',nota_debito:'ND'};
+  w.innerHTML=`<div class="table-wrap" style="max-height:52vh;overflow:auto"><table style="font-size:12px"><thead><tr><th>Fecha</th><th>Tipo</th><th>Nro</th><th>Proveedor</th><th style="text-align:right">Neto</th><th style="text-align:right">IVA</th><th style="text-align:right">Otros trib.</th><th style="text-align:right">Total</th><th>Estado</th><th></th></tr></thead><tbody>`+lista.map(({x,i})=>{
+    const prov=proveedores.find(p=>p.id===x.proveedor_id);
+    const ocs=x.tipo==='factura'&&prov?sinFact.filter(o=>o.proveedor_id===prov.id):[];
+    const estado={cargada:'<span class="badge badge-ok">CARGADA</span>',
+      difiere:`<span class="badge badge-warn" title="En el sistema figura por ${fmt(x.totalCargado)}">OTRO TOTAL: ${fmt(x.totalCargado)}</span>`,
+      falta:'<span class="badge badge-coral">FALTA</span>',
+      sin_proveedor:'<span class="badge badge-coral">FALTA</span> <span class="badge badge-warn">PROVEEDOR NUEVO</span>'}[x.estado];
+    const accion=x.estado==='cargada'||x.estado==='difiere'?'':
+      `<div style="display:flex;gap:4px;justify-content:flex-end">${ocs.length?`<select id="arca-oc-${i}" title="Imputar a una orden de compra" style="width:auto;max-width:130px;font-size:11px;padding:3px"><option value="">Sin OC (gasto)</option>${ocs.map(o=>`<option value="${esc(o.id)}">${esc(o.nro||'OC')}</option>`).join('')}</select>`:''}<button class="btn btn-primary btn-sm" onclick="arcaCargar(${i})">Cargar</button></div>`;
+    return `<tr><td class="mono">${fmtFecha(x.fecha)||'—'}</td><td>${T[x.tipo]} ${esc(x.letra)}${x.tipoDesconocido?` <span class="badge badge-warn" title="Tipo de ARCA sin equivalente: ${esc(x.tipoTxt)}">?</span>`:''}</td><td class="mono">${String(x.pv).padStart(4,'0')}-${String(x.numero).padStart(8,'0')}</td>
+      <td>${esc(prov?.nombre||x.nombre)}<div class="mono" style="font-size:10px;color:var(--text3)">${esc(x.cuit)}</div></td>
+      <td class="mono" style="text-align:right">${fmt(x.neto)}</td><td class="mono" style="text-align:right">${fmt(x.iva)}${x.ivaMixto?' <span class="badge badge-warn" title="Varias alícuotas: separalas al cargar">!</span>':''}</td><td class="mono" style="text-align:right">${x.otrosTributos?fmt(x.otrosTributos):'—'}</td>
+      <td class="mono" style="text-align:right;font-weight:600">${x.moneda==='USD'?'USD ':''}${fmt(x.total)}</td><td>${estado}</td><td>${accion}</td></tr>`;
+  }).join('')+'</tbody></table></div>';
+}
+// Abre el modal de factura de proveedor con los datos de ARCA precargados.
+// Queda todo editable: falta elegir la cuenta, el vencimiento y qué
+// percepción es "Otros tributos" (ARCA no lo abre).
+function arcaCargar(i){
+  const x=conciliarArca(_arcaImp.comps,{facturas:facturasRecibidas,proveedores})[i];if(!x)return;
+  const prov=proveedores.find(p=>p.id===x.proveedor_id)||null;
+  const ocId=document.getElementById('arca-oc-'+i)?.value||'';
+  if(x.tipo!=='factura'){
+    const fa=prov&&facturasRecibidas.filter(f=>f.proveedor_id===prov.id&&(f.tipo||'factura')==='factura').sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''))[0];
+    if(!fa){notify('Cargá primero la factura a la que corresponde esta nota: se registra asociada a ella','err');return;}
+    closeModal('modal-arca-import',true);openNCNDModal(fa.id);
+    document.getElementById('fr-tipo').value=x.tipo;
+  }else{
+    closeModal('modal-arca-import',true);
+    if(ocId)openFacturaRecibidaModal(ocId);
+    else{
+      openFacturaSinOCModal();
+      if(prov){document.getElementById('fr-proveedor-select').value=prov.id;frOnProveedorChange();}
+    }
+  }
+  _arcaImp.volver=true;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
+  const disc=letraDiscriminaIva(x.letra);
+  set('fr-letra',x.letra);set('fr-nro',x.nro);set('fr-fecha',x.fecha);
+  set('fr-moneda',x.moneda);set('fr-tc',x.moneda==='USD'?x.tc:(document.getElementById('fr-tc').value||''));
+  frOnLetraChange();
+  frIvas=disc?x.ivas.map(r=>({alicuota:r.alicuota,base:r.base.toFixed(2),monto:r.monto.toFixed(2)})):[];
+  // B y C no discriminan IVA: todo lo que no es exento ni tributo va al no gravado.
+  set('fr-no-gravado',(disc?x.noGravado:Math.round((x.total-x.exento-x.otrosTributos)*100)/100)||'');
+  set('fr-exento',x.exento||'');
+  frPerceps=x.otrosTributos>0?[{tipo:'otros',jurisdiccion:'Buenos Aires',monto:x.otrosTributos.toFixed(2)}]:[];
+  set('fr-total',x.total.toFixed(2));
+  frRender();
+  if(!prov&&!ocId){
+    openProvRapidoModal('fr');
+    set('pr-cuit',x.cuit);set('pr-nombre',x.nombre);set('pr-cond-fiscal',x.letra==='C'?'monotributo':'RI');prOnCuitInput();
+    notify('Proveedor nuevo: confirmá el alta y seguí con la factura');
+  }else notify('Datos de ARCA precargados — revisá la cuenta, el vencimiento'+(x.otrosTributos>0?' y qué percepción es "Otros tributos"':''));
 }
 
 function _calcValorRecibidoOC(ocId,{completo=false}={}){
@@ -18973,6 +19093,129 @@ function computeTotalesFactura({ivas=[],noGravado=0,exento=0,percepciones=[]}={}
   return {neto,iva,percep,total};
 }
 function letraDiscriminaIva(letra){return letra==='A'||letra==='M';}
+// ─── Importar "Mis Comprobantes Recibidos" de ARCA ───────────────────
+// Lee el Excel/CSV que se baja de ARCA y lo cruza con las facturas de
+// proveedor ya cargadas: lo que falta se abre precargado en el modal de
+// siempre (nada se registra solo). Puras con tests en
+// tests/arca-comprobantes.test.js.
+const ARCA_TIPOS={1:['factura','A'],2:['nota_debito','A'],3:['nota_credito','A'],6:['factura','B'],7:['nota_debito','B'],8:['nota_credito','B'],
+  11:['factura','C'],12:['nota_debito','C'],13:['nota_credito','C'],51:['factura','M'],52:['nota_debito','M'],53:['nota_credito','M'],81:['factura','A'],82:['factura','B'],
+  201:['factura','A'],202:['nota_debito','A'],203:['nota_credito','A'],206:['factura','B'],207:['nota_debito','B'],208:['nota_credito','B'],211:['factura','C'],212:['nota_debito','C'],213:['nota_credito','C']};
+// Importe de ARCA: número (Excel) o texto con coma decimal (CSV).
+function arcaNum(v){
+  if(typeof v==='number')return v;
+  let t=String(v??'').trim().replace(/[^\d,.\-]/g,'');
+  if(t.includes(','))t=t.replace(/\./g,'').replace(',','.');
+  return parseFloat(t)||0;
+}
+function arcaFecha(v){
+  if(v instanceof Date)return new Date(v.getTime()-v.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  if(typeof v==='number'&&v>20000)return new Date(Math.round((v-25569)*86400000)).toISOString().slice(0,10); // serial de Excel
+  const t=String(v??'').trim();
+  let m=t.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+  if(m)return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  m=t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m?m[0]:'';
+}
+// CSV de ARCA → filas (separador ; o , con comillas).
+function arcaCsvRows(text){
+  text=String(text||'').replace(/^﻿/,'');
+  const l1=text.split(/\r?\n/)[0]||'';
+  const sep=(l1.match(/;/g)||[]).length>=(l1.match(/,/g)||[]).length?';':',';
+  const rows=[];let row=[],cur='',q=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(q){if(ch==='"'){if(text[i+1]==='"'){cur+='"';i++;}else q=false;}else cur+=ch;}
+    else if(ch==='"')q=true;
+    else if(ch===sep){row.push(cur);cur='';}
+    else if(ch==='\n'){row.push(cur);rows.push(row);row=[];cur='';}
+    else if(ch!=='\r')cur+=ch;
+  }
+  if(cur!==''||row.length){row.push(cur);rows.push(row);}
+  return rows;
+}
+// Filas del archivo → comprobantes. Ubica el encabezado por nombre de
+// columna: sirve para el formato viejo (un neto y un IVA) y para el que
+// trae el IVA abierto por alícuota. Los importes van siempre en positivo.
+function parseMisComprobantes(rows){
+  const norm=h=>String(h??'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\./g,'').replace(/\s+/g,' ').trim();
+  const r2=x=>Math.round(x*100)/100;
+  const hi=(rows||[]).findIndex(r=>{const c=(r||[]).map(norm);return c.some(x=>x.startsWith('punto de venta'))&&c.some(x=>x.startsWith('numero desde'));});
+  if(hi<0)return {comprobantes:[],error:'No parece un archivo de Mis Comprobantes de ARCA: falta el encabezado con "Punto de Venta" y "Número Desde".'};
+  const H=rows[hi].map(norm);
+  const col=re=>H.findIndex(h=>re.test(h));
+  const iCuit=col(/^nro doc emisor/);
+  if(iCuit<0)return {comprobantes:[],error:H.some(h=>/doc receptor/.test(h))?'Este archivo es de comprobantes EMITIDOS. Bajá el de Mis Comprobantes → Recibidos.':'El archivo no trae la columna "Nro. Doc. Emisor".'};
+  const iFecha=col(/^fecha( de emision)?$/),iTipo=col(/^tipo( de comprobante)?$/),iPv=col(/^punto de venta/),iNum=col(/^numero desde/),iCae=col(/^cod autorizacion/),
+    iNom=col(/^denominacion emisor/),iTc=col(/^tipo cambio/),iMon=col(/^moneda/),iNeto=col(/^(imp neto gravado|total neto gravado|imp neto gravado total)$/),
+    iNoGrav=col(/^imp neto no gravado/),iEx=col(/^imp op exentas/),iOtros=col(/^otros tributos/),iIva=col(/^(iva|total iva)$/),iTot=col(/^imp total/);
+  const porAli={};
+  H.forEach((h,i)=>{
+    let m=h.match(/^iva (\d+(?:,\d+)?)%$/);if(m){(porAli[m[1]]=porAli[m[1]]||{}).monto=i;return;}
+    m=h.match(/^imp neto gravado iva (\d+(?:,\d+)?)%$/);if(m)(porAli[m[1]]=porAli[m[1]]||{}).base=i;
+  });
+  const hayAli=Object.keys(porAli).length>0;
+  const g=(r,i)=>i<0?'':r[i];
+  const comprobantes=[];
+  rows.slice(hi+1).forEach(r=>{
+    if(!r)return;
+    const numero=parseInt(String(g(r,iNum)).replace(/\D/g,''),10)||0,cuit=normalizarCuit(g(r,iCuit));
+    if(!numero||!cuit)return;
+    const tRaw=String(g(r,iTipo)).trim(),cod=parseInt(tRaw,10);
+    let par=ARCA_TIPOS[cod],desconocido=false;
+    if(!par){
+      const t=norm(tRaw),l=(t.match(/\b([abcm])$/)||[])[1];
+      if(l&&/factura|nota de/.test(t))par=[/credito/.test(t)?'nota_credito':/debito/.test(t)?'nota_debito':'factura',l.toUpperCase()];
+      else{par=['factura','X'];desconocido=true;}
+    }
+    const [tipo,letra]=par,pv=parseInt(String(g(r,iPv)).replace(/\D/g,''),10)||0;
+    const abs=i=>r2(Math.abs(arcaNum(g(r,i))));
+    let ivas=[],ivaMixto=false;
+    if(hayAli){
+      Object.keys(porAli).forEach(k=>{
+        const base=porAli[k].base==null?0:abs(porAli[k].base),monto=porAli[k].monto==null?0:abs(porAli[k].monto);
+        if(base>0||monto>0)ivas.push({alicuota:parseFloat(k.replace(',','.')),base,monto});
+      });
+      ivas.sort((a,b)=>a.alicuota-b.alicuota);
+    }else{
+      const base=abs(iNeto),monto=abs(iIva);
+      if(base>0||monto>0){
+        const ali=ALICUOTAS_IVA.find(a=>Math.abs(monto-base*a/100)<=Math.max(base*a/100*0.01,0.05));
+        if(ali==null)ivaMixto=true;
+        ivas=[{alicuota:ali==null?21:ali,base,monto}];
+      }
+    }
+    const mon=norm(g(r,iMon)),moneda=/usd|dol/.test(mon)?'USD':'ARS';
+    comprobantes.push({fecha:arcaFecha(g(r,iFecha)),tipo,letra,pv,numero,nro:`${letra}-${String(pv).padStart(4,'0')}-${String(numero).padStart(8,'0')}`,
+      cae:String(g(r,iCae)||'').trim(),cuit,nombre:String(g(r,iNom)||'').trim(),moneda,tc:moneda==='USD'?arcaNum(g(r,iTc)):1,
+      ivas,ivaMixto,neto:r2(ivas.reduce((a,i)=>a+i.base,0)),iva:r2(ivas.reduce((a,i)=>a+i.monto,0)),
+      noGravado:abs(iNoGrav),exento:abs(iEx),otrosTributos:abs(iOtros),total:abs(iTot),tipoDesconocido:desconocido,tipoTxt:tRaw});
+  });
+  return {comprobantes,error:comprobantes.length?null:'El archivo no trae comprobantes.'};
+}
+// Punto de venta y número de un nro tipeado a mano ("A-0003-00001234", "3/1234"…).
+function nroPartes(nro){
+  const g=String(nro||'').match(/\d+/g);
+  if(!g)return {pv:null,num:null};
+  return {pv:g.length>1?parseInt(g[g.length-2],10):null,num:parseInt(g[g.length-1],10)};
+}
+// Estado de cada comprobante de ARCA contra lo cargado: 'cargada',
+// 'difiere' (está pero con otro total), 'falta' o 'sin_proveedor'.
+function conciliarArca(comps,{facturas=[],proveedores:ps=[]}={}){
+  const porCuit={};(ps||[]).forEach(p=>{const k=normalizarCuit(p.cuit);if(k&&!porCuit[k])porCuit[k]=p;});
+  return (comps||[]).map(c=>{
+    const prov=porCuit[c.cuit]||null;
+    if(!prov)return {...c,estado:'sin_proveedor',proveedor_id:null,factura_id:null};
+    const f=(facturas||[]).find(x=>{
+      if(x.proveedor_id!==prov.id||(x.tipo||'factura')!==c.tipo)return false;
+      const n=nroPartes(x.nro);
+      return n.num===c.numero&&(n.pv==null||n.pv===c.pv);
+    });
+    if(!f)return {...c,estado:'falta',proveedor_id:prov.id,factura_id:null};
+    const tot=parseFloat(f.total)||0;
+    return {...c,estado:Math.abs(tot-c.total)>0.01?'difiere':'cargada',proveedor_id:prov.id,factura_id:f.id,totalCargado:tot};
+  });
+}
 function normalizarCuit(cuit){return String(cuit||'').replace(/\D/g,'');}
 function validarCuit(cuit){
   // Dígito verificador módulo 11 (mismo algoritmo que ARCA/Tango offline).

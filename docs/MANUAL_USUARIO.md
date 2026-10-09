@@ -391,6 +391,19 @@ Acá vive el control de recepción (ISO 8.4 / API Q1 5.7.1.4): **toda recepción
 
 Lista de todos los comprobantes de proveedores: facturas contra OC, facturas sin OC (gastos), y notas de crédito/débito. Acá ves la columna **Tipo** (FA/NC/ND + letra), **Match** (si coincide con su recepción) y el **Asiento** generado.
 
+#### Importar de ARCA (Mis Comprobantes Recibidos)
+
+Para no tipear las facturas de compra y para saber si quedó alguna sin cargar:
+
+1. En ARCA entrá a **Mis Comprobantes → Recibidos**, elegí el período y bajá el **Excel** o el **CSV**.
+2. En **Compras → Facturas recibidas** tocá **Importar de ARCA** y elegí ese archivo.
+3. El sistema cruza cada comprobante con lo ya cargado (por CUIT del proveedor, tipo, punto de venta y número) y muestra el estado: **Cargada**, **Falta**, **Otro total** (está cargada pero por un importe distinto al de ARCA) o **Proveedor nuevo**.
+4. En cada uno que falta tocá **Cargar**: se abre la pantalla de siempre con tipo, letra, número, fecha, IVA por alícuota, no gravado, exento y total ya completos. Si el proveedor tiene órdenes de compra sin factura, podés elegir la OC antes de tocar Cargar.
+5. Revisá y completá lo que ARCA no informa: la **cuenta de imputación**, el **vencimiento** y, si hay "Otros tributos", **qué percepción es** (viene cargado como "Otros impuestos": cambialo a Percep. IVA / IIBB / Ganancias).
+6. Al registrar vuelve solo a la lista para seguir con el siguiente.
+
+Nada se registra solo: cada comprobante lo confirmás vos. Si el proveedor no existe, se abre el alta rápida con el CUIT y la razón social ya puestos. Las notas de crédito y débito se abren asociadas a la última factura de ese proveedor (podés cambiarla).
+
 #### Comprobantes de proveedor: IVA, percepciones y notas de crédito
 
 Al registrar una factura elegís **tipo** (Factura / Nota de débito / Nota de crédito) y **letra** (A/B/C/M/X). La letra se sugiere sola según la condición fiscal del proveedor (Resp. Inscripto → A, Monotributo → C).
