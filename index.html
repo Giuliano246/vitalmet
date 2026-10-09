@@ -632,6 +632,7 @@ body.no-costos .solo-costos{display:none!important}
             <select id="frf-tipo" onchange="_frRerender()" title="Filtrar por tipo de comprobante" style="width:auto"><option value="">Todos los tipos</option><option value="factura">Facturas</option><option value="nota_credito">Notas de crédito</option><option value="nota_debito">Notas de débito</option></select>
             <input type="date" id="frf-fdesde" onchange="_frRerender()" title="Desde (fecha de emisión)" style="width:auto"><input type="date" id="frf-fhasta" onchange="_frRerender()" title="Hasta (fecha de emisión)" style="width:auto">
             <button class="btn btn-ghost" onclick="exportFacturasRecibidasCSV()" title="Exportar la lista filtrada a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
+            <button class="btn btn-ghost" onclick="openArcaImport()" title="Cruzar con Mis Comprobantes Recibidos de ARCA y cargar lo que falta">Importar de ARCA</button>
             <button class="btn btn-primary btn-sm" onclick="openFacturaSinOCModal()">+ Factura sin OC</button>
           </div>
           <div class="table-wrap"><table><thead><tr><th>Tipo</th><th>OC</th><th>Proveedor</th><th>Nro</th><th>Fecha</th><th>Vto.</th><th>Mon.</th><th>Neto</th><th>IVA</th><th>Total</th><th>Saldo</th><th>Match</th><th>Asiento</th><th></th></tr></thead><tbody id="fr-tbody"></tbody></table></div>
@@ -764,16 +765,17 @@ body.no-costos .solo-costos{display:none!important}
     </div>
     <!-- VENTAS: Cuenta corriente -->
     <div class="page" id="page-ctacte">
-      <div class="page-header"><div class="page-title">Cuenta corriente</div><div class="page-sub">// saldos por cliente · antigüedad de deuda (aging) · imputación FIFO</div><div class="tabs"><div class="tab active">Clientes</div></div></div>
+      <div class="page-header"><div class="page-title">Cuenta corriente</div><div class="page-sub">// saldo por factura en pesos y su equivalente en dólares · antigüedad de deuda</div><div class="tabs"><div class="tab active">Clientes</div></div></div>
       <div class="page-content">
         <div class="stats-bar" id="ctacte-stats"></div>
         <div class="toolbar">
           <div class="search-box"><input type="text" placeholder="Buscar cliente..." oninput="renderCtaCte(this.value)"></div>
+          <select id="ctacte-mon" onchange="renderCtaCte()" title="Moneda de las columnas de antigüedad" style="width:auto"><option value="ARS">Antigüedad en pesos</option><option value="USD">Antigüedad en dólares</option></select>
           <button class="btn btn-ghost" onclick="exportCtaCteCSV()" title="Exportar a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
         </div>
-        <div class="table-wrap"><table><thead><tr><th>Cliente</th><th style="text-align:right">Cargos</th><th style="text-align:right">Cobrado</th><th style="text-align:right">Saldo</th><th style="text-align:right">Al día</th><th style="text-align:right">1-30</th><th style="text-align:right">31-60</th><th style="text-align:right">61-90</th><th style="text-align:right">+90 días</th><th></th></tr></thead><tbody id="ctacte-tbody"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Cliente</th><th style="text-align:right">Saldo $</th><th style="text-align:right">Saldo USD</th><th style="text-align:right">Al día</th><th style="text-align:right">1-30</th><th style="text-align:right">31-60</th><th style="text-align:right">61-90</th><th style="text-align:right">+90 días</th><th></th></tr></thead><tbody id="ctacte-tbody"></tbody></table></div>
         <div id="ctacte-detalle" style="margin-top:18px"></div>
-        <div style="margin-top:18px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);font-size:11px;color:var(--text3);line-height:1.6"><b style="color:var(--text2)">Cómo se calcula:</b> los cargos son las ventas <b>entregadas o facturadas</b> (los pedidos pendientes no son deuda exigible). El vencimiento se toma de la condición de pago (ej. "30 días" → fecha + 30; sin número = contado). Los cobros registrados en <b>Cobros y Pagos</b> se imputan a las facturas más viejas primero (FIFO). Todo expresado en USD; los cobros en ARS se convierten por el TC del asiento.</div>
+        <div style="margin-top:18px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);font-size:11px;color:var(--text3);line-height:1.6"><b style="color:var(--text2)">Cómo se calcula:</b> cada <b>factura</b> y <b>nota de débito</b> es un cargo en pesos; al lado va su equivalente en dólares al tipo de cambio con el que se facturó. Las ventas <b>entregadas sin factura</b> en el sistema se muestran en dólares (los pedidos pendientes no son deuda). El vencimiento sale de la condición de pago (ej. "30 días" → fecha + 30; sin número = contado). Un <b>recibo</b> baja las facturas a las que se imputó; lo que queda a cuenta, las notas de crédito sin factura asociada y los cobros viejos cargados sin recibo se aplican a la factura más vieja.</div>
       </div>
     </div>
     <!-- MAILINGS -->
@@ -1532,6 +1534,7 @@ body.no-costos .solo-costos{display:none!important}
             <button class="btn btn-ghost btn-sm" id="cp-tab-cobro" onclick="switchCobPag('cobro')" style="border-radius:0;border:none;background:var(--accent);color:#fff">Cobro de cliente</button>
             <button class="btn btn-ghost btn-sm" id="cp-tab-pago" onclick="switchCobPag('pago')" style="border-radius:0;border:none">Pago a proveedor</button>
           </div>
+          <button class="btn btn-primary btn-sm" onclick="openReciboModal()" title="Cobro con varios valores (transferencia, cheques, retenciones) imputado a las facturas que cancela">+ Recibo con imputación a facturas</button>
           <div class="form-group" style="margin:0;width:160px"><label>Fecha</label><input type="date" id="cp-fecha"></div>
           <div class="form-group" style="margin:0;flex:1;min-width:240px"><label id="cp-tercero-label">Cliente</label><select id="cp-tercero-sel" onchange="document.getElementById('cp-tercero-otro').style.display=this.value==='__otro__'?'':'none'"></select><input type="text" id="cp-tercero-otro" placeholder="Razón social..." style="display:none;margin-top:6px"></div>
           <div class="form-group" style="margin:0;width:140px"><label>Monto</label><input type="number" id="cp-monto" step="0.01" min="0" placeholder="0.00"></div>
@@ -3087,7 +3090,50 @@ body.no-costos .solo-costos{display:none!important}
     </div>
   </div>
 </div>
+<div class="modal-overlay" id="modal-recibo">
+  <div class="modal" style="width:900px;max-width:95vw">
+    <div class="modal-header"><div class="modal-title">Recibo de cobranza <span style="color:var(--text3);font-weight:400;font-size:13px">(varios valores + imputación a facturas)</span></div><button class="modal-close" onclick="closeModal('modal-recibo')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row" style="grid-template-columns:2fr 1fr 1fr 1fr">
+        <div class="form-group"><label>Cliente *</label><select id="rcb-cliente" onchange="rcOnClienteChange()"></select></div>
+        <div class="form-group"><label>Fecha *</label><input type="date" id="rcb-fecha"></div>
+        <div class="form-group"><label>Moneda</label><select id="rcb-moneda" onchange="rcOnMonedaChange()"><option value="ARS">ARS</option><option value="USD">USD</option></select></div>
+        <div class="form-group"><label>TC (si USD)</label><input type="number" id="rcb-tc" step="0.01" min="0" placeholder="auto" oninput="rcRender()"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:6px 0 4px">
+        <label style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Comprobantes pendientes — tildá los que te pagan · si cobrás una parte, cargá en los valores lo que entró: la imputación se ajusta sola</label>
+        <button class="btn btn-ghost btn-sm" onclick="rcAutoImputar()" title="Reparte el total de los valores entre los comprobantes, el más viejo primero">Imputar automático</button>
+      </div>
+      <div id="rcb-facturas" style="margin-bottom:12px;max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:var(--r-sm);padding:4px 8px"></div>
+      <label style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Valores recibidos</label>
+      <div id="rcb-medios" style="margin:4px 0"></div>
+      <button class="btn btn-ghost btn-sm" onclick="rcAddMedio()">+ Agregar valor</button>
+      <button class="btn btn-ghost btn-sm" onclick="rcAddMedio({tipo:'retencion'})" title="El cliente pagó de menos y te dio un certificado de retención">+ Retención que te hicieron</button>
+      <div id="rcb-totales" style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-top:12px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);font-size:12px;color:var(--text2)"></div>
+      <div class="form-group" style="margin-top:10px"><label>Observaciones</label><input type="text" id="rcb-obs" placeholder="Ej: pago parcial, saldo la semana que viene" maxlength="200"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-recibo')">Cancelar</button>
+      <button class="btn btn-primary" id="btn-save-rcb" onclick="registrarRecibo()">Registrar recibo</button>
+    </div>
+  </div>
+</div>
 <!-- MODAL: Registrar comprobante de proveedor (fiscal completo + 3-way match) -->
+<div class="modal-overlay" id="modal-arca-import">
+  <div class="modal" style="width:1040px;max-width:96vw">
+    <div class="modal-header"><div class="modal-title">Importar comprobantes recibidos de ARCA</div><button class="modal-close" onclick="closeModal('modal-arca-import',true)">×</button></div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">En ARCA entrá a <b>Mis Comprobantes → Recibidos</b>, elegí el período y bajá el <b>Excel</b> o el <b>CSV</b>. Acá se cruza con lo que ya está cargado: lo que falta se abre precargado para que elijas la cuenta y confirmes. Nada se registra solo.</div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('arca-imp-file').click()">Elegir archivo</button>
+        <input type="file" id="arca-imp-file" accept=".xlsx,.xls,.csv,.txt" style="display:none" onchange="onArcaFile(this)">
+        <select id="arca-imp-ver" onchange="renderArcaImport()" style="width:auto"><option value="pend">Ver lo que falta o difiere</option><option value="todos">Ver todos</option></select>
+        <div id="arca-imp-stats" style="font-size:12px;color:var(--text2)"></div>
+      </div>
+      <div id="arca-imp-body"></div>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="modal-factura-recibida">
   <div class="modal" style="width:760px;max-width:95vw">
     <div class="modal-header"><div class="modal-title" id="fr-modal-title">Registrar factura de proveedor</div><button class="modal-close" onclick="closeModal('modal-factura-recibida')">×</button></div>
@@ -3601,6 +3647,7 @@ let sueldosEscala=[],sueldosConvenio=[],sueldosPrevisional=[],sueldosGanTablas=[
 let sueldosNovedades=[],sueldosAcumulados=[],sueldosVacaciones=[];
 let facturasRecibidas=[];
 let ordenesPago=[];
+let recibos=[]; // recibos de cobranza (mig 089)
 let retencionRegimenes=[],retencionesPracticadas=[]; // retenciones a proveedores (mig 086)
 let facturasEmitidas=[]; // listado unificado Ventas → Facturas emitidas (sprint 3 hoja 2026-09-07)
 let periodosContables=[];
@@ -4528,9 +4575,10 @@ const TBL={
   cheques:{label:'Cheques',q:'?order=fecha_pago.asc',set:r=>{cheques=r||[];}},
   facturas_recibidas:{label:'Facturas recibidas',q:'?order=created_at.desc',set:r=>{facturasRecibidas=r||[];}},
   ordenes_pago:{label:'Órdenes de pago',q:'?order=fecha.desc,nro.desc&select=*,orden_pago_medios(*),orden_pago_imputaciones(*)',set:r=>{ordenesPago=r||[];}},
+  recibos:{label:'Recibos',q:'?order=fecha.desc,created_at.desc&select=*,recibo_medios(*),recibo_imputaciones(*)',set:r=>{recibos=r||[];}},
   retencion_regimenes:{label:'Regímenes de retención',q:'?order=impuesto.asc,codigo.asc',set:r=>{retencionRegimenes=r||[];}},
   retenciones_practicadas:{label:'Retenciones practicadas',q:'?order=fecha.desc,created_at.desc',set:r=>{retencionesPracticadas=r||[];}},
-  facturas_emitidas:{label:'Facturas emitidas',q:'?order=fecha.desc,punto_venta.asc,numero.desc&select=id,venta_id,factura_asociada_id,tipo_comprobante,punto_venta,numero,fecha,doc_tipo,doc_nro,imp_neto,imp_iva,imp_total,moneda,cotizacion_moneda,cae,cae_vto,resultado,afip_environment,periodo_asoc_desde,periodo_asoc_hasta,cbte_asoc_externo,created_at',set:r=>{facturasEmitidas=r||[];_dirtyPages.add('femitidas');}},
+  facturas_emitidas:{label:'Facturas emitidas',q:'?order=fecha.desc,punto_venta.asc,numero.desc&select=id,venta_id,factura_asociada_id,tipo_comprobante,punto_venta,numero,fecha,doc_tipo,doc_nro,imp_neto,imp_iva,imp_total,moneda,cotizacion_moneda,cae,cae_vto,resultado,afip_environment,periodo_asoc_desde,periodo_asoc_hasta,cbte_asoc_externo,cliente_id,tc_usd,created_at',set:r=>{facturasEmitidas=r||[];_dirtyPages.add('femitidas');}},
   periodos_contables:{label:'Períodos',q:'?order=anio.desc,mes.desc',set:r=>{periodosContables=r||[];}},
   v_correlatividad:{label:'Correlatividad',q:'?select=*',set:r=>{correlatividad=r||[];}},
   cuentas_bancarias:{label:'Cuentas bancarias',q:'?order=nombre.asc',set:r=>{cuentasBancarias=r||[];}},
@@ -5154,6 +5202,7 @@ async function emitirFactura(ventaId,skipConfirm){
     const fEmitida=await POST('facturas_emitidas',{
       empresa_id:currentEmpresa.id,
       venta_id:ventaId,
+      cliente_id:cli?.id||venta.cliente_id||null,tc_usd:tc, // mig 089: cta cte por comprobante
       cae:data.cae,
       cae_vto:data.cae_vto,
       numero:data.numero,
@@ -5304,7 +5353,7 @@ async function emitirFacturaDirecta(){
     const data=await res.json();
     const notas=[obsUser,moneda==='USD'?`Facturado en USD a TC $${tc}`:'',(data.observaciones&&data.observaciones.length)?data.observaciones.join('; '):''].filter(Boolean).join(' · ')||null;
     const rows=await POST('facturas_emitidas',{
-      empresa_id:currentEmpresa.id,venta_id:null,
+      empresa_id:currentEmpresa.id,venta_id:null,cliente_id:cli.id,tc_usd:moneda==='USD'?tc:null,
       cae:data.cae,cae_vto:data.cae_vto,numero:data.numero,punto_venta:data.punto_venta,
       tipo_comprobante:data.tipo_comprobante,fecha:data.fecha,
       imp_neto:data.imp_neto,imp_iva:data.imp_iva,imp_total:data.imp_total,
@@ -5972,7 +6021,7 @@ async function emitirNotaCredito(){
     });
     _caeOk=true;
     const rows=await POST('facturas_emitidas',{
-      empresa_id:currentEmpresa.id,venta_id:f.venta_id||null,factura_asociada_id:f.id,
+      empresa_id:currentEmpresa.id,venta_id:f.venta_id||null,factura_asociada_id:f.id,cliente_id:_nota.cliente.cliente_id||null,
       cae:data.cae,cae_vto:data.cae_vto,numero:data.numero,punto_venta:data.punto_venta,
       tipo_comprobante:data.tipo_comprobante,fecha:data.fecha,
       imp_neto:data.imp_neto,imp_iva:data.imp_iva,imp_total:data.imp_total,
@@ -6144,7 +6193,7 @@ async function emitirNotaLibre(){
     });
     const notas=[obsUser,moneda==='USD'?`Emitida en USD a TC $${tc}`:'',asoc.cbte_asoc_externo?`Asociada a ${asoc.cbte_asoc_externo}`:'',(data.observaciones&&data.observaciones.length)?data.observaciones.join('; '):''].filter(Boolean).join(' · ')||null;
     const rows=await POST('facturas_emitidas',{
-      empresa_id:currentEmpresa.id,venta_id:null,factura_asociada_id:null,
+      empresa_id:currentEmpresa.id,venta_id:null,factura_asociada_id:null,cliente_id:cli?.id||null,
       periodo_asoc_desde:asoc.periodo_asociado?.desde||null,periodo_asoc_hasta:asoc.periodo_asociado?.hasta||null,
       cbte_asoc_externo:asoc.cbte_asoc_externo||null,
       cae:data.cae,cae_vto:data.cae_vto,numero:data.numero,punto_venta:data.punto_venta,
@@ -7508,8 +7557,8 @@ function exportClientesCSV(){
 }
 function exportCtaCteCSV(){
   const data=computeCtaCte();
-  const rows=data.map(c=>[c.nombre,_numAR(c.totCargos),_numAR(c.totPagos),_numAR(c.saldo),_numAR(c.buckets.alDia),_numAR(c.buckets.d30),_numAR(c.buckets.d60),_numAR(c.buckets.d90),_numAR(c.buckets.mas90)]);
-  exportCSV(`cta_corriente_${hoyLocal()}.csv`,['Cliente','Cargos USD','Cobrado USD','Saldo USD','Al día','1-30','31-60','61-90','+90 días'],rows);
+  const rows=data.map(c=>[c.nombre,_numAR(c.saldoARS),_numAR(c.saldo),_numAR(c.bucketsARS.alDia),_numAR(c.bucketsARS.d30),_numAR(c.bucketsARS.d60),_numAR(c.bucketsARS.d90),_numAR(c.bucketsARS.mas90),_numAR(c.aFavorARS),_numAR(c.sinFacturarUSD)]);
+  exportCSV(`cta_corriente_${hoyLocal()}.csv`,['Cliente','Saldo $','Saldo USD','Al día $','1-30 $','31-60 $','61-90 $','+90 días $','A favor $','Sin facturar USD'],rows);
 }
 // Theme: dark/light toggle persistido en localStorage
 function applyTheme(t){document.documentElement.dataset.theme=t==='light'?'light':'dark';const icon=document.getElementById('theme-icon');if(icon)icon.textContent=t==='light'?'☾':'☀';}
@@ -8728,8 +8777,9 @@ function computeCashflowProyectado({cuentas=[],cheques=[],ocs=[],facturas=[],liq
   cuentas.forEach(c=>{
     let resto=parseFloat(c.totPagos)||0;
     (c.cargos||[]).slice().sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')).forEach(x=>{
-      const apl=Math.min(resto,x.monto);resto-=apl;
-      const pend=x.monto-apl;if(pend<=0.005)return;
+      // La cta cte por comprobante (089) ya trae el saldo de cada cargo
+      const apl=x.saldoUSD!=null?0:Math.min(resto,x.monto);resto-=apl;
+      const pend=x.saldoUSD!=null?x.saldoUSD:x.monto-apl;if(pend<=0.005)return;
       const b=bucket(x.venc||hoy);if(b)ing[b]+=pend;
     });
   });
@@ -12386,19 +12436,24 @@ async function verRetencionesSufridas(){
 }
 // Recibo de cobranza (PDF) a partir del asiento del cobro: valores recibidos
 // = líneas al debe (medio + retenciones), total = lo que se acredita al cliente.
-function reciboCobroDatos(a,lineas,cuentas,clientesList){
+function reciboCobroDatos(a,lineas,cuentas,clientesList,{recibos:recs,facturasEmitidas:fes}={}){
   const r2=x=>Math.round(x*100)/100;
   const lns=(lineas||[]).filter(l=>l.asiento_id===a.id&&(parseFloat(l.debe)||0)>0).sort((x,y)=>(x.orden||0)-(y.orden||0));
   const valores=lns.map(l=>{const c=(cuentas||[]).find(x=>x.id===l.cuenta_id)||{};return {concepto:c.nombre||'—',detalle:l.descripcion||'',monto:r2(parseFloat(l.debe)||0)};});
   let cli=a.cliente_id?(clientesList||[]).find(c=>c.id===a.cliente_id):null;
   const m=(a.descripcion||'').match(/Cobro de (.+?)(?:\s+\(|\s+—|$)/);
   if(!cli&&m)cli=(clientesList||[]).find(c=>(c.nombre||'').toLowerCase()===m[1].toLowerCase())||{nombre:m[1]};
-  return {nro:a.comprobante_nro||('Asiento '+a.numero),fecha:a.fecha,moneda:a.moneda||'ARS',tipo_cambio:a.tipo_cambio,cliente:cli||{nombre:'—'},valores,total:r2(valores.reduce((s,v)=>s+v.monto,0)),anulado:a.estado==='anulado',obs:a.descripcion||''};
+  // Recibo con imputación (mig 089): comprobantes que cancela y lo que queda a cuenta
+  const rec=a.origen_tipo==='recibo'?(recs||[]).find(r=>r.id===a.origen_id):null;
+  const imputaciones=rec?(rec.recibo_imputaciones||[]).map(i=>{const f=(fes||[]).find(x=>x.id===i.factura_id);return {comprobante:f?cbteLabel(f):'Comprobante',fecha:f?.fecha||'',monto:r2(parseFloat(i.monto)||0)};}):[];
+  const total=r2(valores.reduce((s,v)=>s+v.monto,0));
+  return {nro:a.comprobante_nro||('Asiento '+a.numero),fecha:a.fecha,moneda:a.moneda||'ARS',tipo_cambio:a.tipo_cambio,cliente:cli||{nombre:'—'},valores,total,anulado:a.estado==='anulado',obs:a.descripcion||'',
+    imputaciones,aCuenta:rec?Math.max(0,r2(total-imputaciones.reduce((s,i)=>s+i.monto,0))):0};
 }
 function generarReciboCobroPDF(asientoId){
   const a=asientos.find(x=>x.id===asientoId);if(!a)return notify('Cobro no encontrado','err');
   if(!window.jspdf){notify('Librería PDF no cargada. Recargá la página.','err');return;}
-  const d=reciboCobroDatos(a,asientoLineas,cuentasContables,clientes),emp=_empresaDatos();
+  const d=reciboCobroDatos(a,asientoLineas,cuentasContables,clientes,{recibos,facturasEmitidas}),emp=_empresaDatos();
   const {jsPDF}=window.jspdf,doc=new jsPDF({unit:'mm',format:'a4'});
   const fmtN=n=>(d.moneda==='USD'?'US$ ':'$ ')+_fmt2(n);
   if(VITALMET_LOGO_DATAURL){try{doc.addImage(VITALMET_LOGO_DATAURL,'JPEG',14,10,42,25);}catch(e){}}
@@ -12419,6 +12474,12 @@ function generarReciboCobroPDF(asientoId){
     body:d.valores.map(v=>[v.concepto,v.detalle,fmtN(v.monto)]),columnStyles:{2:{halign:'right'}}});
   y=doc.lastAutoTable.finalY+7;
   doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text(`TOTAL: ${fmtN(d.total)}`,196,y,{align:'right'});
+  if(d.imputaciones.length||d.aCuenta>0.005){
+    y+=8;doc.text('Aplicado a',14,y);
+    doc.autoTable({startY:y+3,margin:{left:14,right:14},styles:{fontSize:9},headStyles:{fillColor:[40,40,40]},head:[['Comprobante','Fecha','Importe']],
+      body:[...d.imputaciones.map(i=>[i.comprobante,fmtFecha(i.fecha)||'',fmtN(i.monto)]),...(d.aCuenta>0.005?[['A cuenta (sin imputar)','',fmtN(d.aCuenta)]]:[])],columnStyles:{2:{halign:'right'}}});
+    y=doc.lastAutoTable.finalY+2;
+  }
   if(d.obs){y+=8;doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text(doc.splitTextToSize('En concepto de: '+d.obs,180),14,y);}
   y=Math.max(y+32,235);doc.setDrawColor(120);doc.line(120,y,190,y);
   doc.setFontSize(8);doc.setTextColor(100);doc.text('Por '+emp.razon,155,y+5,{align:'center'});
@@ -12466,6 +12527,7 @@ function showCtaCteProveedor(id){
 async function anularCobPag(id){
   const a=asientos.find(x=>x.id===id);if(!a)return;
   if(a.origen_tipo==='orden_pago')return notify('Este pago es una Orden de pago: anulala desde Compras → Órdenes de pago (revierte imputaciones y cheques)','err');
+  if(a.origen_tipo==='recibo')return anularRecibo(a.origen_id);
   if(!confirm(`¿Anular asiento N° ${a.numero} (${a.tipo})?\nQueda con estado "anulado", no se borra.`))return;
   try{await PATCH('asientos',{estado:'anulado'},`?id=eq.${id}`);await reload('asientos','asiento_lineas','cheques');renderAll();notify('Movimiento anulado');}
   catch(e){notify(msgError(e),'err');}
@@ -12595,109 +12657,433 @@ function _cobroEnUSD(a){
   const tc=parseFloat(a.tipo_cambio)||0;
   return tc?tot/tc:0;
 }
-let _ctacteData=[];
-function computeCtaCte(){
-  const hoyMs=Date.now();
-  const byName={};clientes.forEach(c=>{const k=(c.nombre||'').toLowerCase();if(!byName[k])byName[k]=c;});
-  const byId={};clientes.forEach(c=>{byId[c.id]=c;});
+// ─── RECIBO DE COBRANZA: modal (mig 089) ─────────────────────────────
+// Espejo de la orden de pago: N valores recibidos + imputación a los
+// comprobantes del cliente. Lo que no se imputa queda a cuenta.
+let _rcDraft=null;
+function _rcCuentaMedio(m){
+  const cfg=configContable||{};
+  if(m.tipo==='caja')return cfg.cta_caja_default||null;
+  if(m.tipo==='cheque')return cfg.cta_cheques_cartera||null;
+  if(m.tipo==='retencion')return cfg['cta_ret_'+(m.retencion?.tipo||'')]||null;
+  if(m.tipo==='banco'){const cb=cuentasBancarias.find(c=>c.id===m.cuenta_bancaria_id);return cb?.cuenta_contable_id||cfg.cta_banco_default||null;}
+  return null;
+}
+function openReciboModal(clienteId,facturaId){
+  if(!configContable)return notify('Falta configurar la imputación contable (Configuración → Imputación contable)','err');
+  _rcDraft={clienteId:clienteId||'',imput:{},medios:[]};
+  const sel=document.getElementById('rcb-cliente');
+  sel.innerHTML='<option value="">— Seleccioná —</option>'+[...clientes].sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'','es')).map(c=>`<option value="${c.id}">${esc(c.nombre||'')}</option>`).join('');
+  sel.value=_rcDraft.clienteId;
+  document.getElementById('rcb-fecha').value=hoyLocal();
+  document.getElementById('rcb-moneda').value='ARS';
+  document.getElementById('rcb-tc').value='';
+  document.getElementById('rcb-obs').value='';
+  let pre=null;
+  if(facturaId){
+    _rcDraft.imput[facturaId]={sel:true,monto:null};
+    pre=_rcPendientes().find(x=>x.f.id===facturaId)?.saldo??null;
+  }
+  rcAddMedio(pre!=null?{monto:pre}:null);
+  openModal('modal-recibo');
+}
+function rcOnClienteChange(){_rcDraft.clienteId=document.getElementById('rcb-cliente').value;_rcDraft.imput={};rcRender();}
+async function rcOnMonedaChange(){
+  if(document.getElementById('rcb-moneda').value==='USD'&&!(_rcTc()>0)){await fetchCotizacion();document.getElementById('rcb-tc').value=_tcHoy()||'';}
+  rcRender();
+}
+function _rcTc(){return parseFloat(document.getElementById('rcb-tc').value)||0;}
+function _rcPendientes(){return _rcDraft?.clienteId?facturasPendientesCliente(_rcDraft.clienteId,{clientes,ventas,facturasEmitidas,recibos}):[];}
+function _rcTotal(){return Math.round((_rcDraft?.medios||[]).reduce((a,m)=>a+(parseFloat(m.monto)||0),0)*100)/100;}
+// Montos a imputar por comprobante (id → monto en moneda del recibo).
+function _rcImputCalc(list){
+  const mon=document.getElementById('rcb-moneda').value,tc=_rcTc();
+  return repartirImputacionesOP(_rcTotal(),list.map(x=>{const im=_rcDraft.imput[x.f.id]||{sel:false,monto:null};return {id:x.f.id,sel:!!im.sel,monto:im.monto,saldoOP:convertirMontoImputacion(x.saldo,'ARS',tc,mon)};}));
+}
+function rcRender(){if(!_rcDraft)return;rcRenderFacturas();rcRenderMedios();rcRecalc();}
+function rcRenderFacturas(){
+  const w=document.getElementById('rcb-facturas');if(!w)return;
+  if(!_rcDraft.clienteId){w.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">Elegí el cliente para ver sus comprobantes pendientes.</div>';return;}
+  const list=_rcPendientes();
+  if(!list.length){w.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px 0">Este cliente no tiene comprobantes con saldo en el sistema — el cobro queda <b>a cuenta</b>.</div>';return;}
+  const mon=document.getElementById('rcb-moneda').value,tc=_rcTc(),hoy=hoyLocal(),calc=_rcImputCalc(list);
+  w.innerHTML=`<table style="width:100%;font-size:12px"><thead><tr><th></th><th>Comprobante</th><th>Fecha</th><th>Vto.</th><th style="text-align:right">Saldo</th><th style="text-align:right">Imputar (${esc(mon)})</th></tr></thead><tbody>`+list.map(x=>{
+    const id=x.f.id,im=_rcDraft.imput[id]||{sel:false,monto:null},saldoOP=convertirMontoImputacion(x.saldo,'ARS',tc,mon);
+    const val=im.sel?(calc[id]==null?'':calc[id]):'',venc=x.venc&&x.venc<hoy;
+    const parcial=im.sel&&saldoOP!=null&&calc[id]!=null&&calc[id]>0&&calc[id]<saldoOP-0.005;
+    return `<tr>
+      <td><input type="checkbox" ${im.sel?'checked':''} onchange="rcToggleFactura('${id}',this.checked)" style="accent-color:var(--teal)"></td>
+      <td class="mono">${esc(x.label)}</td><td class="mono">${fmtFecha(x.f.fecha)||'—'}</td>
+      <td class="mono" style="${venc?'color:var(--coral)':''}">${fmtFecha(x.venc)||'—'}</td>
+      <td class="mono" style="text-align:right">$ ${_fmt2(x.saldo)}</td>
+      <td style="text-align:right"><input type="number" step="0.01" min="0" value="${val}" ${im.sel?'':'disabled'} placeholder="${saldoOP==null?'falta TC':''}" onchange="rcSetImputacion('${id}',this.value)" title="Vacío = se ajusta solo al total de los valores" style="width:120px;text-align:right;font-size:11px;padding:3px 6px">${parcial?' <span class="badge badge-warn" style="font-size:9px">PARCIAL</span>':''}</td>
+    </tr>`;
+  }).join('')+'</tbody></table>';
+}
+function rcToggleFactura(id,sel){_rcDraft.imput[id]={sel,monto:null};rcRender();}
+function rcSetImputacion(id,v){if(!_rcDraft.imput[id])_rcDraft.imput[id]={sel:true};_rcDraft.imput[id].monto=String(v).trim()===''?null:(parseFloat(v)||0);rcRender();}
+function rcAutoImputar(){
+  const mon=document.getElementById('rcb-moneda').value,tc=_rcTc();
+  let resto=_rcTotal();
+  const list=_rcPendientes(),marcadas=list.filter(x=>_rcDraft.imput[x.f.id]?.sel);
+  (marcadas.length?marcadas:list).forEach(x=>{
+    const saldoOP=convertirMontoImputacion(x.saldo,'ARS',tc,mon);if(saldoOP==null)return;
+    const apl=Math.min(resto,saldoOP);
+    _rcDraft.imput[x.f.id]={sel:apl>0,monto:apl>0?Math.round(apl*100)/100:null};
+    resto=Math.max(0,resto-apl);
+  });
+  rcRender();
+}
+function rcAddMedio(pre){
+  const banco=cuentasBancarias.find(c=>c.activa!==false&&c.cuenta_contable_id);
+  _rcDraft.medios.push({tipo:pre?.tipo||'banco',monto:pre?.monto??null,cuenta_bancaria_id:banco?.id||'',detalle:'',
+    cheque:{numero:'',banco:'',fecha_pago:'',echeq:false},retencion:{tipo:'ganancias',certificado_nro:'',jurisdiccion:''}});
+  rcRender();
+}
+function rcDelMedio(i){_rcDraft.medios.splice(i,1);rcRender();}
+function rcMedioChange(i,campo,v){
+  const m=_rcDraft.medios[i];if(!m)return;
+  if(campo.startsWith('cheque.'))m.cheque[campo.slice(7)]=v;
+  else if(campo.startsWith('retencion.'))m.retencion[campo.slice(10)]=v;
+  else m[campo]=campo==='monto'?(parseFloat(v)||0):v;
+  if(campo==='tipo'||campo==='monto'||campo==='retencion.tipo'||campo==='cuenta_bancaria_id'){rcRender();return;}
+  rcRecalc();
+}
+function rcRenderMedios(){
+  const w=document.getElementById('rcb-medios');if(!w)return;
+  const inp='background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-xs);padding:4px 6px;color:var(--text);font-size:11px;width:100%';
+  const bancos=cuentasBancarias.filter(c=>c.activa!==false);
+  w.innerHTML=_rcDraft.medios.map((m,i)=>{
+    let extra='';
+    if(m.tipo==='banco')extra=`<select onchange="rcMedioChange(${i},'cuenta_bancaria_id',this.value)" style="${inp}"><option value="">Cuenta banco por defecto</option>${bancos.map(c=>`<option value="${c.id}" ${m.cuenta_bancaria_id===c.id?'selected':''}>${esc(c.nombre)}${c.cuenta_contable_id?'':' (sin cta contable)'}</option>`).join('')}</select>
+        <input type="text" placeholder="Referencia de la transferencia" value="${esc(m.detalle||'')}" oninput="rcMedioChange(${i},'detalle',this.value)" style="${inp};margin-top:4px">`;
+    else if(m.tipo==='cheque')extra=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;align-items:center">
+        <input type="text" placeholder="Nº cheque *" value="${esc(m.cheque.numero)}" oninput="rcMedioChange(${i},'cheque.numero',this.value)" style="${inp}">
+        <input type="text" placeholder="Banco" value="${esc(m.cheque.banco)}" oninput="rcMedioChange(${i},'cheque.banco',this.value)" style="${inp}">
+        <input type="date" value="${m.cheque.fecha_pago}" title="Fecha de pago *" onchange="rcMedioChange(${i},'cheque.fecha_pago',this.value)" style="${inp}">
+        <label style="font-size:11px;white-space:nowrap;display:flex;align-items:center;gap:4px"><input type="checkbox" ${m.cheque.echeq?'checked':''} onchange="rcMedioChange(${i},'cheque.echeq',this.checked)"> echeq</label></div>`;
+    else if(m.tipo==='retencion')extra=`<div style="display:grid;grid-template-columns:130px 1fr ${m.retencion.tipo==='iibb'?'150px':''};gap:6px;align-items:center">
+        <select onchange="rcMedioChange(${i},'retencion.tipo',this.value)" style="${inp}">${Object.entries(RET_LABELS).map(([k,l])=>`<option value="${k}" ${m.retencion.tipo===k?'selected':''}>${l}</option>`).join('')}</select>
+        <input type="text" placeholder="Nº de certificado" value="${esc(m.retencion.certificado_nro)}" oninput="rcMedioChange(${i},'retencion.certificado_nro',this.value)" style="${inp}">
+        ${m.retencion.tipo==='iibb'?`<select onchange="rcMedioChange(${i},'retencion.jurisdiccion',this.value)" style="${inp}"><option value="">Jurisdicción…</option>${JURISDICCIONES.map(j=>`<option ${m.retencion.jurisdiccion===j?'selected':''}>${j}</option>`).join('')}</select>`:''}</div>`;
+    else extra=`<input type="text" placeholder="Detalle" value="${esc(m.detalle||'')}" oninput="rcMedioChange(${i},'detalle',this.value)" style="${inp}">`;
+    const cta=cuentasContables.find(c=>c.id===_rcCuentaMedio(m));
+    return `<div style="display:grid;grid-template-columns:150px 1fr 130px 28px;gap:6px;align-items:start;padding:6px 0;border-bottom:1px solid var(--border)">
+      <div><select onchange="rcMedioChange(${i},'tipo',this.value)" style="${inp}">${[['banco','Transferencia'],['cheque','Cheque de terceros'],['caja','Caja (efectivo)'],['retencion','Retención sufrida']].map(([t,l])=>`<option value="${t}" ${m.tipo===t?'selected':''}>${l}</option>`).join('')}</select>
+        <div style="font-size:10px;color:${cta?'var(--text3)':'var(--coral)'};margin-top:3px;font-family:var(--mono)">${cta?esc(cta.codigo+' '+cta.nombre):'sin cuenta contable'}</div></div>
+      <div>${extra}</div>
+      <input type="number" step="0.01" min="0" placeholder="0.00" value="${m.monto==null?'':m.monto}" onchange="rcMedioChange(${i},'monto',this.value)" style="${inp};text-align:right;color:var(--green)">
+      <button class="btn btn-ghost btn-sm" onclick="rcDelMedio(${i})" style="padding:2px 6px" title="Quitar">×</button>
+    </div>`;
+  }).join('')||'<div style="color:var(--text3);font-size:12px;padding:8px 0">Agregá un valor recibido.</div>';
+}
+function _rcArmarPayload(){
+  const mon=document.getElementById('rcb-moneda').value,tc=_rcTc(),r2=x=>Math.round(x*100)/100;
+  const medios=_rcDraft.medios.map(m=>({tipo:m.tipo,monto:r2(parseFloat(m.monto)||0),cuenta_contable_id:_rcCuentaMedio(m),
+    cuenta_bancaria_id:m.tipo==='banco'?(m.cuenta_bancaria_id||null):null,detalle:m.detalle||null,
+    cheque:m.tipo==='cheque'?{numero:(m.cheque.numero||'').trim(),banco:(m.cheque.banco||'').trim(),fecha_pago:m.cheque.fecha_pago||'',echeq:!!m.cheque.echeq}:undefined,
+    retencion:m.tipo==='retencion'?{tipo:m.retencion.tipo,certificado_nro:(m.retencion.certificado_nro||'').trim(),jurisdiccion:m.retencion.tipo==='iibb'?m.retencion.jurisdiccion:''}:undefined}));
+  const list=_rcPendientes(),calc=_rcImputCalc(list),saldos={},imputaciones=[];
+  list.forEach(x=>{
+    const id=x.f.id;if(!_rcDraft.imput[id]?.sel)return;
+    saldos[id]=x.saldo;
+    const monto=calc[id];
+    if(monto==null){imputaciones.push({factura_id:id,monto:null,monto_factura:null});return;}
+    if(!(monto>0))return;
+    // Cancelación total en USD: el redondeo de la conversión no deja centavos de saldo
+    const saldoOP=convertirMontoImputacion(x.saldo,'ARS',tc,mon);
+    imputaciones.push({factura_id:id,monto:r2(monto),monto_factura:Math.abs(monto-saldoOP)<0.005?x.saldo:convertirMontoImputacion(monto,mon,tc,'ARS')});
+  });
+  return {mon,tc,medios,imputaciones,saldos,total:r2(medios.reduce((a,m)=>a+m.monto,0)),
+    retenido:r2(medios.filter(m=>m.tipo==='retencion').reduce((a,m)=>a+m.monto,0))};
+}
+function rcRecalc(){
+  const t=document.getElementById('rcb-totales');if(!t||!_rcDraft)return;
+  const p=_rcArmarPayload(),fmt=p.mon==='USD'?fmtUSD:(x=>'$ '+_fmt2(x)),v=validarRecibo(p);
+  t.innerHTML=`<span>Total del recibo <b class="mono">${fmt(p.total)}</b></span>${p.retenido>0?`<span>Retenciones <b class="mono" style="color:var(--amber,#d99a2b)">${fmt(p.retenido)}</b></span><span>Entró a caja/banco <b class="mono">${fmt(p.total-p.retenido)}</b></span>`:''}<span>Imputado <b class="mono">${fmt(v.sumImputado)}</b></span><span>A cuenta <b class="mono" style="color:${v.aCuenta>0?'var(--amber,#d99a2b)':'var(--text2)'}">${fmt(v.aCuenta)}</b></span>`
+    +(p.mon==='USD'&&p.tc>0?`<span style="color:var(--text3);font-size:11px">TC ${_numAR(p.tc)}</span>`:'')
+    +(!v.ok&&p.medios.length?`<div style="flex-basis:100%;color:var(--coral);font-size:11px">${esc(v.errores[0])}</div>`:'');
+}
+async function registrarRecibo(){
+  if(!_rcDraft)return;
+  const clienteId=document.getElementById('rcb-cliente').value,fecha=document.getElementById('rcb-fecha').value;
+  if(!validarCampos([['rcb-cliente',!!clienteId,'Elegí el cliente'],['rcb-fecha',!!fecha,'Cargá la fecha']]))return;
+  const p=_rcArmarPayload();
+  if(p.mon==='USD'&&!(p.tc>0))return notify('Cargá el tipo de cambio para un recibo en USD','err');
+  if(p.imputaciones.some(i=>i.monto_factura==null))return notify('Falta el tipo de cambio para imputar a facturas en pesos','err');
+  const v=validarRecibo(p);
+  if(!v.ok)return notify(v.errores[0],'err');
+  const cli=clientes.find(x=>x.id===clienteId),fmt=p.mon==='USD'?fmtUSD:(x=>'$ '+_fmt2(x));
+  if(v.aCuenta>0.005&&!confirm(`${fmt(v.aCuenta)} quedan A CUENTA de ${cli?.nombre||'el cliente'} (sin imputar a ningún comprobante).\n\n¿Registrar igual?`))return;
+  setBusy('btn-save-rcb',true);
+  try{
+    const r=await RPC('registrar_recibo',{
+      p_cabecera:{fecha,cliente_id:clienteId,moneda:p.mon,tipo_cambio:p.mon==='USD'?p.tc:null,total:p.total,observaciones:g('rcb-obs')||null},
+      p_medios:p.medios.map(m=>({...m,cheque:m.cheque||null,retencion:m.retencion||null})),
+      p_imputaciones:p.imputaciones.map(i=>({factura_id:i.factura_id,monto:i.monto,monto_factura:i.monto_factura}))});
+    await reload('recibos','asientos','asiento_lineas','cheques','facturas_emitidas');
+    closeModal('modal-recibo',true);_rcDraft=null;renderAll();
+    notify(`✓ Recibo ${r.nro||''} registrado · Asiento N° ${r.asiento_numero}${r.a_cuenta>0.005?` · ${fmt(r.a_cuenta)} a cuenta`:''}`);
+    if(r.asiento_id&&confirm(`Recibo ${r.nro||''} registrado.\n\n¿Generar el PDF para el cliente?\n\n(Después lo encontrás en Cobros y Pagos, botón "Recibo".)`))generarReciboCobroPDF(r.asiento_id);
+  }catch(e){notify(e.message||'Error registrando el recibo','err');}
+  finally{setBusy('btn-save-rcb',false,'Registrar recibo');}
+}
+async function anularRecibo(id){
+  const r=recibos.find(x=>x.id===id);if(!r)return notify('Recibo no encontrado — recargá la página','err');
+  const motivo=prompt(`Anular el recibo ${r.nro||''}.\n\nLas facturas que cancelaba vuelven a quedar con saldo, los cheques en cartera se anulan y el asiento queda anulado (no se borra).\n\nMotivo:`);
+  if(motivo==null)return;
+  if(!motivo.trim())return notify('El motivo es obligatorio','err');
+  try{
+    await RPC('anular_recibo',{p_id:id,p_motivo:motivo.trim()});
+    await reload('recibos','asientos','asiento_lineas','cheques');renderAll();notify(`Recibo ${r.nro||''} anulado`);
+  }catch(e){notify(e.message||'Error anulando el recibo','err');}
+}
+// ─── Cuenta corriente por comprobante + recibos (mig 089) ─────────────
+// Puras con tests en tests/recibos-cobranza.test.js.
+const CBTE_NC_TIPOS=[3,8,13,53];
+// factura_id → Σ imputado (pesos) por recibos confirmados.
+function imputacionesRecibosVivas(recibosList){
+  const m={};
+  (recibosList||[]).forEach(r=>{
+    if(r.estado!=='confirmado')return;
+    (r.recibo_imputaciones||[]).forEach(i=>{m[i.factura_id]=Math.round(((m[i.factura_id]||0)+(parseFloat(i.monto_factura)||0))*100)/100;});
+  });
+  return m;
+}
+// Saldo de una factura o ND emitida (pesos): total − NC asociadas −
+// imputaciones. exceso = lo acreditado/cobrado por encima del total.
+function saldoFacturaEmitida(f,facturas,imputVivas){
+  const r2=x=>Math.round(x*100)/100,total=r2(parseFloat(f.imp_total)||0);
+  const nc=r2((facturas||[]).filter(x=>x.factura_asociada_id===f.id&&CBTE_NC_TIPOS.includes(Number(x.tipo_comprobante))).reduce((a,x)=>a+(parseFloat(x.imp_total)||0),0));
+  const imputado=r2((imputVivas||{})[f.id]||0),neto=r2(total-nc-imputado);
+  return {total,nc,imputado,saldo:Math.max(0,neto),exceso:Math.max(0,-neto)};
+}
+// TC con el que la venta en USD se pasó a pesos: el guardado (089) o el
+// implícito de los ítems de la venta. null = facturada directo en pesos.
+function tcFacturaEmitida(f,venta,incluyenIva){
+  const g=parseFloat(f?.tc_usd)||0;if(g>0)return g;
+  const usd=((venta&&venta.venta_items)||[]).reduce((a,i)=>a+(parseFloat(i.cantidad)||0)*(parseFloat(i.precio_unitario)||0),0);
+  if(!(usd>0))return null;
+  const tc=(parseFloat(incluyenIva?f.imp_total:f.imp_neto)||0)/usd;
+  return tc>1?Math.round(tc*100)/100:null;
+}
+function _vencCondicion(fecha,cond){
+  return fecha?new Date(new Date(fecha+'T00:00:00').getTime()+_diasCondicionPago(cond)*86400000).toISOString().slice(0,10):null;
+}
+// Comprobantes con saldo de un cliente (para imputar en el recibo).
+function facturasPendientesCliente(clienteId,{clientes:cls=[],ventas:vs=[],facturasEmitidas:fes=[],recibos:recs=[]}={}){
+  const vivas=(fes||[]).filter(f=>f.afip_environment!=='homologacion'),imput=imputacionesRecibosVivas(recs);
+  return vivas.filter(f=>!CBTE_NC_TIPOS.includes(Number(f.tipo_comprobante))&&(f.cliente_id||resolverClienteFactura(f,vs,cls).cliente_id)===clienteId).map(f=>{
+    const venta=f.venta_id?(vs||[]).find(v=>v.id===f.venta_id):null,sd=saldoFacturaEmitida(f,vivas,imput);
+    return {f,saldo:sd.saldo,total:sd.total,venc:claseNota(f.tipo_comprobante)?f.fecha:_vencCondicion(f.fecha,venta?.condicion_pago),label:cbteLabel(f)};
+  }).filter(x=>x.saldo>0.005).sort((a,b)=>(a.venc||'').localeCompare(b.venc||'')||(a.f.numero||0)-(b.f.numero||0));
+}
+function validarRecibo({total,medios,imputaciones,saldos}){
+  const errores=[];const r2=n=>Math.round(n*100)/100;
+  total=r2(parseFloat(total)||0);medios=medios||[];imputaciones=imputaciones||[];saldos=saldos||{};
+  if(!medios.length)errores.push('Agregá al menos un valor recibido');
+  medios.forEach((m,i)=>{
+    if((parseFloat(m.monto)||0)<=0)errores.push(`Valor ${i+1}: monto inválido`);
+    if(!m.cuenta_contable_id)errores.push(`Valor ${i+1}: falta la cuenta contable de "${m.tipo}" (Configuración → Imputación contable / Bancos)`);
+    if(m.tipo==='cheque'&&(!m.cheque||!m.cheque.numero||!m.cheque.fecha_pago))errores.push(`Valor ${i+1}: el cheque necesita número y fecha de pago`);
+    if(m.tipo==='retencion'&&m.retencion?.tipo==='iibb'&&!m.retencion.jurisdiccion)errores.push(`Valor ${i+1}: elegí la jurisdicción de la retención de IIBB`);
+  });
+  const sumMedios=r2(medios.reduce((a,m)=>a+(parseFloat(m.monto)||0),0));
+  if(medios.length&&Math.abs(sumMedios-total)>=0.01)errores.push(`Los valores suman ${_numAR(sumMedios)} y el total es ${_numAR(total)}`);
+  const sumImputado=r2(imputaciones.reduce((a,i)=>a+(parseFloat(i.monto)||0),0));
+  if(sumImputado>total+0.005)errores.push(`Las imputaciones (${_numAR(sumImputado)}) superan el total del recibo (${_numAR(total)})`);
+  imputaciones.forEach(i=>{
+    const mf=parseFloat(i.monto_factura)||0;
+    if(mf<=0)errores.push('Imputación con monto inválido');
+    else if(saldos[i.factura_id]!=null&&mf>saldos[i.factura_id]+0.01)errores.push(`Imputás ${_numAR(mf)} a un comprobante con saldo ${_numAR(saldos[i.factura_id])}`);
+  });
+  return {ok:errores.length===0,errores,sumMedios,sumImputado,aCuenta:Math.max(0,r2(total-sumImputado))};
+}
+// Cuenta corriente de clientes. Cargos: facturas y ND emitidas (pesos, con
+// su equivalente en USD al TC de la factura), ventas entregadas sin factura
+// en el sistema (USD) y cheques rechazados. Bajan la deuda: NC, recibos
+// (imputados a su factura; lo a cuenta va a la más vieja) y cobros viejos
+// sin recibo (también a la más vieja). Un crédito en otra moneda se
+// convierte por su propio TC. Devuelve por cliente los importes en USD
+// (saldo, buckets, cargos[].monto, pagos[].monto — lo que ya consumían el
+// tablero, los avisos y el cierre) y en pesos (saldoARS, bucketsARS…).
+function computeCtaCteClientes({clientes:cls=[],ventas:vs=[],facturasEmitidas:fes=[],recibos:recs=[],asientos:as=[],asientoLineas:ls=[],tcHoy=0,incluyenIva=false,hoy}={}){
+  const n=x=>parseFloat(x)||0;
+  tcHoy=n(tcHoy);
+  const hoyMs=new Date((hoy||hoyLocal())+'T00:00:00').getTime();
+  const byName={},byId={};
+  (cls||[]).forEach(c=>{const k=(c.nombre||'').toLowerCase();if(!byName[k])byName[k]=c;byId[c.id]=c;});
   const cuentas={};
   const cuentaDe=(cid,nombre)=>{
     const c=(cid&&byId[cid])||byName[(nombre||'').toLowerCase()]||null;
     const key=c?c.id:'sin:'+(nombre||'¿?').toLowerCase();
-    if(!cuentas[key])cuentas[key]={cliente:c,nombre:c?c.nombre:(nombre||'¿?'),cargos:[],pagos:[]};
+    if(!cuentas[key])cuentas[key]={cliente:c,nombre:c?c.nombre:(nombre||'¿?'),cargos:[],pagos:[],creditos:[]};
     return cuentas[key];
   };
-  ventas.filter(v=>v.estado==='entregado'||v.estado==='facturado').forEach(v=>{
-    const monto=parseFloat(v.total)||0;if(monto<=0)return;
-    const fecha=v.fecha||(v.created_at||'').slice(0,10);
-    const dias=_diasCondicionPago(v.condicion_pago);
-    const venc=fecha?new Date(new Date(fecha+'T00:00:00').getTime()+dias*86400000).toISOString().slice(0,10):null;
-    cuentaDe(v.cliente_id,v.cliente).cargos.push({fecha,venc,monto,ref:v.nro_remito,tipo:'Venta'});
+  const debe={};(ls||[]).forEach(l=>{debe[l.asiento_id]=(debe[l.asiento_id]||0)+n(l.debe);});
+  const vivas=(fes||[]).filter(f=>f.afip_environment!=='homologacion'),idsVivas=new Set(vivas.map(f=>f.id));
+  const imput=imputacionesRecibosVivas(recs);
+  const ventaConFactura=new Set(vivas.filter(f=>f.venta_id&&!claseNota(f.tipo_comprobante)).map(f=>f.venta_id));
+  // Facturas, ND y NC emitidas
+  vivas.forEach(f=>{
+    const venta=f.venta_id?(vs||[]).find(v=>v.id===f.venta_id):null,rc=resolverClienteFactura(f,vs,cls);
+    const cta=cuentaDe(f.cliente_id||rc.cliente_id,rc.cliente_id||venta?rc.cliente:'CUIT '+(f.doc_nro||'¿?'));
+    const clase=claseNota(f.tipo_comprobante),total=n(f.imp_total);
+    if(clase==='nc'){
+      cta.pagos.push({fecha:f.fecha,mon:'ARS',montoNat:total,tc:0,ref:cbteLabel(f),tipo:'Nota de crédito'});
+      if(!f.factura_asociada_id||!idsVivas.has(f.factura_asociada_id))cta.creditos.push({fecha:f.fecha,mon:'ARS',monto:total,tc:0});
+      return;
+    }
+    const sd=saldoFacturaEmitida(f,vivas,imput),tc=tcFacturaEmitida(f,venta,incluyenIva);
+    cta.cargos.push({id:f.id,facturaId:f.id,tipo:clase==='nd'?'Nota de débito':'Factura',ref:cbteLabel(f),fecha:f.fecha,
+      venc:clase==='nd'?f.fecha:_vencCondicion(f.fecha,venta?.condicion_pago),mon:'ARS',total,rest:sd.saldo,tc:tc||tcHoy,tcEstimado:!tc});
+    if(sd.exceso>0.005)cta.creditos.push({fecha:f.fecha,mon:'ARS',monto:sd.exceso,tc:tc||0});
   });
-  asientos.filter(a=>a.tipo==='auto-cobranza'&&a.estado==='confirmado').forEach(a=>{
-    const monto=_cobroEnUSD(a);if(monto<=0)return;
+  // Ventas entregadas/facturadas sin comprobante en el sistema (USD)
+  (vs||[]).filter(v=>(v.estado==='entregado'||v.estado==='facturado')&&!ventaConFactura.has(v.id)).forEach(v=>{
+    const monto=n(v.total);if(monto<=0)return;
+    const fecha=v.fecha||(v.created_at||'').slice(0,10);
+    cuentaDe(v.cliente_id,v.cliente).cargos.push({id:'v:'+v.id,ventaId:v.id,tipo:'Venta',ref:v.nro_remito,fecha,venc:_vencCondicion(fecha,v.condicion_pago),
+      mon:'USD',total:monto,rest:monto,tc:tcHoy,tcEstimado:true,sinFactura:true});
+  });
+  const confirmados=(as||[]).filter(a=>a.estado==='confirmado');
+  const monA=a=>(a.moneda||'ARS')==='USD'?'USD':'ARS';
+  // Cheques rechazados: la deuda revive desde el rechazo
+  confirmados.filter(a=>a.tipo==='auto-cheque-rechazo'&&a.cliente_id).forEach(a=>{
+    const monto=debe[a.id]||0;if(monto<=0)return;
+    cuentaDe(a.cliente_id,null).cargos.push({id:'a:'+a.id,tipo:'Cheque rechazado',ref:a.comprobante_nro||('#'+(a.numero||'')),fecha:a.fecha,venc:a.fecha,
+      mon:monA(a),total:monto,rest:monto,tc:n(a.tipo_cambio)||tcHoy,tcEstimado:!n(a.tipo_cambio)});
+  });
+  // NC/ND que sólo existen como asiento (sin fila en facturas_emitidas)
+  confirmados.filter(a=>(a.tipo==='auto-nc'||a.tipo==='auto-nd')&&a.cliente_id&&!idsVivas.has(a.origen_id)).forEach(a=>{
+    const monto=debe[a.id]||0;if(monto<=0)return;
+    const cta=cuentaDe(a.cliente_id,null),ref=a.comprobante_nro||('#'+(a.numero||'')),tc=n(a.tipo_cambio);
+    if(a.tipo==='auto-nd')cta.cargos.push({id:'a:'+a.id,tipo:'Nota de débito',ref,fecha:a.fecha,venc:a.fecha,mon:monA(a),total:monto,rest:monto,tc:tc||tcHoy,tcEstimado:!tc});
+    else{cta.pagos.push({fecha:a.fecha,mon:monA(a),montoNat:monto,tc,ref,tipo:'Nota de crédito'});cta.creditos.push({fecha:a.fecha,mon:monA(a),monto,tc});}
+  });
+  // Recibos (089): lo imputado ya bajó su factura; lo a cuenta se reparte
+  (recs||[]).filter(r=>r.estado==='confirmado').forEach(r=>{
+    const cta=cuentaDe(r.cliente_id,null),total=n(r.total),tc=n(r.tipo_cambio),mon=r.moneda==='USD'?'USD':'ARS';
+    const aCuenta=total-(r.recibo_imputaciones||[]).reduce((a,i)=>a+n(i.monto),0);
+    cta.pagos.push({fecha:r.fecha,mon,montoNat:total,tc,ref:r.nro||'Recibo',tipo:'Recibo',reciboId:r.id});
+    if(aCuenta>0.005)cta.creditos.push({fecha:r.fecha,mon,monto:aCuenta,tc});
+  });
+  // Cobros viejos: asiento auto-cobranza que no viene de un recibo
+  confirmados.filter(a=>a.tipo==='auto-cobranza'&&a.origen_tipo!=='recibo').forEach(a=>{
+    const monto=debe[a.id]||0;if(monto<=0)return;
     let nombre=null;
     if(!a.cliente_id){
       const m=(a.descripcion||'').match(/^Cobro de (.+?)(?:\s+—|$)/);
       nombre=m?m[1].trim():null;
       if(!nombre||!byName[nombre.toLowerCase()])return; // sin vínculo posible
     }
-    cuentaDe(a.cliente_id,nombre).pagos.push({fecha:a.fecha,monto,ref:a.comprobante_nro||('#'+(a.numero||'')),tipo:'Cobro'});
-  });
-  // Cheques rechazados (mig 056): el cobro quedó registrado pero el valor
-  // volvió — la deuda revive como cargo vencido desde el rechazo.
-  asientos.filter(a=>a.tipo==='auto-cheque-rechazo'&&a.estado==='confirmado'&&a.cliente_id).forEach(a=>{
-    const monto=_cobroEnUSD(a);if(monto<=0)return;
-    cuentaDe(a.cliente_id,null).cargos.push({fecha:a.fecha,venc:a.fecha,monto,ref:a.comprobante_nro||('#'+(a.numero||'')),tipo:'Cheque rechazado'});
-  });
-  // Notas de crédito (mig 067): reducen la deuda del cliente como un pago.
-  // El asiento auto-nc suma en el debe neto+IVA (= total) y trae el TC del día.
-  asientos.filter(a=>a.tipo==='auto-nc'&&a.estado==='confirmado'&&a.cliente_id).forEach(a=>{
-    const monto=_cobroEnUSD(a);if(monto<=0)return;
-    cuentaDe(a.cliente_id,null).pagos.push({fecha:a.fecha,monto,ref:a.comprobante_nro||('#'+(a.numero||'')),tipo:'Nota de crédito'});
-  });
-  // Notas de débito (mig 075): aumentan la deuda como una factura (vence el mismo día).
-  asientos.filter(a=>a.tipo==='auto-nd'&&a.estado==='confirmado'&&a.cliente_id).forEach(a=>{
-    const monto=_cobroEnUSD(a);if(monto<=0)return;
-    cuentaDe(a.cliente_id,null).cargos.push({fecha:a.fecha,venc:a.fecha,monto,ref:a.comprobante_nro||('#'+(a.numero||'')),tipo:'Nota de débito'});
+    const cta=cuentaDe(a.cliente_id,nombre),tc=n(a.tipo_cambio);
+    cta.pagos.push({fecha:a.fecha,mon:monA(a),montoNat:monto,tc,ref:a.comprobante_nro||('#'+(a.numero||'')),tipo:'Cobro'});
+    cta.creditos.push({fecha:a.fecha,mon:monA(a),monto,tc});
   });
   const res=Object.values(cuentas).map(c=>{
     c.cargos.sort((a,b)=>(a.venc||a.fecha||'').localeCompare(b.venc||b.fecha||''));
-    const totCargos=c.cargos.reduce((s,x)=>s+x.monto,0);
-    const totPagos=c.pagos.reduce((s,x)=>s+x.monto,0);
-    let disponible=totPagos;
-    const buckets={alDia:0,d30:0,d60:0,d90:0,mas90:0};
-    c.cargos.forEach(x=>{
-      const aplicado=Math.min(x.monto,disponible);
-      disponible-=aplicado;
-      const resto=x.monto-aplicado;
-      if(resto<0.005)return;
-      const diasVenc=x.venc?Math.floor((hoyMs-new Date(x.venc+'T00:00:00').getTime())/86400000):0;
-      if(diasVenc<=0)buckets.alDia+=resto;
-      else if(diasVenc<=30)buckets.d30+=resto;
-      else if(diasVenc<=60)buckets.d60+=resto;
-      else if(diasVenc<=90)buckets.d90+=resto;
-      else buckets.mas90+=resto;
+    c.creditos.sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+    let aFavor=0,aFavorARS=0;
+    c.creditos.forEach(cr=>{
+      let rest=cr.monto;
+      for(const cg of c.cargos){
+        if(rest<=0.005)break;
+        if(cg.rest<=0.005)continue;
+        const cruza=cr.mon!==cg.mon,rate=cruza?(cr.tc||cg.tc||tcHoy):1;
+        if(cruza&&!(rate>0))continue;
+        const disp=!cruza?rest:cr.mon==='ARS'?rest/rate:rest*rate,apl=Math.min(cg.rest,disp);
+        cg.rest-=apl;rest-=!cruza?apl:cr.mon==='ARS'?apl*rate:apl/rate;
+      }
+      if(rest>0.005){
+        const rate=cr.tc||tcHoy;
+        aFavor+=cr.mon==='USD'?rest:(rate>0?rest/rate:0);
+        aFavorARS+=cr.mon==='ARS'?rest:rest*rate;
+      }
     });
-    return{...c,totCargos,totPagos,saldo:totCargos-totPagos,buckets,aFavor:Math.max(0,totPagos-totCargos)};
+    const usd=(x,m)=>x.mon==='USD'?m:(x.tc>0?m/x.tc:0),ars=(x,m)=>x.mon==='ARS'?m:m*(x.tc||0);
+    const buckets={alDia:0,d30:0,d60:0,d90:0,mas90:0},bucketsARS={alDia:0,d30:0,d60:0,d90:0,mas90:0};
+    let sumUSD=0,sumARS=0,sinFacturarUSD=0,tcEstimado=false;
+    c.cargos.forEach(x=>{
+      if(x.rest<0.005)x.rest=0;
+      x.monto=usd(x,x.total);x.montoARS=ars(x,x.total);x.saldoUSD=usd(x,x.rest);x.saldoARS=ars(x,x.rest);
+      if(!x.rest)return;
+      sumUSD+=x.saldoUSD;sumARS+=x.saldoARS;
+      if(x.sinFactura)sinFacturarUSD+=x.rest;
+      if(x.tcEstimado)tcEstimado=true;
+      const d=x.venc?Math.floor((hoyMs-new Date(x.venc+'T00:00:00').getTime())/86400000):0;
+      const k=d<=0?'alDia':d<=30?'d30':d<=60?'d60':d<=90?'d90':'mas90';
+      buckets[k]+=x.saldoUSD;bucketsARS[k]+=x.saldoARS;
+    });
+    c.pagos.forEach(p=>{const rate=p.tc||tcHoy;p.monto=p.mon==='USD'?p.montoNat:(rate>0?p.montoNat/rate:0);p.montoARS=p.mon==='ARS'?p.montoNat:p.montoNat*rate;});
+    const r2=x=>Math.round(x*100)/100;
+    return {cliente:c.cliente,nombre:c.nombre,cargos:c.cargos,pagos:c.pagos,
+      totCargos:c.cargos.reduce((a,x)=>a+x.monto,0),totPagos:c.pagos.reduce((a,p)=>a+p.monto,0),
+      saldo:r2(sumUSD-aFavor),buckets,aFavor:r2(aFavor),saldoARS:r2(sumARS-aFavorARS),bucketsARS,aFavorARS:r2(aFavorARS),sinFacturarUSD:r2(sinFacturarUSD),tcEstimado};
   }).filter(c=>c.cargos.length||c.pagos.length);
-  res.sort((a,b)=>b.saldo-a.saldo);
+  res.sort((a,b)=>b.saldo-a.saldo||b.saldoARS-a.saldoARS);
   return res;
 }
-function renderCtaCte(filter=''){
+let _ctacteData=[];
+function computeCtaCte(){
+  return computeCtaCteClientes({clientes,ventas,facturasEmitidas,recibos,asientos,asientoLineas,tcHoy:_tcHoy(),incluyenIva:!!configContable?.precios_incluyen_iva});
+}
+function _ctacteEnUSD(){return document.getElementById('ctacte-mon')?.value==='USD';}
+function renderCtaCte(filter){
   const tbody=document.getElementById('ctacte-tbody');if(!tbody)return;
-  const f=(filter||'').toLowerCase();
+  if(filter==null)filter=document.querySelector('#page-ctacte .search-box input')?.value||'';
+  const f=(filter||'').toLowerCase(),enUSD=_ctacteEnUSD();
   _ctacteData=computeCtaCte();
   const list=_ctacteData.filter(c=>!f||c.nombre.toLowerCase().includes(f));
-  const totSaldo=_ctacteData.reduce((s,c)=>s+Math.max(0,c.saldo),0);
-  const totVencido=_ctacteData.reduce((s,c)=>s+c.buckets.d30+c.buckets.d60+c.buckets.d90+c.buckets.mas90,0);
-  const conDeuda=_ctacteData.filter(c=>c.saldo>0.005).length;
-  const ahora=new Date();const mes0=new Date(ahora.getFullYear(),ahora.getMonth(),1).toISOString().slice(0,10);
-  const cobradoMes=_ctacteData.reduce((s,c)=>s+c.pagos.filter(p=>(p.fecha||'')>=mes0).reduce((x,p)=>x+p.monto,0),0);
+  const pesos=x=>'$ '+_fmt2(x),venc=b=>b.d30+b.d60+b.d90+b.mas90;
+  const sum=fn=>_ctacteData.reduce((a,c)=>a+fn(c),0);
+  const totARS=sum(c=>Math.max(0,c.saldoARS)),totUSD=sum(c=>Math.max(0,c.saldo));
+  const vencARS=sum(c=>venc(c.bucketsARS)),vencUSD=sum(c=>venc(c.buckets));
+  const sinFact=sum(c=>c.sinFacturarUSD),conDeuda=_ctacteData.filter(c=>c.saldoARS>0.5||c.saldo>0.005).length;
+  const mes0=hoyLocal().slice(0,8)+'01';
+  const cobradoMes=sum(c=>c.pagos.filter(p=>(p.fecha||'')>=mes0&&p.tipo!=='Nota de crédito').reduce((x,p)=>x+p.montoARS,0));
   const statsEl=document.getElementById('ctacte-stats');
   if(statsEl)statsEl.innerHTML=`
-    <div class="stat-card"><div class="stat-label">Por cobrar</div><div class="stat-value" style="color:var(--blue)">${fmtUSD(totSaldo)}</div></div>
-    <div class="stat-card"><div class="stat-label">Vencido</div><div class="stat-value" style="color:${totVencido>0.005?'var(--red)':'var(--green)'}">${fmtUSD(totVencido)}</div></div>
+    <div class="stat-card"><div class="stat-label">Por cobrar</div><div class="stat-value" style="color:var(--blue)">${pesos(totARS)}</div><div style="font-size:11px;color:var(--text3)">≈ ${fmtUSD(totUSD)}</div></div>
+    <div class="stat-card"><div class="stat-label">Vencido</div><div class="stat-value" style="color:${vencARS>0.5?'var(--red)':'var(--green)'}">${pesos(vencARS)}</div><div style="font-size:11px;color:var(--text3)">≈ ${fmtUSD(vencUSD)}</div></div>
     <div class="stat-card"><div class="stat-label">Clientes con saldo</div><div class="stat-value" style="color:var(--accent)">${conDeuda}</div></div>
-    <div class="stat-card"><div class="stat-label">Cobrado este mes</div><div class="stat-value" style="color:var(--green)">${fmtUSD(cobradoMes)}</div></div>`;
-  const cell=(v,color)=>`<td class="mono" style="text-align:right;${v>0.005?('color:'+color):'color:var(--text3)'}">${v>0.005?fmtUSD(v):'—'}</td>`;
+    <div class="stat-card"><div class="stat-label">Cobrado este mes</div><div class="stat-value" style="color:var(--green)">${pesos(cobradoMes)}</div></div>
+    <div class="stat-card" title="Ventas entregadas que todavía no tienen factura en el sistema"><div class="stat-label">Entregado sin facturar</div><div class="stat-value" style="color:${sinFact>0.005?'var(--amber,#d99a2b)':'var(--text2)'}">${fmtUSD(sinFact)}</div></div>`;
+  const cell=(v,color)=>`<td class="mono" style="text-align:right;${v>0.005?('color:'+color):'color:var(--text3)'}">${v>0.005?(enUSD?fmtUSD(v):pesos(v)):'—'}</td>`;
   tbody.innerHTML=list.length?list.map(c=>{
-    const idx=_ctacteData.indexOf(c);
-    return`<tr><td style="font-weight:500">${esc(c.nombre)}${c.aFavor>0.005?` <span class="badge badge-teal" title="Pagos por encima de los cargos">A FAVOR ${fmtUSD(c.aFavor)}</span>`:''}</td><td class="mono" style="text-align:right">${fmtUSD(c.totCargos)}</td><td class="mono" style="text-align:right;color:var(--green)">${fmtUSD(c.totPagos)}</td><td class="mono" style="text-align:right;font-weight:600;color:${c.saldo>0.005?'var(--coral)':'var(--green)'}">${fmtUSD(c.saldo)}</td>${cell(c.buckets.alDia,'var(--text)')}${cell(c.buckets.d30,'var(--accent)')}${cell(c.buckets.d60,'var(--accent)')}${cell(c.buckets.d90,'var(--red)')}${cell(c.buckets.mas90,'var(--red)')}<td><button class="btn btn-ghost btn-sm" onclick="showCtaCteDetalle(${idx})"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></span>Detalle</button></td></tr>`;
-  }).join(''):`<tr><td colspan="10" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg></div><div class="empty-title">Sin movimientos de cuenta corriente</div><div class="empty-msg">Los cargos aparecen cuando una venta pasa a <b>entregado</b> o <b>facturado</b>. Los cobros se cargan en <b>Contabilidad → Cobros y Pagos</b> eligiendo el cliente de la lista.</div></div></td></tr>`;
+    const idx=_ctacteData.indexOf(c),b=enUSD?c.buckets:c.bucketsARS,debe=c.saldoARS>0.5||c.saldo>0.005;
+    return`<tr><td style="font-weight:500">${esc(c.nombre)}${c.aFavorARS>0.5?` <span class="badge badge-teal" title="Cobros o notas de crédito por encima de lo facturado">A FAVOR ${pesos(c.aFavorARS)}</span>`:''}${c.sinFacturarUSD>0.005?` <span class="badge badge-warn" title="Entregado sin factura en el sistema">SIN FACTURAR ${fmtUSD(c.sinFacturarUSD)}</span>`:''}</td>
+      <td class="mono" style="text-align:right;font-weight:600;color:${debe?'var(--coral)':'var(--green)'}">${pesos(c.saldoARS)}</td>
+      <td class="mono" style="text-align:right;color:var(--text2)">${fmtUSD(c.saldo)}${c.tcEstimado?'<span title="Parte del equivalente está estimado al dólar de hoy">*</span>':''}</td>
+      ${cell(b.alDia,'var(--text)')}${cell(b.d30,'var(--accent)')}${cell(b.d60,'var(--accent)')}${cell(b.d90,'var(--red)')}${cell(b.mas90,'var(--red)')}
+      <td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="showCtaCteDetalle(${idx})">Detalle</button>${c.cliente&&debe?` <button class="btn btn-primary btn-sm" onclick="openReciboModal('${c.cliente.id}')">Cobrar</button>`:''}</td></tr>`;
+  }).join(''):`<tr><td colspan="9" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg></div><div class="empty-title">Sin movimientos de cuenta corriente</div><div class="empty-msg">Los cargos aparecen cuando se <b>factura</b> (o cuando una venta pasa a <b>entregado</b>). Los cobros se cargan con <b>Cobrar</b> o en <b>Contabilidad → Cobros y Pagos</b>.</div></div></td></tr>`;
 }
 let _ctacteDetTitulo='';
 function showCtaCteDetalle(idx){
   const c=_ctacteData[idx];if(!c)return;
-  const movs=[
-    ...c.cargos.map(x=>({fecha:x.fecha,venc:x.venc,tipo:x.tipo,ref:x.ref,cargo:x.monto,pago:0})),
-    ...c.pagos.map(x=>({fecha:x.fecha,venc:null,tipo:x.tipo,ref:x.ref,cargo:0,pago:x.monto})),
-  ].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
-  let saldo=0;
-  const rows=movs.map(m=>{saldo+=m.cargo-m.pago;return`<tr><td class="mono">${fmtFecha(m.fecha)||'—'}</td><td><span class="badge ${m.cargo?'badge-warn':'badge-ok'}">${m.tipo.toUpperCase()}</span></td><td class="mono" style="font-size:11px">${esc(m.ref)||'—'}</td><td class="mono">${m.venc||'—'}</td><td class="mono" style="text-align:right">${m.cargo?fmtUSD(m.cargo):'—'}</td><td class="mono" style="text-align:right;color:var(--green)">${m.pago?fmtUSD(m.pago):'—'}</td><td class="mono" style="text-align:right;font-weight:600;color:${saldo>0.005?'var(--coral)':'var(--green)'}">${fmtUSD(saldo)}</td></tr>`;}).join('');
+  const pesos=x=>'$ '+_fmt2(x),nat=(x,m)=>x.mon==='USD'?fmtUSD(m):pesos(m);
+  const cargos=c.cargos.slice().sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+  const filasC=cargos.map(x=>`<tr><td class="mono">${fmtFecha(x.fecha)||'—'}</td><td><span class="badge ${x.rest>0.005?'badge-warn':'badge-ok'}">${esc(x.tipo.toUpperCase())}</span>${x.sinFactura?' <span class="badge badge-coral" style="font-size:9px">SIN FACTURA</span>':''}</td>
+    <td class="mono" style="font-size:11px">${esc(x.ref)||'—'}</td><td class="mono">${fmtFecha(x.venc)||'—'}</td>
+    <td class="mono" style="text-align:right">${nat(x,x.total)}</td>
+    <td class="mono" style="text-align:right;font-weight:600;color:${x.rest>0.005?'var(--coral)':'var(--green)'}">${x.rest>0.005?pesos(x.saldoARS):'cancelada'}</td>
+    <td class="mono" style="text-align:right;color:var(--text2)">${x.rest>0.005?fmtUSD(x.saldoUSD)+(x.tcEstimado?'*':''):'—'}</td>
+    <td>${x.facturaId&&x.rest>0.005&&c.cliente?`<button class="btn btn-ghost btn-sm" onclick="openReciboModal('${c.cliente.id}','${x.facturaId}')">Cobrar</button>`:''}</td></tr>`).join('');
+  const filasP=c.pagos.slice().sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')).map(p=>`<tr><td class="mono">${fmtFecha(p.fecha)||'—'}</td><td><span class="badge badge-ok">${esc(p.tipo.toUpperCase())}</span></td><td class="mono" style="font-size:11px">${esc(p.ref)||'—'}</td><td class="mono" style="text-align:right;color:var(--green)">${nat(p,p.montoNat)}</td></tr>`).join('');
   const det=document.getElementById('ctacte-detalle');
   _ctacteDetTitulo='Resumen de cuenta — '+(c.nombre||'');
-  if(det){det.innerHTML=`<div style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm)"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-weight:600">${esc(c.nombre)} — movimientos (saldo ${fmtUSD(c.saldo)})</div><span style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" onclick="imprimirTablaPagina('ctacte-detalle',_ctacteDetTitulo)">Imprimir / PDF</button><button class="btn btn-ghost btn-sm" onclick="exportarTablaPagina('ctacte-detalle',_ctacteDetTitulo)">Excel (CSV)</button><button class="btn btn-ghost btn-sm" onclick="document.getElementById('ctacte-detalle').innerHTML=''">Cerrar</button></span></div><div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Comprobante</th><th>Vence</th><th style="text-align:right">Cargo</th><th style="text-align:right">Pago</th><th style="text-align:right">Saldo</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;det.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  if(!det)return;
+  det.innerHTML=`<div style="padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px"><div style="font-weight:600">${esc(c.nombre)} — saldo ${pesos(c.saldoARS)} <span style="color:var(--text3);font-weight:400">≈ ${fmtUSD(c.saldo)}</span></div>
+      <span style="display:flex;gap:6px">${c.cliente?`<button class="btn btn-primary btn-sm" onclick="openReciboModal('${c.cliente.id}')">Cobrar</button>`:''}<button class="btn btn-ghost btn-sm" onclick="imprimirTablaPagina('ctacte-detalle',_ctacteDetTitulo)">Imprimir / PDF</button><button class="btn btn-ghost btn-sm" onclick="exportarTablaPagina('ctacte-detalle',_ctacteDetTitulo)">Excel (CSV)</button><button class="btn btn-ghost btn-sm" onclick="document.getElementById('ctacte-detalle').innerHTML=''">Cerrar</button></span></div>
+    <div style="font-size:11px;color:var(--text3);margin:4px 0">Comprobantes</div>
+    <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Comprobante</th><th>Vence</th><th style="text-align:right">Importe</th><th style="text-align:right">Saldo $</th><th style="text-align:right">Saldo USD</th><th></th></tr></thead><tbody>${filasC||'<tr><td colspan="8" class="empty-cell">Sin comprobantes</td></tr>'}</tbody></table></div>
+    <div style="font-size:11px;color:var(--text3);margin:12px 0 4px">Cobros y notas de crédito</div>
+    <div class="table-wrap"><table><thead><tr><th>Fecha</th><th>Tipo</th><th>Comprobante</th><th style="text-align:right">Importe</th></tr></thead><tbody>${filasP||'<tr><td colspan="4" class="empty-cell">Sin cobros registrados</td></tr>'}</tbody></table></div>
+    ${c.aFavorARS>0.5?`<div style="font-size:12px;margin-top:8px;color:var(--teal)">Saldo a favor del cliente sin aplicar: <b>${pesos(c.aFavorARS)}</b></div>`:''}
+    ${c.tcEstimado?'<div style="font-size:10px;color:var(--text3);margin-top:6px">* Equivalente estimado al dólar de hoy (comprobante sin tipo de cambio guardado o venta sin facturar).</div>':''}</div>`;
+  det.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 // ─── CHEQUES DIFERIDOS ────────────────────────────────────────────
@@ -17790,8 +18176,112 @@ async function registrarFacturaRecibida(btnId){
     await reload('facturas_recibidas','ordenes_compra','asientos','asiento_lineas','recepciones_oc','oc_items','barras','insumos','herramientas');
     closeModal('modal-factura-recibida',true);renderAll();
     notify({factura:'Factura registrada',nota_credito:'Nota de crédito registrada',nota_debito:'Nota de débito registrada'}[tipo]);
+    if(_arcaImp.volver){_arcaImp.volver=false;openArcaImport();} // seguir con el resto del archivo de ARCA
   }catch(e){notify(e.message||'Error registrando el comprobante','err');}
   finally{setBusy(btnId,false);}
+}
+
+// ─── Importar de ARCA: pantalla ──────────────────────────────────────
+let _arcaImp={comps:[],archivo:'',volver:false};
+function openArcaImport(){
+  renderArcaImport();
+  openModal('modal-arca-import');
+}
+function onArcaFile(input){
+  const file=input.files[0];if(!file)return;
+  const esCsv=/\.(csv|txt)$/i.test(file.name);
+  if(!esCsv&&!window.XLSX){notify('Librería Excel no cargada. Recargá la página.','err');return;}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      let rows;
+      if(esCsv){
+        let txt=new TextDecoder('utf-8').decode(e.target.result);
+        if(txt.includes('�'))txt=new TextDecoder('windows-1252').decode(e.target.result);
+        rows=arcaCsvRows(txt);
+      }else{
+        const wb=XLSX.read(e.target.result,{type:'array'});
+        rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
+      }
+      const r=parseMisComprobantes(rows);
+      if(r.error){notify(r.error,'err');return;}
+      _arcaImp={comps:r.comprobantes,archivo:file.name,volver:false};
+      renderArcaImport();
+    }catch(err){notify('No se pudo leer el archivo: '+(err.message||err),'err');}
+  };
+  reader.readAsArrayBuffer(file);
+  input.value='';
+}
+function renderArcaImport(){
+  const w=document.getElementById('arca-imp-body');if(!w)return;
+  if(!_arcaImp.comps.length){
+    w.innerHTML='<div style="color:var(--text3);font-size:12px;padding:16px 0">Todavía no cargaste ningún archivo.</div>';
+    document.getElementById('arca-imp-stats').innerHTML='';return;
+  }
+  const filas=conciliarArca(_arcaImp.comps,{facturas:facturasRecibidas,proveedores});
+  const ver=document.getElementById('arca-imp-ver').value;
+  const n=e=>filas.filter(x=>x.estado===e).length;
+  const pend=filas.filter(x=>x.estado==='falta'||x.estado==='sin_proveedor');
+  const fmt=x=>(parseFloat(x)||0).toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const totPend=pend.filter(x=>x.moneda==='ARS').reduce((a,x)=>a+(x.tipo==='nota_credito'?-1:1)*x.total,0);
+  document.getElementById('arca-imp-stats').innerHTML=`<b>${esc(_arcaImp.archivo)}</b> · ${filas.length} comprobantes · <span style="color:var(--green)">${n('cargada')} ya cargados</span> · <span style="color:var(--coral)">${pend.length} sin cargar</span> ($ ${fmt(totPend)})${n('difiere')?` · <span style="color:var(--amber,#d99a2b)">${n('difiere')} con otro total</span>`:''}`;
+  const lista=filas.map((x,i)=>({x,i})).filter(({x})=>ver==='todos'||x.estado!=='cargada');
+  if(!lista.length){w.innerHTML='<div style="color:var(--green);font-size:13px;padding:16px 0">✓ Todo lo que informa ARCA en este archivo ya está cargado.</div>';return;}
+  const sinFact=ocsSinFacturaRegistrada().filter(o=>o.estado!=='anulada');
+  const T={factura:'FA',nota_credito:'NC',nota_debito:'ND'};
+  w.innerHTML=`<div class="table-wrap" style="max-height:52vh;overflow:auto"><table style="font-size:12px"><thead><tr><th>Fecha</th><th>Tipo</th><th>Nro</th><th>Proveedor</th><th style="text-align:right">Neto</th><th style="text-align:right">IVA</th><th style="text-align:right">Otros trib.</th><th style="text-align:right">Total</th><th>Estado</th><th></th></tr></thead><tbody>`+lista.map(({x,i})=>{
+    const prov=proveedores.find(p=>p.id===x.proveedor_id);
+    const ocs=x.tipo==='factura'&&prov?sinFact.filter(o=>o.proveedor_id===prov.id):[];
+    const estado={cargada:'<span class="badge badge-ok">CARGADA</span>',
+      difiere:`<span class="badge badge-warn" title="En el sistema figura por ${fmt(x.totalCargado)}">OTRO TOTAL: ${fmt(x.totalCargado)}</span>`,
+      falta:'<span class="badge badge-coral">FALTA</span>',
+      sin_proveedor:'<span class="badge badge-coral">FALTA</span> <span class="badge badge-warn">PROVEEDOR NUEVO</span>'}[x.estado];
+    const accion=x.estado==='cargada'||x.estado==='difiere'?'':
+      `<div style="display:flex;gap:4px;justify-content:flex-end">${ocs.length?`<select id="arca-oc-${i}" title="Imputar a una orden de compra" style="width:auto;max-width:130px;font-size:11px;padding:3px"><option value="">Sin OC (gasto)</option>${ocs.map(o=>`<option value="${esc(o.id)}">${esc(o.nro||'OC')}</option>`).join('')}</select>`:''}<button class="btn btn-primary btn-sm" onclick="arcaCargar(${i})">Cargar</button></div>`;
+    return `<tr><td class="mono">${fmtFecha(x.fecha)||'—'}</td><td>${T[x.tipo]} ${esc(x.letra)}${x.tipoDesconocido?` <span class="badge badge-warn" title="Tipo de ARCA sin equivalente: ${esc(x.tipoTxt)}">?</span>`:''}</td><td class="mono">${String(x.pv).padStart(4,'0')}-${String(x.numero).padStart(8,'0')}</td>
+      <td>${esc(prov?.nombre||x.nombre)}<div class="mono" style="font-size:10px;color:var(--text3)">${esc(x.cuit)}</div></td>
+      <td class="mono" style="text-align:right">${fmt(x.neto)}</td><td class="mono" style="text-align:right">${fmt(x.iva)}${x.ivaMixto?' <span class="badge badge-warn" title="Varias alícuotas: separalas al cargar">!</span>':''}</td><td class="mono" style="text-align:right">${x.otrosTributos?fmt(x.otrosTributos):'—'}</td>
+      <td class="mono" style="text-align:right;font-weight:600">${x.moneda==='USD'?'USD ':''}${fmt(x.total)}</td><td>${estado}</td><td>${accion}</td></tr>`;
+  }).join('')+'</tbody></table></div>';
+}
+// Abre el modal de factura de proveedor con los datos de ARCA precargados.
+// Queda todo editable: falta elegir la cuenta, el vencimiento y qué
+// percepción es "Otros tributos" (ARCA no lo abre).
+function arcaCargar(i){
+  const x=conciliarArca(_arcaImp.comps,{facturas:facturasRecibidas,proveedores})[i];if(!x)return;
+  const prov=proveedores.find(p=>p.id===x.proveedor_id)||null;
+  const ocId=document.getElementById('arca-oc-'+i)?.value||'';
+  if(x.tipo!=='factura'){
+    const fa=prov&&facturasRecibidas.filter(f=>f.proveedor_id===prov.id&&(f.tipo||'factura')==='factura').sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''))[0];
+    if(!fa){notify('Cargá primero la factura a la que corresponde esta nota: se registra asociada a ella','err');return;}
+    closeModal('modal-arca-import',true);openNCNDModal(fa.id);
+    document.getElementById('fr-tipo').value=x.tipo;
+  }else{
+    closeModal('modal-arca-import',true);
+    if(ocId)openFacturaRecibidaModal(ocId);
+    else{
+      openFacturaSinOCModal();
+      if(prov){document.getElementById('fr-proveedor-select').value=prov.id;frOnProveedorChange();}
+    }
+  }
+  _arcaImp.volver=true;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
+  const disc=letraDiscriminaIva(x.letra);
+  set('fr-letra',x.letra);set('fr-nro',x.nro);set('fr-fecha',x.fecha);
+  set('fr-moneda',x.moneda);set('fr-tc',x.moneda==='USD'?x.tc:(document.getElementById('fr-tc').value||''));
+  frOnLetraChange();
+  frIvas=disc?x.ivas.map(r=>({alicuota:r.alicuota,base:r.base.toFixed(2),monto:r.monto.toFixed(2)})):[];
+  // B y C no discriminan IVA: todo lo que no es exento ni tributo va al no gravado.
+  set('fr-no-gravado',(disc?x.noGravado:Math.round((x.total-x.exento-x.otrosTributos)*100)/100)||'');
+  set('fr-exento',x.exento||'');
+  frPerceps=x.otrosTributos>0?[{tipo:'otros',jurisdiccion:'Buenos Aires',monto:x.otrosTributos.toFixed(2)}]:[];
+  set('fr-total',x.total.toFixed(2));
+  frRender();
+  if(!prov&&!ocId){
+    openProvRapidoModal('fr');
+    set('pr-cuit',x.cuit);set('pr-nombre',x.nombre);set('pr-cond-fiscal',x.letra==='C'?'monotributo':'RI');prOnCuitInput();
+    notify('Proveedor nuevo: confirmá el alta y seguí con la factura');
+  }else notify('Datos de ARCA precargados — revisá la cuenta, el vencimiento'+(x.otrosTributos>0?' y qué percepción es "Otros tributos"':''));
 }
 
 function _calcValorRecibidoOC(ocId,{completo=false}={}){
@@ -18973,6 +19463,129 @@ function computeTotalesFactura({ivas=[],noGravado=0,exento=0,percepciones=[]}={}
   return {neto,iva,percep,total};
 }
 function letraDiscriminaIva(letra){return letra==='A'||letra==='M';}
+// ─── Importar "Mis Comprobantes Recibidos" de ARCA ───────────────────
+// Lee el Excel/CSV que se baja de ARCA y lo cruza con las facturas de
+// proveedor ya cargadas: lo que falta se abre precargado en el modal de
+// siempre (nada se registra solo). Puras con tests en
+// tests/arca-comprobantes.test.js.
+const ARCA_TIPOS={1:['factura','A'],2:['nota_debito','A'],3:['nota_credito','A'],6:['factura','B'],7:['nota_debito','B'],8:['nota_credito','B'],
+  11:['factura','C'],12:['nota_debito','C'],13:['nota_credito','C'],51:['factura','M'],52:['nota_debito','M'],53:['nota_credito','M'],81:['factura','A'],82:['factura','B'],
+  201:['factura','A'],202:['nota_debito','A'],203:['nota_credito','A'],206:['factura','B'],207:['nota_debito','B'],208:['nota_credito','B'],211:['factura','C'],212:['nota_debito','C'],213:['nota_credito','C']};
+// Importe de ARCA: número (Excel) o texto con coma decimal (CSV).
+function arcaNum(v){
+  if(typeof v==='number')return v;
+  let t=String(v??'').trim().replace(/[^\d,.\-]/g,'');
+  if(t.includes(','))t=t.replace(/\./g,'').replace(',','.');
+  return parseFloat(t)||0;
+}
+function arcaFecha(v){
+  if(v instanceof Date)return new Date(v.getTime()-v.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  if(typeof v==='number'&&v>20000)return new Date(Math.round((v-25569)*86400000)).toISOString().slice(0,10); // serial de Excel
+  const t=String(v??'').trim();
+  let m=t.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+  if(m)return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  m=t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m?m[0]:'';
+}
+// CSV de ARCA → filas (separador ; o , con comillas).
+function arcaCsvRows(text){
+  text=String(text||'').replace(/^﻿/,'');
+  const l1=text.split(/\r?\n/)[0]||'';
+  const sep=(l1.match(/;/g)||[]).length>=(l1.match(/,/g)||[]).length?';':',';
+  const rows=[];let row=[],cur='',q=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i];
+    if(q){if(ch==='"'){if(text[i+1]==='"'){cur+='"';i++;}else q=false;}else cur+=ch;}
+    else if(ch==='"')q=true;
+    else if(ch===sep){row.push(cur);cur='';}
+    else if(ch==='\n'){row.push(cur);rows.push(row);row=[];cur='';}
+    else if(ch!=='\r')cur+=ch;
+  }
+  if(cur!==''||row.length){row.push(cur);rows.push(row);}
+  return rows;
+}
+// Filas del archivo → comprobantes. Ubica el encabezado por nombre de
+// columna: sirve para el formato viejo (un neto y un IVA) y para el que
+// trae el IVA abierto por alícuota. Los importes van siempre en positivo.
+function parseMisComprobantes(rows){
+  const norm=h=>String(h??'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\./g,'').replace(/\s+/g,' ').trim();
+  const r2=x=>Math.round(x*100)/100;
+  const hi=(rows||[]).findIndex(r=>{const c=(r||[]).map(norm);return c.some(x=>x.startsWith('punto de venta'))&&c.some(x=>x.startsWith('numero desde'));});
+  if(hi<0)return {comprobantes:[],error:'No parece un archivo de Mis Comprobantes de ARCA: falta el encabezado con "Punto de Venta" y "Número Desde".'};
+  const H=rows[hi].map(norm);
+  const col=re=>H.findIndex(h=>re.test(h));
+  const iCuit=col(/^nro doc emisor/);
+  if(iCuit<0)return {comprobantes:[],error:H.some(h=>/doc receptor/.test(h))?'Este archivo es de comprobantes EMITIDOS. Bajá el de Mis Comprobantes → Recibidos.':'El archivo no trae la columna "Nro. Doc. Emisor".'};
+  const iFecha=col(/^fecha( de emision)?$/),iTipo=col(/^tipo( de comprobante)?$/),iPv=col(/^punto de venta/),iNum=col(/^numero desde/),iCae=col(/^cod autorizacion/),
+    iNom=col(/^denominacion emisor/),iTc=col(/^tipo cambio/),iMon=col(/^moneda/),iNeto=col(/^(imp neto gravado|total neto gravado|imp neto gravado total)$/),
+    iNoGrav=col(/^imp neto no gravado/),iEx=col(/^imp op exentas/),iOtros=col(/^otros tributos/),iIva=col(/^(iva|total iva)$/),iTot=col(/^imp total/);
+  const porAli={};
+  H.forEach((h,i)=>{
+    let m=h.match(/^iva (\d+(?:,\d+)?)%$/);if(m){(porAli[m[1]]=porAli[m[1]]||{}).monto=i;return;}
+    m=h.match(/^imp neto gravado iva (\d+(?:,\d+)?)%$/);if(m)(porAli[m[1]]=porAli[m[1]]||{}).base=i;
+  });
+  const hayAli=Object.keys(porAli).length>0;
+  const g=(r,i)=>i<0?'':r[i];
+  const comprobantes=[];
+  rows.slice(hi+1).forEach(r=>{
+    if(!r)return;
+    const numero=parseInt(String(g(r,iNum)).replace(/\D/g,''),10)||0,cuit=normalizarCuit(g(r,iCuit));
+    if(!numero||!cuit)return;
+    const tRaw=String(g(r,iTipo)).trim(),cod=parseInt(tRaw,10);
+    let par=ARCA_TIPOS[cod],desconocido=false;
+    if(!par){
+      const t=norm(tRaw),l=(t.match(/\b([abcm])$/)||[])[1];
+      if(l&&/factura|nota de/.test(t))par=[/credito/.test(t)?'nota_credito':/debito/.test(t)?'nota_debito':'factura',l.toUpperCase()];
+      else{par=['factura','X'];desconocido=true;}
+    }
+    const [tipo,letra]=par,pv=parseInt(String(g(r,iPv)).replace(/\D/g,''),10)||0;
+    const abs=i=>r2(Math.abs(arcaNum(g(r,i))));
+    let ivas=[],ivaMixto=false;
+    if(hayAli){
+      Object.keys(porAli).forEach(k=>{
+        const base=porAli[k].base==null?0:abs(porAli[k].base),monto=porAli[k].monto==null?0:abs(porAli[k].monto);
+        if(base>0||monto>0)ivas.push({alicuota:parseFloat(k.replace(',','.')),base,monto});
+      });
+      ivas.sort((a,b)=>a.alicuota-b.alicuota);
+    }else{
+      const base=abs(iNeto),monto=abs(iIva);
+      if(base>0||monto>0){
+        const ali=ALICUOTAS_IVA.find(a=>Math.abs(monto-base*a/100)<=Math.max(base*a/100*0.01,0.05));
+        if(ali==null)ivaMixto=true;
+        ivas=[{alicuota:ali==null?21:ali,base,monto}];
+      }
+    }
+    const mon=norm(g(r,iMon)),moneda=/usd|dol/.test(mon)?'USD':'ARS';
+    comprobantes.push({fecha:arcaFecha(g(r,iFecha)),tipo,letra,pv,numero,nro:`${letra}-${String(pv).padStart(4,'0')}-${String(numero).padStart(8,'0')}`,
+      cae:String(g(r,iCae)||'').trim(),cuit,nombre:String(g(r,iNom)||'').trim(),moneda,tc:moneda==='USD'?arcaNum(g(r,iTc)):1,
+      ivas,ivaMixto,neto:r2(ivas.reduce((a,i)=>a+i.base,0)),iva:r2(ivas.reduce((a,i)=>a+i.monto,0)),
+      noGravado:abs(iNoGrav),exento:abs(iEx),otrosTributos:abs(iOtros),total:abs(iTot),tipoDesconocido:desconocido,tipoTxt:tRaw});
+  });
+  return {comprobantes,error:comprobantes.length?null:'El archivo no trae comprobantes.'};
+}
+// Punto de venta y número de un nro tipeado a mano ("A-0003-00001234", "3/1234"…).
+function nroPartes(nro){
+  const g=String(nro||'').match(/\d+/g);
+  if(!g)return {pv:null,num:null};
+  return {pv:g.length>1?parseInt(g[g.length-2],10):null,num:parseInt(g[g.length-1],10)};
+}
+// Estado de cada comprobante de ARCA contra lo cargado: 'cargada',
+// 'difiere' (está pero con otro total), 'falta' o 'sin_proveedor'.
+function conciliarArca(comps,{facturas=[],proveedores:ps=[]}={}){
+  const porCuit={};(ps||[]).forEach(p=>{const k=normalizarCuit(p.cuit);if(k&&!porCuit[k])porCuit[k]=p;});
+  return (comps||[]).map(c=>{
+    const prov=porCuit[c.cuit]||null;
+    if(!prov)return {...c,estado:'sin_proveedor',proveedor_id:null,factura_id:null};
+    const f=(facturas||[]).find(x=>{
+      if(x.proveedor_id!==prov.id||(x.tipo||'factura')!==c.tipo)return false;
+      const n=nroPartes(x.nro);
+      return n.num===c.numero&&(n.pv==null||n.pv===c.pv);
+    });
+    if(!f)return {...c,estado:'falta',proveedor_id:prov.id,factura_id:null};
+    const tot=parseFloat(f.total)||0;
+    return {...c,estado:Math.abs(tot-c.total)>0.01?'difiere':'cargada',proveedor_id:prov.id,factura_id:f.id,totalCargado:tot};
+  });
+}
 function normalizarCuit(cuit){return String(cuit||'').replace(/\D/g,'');}
 function validarCuit(cuit){
   // Dígito verificador módulo 11 (mismo algoritmo que ARCA/Tango offline).
