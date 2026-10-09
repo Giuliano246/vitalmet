@@ -724,7 +724,7 @@ body.no-costos .solo-costos{display:none!important}
       <div class="page-content">
         <div class="stats-bar" id="ventas-stats"></div>
         <div class="toolbar">
-          <div class="search-box"><input type="text" placeholder="Buscar por cliente, remito..." oninput="renderVentas(this.value)"></div><button class="btn btn-ghost" id="btn-fact-lote" onclick="facturarEntregadas()" style="border-color:var(--green);color:var(--green);display:none">Facturar entregadas</button><button class="btn btn-ghost" onclick="openFacturaDirecta()" style="border-color:var(--teal);color:var(--teal)">+ Factura directa</button><button class="btn btn-ghost" onclick="showPage('femitidas')" title="Listado de todas las facturas, NC y ND emitidas, con filtros por cliente, tipo y fecha">Facturas emitidas</button><button class="btn btn-ghost" onclick="openNotaLibre()" style="border-color:var(--coral,#e5484d);color:var(--coral,#e5484d)" title="NC/ND con CAE sin factura del ERP: asociada a un período o a un comprobante propio externo">+ NC/ND libre</button><button class="btn btn-ghost" id="btn-regen-asientos" onclick="regenerarAsientosFaltantes()" style="border-color:var(--amber,#d99a2b);color:var(--amber,#d99a2b)" title="Genera el asiento contable de las facturas y NC con CAE que no lo tengan (backfill)">Regenerar asientos</button><input type="date" id="ventasf-fdesde" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Desde" style="width:auto"><input type="date" id="ventasf-fhasta" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Hasta" style="width:auto">
+          <div class="search-box"><input type="text" placeholder="Buscar por cliente, remito, OC del cliente..." oninput="renderVentas(this.value)"></div><button class="btn btn-ghost" id="btn-fact-lote" onclick="facturarEntregadas()" style="border-color:var(--green);color:var(--green);display:none">Facturar entregadas</button><button class="btn btn-ghost" onclick="openFacturaDirecta()" style="border-color:var(--teal);color:var(--teal)">+ Factura directa</button><button class="btn btn-ghost" onclick="showPage('femitidas')" title="Listado de todas las facturas, NC y ND emitidas, con filtros por cliente, tipo y fecha">Facturas emitidas</button><button class="btn btn-ghost" onclick="openNotaLibre()" style="border-color:var(--coral,#e5484d);color:var(--coral,#e5484d)" title="NC/ND con CAE sin factura del ERP: asociada a un período o a un comprobante propio externo">+ NC/ND libre</button><button class="btn btn-ghost" id="btn-regen-asientos" onclick="regenerarAsientosFaltantes()" style="border-color:var(--amber,#d99a2b);color:var(--amber,#d99a2b)" title="Genera el asiento contable de las facturas y NC con CAE que no lo tengan (backfill)">Regenerar asientos</button><input type="date" id="ventasf-fdesde" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Desde" style="width:auto"><input type="date" id="ventasf-fhasta" onchange="renderVentas(document.querySelector('#page-ventas .search-box input').value)" title="Hasta" style="width:auto">
           <button class="btn btn-ghost" onclick="exportVentasCSV()" title="Exportar a Excel (CSV)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg></span>Excel</button>
         </div>
         <div class="table-wrap"><table><thead><tr><th>Nro. remito</th><th>Cliente</th><th>Fecha</th><th>Piezas</th><th>Total unid.</th><th>Importe</th><th>Estado</th><th></th></tr></thead><tbody id="ventas-tbody"></tbody></table></div>
@@ -2021,11 +2021,12 @@ body.no-costos .solo-costos{display:none!important}
 
       <!-- CONDICIONES COMERCIALES -->
       <div class="section-label">Condiciones comerciales</div>
-      <div class="form-row" style="grid-template-columns:2fr 1fr 1fr 1fr">
+      <div class="form-row" style="grid-template-columns:2fr 1fr 1fr 1fr 1fr">
         <div class="form-group"><label>Lista de precios</label><select id="v-lista-precios"><option value="">Sin lista</option></select></div>
         <div class="form-group"><label>Condición pago</label><select id="v-condicion"><option>Contado</option><option>15 días</option><option>30 días</option><option>0/30 días</option><option>30/60 días</option><option>60 días</option><option>90 días</option><option>A convenir</option></select></div>
         <div class="form-group"><label>Vendedor</label><select id="v-vendedor"><option value="">Sin vendedor</option></select></div>
         <div class="form-group"><label>Grupo bonif.</label><input type="text" id="v-grupo-bonif" placeholder="-"></div>
+        <div class="form-group"><label>OC del cliente</label><input type="text" id="v-oc-cliente" placeholder="Nº de orden de compra" maxlength="40" title="Número de la orden de compra del cliente: sale en el remito y en la factura"></div>
       </div>
       <div class="form-row single">
         <div class="form-group"><label>% Bonificación</label><input type="number" id="v-bonif1" value="0" step="0.01" min="0"></div>
@@ -4929,7 +4930,7 @@ function openModal(id){
     if(!window.editingVentaId){
       autoDate('v-fecha');autoDate('v-fecha-desde');autoDate('v-fecha-hasta');
       ventaItemsList=[];renderVentaItems();
-      resetF(['v-remito','v-cliente','v-cuit','v-obs','v-grupo-bonif']);
+      resetF(['v-remito','v-cliente','v-cuit','v-obs','v-grupo-bonif','v-oc-cliente']);
       document.getElementById('v-bonif1').value='0';
       document.getElementById('v-coef-reg').value='USD';
       document.getElementById('v-coef-emi').value='USD';
@@ -5209,7 +5210,8 @@ async function saveVenta(){
     if(avisosCred&&!confirm(`⚠ ${g('v-cliente')}:\n\n• ${avisosCred.join('\n• ')}\n\n¿Registrar el pedido igual?`))return;
     // Cliente + cabecera + items + descuento de stock en UNA transacción (RPC).
     // Si el stock no alcanza al momento de guardar, no queda nada a medias.
-    await RPC('guardar_venta',{
+    const ocCli=g('v-oc-cliente'),ocAntes=ventaActual?.remito_datos?.oc_cliente||'';
+    const rv=await RPC('guardar_venta',{
       p_venta:{
         nro_remito:g('v-remito'),
         cliente:g('v-cliente'),
@@ -5229,11 +5231,15 @@ async function saveVenta(){
       p_items:ventaItemsList.map(i=>{const sub=i.cant*(i.precio||0);const bi=parseFloat(i.bonif||0);return{producto_id:i.ptId,cantidad:i.cant,precio_unitario:i.precio,bonif_1:bi,total:sub*(1-bi/100)};}),
       p_venta_id:isEdit?window.editingVentaId:null
     });
+    // OC del cliente: vive en ventas.remito_datos (mig 088), que la RPC no toca.
+    const ventaIdOC=isEdit?window.editingVentaId:rv?.id;
+    if(ventaIdOC&&ocCli!==ocAntes)await PATCH('ventas',{remito_datos:{...(ventaActual?.remito_datos||{}),oc_cliente:ocCli||null}},`?id=eq.${ventaIdOC}`)
+      .catch(e=>notify('El pedido se guardó, pero no la OC del cliente: '+msgError(e),'err'));
     // ANTES: se generaba asiento contable acá. Ahora el asiento se genera
     // recién al emitir la factura electrónica (ver emitirFactura → generarAsientoFactura).
     // Razón: hasta que no hay CAE, no hay hecho imponible documentado.
     await reload('ventas','productos_terminados','clientes','asientos','asiento_lineas');_modalDirty['modal-venta']=false;closeModal('modal-venta',true);ventaItemsList=[];window.editingVentaId=null;
-    resetF(['v-remito','v-cliente','v-cuit','v-fecha','v-condicion','v-estado','v-obs','v-grupo-bonif']);
+    resetF(['v-remito','v-cliente','v-cuit','v-fecha','v-condicion','v-estado','v-obs','v-grupo-bonif','v-oc-cliente']);
     renderAll();notify(isEdit?'Venta actualizada':'Pedido registrado');
   }catch(e){notify(msgError(e),'err');}
   finally{_savingVenta=false;setBusy('btn-save-venta',false,window.editingVentaId?'Guardar cambios':'Registrar pedido');}
@@ -5705,6 +5711,7 @@ function comprobanteModelo(f,{cliente,venta,asociada,empresa}={}){
     receptor:{nombre,doc_label:conDoc?(DOC_TIPO_TXT[docTipo]||'Doc.'):'',doc:conDoc?(docTipo===80?fmtCuitDoc(doc):doc):'',
       cond_iva:COND_IVA_TXT[cliente?.condicion_fiscal]||(discrimina?COND_IVA_TXT.RI:COND_IVA_TXT.consumidor_final),domicilio:cliente?.direccion||''},
     condicion_venta:(clase==='fa'&&venta?.condicion_pago)||'Cuenta corriente',
+    oc_cliente:venta?.remito_datos?.oc_cliente||'',
     referencia:clase==='fa'&&venta?[venta.nro_remito?`Remito ${venta.nro_remito}`:'',venta.nro_pedido?`Pedido ${venta.nro_pedido}`:''].filter(Boolean).join(' · '):'',
     asociado,items,discrimina,estimados,neto,ivas,iva,total,
     iva_contenido:letra==='B'?iva:null,
@@ -5762,6 +5769,7 @@ function _dibujarComprobante(doc,m,copia){
   par('Domicilio:',m.receptor.domicilio,15,y+11.5,100);
   par('Cond. IVA:',m.receptor.cond_iva,118,y+11.5,78);
   par('Condición de venta:',m.condicion_venta,15,y+17,100);
+  if(m.oc_cliente)par('OC del cliente:',m.oc_cliente,118,y+17,78);
   if(m.asociado||m.referencia){doc.setFont('helvetica','normal');doc.setTextColor(...gris);doc.text(doc.splitTextToSize(m.asociado||m.referencia,180)[0],15,y+22);}
   y+=alto+4;
   // Detalle
@@ -7701,9 +7709,9 @@ function exportVentasCSV(){
     const items=v.venta_items||[];
     const unid=items.reduce((a,i)=>a+(parseInt(i.cantidad)||0),0);
     const imp=items.reduce((a,i)=>a+((parseFloat(i.cantidad)||0)*(parseFloat(i.precio_unitario)||0)),0);
-    return[v.nro_remito,v.cliente,v.fecha||'',v.estado||'',v.condicion_pago||'',unid,_numAR(imp),[...new Set(items.map(i=>i.pieza||''))].join(', ')];
+    return[v.nro_remito,v.cliente,v.fecha||'',v.estado||'',v.condicion_pago||'',unid,_numAR(imp),[...new Set(items.map(i=>i.pieza||''))].join(', '),v.remito_datos?.oc_cliente||''];
   });
-  exportCSV(`ventas_${hoyLocal()}.csv`,['Remito','Cliente','Fecha','Estado','Condición de pago','Unidades','Importe USD','Piezas'],rows);
+  exportCSV(`ventas_${hoyLocal()}.csv`,['Remito','Cliente','Fecha','Estado','Condición de pago','Unidades','Importe USD','Piezas','OC del cliente'],rows);
 }
 function exportPresupuestosCSV(){
   const conCostos=puedeVerCostos();
@@ -8595,7 +8603,7 @@ function renderVentas(filter=''){
     if(nPend&&!_btnLote.disabled)_btnLote.textContent=`Facturar entregadas (${nPend})`;
   }
   const _vFd=document.getElementById('ventasf-fdesde')?.value||'',_vFh=document.getElementById('ventasf-fhasta')?.value||'';
-  const list=ventas.filter(v=>(!f||v.nro_remito.toLowerCase().includes(f)||v.cliente.toLowerCase().includes(f))&&enRango(v.fecha,_vFd,_vFh));
+  const list=ventas.filter(v=>(!f||v.nro_remito.toLowerCase().includes(f)||v.cliente.toLowerCase().includes(f)||(v.remito_datos?.oc_cliente||'').toLowerCase().includes(f))&&enRango(v.fecha,_vFd,_vFh));
   const totalImp=ventas.reduce((a,v)=>{const items=v.venta_items||[];return a+items.reduce((b,i)=>b+(i.cantidad*(i.precio_unitario||0)),0);},0);
   const totalUnid=ventas.reduce((a,v)=>{const items=v.venta_items||[];return a+items.reduce((b,i)=>b+i.cantidad,0);},0);
   // OTD: entregas a tiempo sobre las que tienen fecha prometida y fecha real
@@ -8618,7 +8626,7 @@ function renderVentas(filter=''){
     }else if(v.estado==='pendiente'&&v.fecha_entrega_hasta&&v.fecha_entrega_hasta<hoy){
       otdBadge=`<br><span class="badge badge-warn" style="font-size:9px" title="Fecha de entrega prometida: ${fmtFecha(v.fecha_entrega_hasta)}">ATRASADO</span>`;
     }
-    return`<tr data-id="${v.id}"><td class="mono td-primary">${esc(v.nro_remito)}${v.venta_padre_id?` <span class="badge badge-amber" style="font-size:9px" title="Saldo de una entrega parcial — pendiente de enviar y facturar">SALDO</span>`:''}</td><td style="font-weight:500"><span onclick="event.stopPropagation();linkCliente(this.dataset.n)" data-n="${esc(v.cliente)}" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="Ver ficha del cliente">${esc(v.cliente)}</span></td><td>${esc(fmtFecha(v.fecha))||'—'}${otdBadge}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(piezas)}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td>${estadoSelect('ventas',v.id,v.estado,['pendiente','entregado','facturado'],bE)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button>${v.estado==='pendiente'&&!v.factura_emitida_id&&totalU>1?`<button class="btn btn-ghost btn-sm" onclick="openEntregaParcial('${v.id}')" title="Entrega parcial — enviar y facturar una parte, el saldo queda pendiente" style="color:var(--amber,#d99a2b)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M21 3l-7 7"/><path d="M3 3l7 7"/><path d="M12 22v-8"/><path d="M8 18l4 4 4-4"/></svg></span>Parcial</button>`:''}${v.factura_emitida_id?`<button class="btn btn-ghost btn-sm" id="ver-factura-${v.id}" onclick="verFactura('${v.factura_emitida_id}')" title="CAE emitido — ver/descargar"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h3"/></svg></span>CAE</button><button class="btn btn-ghost btn-sm" onclick="imprimirComprobante('${v.factura_emitida_id}')" title="Factura en PDF para imprimir o mandar al cliente" style="color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span>Factura</button><button class="btn btn-ghost btn-sm" onclick="openNotaCredito('${v.id}')" title="Nota de crédito o débito con CAE sobre esta factura (devolución / error / descuento / intereses)" style="color:var(--coral,#e5484d)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></span>NC/ND</button>`:`<button class="btn btn-ghost btn-sm" id="emitir-factura-${v.id}" onclick="emitirFactura('${v.id}')" title="Solicitar CAE a AFIP" style="color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m13 2-3 7h8l-9 13 3-9H4z"/></svg></span>Facturar</button>`}${v.estado==='entregado'||v.estado==='facturado'?`<button class="btn btn-ghost btn-sm" onclick="irACobrarVenta('${v.id}')" title="Registrar el cobro — abre Cobros y Pagos con cliente y monto precargados" style="color:var(--teal)"><span class="btn-icon"><svg viewBox="0 0 24 24"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Cobrar</button>`:''}<button class="btn btn-ghost btn-sm" onclick="openRemitoDatos('${v.id}')" title="Remito de entrega (PDF): domicilio, transporte, bultos, valor declarado y OC del cliente" aria-label="Remito PDF"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18h-5"/><path d="M20 18h2v-7l-3-5h-5v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span></button><button class="btn btn-ghost btn-sm" onclick="generateCertConformidadPDF('${v.id}')" title="Certificado de conformidad (PDF)" aria-label="Certificado de conformidad"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg></span></button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>Anular</button></td></tr>`;}):(`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></div><div class="empty-title">Sin ventas registradas</div><div class="empty-msg">Las ventas se generan al convertir un presupuesto aprobado. Andá a <b>Presupuestos</b> y aprobalo.</div></div></td></tr>`);
+    return`<tr data-id="${v.id}"><td class="mono td-primary">${esc(v.nro_remito)}${v.venta_padre_id?` <span class="badge badge-amber" style="font-size:9px" title="Saldo de una entrega parcial — pendiente de enviar y facturar">SALDO</span>`:''}${v.remito_datos?.oc_cliente?`<div style="font-size:10px;color:var(--text3);font-weight:400" title="Orden de compra del cliente">OC ${esc(v.remito_datos.oc_cliente)}</div>`:''}</td><td style="font-weight:500"><span onclick="event.stopPropagation();linkCliente(this.dataset.n)" data-n="${esc(v.cliente)}" style="cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px" title="Ver ficha del cliente">${esc(v.cliente)}</span></td><td>${esc(fmtFecha(v.fecha))||'—'}${otdBadge}</td><td style="font-size:11px;color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(piezas)}</td><td class="mono">${totalU}</td><td class="mono" style="color:var(--green)">${fmtUSD(importe)}</td><td>${estadoSelect('ventas',v.id,v.estado,['pendiente','entregado','facturado'],bE)}</td><td style="display:flex;gap:4px"><button class="btn btn-ghost btn-sm" onclick="editVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg></span>Editar</button>${v.estado==='pendiente'&&!v.factura_emitida_id&&totalU>1?`<button class="btn btn-ghost btn-sm" onclick="openEntregaParcial('${v.id}')" title="Entrega parcial — enviar y facturar una parte, el saldo queda pendiente" style="color:var(--amber,#d99a2b)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M21 3l-7 7"/><path d="M3 3l7 7"/><path d="M12 22v-8"/><path d="M8 18l4 4 4-4"/></svg></span>Parcial</button>`:''}${v.factura_emitida_id?`<button class="btn btn-ghost btn-sm" id="ver-factura-${v.id}" onclick="verFactura('${v.factura_emitida_id}')" title="CAE emitido — ver/descargar"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h3"/></svg></span>CAE</button><button class="btn btn-ghost btn-sm" onclick="imprimirComprobante('${v.factura_emitida_id}')" title="Factura en PDF para imprimir o mandar al cliente" style="color:var(--accent)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span>Factura</button><button class="btn btn-ghost btn-sm" onclick="openNotaCredito('${v.id}')" title="Nota de crédito o débito con CAE sobre esta factura (devolución / error / descuento / intereses)" style="color:var(--coral,#e5484d)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11"/></svg></span>NC/ND</button>`:`<button class="btn btn-ghost btn-sm" id="emitir-factura-${v.id}" onclick="emitirFactura('${v.id}')" title="Solicitar CAE a AFIP" style="color:var(--green)"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="m13 2-3 7h8l-9 13 3-9H4z"/></svg></span>Facturar</button>`}${v.estado==='entregado'||v.estado==='facturado'?`<button class="btn btn-ghost btn-sm" onclick="irACobrarVenta('${v.id}')" title="Registrar el cobro — abre Cobros y Pagos con cliente y monto precargados" style="color:var(--teal)"><span class="btn-icon"><svg viewBox="0 0 24 24"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>Cobrar</button>`:''}<button class="btn btn-ghost btn-sm" onclick="openRemitoDatos('${v.id}')" title="Remito de entrega (PDF): domicilio, transporte, bultos, valor declarado y OC del cliente" aria-label="Remito PDF"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18h-5"/><path d="M20 18h2v-7l-3-5h-5v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span></button><button class="btn btn-ghost btn-sm" onclick="generateCertConformidadPDF('${v.id}')" title="Certificado de conformidad (PDF)" aria-label="Certificado de conformidad"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg></span></button><button class="btn btn-danger btn-sm" onclick="anularVenta('${v.id}')"><span class="btn-icon"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>Anular</button></td></tr>`;}):(`<tr><td colspan="8" class="empty-cell"><div class="empty-state"><div class="empty-icon"><svg viewBox="0 0 24 24"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/></svg></div><div class="empty-title">Sin ventas registradas</div><div class="empty-msg">Las ventas se generan al convertir un presupuesto aprobado. Andá a <b>Presupuestos</b> y aprobalo.</div></div></td></tr>`);
 }
 
 // ─── DIGEST DE ALERTAS — "Para hoy" ───────────────────────────────
@@ -15332,6 +15340,7 @@ function editVenta(id){
   document.getElementById('v-vendedor').value=v.vendedor_id||'';
   document.getElementById('v-lista-precios').value=v.lista_precios_id||'';
   document.getElementById('v-grupo-bonif').value=v.grupo_bonificacion||'';
+  document.getElementById('v-oc-cliente').value=v.remito_datos?.oc_cliente||'';
   document.getElementById('v-bonif1').value=v.bonif_pct_1||0;
   document.getElementById('v-obs').value=v.observaciones||'';
   // Cambiar título y botón
