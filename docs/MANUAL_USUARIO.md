@@ -834,6 +834,18 @@ Audita la numeración de asientos: detecta **huecos** o **duplicados**. Revisalo
 - **Estados contables RT 54 (Contabilidad → Estados contables → EECC RT 54):** elegí el ejercicio, cargá el TC de cierre (para el anexo de moneda extranjera) y tocá **Vista previa**: ves el Estado de situación patrimonial por rubro (corriente / no corriente), el Estado de resultados por función y el Flujo de efectivo sintético, con la columna del ejercicio anterior reexpresada a moneda de cierre. **Exportar Excel** baja un libro con carátula, ESP, ER, Evolución del PN, Flujo de efectivo, notas de composición de rubros y los anexos (moneda extranjera, bienes de uso, previsiones, costo de ventas, gastos por naturaleza, partes relacionadas), en el mismo orden que el modelo del Consejo. Corré antes los ajustes de cierre y el ajuste por inflación. Si una cuenta con saldo no tiene rubro, la vista previa lo avisa y el ESP no cuadra hasta que lo asignes.
 - **Rubro RT 54:** cada cuenta imputable tiene un rubro (Plan de cuentas → Editar) que define dónde se expone en los estados contables y alimenta el reporte de Ratios.
 
+#### Liquidación mensual de IVA
+
+En **Contabilidad → Cierre e inflación → Períodos mensuales**, botón **Liquidar IVA del mes**:
+
+1. Elegí el **mes** y tocá **Calcular**. El sistema toma el **débito fiscal** de las facturas, notas de débito y crédito emitidas, el **crédito fiscal** de las compras (por fecha contable) y las **percepciones y retenciones de IVA** del mes.
+2. Trae solo lo que viene del mes anterior: el **saldo técnico a favor** y la **libre disponibilidad** (percepciones y retenciones que no se usaron). Salen de los saldos de las cuentas contables. **La primera vez revisalos** contra la última declaración jurada y corregilos si hace falta.
+3. Muestra el resultado: **IVA a pagar**, o el **saldo a favor** que pasa al mes siguiente. Las percepciones y retenciones solo se descuentan cuando hay impuesto a pagar; si no, quedan como libre disponibilidad.
+4. **Control:** avisa si lo que suman los comprobantes no coincide con lo que registraron las cuentas de IVA en el mes (por ejemplo, una factura sin asiento).
+5. **Generar asiento (borrador):** crea el asiento con fecha de fin de mes que cierra el débito y el crédito, usa las percepciones y retenciones y deja el **IVA a pagar** o el **saldo a favor**. Revisalo en Asientos y **confirmalo**: el mes siguiente arrastra los saldos de asientos confirmados.
+
+Cada mes se liquida una sola vez. Para rehacerlo, anulá (o borrá, si está en borrador) el asiento de ese mes y volvé a calcular. El pago a ARCA se registra aparte, como cualquier pago, contra la cuenta **IVA a pagar**.
+
 ### 11.9 Sueldos: motor de liquidación completo (UOM + fuera de convenio + Ganancias + ARCA)
 
 Desde septiembre de 2026 el ERP **liquida sueldos**: calcula el recibo completo (básico, antigüedad, presentismo, horas extras, feriados, licencias, vacaciones, no remunerativo de paritaria, aportes, Impuesto a las Ganancias 4ª categoría y contribuciones patronales), lo contabiliza y lo imprime. La contadora sigue revisando y confirmando cada liquidación — el sistema no reemplaza su control, se lo simplifica. Planta liquida bajo el convenio **UOM CCT 260/75 rama 17**; administración, **fuera de convenio**.
