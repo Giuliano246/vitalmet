@@ -11715,12 +11715,17 @@ function retBasePago({imputaciones,aCuenta=0,tcARS=1,impuesto}){
 // pagado YA es el total a cancelar (la retención se descuenta del medio).
 // modo 'neto': lo pagado es lo que sale de caja/banco y la retención se suma
 // arriba — como la retención depende del total, se itera hasta el punto fijo.
-function retResolverOP({pagado,fijo=0,modo,calcular}){
+// tope: saldo de las facturas tildadas. Si lo pagado entra en ese saldo y sólo
+// la retención lo excede, el total es el tope (la retención se descuenta): si
+// no, ese excedente quedaba a cuenta y engordaba la base de la retención.
+function retResolverOP({pagado,fijo=0,modo,calcular,tope=0}){
   const r2=x=>Math.round(x*100)/100,suma=rs=>r2(rs.reduce((a,r)=>a+(parseFloat(r.monto_op)||0),0));
   const base=r2((parseFloat(pagado)||0)+(parseFloat(fijo)||0));
   if(modo==='bruto'){const rets=calcular(base);return {total:base,rets,retenido:suma(rets)};}
   let T=base,rets=[];
   for(let k=0;k<20;k++){rets=calcular(T);const T2=r2(base+suma(rets));if(Math.abs(T2-T)<0.005)break;T=T2;}
+  tope=r2(parseFloat(tope)||0);
+  if(tope>0&&base<=tope+0.005&&r2(base+suma(rets))>tope+0.005){rets=calcular(tope);return {total:tope,rets,retenido:suma(rets)};}
   return {total:r2(base+suma(rets)),rets,retenido:suma(rets)};
 }
 function retFormulaTxt(c){
@@ -11868,12 +11873,20 @@ function opRecalcRetenciones(modo='neto'){
   d.medios=d.medios.filter(m=>!(m.tipo==='retencion'&&!m.ret.manual));
   d.retCero=[];
   const noRet=d.medios.filter(m=>m.tipo!=='retencion');
-  const res=retResolverOP({pagado:sum(noRet),fijo:sum(d.medios.filter(m=>m.tipo==='retencion')),modo,calcular:_opRetCalcular});
+  const pagado=sum(noRet),fijo=sum(d.medios.filter(m=>m.tipo==='retencion'));
+  const res=retResolverOP({pagado,fijo,modo,calcular:_opRetCalcular,tope:_opSaldoTildado()});
   res.rets.forEach(c=>{
     if(c.monto_op>0)d.medios.push({tipo:'retencion',monto:c.monto_op,detalle:'',ret:{...c,manual:false}});
     else if(c.base_calculo>0)d.retCero.push(c);
   });
-  if(modo==='bruto'&&res.retenido>0&&noRet[0]&&(parseFloat(noRet[0].monto)||0)>res.retenido)noRet[0].monto=r2(noRet[0].monto-res.retenido);
+  // Lo que los medios exceden al total (la retención que se descuenta) sale del primer medio.
+  const exceso=r2(pagado+fijo+res.retenido-res.total);
+  if(exceso>0&&noRet[0]&&(parseFloat(noRet[0].monto)||0)>exceso)noRet[0].monto=r2(noRet[0].monto-exceso);
+}
+// Saldo (moneda OP) de las facturas tildadas: lo máximo que la OP puede imputar.
+function _opSaldoTildado(){
+  const calc=_opImputacionesCalc(_opFacturasPendientes(),document.getElementById('op-moneda').value,_opTc(),1e15);
+  return Math.round(Object.values(calc).reduce((a,m)=>a+(parseFloat(m)||0),0)*100)/100;
 }
 function opRetReset(){_opDraft.retOff={};_opDraft.medios=_opDraft.medios.filter(m=>m.tipo!=='retencion');_opRefrescar();}
 // Montos a imputar por factura (id → monto en moneda OP), manuales + auto.

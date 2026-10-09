@@ -126,6 +126,23 @@ test("retResolverOP 'neto': total − retención(total) = lo que se transfiere",
   assert.deepStrictEqual([s.total, s.retenido], [500, 0]);
 });
 
+// Caso real (2026-10-09): se cargó la transferencia por el total de la factura
+// y la retención, sumada arriba, quedaba a cuenta y engordaba su propia base
+// (301.652,90 → 303.237,65).
+test("retResolverOP 'neto' con tope: la retención no genera un pago a cuenta", () => {
+  const ratio = 301652.9 / 365000, calcular = `T=>{const b=Math.round((Math.min(T,365000)*${ratio}+Math.max(0,T-365000))*100)/100;return [{base_calculo:b,monto_op:Math.max(0,Math.round((b-224000)*0.02*100)/100)}]}`;
+  const r = erp.run(`retResolverOP({pagado:365000, modo:'neto', tope:365000, calcular:${calcular}})`);
+  assert.strictEqual(r.total, 365000);
+  assert.strictEqual(r.rets[0].base_calculo, 301652.9);
+  assert.strictEqual(r.retenido, 1553.06);
+  // pago parcial: la retención entra en el saldo, se suma arriba como siempre
+  const p = erp.run(`retResolverOP({pagado:300000, modo:'neto', tope:365000, calcular:${calcular}})`);
+  assert.ok(Math.abs(p.total - p.retenido - 300000) < 0.011 && p.total < 365000, `total ${p.total}`);
+  // anticipo por encima de las facturas: sigue siendo a cuenta y va a la base
+  const a = erp.run(`retResolverOP({pagado:400000, modo:'neto', tope:365000, calcular:${calcular}})`);
+  assert.ok(a.total > 400000 && a.rets[0].base_calculo > 301652.9 + 35000);
+});
+
 test('validarOrdenPago acepta el medio retención y exige su cuenta', () => {
   const base = { total: 1000, imputaciones: [], saldos: {} };
   const ok = erp.run(`validarOrdenPago(${J({ ...base, medios: [{ tipo: 'banco', monto: 980, cuenta_contable_id: 'c1' }, { tipo: 'retencion', monto: 20, cuenta_contable_id: 'c2' }] })})`);
