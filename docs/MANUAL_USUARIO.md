@@ -536,6 +536,8 @@ Al pasar una venta a **entregado**, el sistema encola un mail de **"pedido despa
 
 **Datos de la entrega en el remito.** El botón **Remito** de cada venta abre primero una ventana con los datos que tiene que llevar el remito: **domicilio de entrega** (viene el del cliente; cambialo si se entrega en otro lado), **transporte**, **N° de orden de compra del cliente**, **cantidad de bultos** y **valor declarado** (viene el total de la venta sin IVA, en dólares; podés corregirlo o pasarlo a pesos). Con **Guardar y generar remito** los datos quedan guardados en la venta y baja el PDF; la próxima vez que lo abras ya vienen cargados. En el saldo de una entrega parcial, la orden de compra, el domicilio y el transporte se traen de la venta original. Un campo que dejes vacío sale con una raya.
 
+**OC del cliente:** en el pedido (sección *Condiciones comerciales*) cargás el **número de orden de compra del cliente**. Queda a la vista en la lista de ventas debajo del número de pedido, se puede **buscar** por ese número, sale en el **remito** y en el **PDF de la factura**, y va en el Excel. Lo cargás al tomar el pedido o editándolo después. Si la venta **ya está facturada** (el pedido no se puede editar), cargalo o corregilo desde el botón **Remito**.
+
 ### 8.4 Facturas emitidas
 
 Pestaña **Ventas → Facturas emitidas**: el listado único de **todo lo que salió con CAE**: facturas de ventas, facturas directas, notas de crédito y notas de débito (sobre factura o libres). Antes esto estaba repartido entre el botón CAE de cada venta y el modal "Ver facturas directas"; ahora está todo acá.
