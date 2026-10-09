@@ -3617,6 +3617,7 @@ let sueldosEscala=[],sueldosConvenio=[],sueldosPrevisional=[],sueldosGanTablas=[
 let sueldosNovedades=[],sueldosAcumulados=[],sueldosVacaciones=[];
 let facturasRecibidas=[];
 let ordenesPago=[];
+let recibos=[]; // recibos de cobranza (mig 089)
 let retencionRegimenes=[],retencionesPracticadas=[]; // retenciones a proveedores (mig 086)
 let facturasEmitidas=[]; // listado unificado Ventas → Facturas emitidas (sprint 3 hoja 2026-09-07)
 let periodosContables=[];
@@ -4544,9 +4545,10 @@ const TBL={
   cheques:{label:'Cheques',q:'?order=fecha_pago.asc',set:r=>{cheques=r||[];}},
   facturas_recibidas:{label:'Facturas recibidas',q:'?order=created_at.desc',set:r=>{facturasRecibidas=r||[];}},
   ordenes_pago:{label:'Órdenes de pago',q:'?order=fecha.desc,nro.desc&select=*,orden_pago_medios(*),orden_pago_imputaciones(*)',set:r=>{ordenesPago=r||[];}},
+  recibos:{label:'Recibos',q:'?order=fecha.desc,created_at.desc&select=*,recibo_medios(*),recibo_imputaciones(*)',set:r=>{recibos=r||[];}},
   retencion_regimenes:{label:'Regímenes de retención',q:'?order=impuesto.asc,codigo.asc',set:r=>{retencionRegimenes=r||[];}},
   retenciones_practicadas:{label:'Retenciones practicadas',q:'?order=fecha.desc,created_at.desc',set:r=>{retencionesPracticadas=r||[];}},
-  facturas_emitidas:{label:'Facturas emitidas',q:'?order=fecha.desc,punto_venta.asc,numero.desc&select=id,venta_id,factura_asociada_id,tipo_comprobante,punto_venta,numero,fecha,doc_tipo,doc_nro,imp_neto,imp_iva,imp_total,moneda,cotizacion_moneda,cae,cae_vto,resultado,afip_environment,periodo_asoc_desde,periodo_asoc_hasta,cbte_asoc_externo,created_at',set:r=>{facturasEmitidas=r||[];_dirtyPages.add('femitidas');}},
+  facturas_emitidas:{label:'Facturas emitidas',q:'?order=fecha.desc,punto_venta.asc,numero.desc&select=id,venta_id,factura_asociada_id,tipo_comprobante,punto_venta,numero,fecha,doc_tipo,doc_nro,imp_neto,imp_iva,imp_total,moneda,cotizacion_moneda,cae,cae_vto,resultado,afip_environment,periodo_asoc_desde,periodo_asoc_hasta,cbte_asoc_externo,cliente_id,tc_usd,created_at',set:r=>{facturasEmitidas=r||[];_dirtyPages.add('femitidas');}},
   periodos_contables:{label:'Períodos',q:'?order=anio.desc,mes.desc',set:r=>{periodosContables=r||[];}},
   v_correlatividad:{label:'Correlatividad',q:'?select=*',set:r=>{correlatividad=r||[];}},
   cuentas_bancarias:{label:'Cuentas bancarias',q:'?order=nombre.asc',set:r=>{cuentasBancarias=r||[];}},
@@ -8744,8 +8746,9 @@ function computeCashflowProyectado({cuentas=[],cheques=[],ocs=[],facturas=[],liq
   cuentas.forEach(c=>{
     let resto=parseFloat(c.totPagos)||0;
     (c.cargos||[]).slice().sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')).forEach(x=>{
-      const apl=Math.min(resto,x.monto);resto-=apl;
-      const pend=x.monto-apl;if(pend<=0.005)return;
+      // La cta cte por comprobante (089) ya trae el saldo de cada cargo
+      const apl=x.saldoUSD!=null?0:Math.min(resto,x.monto);resto-=apl;
+      const pend=x.saldoUSD!=null?x.saldoUSD:x.monto-apl;if(pend<=0.005)return;
       const b=bucket(x.venc||hoy);if(b)ing[b]+=pend;
     });
   });
@@ -12611,74 +12614,195 @@ function _cobroEnUSD(a){
   const tc=parseFloat(a.tipo_cambio)||0;
   return tc?tot/tc:0;
 }
-let _ctacteData=[];
-function computeCtaCte(){
-  const hoyMs=Date.now();
-  const byName={};clientes.forEach(c=>{const k=(c.nombre||'').toLowerCase();if(!byName[k])byName[k]=c;});
-  const byId={};clientes.forEach(c=>{byId[c.id]=c;});
+// ─── Cuenta corriente por comprobante + recibos (mig 089) ─────────────
+// Puras con tests en tests/recibos-cobranza.test.js.
+const CBTE_NC_TIPOS=[3,8,13,53];
+// factura_id → Σ imputado (pesos) por recibos confirmados.
+function imputacionesRecibosVivas(recibosList){
+  const m={};
+  (recibosList||[]).forEach(r=>{
+    if(r.estado!=='confirmado')return;
+    (r.recibo_imputaciones||[]).forEach(i=>{m[i.factura_id]=Math.round(((m[i.factura_id]||0)+(parseFloat(i.monto_factura)||0))*100)/100;});
+  });
+  return m;
+}
+// Saldo de una factura o ND emitida (pesos): total − NC asociadas −
+// imputaciones. exceso = lo acreditado/cobrado por encima del total.
+function saldoFacturaEmitida(f,facturas,imputVivas){
+  const r2=x=>Math.round(x*100)/100,total=r2(parseFloat(f.imp_total)||0);
+  const nc=r2((facturas||[]).filter(x=>x.factura_asociada_id===f.id&&CBTE_NC_TIPOS.includes(Number(x.tipo_comprobante))).reduce((a,x)=>a+(parseFloat(x.imp_total)||0),0));
+  const imputado=r2((imputVivas||{})[f.id]||0),neto=r2(total-nc-imputado);
+  return {total,nc,imputado,saldo:Math.max(0,neto),exceso:Math.max(0,-neto)};
+}
+// TC con el que la venta en USD se pasó a pesos: el guardado (089) o el
+// implícito de los ítems de la venta. null = facturada directo en pesos.
+function tcFacturaEmitida(f,venta,incluyenIva){
+  const g=parseFloat(f?.tc_usd)||0;if(g>0)return g;
+  const usd=((venta&&venta.venta_items)||[]).reduce((a,i)=>a+(parseFloat(i.cantidad)||0)*(parseFloat(i.precio_unitario)||0),0);
+  if(!(usd>0))return null;
+  const tc=(parseFloat(incluyenIva?f.imp_total:f.imp_neto)||0)/usd;
+  return tc>1?Math.round(tc*100)/100:null;
+}
+function _vencCondicion(fecha,cond){
+  return fecha?new Date(new Date(fecha+'T00:00:00').getTime()+_diasCondicionPago(cond)*86400000).toISOString().slice(0,10):null;
+}
+// Comprobantes con saldo de un cliente (para imputar en el recibo).
+function facturasPendientesCliente(clienteId,{clientes:cls=[],ventas:vs=[],facturasEmitidas:fes=[],recibos:recs=[]}={}){
+  const vivas=(fes||[]).filter(f=>f.afip_environment!=='homologacion'),imput=imputacionesRecibosVivas(recs);
+  return vivas.filter(f=>!CBTE_NC_TIPOS.includes(Number(f.tipo_comprobante))&&(f.cliente_id||resolverClienteFactura(f,vs,cls).cliente_id)===clienteId).map(f=>{
+    const venta=f.venta_id?(vs||[]).find(v=>v.id===f.venta_id):null,sd=saldoFacturaEmitida(f,vivas,imput);
+    return {f,saldo:sd.saldo,total:sd.total,venc:claseNota(f.tipo_comprobante)?f.fecha:_vencCondicion(f.fecha,venta?.condicion_pago),label:cbteLabel(f)};
+  }).filter(x=>x.saldo>0.005).sort((a,b)=>(a.venc||'').localeCompare(b.venc||'')||(a.f.numero||0)-(b.f.numero||0));
+}
+function validarRecibo({total,medios,imputaciones,saldos}){
+  const errores=[];const r2=n=>Math.round(n*100)/100;
+  total=r2(parseFloat(total)||0);medios=medios||[];imputaciones=imputaciones||[];saldos=saldos||{};
+  if(!medios.length)errores.push('Agregá al menos un valor recibido');
+  medios.forEach((m,i)=>{
+    if((parseFloat(m.monto)||0)<=0)errores.push(`Valor ${i+1}: monto inválido`);
+    if(!m.cuenta_contable_id)errores.push(`Valor ${i+1}: falta la cuenta contable de "${m.tipo}" (Configuración → Imputación contable / Bancos)`);
+    if(m.tipo==='cheque'&&(!m.cheque||!m.cheque.numero||!m.cheque.fecha_pago))errores.push(`Valor ${i+1}: el cheque necesita número y fecha de pago`);
+    if(m.tipo==='retencion'&&m.retencion?.tipo==='iibb'&&!m.retencion.jurisdiccion)errores.push(`Valor ${i+1}: elegí la jurisdicción de la retención de IIBB`);
+  });
+  const sumMedios=r2(medios.reduce((a,m)=>a+(parseFloat(m.monto)||0),0));
+  if(medios.length&&Math.abs(sumMedios-total)>=0.01)errores.push(`Los valores suman ${_numAR(sumMedios)} y el total es ${_numAR(total)}`);
+  const sumImputado=r2(imputaciones.reduce((a,i)=>a+(parseFloat(i.monto)||0),0));
+  if(sumImputado>total+0.005)errores.push(`Las imputaciones (${_numAR(sumImputado)}) superan el total del recibo (${_numAR(total)})`);
+  imputaciones.forEach(i=>{
+    const mf=parseFloat(i.monto_factura)||0;
+    if(mf<=0)errores.push('Imputación con monto inválido');
+    else if(saldos[i.factura_id]!=null&&mf>saldos[i.factura_id]+0.01)errores.push(`Imputás ${_numAR(mf)} a un comprobante con saldo ${_numAR(saldos[i.factura_id])}`);
+  });
+  return {ok:errores.length===0,errores,sumMedios,sumImputado,aCuenta:Math.max(0,r2(total-sumImputado))};
+}
+// Cuenta corriente de clientes. Cargos: facturas y ND emitidas (pesos, con
+// su equivalente en USD al TC de la factura), ventas entregadas sin factura
+// en el sistema (USD) y cheques rechazados. Bajan la deuda: NC, recibos
+// (imputados a su factura; lo a cuenta va a la más vieja) y cobros viejos
+// sin recibo (también a la más vieja). Un crédito en otra moneda se
+// convierte por su propio TC. Devuelve por cliente los importes en USD
+// (saldo, buckets, cargos[].monto, pagos[].monto — lo que ya consumían el
+// tablero, los avisos y el cierre) y en pesos (saldoARS, bucketsARS…).
+function computeCtaCteClientes({clientes:cls=[],ventas:vs=[],facturasEmitidas:fes=[],recibos:recs=[],asientos:as=[],asientoLineas:ls=[],tcHoy=0,incluyenIva=false,hoy}={}){
+  const n=x=>parseFloat(x)||0;
+  tcHoy=n(tcHoy);
+  const hoyMs=new Date((hoy||hoyLocal())+'T00:00:00').getTime();
+  const byName={},byId={};
+  (cls||[]).forEach(c=>{const k=(c.nombre||'').toLowerCase();if(!byName[k])byName[k]=c;byId[c.id]=c;});
   const cuentas={};
   const cuentaDe=(cid,nombre)=>{
     const c=(cid&&byId[cid])||byName[(nombre||'').toLowerCase()]||null;
     const key=c?c.id:'sin:'+(nombre||'¿?').toLowerCase();
-    if(!cuentas[key])cuentas[key]={cliente:c,nombre:c?c.nombre:(nombre||'¿?'),cargos:[],pagos:[]};
+    if(!cuentas[key])cuentas[key]={cliente:c,nombre:c?c.nombre:(nombre||'¿?'),cargos:[],pagos:[],creditos:[]};
     return cuentas[key];
   };
-  ventas.filter(v=>v.estado==='entregado'||v.estado==='facturado').forEach(v=>{
-    const monto=parseFloat(v.total)||0;if(monto<=0)return;
-    const fecha=v.fecha||(v.created_at||'').slice(0,10);
-    const dias=_diasCondicionPago(v.condicion_pago);
-    const venc=fecha?new Date(new Date(fecha+'T00:00:00').getTime()+dias*86400000).toISOString().slice(0,10):null;
-    cuentaDe(v.cliente_id,v.cliente).cargos.push({fecha,venc,monto,ref:v.nro_remito,tipo:'Venta'});
+  const debe={};(ls||[]).forEach(l=>{debe[l.asiento_id]=(debe[l.asiento_id]||0)+n(l.debe);});
+  const vivas=(fes||[]).filter(f=>f.afip_environment!=='homologacion'),idsVivas=new Set(vivas.map(f=>f.id));
+  const imput=imputacionesRecibosVivas(recs);
+  const ventaConFactura=new Set(vivas.filter(f=>f.venta_id&&!claseNota(f.tipo_comprobante)).map(f=>f.venta_id));
+  // Facturas, ND y NC emitidas
+  vivas.forEach(f=>{
+    const venta=f.venta_id?(vs||[]).find(v=>v.id===f.venta_id):null,rc=resolverClienteFactura(f,vs,cls);
+    const cta=cuentaDe(f.cliente_id||rc.cliente_id,rc.cliente_id||venta?rc.cliente:'CUIT '+(f.doc_nro||'¿?'));
+    const clase=claseNota(f.tipo_comprobante),total=n(f.imp_total);
+    if(clase==='nc'){
+      cta.pagos.push({fecha:f.fecha,mon:'ARS',montoNat:total,tc:0,ref:cbteLabel(f),tipo:'Nota de crédito'});
+      if(!f.factura_asociada_id||!idsVivas.has(f.factura_asociada_id))cta.creditos.push({fecha:f.fecha,mon:'ARS',monto:total,tc:0});
+      return;
+    }
+    const sd=saldoFacturaEmitida(f,vivas,imput),tc=tcFacturaEmitida(f,venta,incluyenIva);
+    cta.cargos.push({id:f.id,facturaId:f.id,tipo:clase==='nd'?'Nota de débito':'Factura',ref:cbteLabel(f),fecha:f.fecha,
+      venc:clase==='nd'?f.fecha:_vencCondicion(f.fecha,venta?.condicion_pago),mon:'ARS',total,rest:sd.saldo,tc:tc||tcHoy,tcEstimado:!tc});
+    if(sd.exceso>0.005)cta.creditos.push({fecha:f.fecha,mon:'ARS',monto:sd.exceso,tc:tc||0});
   });
-  asientos.filter(a=>a.tipo==='auto-cobranza'&&a.estado==='confirmado').forEach(a=>{
-    const monto=_cobroEnUSD(a);if(monto<=0)return;
+  // Ventas entregadas/facturadas sin comprobante en el sistema (USD)
+  (vs||[]).filter(v=>(v.estado==='entregado'||v.estado==='facturado')&&!ventaConFactura.has(v.id)).forEach(v=>{
+    const monto=n(v.total);if(monto<=0)return;
+    const fecha=v.fecha||(v.created_at||'').slice(0,10);
+    cuentaDe(v.cliente_id,v.cliente).cargos.push({id:'v:'+v.id,ventaId:v.id,tipo:'Venta',ref:v.nro_remito,fecha,venc:_vencCondicion(fecha,v.condicion_pago),
+      mon:'USD',total:monto,rest:monto,tc:tcHoy,tcEstimado:true,sinFactura:true});
+  });
+  const confirmados=(as||[]).filter(a=>a.estado==='confirmado');
+  const monA=a=>(a.moneda||'ARS')==='USD'?'USD':'ARS';
+  // Cheques rechazados: la deuda revive desde el rechazo
+  confirmados.filter(a=>a.tipo==='auto-cheque-rechazo'&&a.cliente_id).forEach(a=>{
+    const monto=debe[a.id]||0;if(monto<=0)return;
+    cuentaDe(a.cliente_id,null).cargos.push({id:'a:'+a.id,tipo:'Cheque rechazado',ref:a.comprobante_nro||('#'+(a.numero||'')),fecha:a.fecha,venc:a.fecha,
+      mon:monA(a),total:monto,rest:monto,tc:n(a.tipo_cambio)||tcHoy,tcEstimado:!n(a.tipo_cambio)});
+  });
+  // NC/ND que sólo existen como asiento (sin fila en facturas_emitidas)
+  confirmados.filter(a=>(a.tipo==='auto-nc'||a.tipo==='auto-nd')&&a.cliente_id&&!idsVivas.has(a.origen_id)).forEach(a=>{
+    const monto=debe[a.id]||0;if(monto<=0)return;
+    const cta=cuentaDe(a.cliente_id,null),ref=a.comprobante_nro||('#'+(a.numero||'')),tc=n(a.tipo_cambio);
+    if(a.tipo==='auto-nd')cta.cargos.push({id:'a:'+a.id,tipo:'Nota de débito',ref,fecha:a.fecha,venc:a.fecha,mon:monA(a),total:monto,rest:monto,tc:tc||tcHoy,tcEstimado:!tc});
+    else{cta.pagos.push({fecha:a.fecha,mon:monA(a),montoNat:monto,tc,ref,tipo:'Nota de crédito'});cta.creditos.push({fecha:a.fecha,mon:monA(a),monto,tc});}
+  });
+  // Recibos (089): lo imputado ya bajó su factura; lo a cuenta se reparte
+  (recs||[]).filter(r=>r.estado==='confirmado').forEach(r=>{
+    const cta=cuentaDe(r.cliente_id,null),total=n(r.total),tc=n(r.tipo_cambio),mon=r.moneda==='USD'?'USD':'ARS';
+    const aCuenta=total-(r.recibo_imputaciones||[]).reduce((a,i)=>a+n(i.monto),0);
+    cta.pagos.push({fecha:r.fecha,mon,montoNat:total,tc,ref:r.nro||'Recibo',tipo:'Recibo',reciboId:r.id});
+    if(aCuenta>0.005)cta.creditos.push({fecha:r.fecha,mon,monto:aCuenta,tc});
+  });
+  // Cobros viejos: asiento auto-cobranza que no viene de un recibo
+  confirmados.filter(a=>a.tipo==='auto-cobranza'&&a.origen_tipo!=='recibo').forEach(a=>{
+    const monto=debe[a.id]||0;if(monto<=0)return;
     let nombre=null;
     if(!a.cliente_id){
       const m=(a.descripcion||'').match(/^Cobro de (.+?)(?:\s+—|$)/);
       nombre=m?m[1].trim():null;
       if(!nombre||!byName[nombre.toLowerCase()])return; // sin vínculo posible
     }
-    cuentaDe(a.cliente_id,nombre).pagos.push({fecha:a.fecha,monto,ref:a.comprobante_nro||('#'+(a.numero||'')),tipo:'Cobro'});
-  });
-  // Cheques rechazados (mig 056): el cobro quedó registrado pero el valor
-  // volvió — la deuda revive como cargo vencido desde el rechazo.
-  asientos.filter(a=>a.tipo==='auto-cheque-rechazo'&&a.estado==='confirmado'&&a.cliente_id).forEach(a=>{
-    const monto=_cobroEnUSD(a);if(monto<=0)return;
-    cuentaDe(a.cliente_id,null).cargos.push({fecha:a.fecha,venc:a.fecha,monto,ref:a.comprobante_nro||('#'+(a.numero||'')),tipo:'Cheque rechazado'});
-  });
-  // Notas de crédito (mig 067): reducen la deuda del cliente como un pago.
-  // El asiento auto-nc suma en el debe neto+IVA (= total) y trae el TC del día.
-  asientos.filter(a=>a.tipo==='auto-nc'&&a.estado==='confirmado'&&a.cliente_id).forEach(a=>{
-    const monto=_cobroEnUSD(a);if(monto<=0)return;
-    cuentaDe(a.cliente_id,null).pagos.push({fecha:a.fecha,monto,ref:a.comprobante_nro||('#'+(a.numero||'')),tipo:'Nota de crédito'});
-  });
-  // Notas de débito (mig 075): aumentan la deuda como una factura (vence el mismo día).
-  asientos.filter(a=>a.tipo==='auto-nd'&&a.estado==='confirmado'&&a.cliente_id).forEach(a=>{
-    const monto=_cobroEnUSD(a);if(monto<=0)return;
-    cuentaDe(a.cliente_id,null).cargos.push({fecha:a.fecha,venc:a.fecha,monto,ref:a.comprobante_nro||('#'+(a.numero||'')),tipo:'Nota de débito'});
+    const cta=cuentaDe(a.cliente_id,nombre),tc=n(a.tipo_cambio);
+    cta.pagos.push({fecha:a.fecha,mon:monA(a),montoNat:monto,tc,ref:a.comprobante_nro||('#'+(a.numero||'')),tipo:'Cobro'});
+    cta.creditos.push({fecha:a.fecha,mon:monA(a),monto,tc});
   });
   const res=Object.values(cuentas).map(c=>{
     c.cargos.sort((a,b)=>(a.venc||a.fecha||'').localeCompare(b.venc||b.fecha||''));
-    const totCargos=c.cargos.reduce((s,x)=>s+x.monto,0);
-    const totPagos=c.pagos.reduce((s,x)=>s+x.monto,0);
-    let disponible=totPagos;
-    const buckets={alDia:0,d30:0,d60:0,d90:0,mas90:0};
-    c.cargos.forEach(x=>{
-      const aplicado=Math.min(x.monto,disponible);
-      disponible-=aplicado;
-      const resto=x.monto-aplicado;
-      if(resto<0.005)return;
-      const diasVenc=x.venc?Math.floor((hoyMs-new Date(x.venc+'T00:00:00').getTime())/86400000):0;
-      if(diasVenc<=0)buckets.alDia+=resto;
-      else if(diasVenc<=30)buckets.d30+=resto;
-      else if(diasVenc<=60)buckets.d60+=resto;
-      else if(diasVenc<=90)buckets.d90+=resto;
-      else buckets.mas90+=resto;
+    c.creditos.sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+    let aFavor=0,aFavorARS=0;
+    c.creditos.forEach(cr=>{
+      let rest=cr.monto;
+      for(const cg of c.cargos){
+        if(rest<=0.005)break;
+        if(cg.rest<=0.005)continue;
+        const cruza=cr.mon!==cg.mon,rate=cruza?(cr.tc||cg.tc||tcHoy):1;
+        if(cruza&&!(rate>0))continue;
+        const disp=!cruza?rest:cr.mon==='ARS'?rest/rate:rest*rate,apl=Math.min(cg.rest,disp);
+        cg.rest-=apl;rest-=!cruza?apl:cr.mon==='ARS'?apl*rate:apl/rate;
+      }
+      if(rest>0.005){
+        const rate=cr.tc||tcHoy;
+        aFavor+=cr.mon==='USD'?rest:(rate>0?rest/rate:0);
+        aFavorARS+=cr.mon==='ARS'?rest:rest*rate;
+      }
     });
-    return{...c,totCargos,totPagos,saldo:totCargos-totPagos,buckets,aFavor:Math.max(0,totPagos-totCargos)};
+    const usd=(x,m)=>x.mon==='USD'?m:(x.tc>0?m/x.tc:0),ars=(x,m)=>x.mon==='ARS'?m:m*(x.tc||0);
+    const buckets={alDia:0,d30:0,d60:0,d90:0,mas90:0},bucketsARS={alDia:0,d30:0,d60:0,d90:0,mas90:0};
+    let sumUSD=0,sumARS=0,sinFacturarUSD=0,tcEstimado=false;
+    c.cargos.forEach(x=>{
+      if(x.rest<0.005)x.rest=0;
+      x.monto=usd(x,x.total);x.montoARS=ars(x,x.total);x.saldoUSD=usd(x,x.rest);x.saldoARS=ars(x,x.rest);
+      if(!x.rest)return;
+      sumUSD+=x.saldoUSD;sumARS+=x.saldoARS;
+      if(x.sinFactura)sinFacturarUSD+=x.rest;
+      if(x.tcEstimado)tcEstimado=true;
+      const d=x.venc?Math.floor((hoyMs-new Date(x.venc+'T00:00:00').getTime())/86400000):0;
+      const k=d<=0?'alDia':d<=30?'d30':d<=60?'d60':d<=90?'d90':'mas90';
+      buckets[k]+=x.saldoUSD;bucketsARS[k]+=x.saldoARS;
+    });
+    c.pagos.forEach(p=>{const rate=p.tc||tcHoy;p.monto=p.mon==='USD'?p.montoNat:(rate>0?p.montoNat/rate:0);p.montoARS=p.mon==='ARS'?p.montoNat:p.montoNat*rate;});
+    const r2=x=>Math.round(x*100)/100;
+    return {cliente:c.cliente,nombre:c.nombre,cargos:c.cargos,pagos:c.pagos,
+      totCargos:c.cargos.reduce((a,x)=>a+x.monto,0),totPagos:c.pagos.reduce((a,p)=>a+p.monto,0),
+      saldo:r2(sumUSD-aFavor),buckets,aFavor:r2(aFavor),saldoARS:r2(sumARS-aFavorARS),bucketsARS,aFavorARS:r2(aFavorARS),sinFacturarUSD:r2(sinFacturarUSD),tcEstimado};
   }).filter(c=>c.cargos.length||c.pagos.length);
-  res.sort((a,b)=>b.saldo-a.saldo);
+  res.sort((a,b)=>b.saldo-a.saldo||b.saldoARS-a.saldoARS);
   return res;
+}
+let _ctacteData=[];
+function computeCtaCte(){
+  return computeCtaCteClientes({clientes,ventas,facturasEmitidas,recibos,asientos,asientoLineas,tcHoy:_tcHoy(),incluyenIva:!!configContable?.precios_incluyen_iva});
 }
 function renderCtaCte(filter=''){
   const tbody=document.getElementById('ctacte-tbody');if(!tbody)return;
